@@ -142,8 +142,8 @@ export default function SuperAdminPage() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`,
             apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+            'x-internal-key': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
           },
           body: JSON.stringify({ email, agencyId }),
         });
@@ -158,8 +158,8 @@ export default function SuperAdminPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`,
           apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+          'x-internal-key': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
         },
         body: JSON.stringify({ email, agencyId }),
       });
