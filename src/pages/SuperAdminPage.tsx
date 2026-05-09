@@ -33,6 +33,9 @@ type AdminAgency = {
   lastPaymentDate: string | null;
   nextPaymentDueDate: string | null;
   monthlyPrice: number;
+  annualPrice: number;
+  billingType: 'monthly' | 'annual';
+  usersCount: number;
   accountStatus: AccountStatus;
   createdDate: string;
   paymentMethod: PaymentMethod;
@@ -43,8 +46,8 @@ type FilterValue = 'all' | AccountStatus | BillingStatus;
 
 const filters: FilterValue[] = ['all', 'pending', 'active', 'suspended', 'rejected', 'overdue', 'paid', 'unpaid'];
 const planPrices: Record<AgencyPlan, number> = {
-  free: 0,
-  pro: 199,
+  starter: 99,
+  pro: 250,
   business: 499,
 };
 
@@ -67,7 +70,10 @@ const demoAgencies: AdminAgency[] = [
     subscriptionEndDate: '2026-06-01',
     lastPaymentDate: '2026-05-01',
     nextPaymentDueDate: '2026-06-01',
-    monthlyPrice: 199,
+    monthlyPrice: 250,
+    annualPrice: 2500,
+    billingType: 'monthly',
+    usersCount: 3,
     accountStatus: 'active',
     createdDate: '2026-04-18',
     paymentMethod: 'bank_transfer',
@@ -86,6 +92,9 @@ const demoAgencies: AdminAgency[] = [
     lastPaymentDate: payments[1].dueDate,
     nextPaymentDueDate: '2026-05-05',
     monthlyPrice: 499,
+    annualPrice: 4990,
+    billingType: 'monthly',
+    usersCount: 1,
     accountStatus: 'pending',
     createdDate: '2026-05-08',
     paymentMethod: 'cash',
@@ -160,12 +169,15 @@ export default function SuperAdminPage() {
           email: owner?.email || 'Aucun email',
           phone: owner?.phone || 'Aucun téléphone',
           vehiclesCount: vehicleRows.filter((vehicle) => vehicle.agency_id === agency.id).length,
-          plan: agency.plan || 'free',
+          plan: agency.plan || 'starter',
           billingStatus: agency.billing_status || 'trial',
           subscriptionEndDate: agency.subscription_end_date,
           lastPaymentDate: agency.last_payment_date,
           nextPaymentDueDate: agency.next_payment_due_date,
           monthlyPrice: Number(agency.monthly_price ?? 0),
+          annualPrice: Number((agency.monthly_price ?? 0) * 10),
+          billingType: 'monthly' as const,
+          usersCount: profiles.filter((profile) => profile.agency_id === agency.id).length,
           accountStatus: owner?.account_status || 'pending',
           createdDate: agency.created_at,
           paymentMethod: agency.payment_method || 'other',
@@ -322,15 +334,15 @@ export default function SuperAdminPage() {
                     <p className="mt-1 text-lg font-black capitalize text-white light:text-carbon-950">{agency.plan}</p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                    <p className="text-xs uppercase tracking-wide text-carbon-500">Monthly price</p>
+                    <p className="text-xs uppercase tracking-wide text-carbon-500">Prix mensuel</p>
                     <p className="mt-1 text-lg font-black text-white light:text-carbon-950">{formatMAD(agency.monthlyPrice)}</p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                    <p className="text-xs uppercase tracking-wide text-carbon-500">Last payment</p>
+                    <p className="text-xs uppercase tracking-wide text-carbon-500">Dernier paiement</p>
                     <p className="mt-1 text-sm font-bold text-white light:text-carbon-950">{agency.lastPaymentDate || 'None'}</p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                    <p className="text-xs uppercase tracking-wide text-carbon-500">Next due</p>
+                    <p className="text-xs uppercase tracking-wide text-carbon-500">Prochaine échéance</p>
                     <p className="mt-1 text-sm font-bold text-white light:text-carbon-950">{agency.nextPaymentDueDate || 'Not set'}</p>
                   </div>
                 </div>
@@ -338,26 +350,30 @@ export default function SuperAdminPage() {
 
               <div className="grid gap-4 p-5 xl:grid-cols-[1fr_0.85fr]">
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="secondary" icon={<CheckCircle2 className="h-4 w-4" />} onClick={() => safeAction('Agency approved', () => updateAccountStatus(agency.id, 'active'))}>Approve agency</Button>
-                  <Button variant="danger" icon={<XCircle className="h-4 w-4" />} onClick={() => safeAction('Agency rejected', () => updateAccountStatus(agency.id, 'rejected'))}>Reject agency</Button>
-                  <Button variant="danger" icon={<ShieldAlert className="h-4 w-4" />} onClick={() => safeAction('Agency suspended', () => updateAccountStatus(agency.id, 'suspended'))}>Suspend agency</Button>
-                  <Button icon={<Crown className="h-4 w-4" />} onClick={() => safeAction('Agency reactivated', () => updateAccountStatus(agency.id, 'active'))}>Reactivate agency</Button>
+                  <Button variant="secondary" icon={<CheckCircle2 className="h-4 w-4" />} onClick={() => safeAction('Agence approuvée', () => updateAccountStatus(agency.id, 'active'))}>Approuver</Button>
+                  <Button variant="danger" icon={<XCircle className="h-4 w-4" />} onClick={() => safeAction('Agence rejetée', () => updateAccountStatus(agency.id, 'rejected'))}>Rejeter</Button>
+                  <Button variant="danger" icon={<ShieldAlert className="h-4 w-4" />} onClick={() => safeAction('Agence suspendue', () => updateAccountStatus(agency.id, 'suspended'))}>Suspendre</Button>
+                  <Button icon={<Crown className="h-4 w-4" />} onClick={() => safeAction('Agence réactivée', () => updateAccountStatus(agency.id, 'active'))}>Réactiver</Button>
                   <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} onClick={() => safeAction('Marked as paid', () => updateAgencyRow(agency.id, {
                     billingStatus: 'paid',
                     lastPaymentDate: new Date().toISOString().slice(0, 10),
                     nextPaymentDueDate: addDays(new Date().toISOString(), 30),
                     subscriptionEndDate: addDays(new Date().toISOString(), 30),
-                  }))}>Mark as paid</Button>
-                  <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} onClick={() => safeAction('Marked as unpaid', () => updateAgencyRow(agency.id, { billingStatus: 'unpaid' }))}>Mark as unpaid</Button>
+                  }))}>Marquer payé</Button>
+                  <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} onClick={() => safeAction('Marqué non payé', () => updateAgencyRow(agency.id, { billingStatus: 'unpaid' }))}>Marquer non payé</Button>
                   <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} onClick={() => safeAction('Subscription extended', () => updateAgencyRow(agency.id, {
                     nextPaymentDueDate: addDays(agency.nextPaymentDueDate, 30),
                     subscriptionEndDate: addDays(agency.subscriptionEndDate || agency.nextPaymentDueDate, 30),
-                  }))}>Extend subscription</Button>
+                  }))}>Prolonger 1 mois</Button>
+                  <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} onClick={() => safeAction('Abonnement prolongé', () => updateAgencyRow(agency.id, {
+                    nextPaymentDueDate: addDays(agency.nextPaymentDueDate, 365),
+                    subscriptionEndDate: addDays(agency.subscriptionEndDate || agency.nextPaymentDueDate, 365),
+                  }))}>Prolonger 1 an</Button>
                 </div>
 
                 <div className="grid gap-3">
                   <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
-                    <span>Change subscription plan</span>
+                    <span>Changer le plan</span>
                     <select
                       value={agency.plan}
                       className="focus-ring rounded-xl border border-white/10 bg-carbon-950/45 px-3 py-2.5 text-white light:bg-white light:text-carbon-950"
@@ -369,7 +385,7 @@ export default function SuperAdminPage() {
                         }));
                       }}
                     >
-                      <option value="free">free</option>
+                      <option value="starter">starter</option>
                       <option value="pro">pro</option>
                       <option value="business">business</option>
                     </select>

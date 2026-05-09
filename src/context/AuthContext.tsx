@@ -15,7 +15,7 @@ export type UserProfile = {
 };
 
 export type AccountStatus = 'pending' | 'active' | 'rejected' | 'suspended';
-export type AgencyPlan = 'free' | 'pro' | 'business';
+export type AgencyPlan = 'starter' | 'pro' | 'business';
 export type BillingStatus = 'trial' | 'paid' | 'unpaid' | 'overdue' | 'cancelled';
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'card' | 'other';
 
@@ -102,7 +102,7 @@ const demoAgency: AgencySubscription = {
   subscriptionEndDate: '2026-06-01',
   lastPaymentDate: '2026-05-01',
   nextPaymentDueDate: '2026-06-01',
-  monthlyPrice: 199,
+  monthlyPrice: 250,
   paymentMethod: 'bank_transfer',
   paymentNotes: 'Local demo account with mock operational data.',
   createdAt: '2026-05-01',
@@ -144,7 +144,7 @@ function mapAgency(row: AgencyRow | AgencyRow[] | null): AgencySubscription | nu
   return {
     id: agency.id,
     name: agency.name,
-    plan: agency.plan || 'free',
+    plan: agency.plan || 'starter',
     billingStatus: agency.billing_status || 'trial',
     subscriptionStartDate: agency.subscription_start_date,
     subscriptionEndDate: agency.subscription_end_date,
@@ -234,7 +234,7 @@ async function createAgencyAndProfile(
       name: agencyName,
       slug: `${createSlug(agencyName)}-${Date.now().toString().slice(-5)}`,
       created_by: user.id,
-      plan: 'free',
+      plan: 'starter',
       billing_status: 'trial',
       subscription_start_date: today.toISOString().slice(0, 10),
       subscription_end_date: trialEnd,

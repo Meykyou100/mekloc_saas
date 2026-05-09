@@ -550,25 +550,29 @@ export const features = [
 
 export const plans = [
   {
-    name: 'Free',
-    price: '0 MAD',
-    note: 'For new agencies testing digital operations.',
-    features: ['10 vehicles', 'Basic reservations', 'Client database', 'Email support'],
+    name: 'Starter',
+    price: '99 MAD',
+    cadence: '/mois',
+    note: 'Pour les petites agences',
+    features: ['Jusqu’à 5 véhicules', 'Réservations limitées', 'Gestion clients', 'Gestion véhicules', 'Tableau de bord simple', 'Support standard'],
   },
   {
     name: 'Pro',
-    price: '199 MAD',
-    cadence: '/month',
-    note: 'The growth plan for busy rental agencies.',
+    price: '250 MAD',
+    cadence: '/mois',
+    note: 'Pour les agences actives',
     featured: true,
-    features: ['Unlimited reservations', 'Contracts', 'Payment tracking', 'WhatsApp alerts', 'Reports'],
+    badge: 'Le plus populaire',
+    annualPrice: '2500 MAD/an',
+    features: ['Véhicules illimités', 'Réservations illimitées', 'Contrats PDF', 'Paiements & factures', 'Gestion entretien véhicules', 'Alertes WhatsApp', 'Rapports avancés', '3 utilisateurs', 'Sauvegarde cloud'],
   },
   {
     name: 'Business',
     price: '499 MAD',
-    cadence: '/month',
-    note: 'Advanced control for multi-branch teams.',
-    features: ['Multi-branch fleet', 'Team roles', 'Advanced analytics', 'Priority support', 'Custom templates'],
+    cadence: '/mois',
+    note: 'Pour les agences avancées',
+    annualPrice: '4990 MAD/an',
+    features: ['Tout le plan Pro', 'Multi-agences / multi-branches', 'Gestion employés', 'Analytics avancés', 'Templates contrats personnalisés', 'Support prioritaire', 'Automatisation WhatsApp avancée', 'Jusqu’à 10 utilisateurs'],
   },
 ];
 
