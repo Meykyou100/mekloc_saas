@@ -7,13 +7,13 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
     const authHeader = req.headers.get('Authorization') || '';
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+    const anonKey = Deno.env.get('ANON_KEY') || '';
     if (!anonKey || authHeader !== `Bearer ${anonKey}`) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const url = Deno.env.get('SUPABASE_URL')!;
-    const serviceRole = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const url = Deno.env.get('PROJECT_URL')!;
+    const serviceRole = Deno.env.get('SERVICE_ROLE_KEY')!;
     const body = await req.json();
     const { email, agencyId } = body as { email: string; agencyId: string };
     if (!email || !agencyId) throw new Error('email and agencyId required');
