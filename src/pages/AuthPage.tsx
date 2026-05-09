@@ -13,7 +13,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { notify } = useApp();
-  const { signIn, signInWithGoogle, signUp, refreshProfile, isSupabaseEnabled } = useAuth();
+  const { signIn, signInWithGoogle, signUp, refreshProfile, isSupabaseEnabled, requestPasswordReset } = useAuth();
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -82,6 +82,17 @@ export default function AuthPage() {
         type: 'warning',
       });
       setLoading(false);
+    }
+  }
+
+  async function handleForgotPassword() {
+    const email = window.prompt('Entrez votre email pour réinitialiser le mot de passe :');
+    if (!email) return;
+    try {
+      await requestPasswordReset(email);
+      notify({ title: 'Email envoyé', message: 'Le lien de réinitialisation a été envoyé à votre adresse Gmail.', type: 'success' });
+    } catch (error) {
+      notify({ title: 'Échec réinitialisation', message: error instanceof Error ? error.message : 'Réessayez plus tard.', type: 'warning' });
     }
   }
 
@@ -160,6 +171,11 @@ export default function AuthPage() {
             >
               Continuer avec Google
             </Button>
+            {mode === 'login' ? (
+              <button type="button" className="mt-4 text-sm font-semibold text-gold-200 hover:text-gold-100" onClick={handleForgotPassword}>
+                Mot de passe oublié ?
+              </button>
+            ) : null}
             <button className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-carbon-400 hover:text-gold-200">
               <Eye className="h-4 w-4" />
               Aperçu du tableau de bord sans compte

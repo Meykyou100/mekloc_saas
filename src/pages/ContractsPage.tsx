@@ -53,18 +53,47 @@ export default function ContractsPage() {
 
   const client = useMemo(() => clients.find((item) => item.id === clientId) || emptyClient, [clientId, clients]);
   const vehicle = useMemo(() => vehicles.find((item) => item.id === vehicleId) || emptyVehicle, [vehicleId, vehicles]);
-  const contractFileName = `contrat-${client.fullName.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.txt`;
+  const contractFileName = `contrat-${client.fullName.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`;
 
   function downloadContractPreview() {
-    const content = `Contrat MekLoc\nClient: ${client.fullName}\nVéhicule: ${vehicle.brand} ${vehicle.model}\nDate: ${new Date().toLocaleDateString('fr-MA')}\n`;
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const lines = [
+      'Contrat de location MekLoc',
+      `Client: ${client.fullName}`,
+      `Véhicule: ${vehicle.brand} ${vehicle.model}`,
+      `Plaque: ${vehicle.plate || '-'}`,
+      `Date: ${new Date().toLocaleDateString('fr-MA')}`,
+    ];
+    const textStream = lines
+      .map((line, i) => `BT /F1 12 Tf 50 ${780 - i * 20} Td (${line.replace(/[()\\]/g, '')}) Tj ET`)
+      .join('\n');
+    const pdf = `%PDF-1.4
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj
+4 0 obj << /Length ${textStream.length} >> stream
+${textStream}
+endstream endobj
+5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
+xref
+0 6
+0000000000 65535 f 
+0000000010 00000 n 
+0000000060 00000 n 
+0000000117 00000 n 
+0000000243 00000 n 
+000000${(260 + textStream.length).toString().padStart(10, '0')} 00000 n 
+trailer << /Root 1 0 R /Size 6 >>
+startxref
+0
+%%EOF`;
+    const blob = new Blob([pdf], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = contractFileName;
     a.click();
     URL.revokeObjectURL(url);
-    notify({ title: 'Téléchargement lancé', message: 'Le fichier contrat a été généré.', type: 'success' });
+    notify({ title: 'Téléchargement lancé', message: 'Le contrat PDF a été généré.', type: 'success' });
   }
 
   async function handleGenerateContract() {

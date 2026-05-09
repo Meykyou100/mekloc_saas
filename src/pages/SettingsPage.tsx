@@ -1,5 +1,6 @@
 import { BellRing, Building2, Camera, FileSignature, Globe2, MessageCircle, Percent, Save, ShieldCheck, UsersRound } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { Field, SelectField } from '../components/ui/Form';
@@ -10,7 +11,8 @@ import { uploadAgencyLogo } from '../lib/storage';
 
 export default function SettingsPage() {
   const { notify } = useApp();
-  const { agencyId, isSupabaseEnabled, profile } = useAuth();
+  const { agencyId, isSupabaseEnabled, profile, signOut, deleteAccountWithPassword } = useAuth();
+  const navigate = useNavigate();
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const [tab, setTab] = useState('Général');
   const tabs = ['Général', 'Contrats', 'Facturation', 'Abonnement', 'Équipe', 'Notifications'];
@@ -29,14 +31,44 @@ export default function SettingsPage() {
   const contactPhone = '212762971653';
   const contactEmail = 'younesmekki100@gmail.com';
   function downloadBillingReceipt() {
-    const content = `Reçu abonnement MekLoc\nAgence: ${agency?.name || 'Agence'}\nPlan: ${agency?.plan || 'starter'}\nStatut: ${billingStatusFr}\nDate: ${new Date().toLocaleDateString('fr-MA')}\n`;
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const lines = [
+      'Recu abonnement MekLoc',
+      `Agence: ${agency?.name || 'Agence'}`,
+      `Plan: ${(agency?.plan || 'starter').toUpperCase()}`,
+      `Statut paiement: ${billingStatusFr}`,
+      `Date: ${new Date().toLocaleDateString('fr-MA')}`,
+      `Prochain paiement: ${agency?.nextPaymentDueDate || '-'}`,
+      `Fin abonnement: ${agency?.subscriptionEndDate || '-'}`,
+    ];
+    const textStream = lines.map((line, i) => `BT /F1 11 Tf 50 ${780 - i * 18} Td (${line.replace(/[()\\]/g, '')}) Tj ET`).join('\n');
+    const pdf = `%PDF-1.4
+1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
+2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
+3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj
+4 0 obj << /Length ${textStream.length} >> stream
+${textStream}
+endstream endobj
+5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
+xref
+0 6
+0000000000 65535 f 
+0000000010 00000 n 
+0000000060 00000 n 
+0000000117 00000 n 
+0000000243 00000 n 
+000000${(260 + textStream.length).toString().padStart(10, '0')} 00000 n 
+trailer << /Root 1 0 R /Size 6 >>
+startxref
+0
+%%EOF`;
+    const blob = new Blob([pdf], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `recu-abonnement-${(agency?.name || 'mekloc').replace(/\s+/g, '-').toLowerCase()}.txt`;
+    a.download = `recu-abonnement-${(agency?.name || 'mekloc').replace(/\s+/g, '-').toLowerCase()}.pdf`;
     a.click();
     URL.revokeObjectURL(url);
+    notify({ title: 'Reçu PDF', message: 'Le reçu PDF a été téléchargé.', type: 'success' });
   }
 
   async function handleLogoUpload(file: File | undefined) {
@@ -58,13 +90,30 @@ export default function SettingsPage() {
     }
   }
 
+  async function handleLogout() {
+    await signOut();
+    navigate('/auth');
+  }
+
+  async function handleDeleteAccount() {
+    const password = window.prompt('Pour supprimer votre compte, confirmez votre mot de passe :');
+    if (!password) return;
+    try {
+      await deleteAccountWithPassword(password);
+      notify({ title: 'Compte supprimé', message: 'Votre compte a été supprimé avec succès.', type: 'success' });
+      navigate('/auth');
+    } catch (error) {
+      notify({ title: 'Suppression impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+    }
+  }
+
   return (
     <div>
       <PageHeader
         eyebrow="Workspace"
         title="Paramètres"
         description="Configurez le profil agence, les contrats, la devise, la fiscalité, WhatsApp et les rôles."
-        action={<Button icon={<Save className="h-4 w-4" />} onClick={() => notify({ title: 'Paramètres enregistrés', message: 'Les réglages de votre espace ont été mis à jour.', type: 'success' })}>Enregistrer</Button>}
+        action={<div className="flex gap-2"><Button icon={<Save className="h-4 w-4" />} onClick={() => notify({ title: 'Paramètres enregistrés', message: 'Les réglages de votre espace ont été mis à jour.', type: 'success' })}>Enregistrer</Button><Button variant="secondary" onClick={handleLogout}>Déconnexion</Button></div>}
       />
 
       <Card className="mb-6 p-2">
@@ -292,6 +341,15 @@ export default function SettingsPage() {
           </Card>
         </div>
       ) : null}
+
+      <Card className="mt-6 p-5">
+        <h2 className="text-lg font-semibold text-white light:text-carbon-950">Sécurité du compte</h2>
+        <p className="mt-2 text-sm text-carbon-400">Vous pouvez vous déconnecter ou supprimer définitivement votre compte.</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={handleLogout}>Déconnexion</Button>
+          <Button variant="danger" onClick={handleDeleteAccount}>Supprimer mon compte</Button>
+        </div>
+      </Card>
     </div>
   );
 }

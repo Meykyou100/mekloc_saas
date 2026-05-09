@@ -10,7 +10,7 @@ import {
   XCircle,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -104,7 +104,8 @@ const demoAgencies: AdminAgency[] = [
 
 export default function SuperAdminPage() {
   const { notify } = useApp();
-  const { isSupabaseEnabled, profile } = useAuth();
+  const { isSupabaseEnabled, profile, signOut } = useAuth();
+  const navigate = useNavigate();
   const [agencies, setAgencies] = useState<AdminAgency[]>(demoAgencies);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<FilterValue>('all');
@@ -265,18 +266,23 @@ export default function SuperAdminPage() {
     <div className="min-h-screen bg-carbon-950 px-4 py-6 text-white light:bg-carbon-50 light:text-carbon-950 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <PageHeader
-        eyebrow="Espace sécurisé"
+          eyebrow="Espace sécurisé"
           title="Super Admin"
           description="Approve agencies, manage subscriptions, and monitor billing health across MekLoc."
           action={
-            <Button
-              variant="secondary"
-              icon={<RefreshCw className="h-4 w-4" />}
-              loading={loading}
-              onClick={loadAgencies}
-            >
-              Actualiser
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                icon={<RefreshCw className="h-4 w-4" />}
+                loading={loading}
+                onClick={loadAgencies}
+              >
+                Actualiser
+              </Button>
+              <Button variant="secondary" onClick={async () => { await signOut(); navigate('/auth'); }}>
+                Déconnexion
+              </Button>
+            </div>
           }
         />
 

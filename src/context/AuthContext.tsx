@@ -59,6 +59,8 @@ type AuthContextValue = {
   createAgencyProfile: (agencyName: string, fullName?: string, phone?: string) => Promise<UserProfile>;
   refreshProfile: () => Promise<UserProfile | null>;
   signOut: () => Promise<void>;
+  requestPasswordReset: (email: string) => Promise<void>;
+  deleteAccountWithPassword: (password: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -484,6 +486,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         if (!supabase) return;
+        await supabase.auth.signOut();
+        setSession(null);
+        setUser(null);
+        setProfile(null);
+      },
+      requestPasswordReset: async (email: string) => {
+        if (!supabase) throw new Error('Supabase non configuré.');
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth`,
+        });
+        if (error) throw error;
+      },
+      deleteAccountWithPassword: async (password: string) => {
+        if (!supabase || !user) throw new Error('Session utilisateur introuvable.');
+        const email = user.email || '';
+        const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+        if (authError) throw new Error('Mot de passe incorrect.');
+        const { error: profileDeleteError } = await supabase.from('users_profiles').delete().eq('id', user.id);
+        if (profileDeleteError) throw profileDeleteError;
         await supabase.auth.signOut();
         setSession(null);
         setUser(null);
