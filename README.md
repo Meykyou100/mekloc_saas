@@ -42,11 +42,50 @@ VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 
 ### Access Request Email (Placeholder)
 
-Current implementation stores requests in Supabase and shows success toasts.
-TODO: connect real email delivery via Resend or a Supabase Edge Function.
+The app now supports real email sending through a webhook/Edge Function.
+Add this environment variable:
+
+```bash
+VITE_ACCESS_REQUEST_EMAIL_WEBHOOK=https://your-edge-function-or-webhook-url
+```
+
+Expected POST payload:
+- `to`
+- `subject`
+- `text`
+- `html`
+
+You can connect this to:
+- Supabase Edge Function + Resend
+- Make/Zapier webhook
+- Your backend mail service
 
 Suggested subject:
 `Votre demande d’accès MekLoc a été reçue`
+
+### Supabase Edge Function + Resend (Production)
+
+1. Install and login Supabase CLI.
+2. Deploy function:
+
+```bash
+supabase functions deploy send-access-request-email
+```
+
+3. Set function secrets:
+
+```bash
+supabase secrets set RESEND_API_KEY=your_resend_api_key
+supabase secrets set RESEND_FROM_EMAIL="MekLoc <contact@yourdomain.com>"
+```
+
+4. In `.env.local`, point frontend webhook to the function URL:
+
+```bash
+VITE_ACCESS_REQUEST_EMAIL_WEBHOOK=https://<project-ref>.functions.supabase.co/send-access-request-email
+```
+
+5. Restart the app and test `/demande-acces`.
 - Google login uses Supabase Auth OAuth provider.
 - Google users without an agency profile are redirected to `/onboarding`.
 - Onboarding creates the agency and `users_profiles` row with `account_status = pending`.

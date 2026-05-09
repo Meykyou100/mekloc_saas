@@ -5,6 +5,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { Field, SelectField } from '../components/ui/Form';
 import { useApp } from '../context/AppContext';
+import { sendAccessRequestConfirmationEmail } from '../lib/accessRequestEmail';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
 type PlanId = 'gratuit' | 'starter' | 'business';
@@ -33,6 +34,7 @@ export default function DemandeAccesPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState('');
 
   const selectedPricing = useMemo(() => {
     const monthly = planConfig[selectedPlan].monthly;
@@ -67,6 +69,7 @@ export default function DemandeAccesPage() {
       promo_code: String(form.get('promo_code') || ''),
       status: 'pending',
     };
+    setSubmittedEmail(payload.email);
 
     setIsSubmitting(true);
     try {
@@ -85,6 +88,28 @@ export default function DemandeAccesPage() {
           setIsSuccess(true);
           return;
         }
+      }
+
+      try {
+        const emailResult = await sendAccessRequestConfirmationEmail({
+          ownerName: payload.owner_name,
+          email: payload.email,
+          selectedPlan: planConfig[selectedPlan].name,
+        });
+
+        if (!emailResult.sent) {
+          notify({
+            title: 'Demande envoyée',
+            message: 'Demande enregistrée. Activez le service email pour envoyer automatiquement la confirmation.',
+            type: 'info',
+          });
+        }
+      } catch {
+        notify({
+          title: 'Demande envoyée',
+          message: 'Demande enregistrée, mais l’email de confirmation n’a pas pu être envoyé.',
+          type: 'warning',
+        });
       }
 
       notify({
@@ -113,9 +138,14 @@ export default function DemandeAccesPage() {
               <CheckCircle2 className="h-7 w-7" />
             </div>
             <h1 className="text-center text-2xl font-black">Votre demande a été envoyée</h1>
-            <p className="mt-3 text-center text-sm text-carbon-300">
-              Nous vous contacterons après vérification pour finaliser l’activation de votre accès.
-            </p>
+            <div className="mt-3 space-y-2 text-center text-sm text-carbon-300">
+              <p>
+                Vérifiez votre messagerie. Un email a été envoyé à{' '}
+                <span className="font-semibold text-white">{submittedEmail || 'votre adresse email'}</span>.
+              </p>
+              <p>Cliquez sur le lien pour confirmer votre demande.</p>
+              <p>Vérifiez aussi vos spams si vous ne trouvez pas l’email. Le lien expire dans 24h.</p>
+            </div>
             <Link to="/auth" className="mt-7 block">
               <Button className="w-full">Retour à la connexion</Button>
             </Link>
