@@ -1,5 +1,5 @@
 import { BadgeCheck, CalendarClock, Edit3, Eye, Phone, Search, Trash2, UserPlus, Users } from 'lucide-react';
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -24,6 +24,18 @@ export default function ClientsPage() {
       `${client.fullName} ${client.phone} ${client.email} ${client.cin}`.toLowerCase().includes(query.toLowerCase()),
     );
   }, [clients, query]);
+
+  useEffect(() => {
+    if (modalOpen) {
+      document.body.style.overflow = 'hidden';
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [modalOpen]);
 
   function openNewClient() {
     setEditingClient(null);
@@ -147,15 +159,15 @@ export default function ClientsPage() {
                 </div>
 
                 <div className="flex gap-2 md:col-span-3">
-                  <Button variant="secondary" className="h-9 px-3" icon={<Edit3 className="h-4 w-4" />} onClick={() => { setEditingClient(client); setModalOpen(true); }}>Edit</Button>
+                  <Button variant="secondary" className="h-9 px-3" icon={<Edit3 className="h-4 w-4" />} onClick={() => { setEditingClient(client); setModalOpen(true); }}>Modifier</Button>
                   <Link
                     to={`/clients/${client.id}`}
                     className="focus-ring inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10 px-3 text-sm font-semibold text-white transition hover:bg-white/15 light:border-carbon-950/10 light:bg-carbon-950/5 light:text-carbon-950"
                   >
                     <Eye className="h-4 w-4" />
-                    Details
+                    Détails
                   </Link>
-                  <Button variant="danger" className="h-9 px-3" icon={<Trash2 className="h-4 w-4" />} onClick={() => deleteClient(client)}>Delete</Button>
+                  <Button variant="danger" className="h-9 px-3" icon={<Trash2 className="h-4 w-4" />} onClick={() => deleteClient(client)}>Supprimer</Button>
                 </div>
               </div>
             </Card>
@@ -166,12 +178,12 @@ export default function ClientsPage() {
       <Modal open={modalOpen} title={editingClient ? 'Modifier le client' : 'Ajouter un client'} onClose={() => setModalOpen(false)}>
         <form className="grid gap-4" onSubmit={handleSaveClient}>
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Full name" name="fullName" defaultValue={editingClient?.fullName || ''} required />
-            <Field label="Phone" name="phone" defaultValue={editingClient?.phone || '+212 6 '} required />
+            <Field label="Nom complet" name="fullName" defaultValue={editingClient?.fullName || ''} required />
+            <Field label="Téléphone" name="phone" defaultValue={editingClient?.phone || '+212 6 '} required />
             <Field label="Email" name="email" type="email" defaultValue={editingClient?.email || ''} required />
-            <Field label="CIN/Passport" name="cin" defaultValue={editingClient?.cin || ''} required />
-            <Field label="Driving license number" name="license" defaultValue={editingClient?.license || ''} required />
-            <Field label="Address" name="address" defaultValue={editingClient?.address || ''} required />
+            <Field label="CIN/Passeport" name="cin" defaultValue={editingClient?.cin || ''} required />
+            <Field label="Numéro de permis" name="license" defaultValue={editingClient?.license || ''} required />
+            <Field label="Adresse" name="address" defaultValue={editingClient?.address || ''} required />
           </div>
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Annuler</Button>

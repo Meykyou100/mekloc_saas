@@ -156,9 +156,9 @@ export default function SuperAdminPage() {
         return {
           id: agency.id,
           agencyName: agency.name,
-          ownerName: owner?.full_name || 'Agency owner',
-          email: owner?.email || 'No email',
-          phone: owner?.phone || 'No phone',
+          ownerName: owner?.full_name || 'Propriétaire agence',
+          email: owner?.email || 'Aucun email',
+          phone: owner?.phone || 'Aucun téléphone',
           vehiclesCount: vehicleRows.filter((vehicle) => vehicle.agency_id === agency.id).length,
           plan: agency.plan || 'free',
           billingStatus: agency.billing_status || 'trial',
@@ -179,8 +179,8 @@ export default function SuperAdminPage() {
       );
     } catch (error) {
       notify({
-        title: 'Admin data not loaded',
-        message: error instanceof Error ? error.message : 'Check super admin RLS policies.',
+        title: 'Données admin non chargées',
+        message: error instanceof Error ? error.message : 'Vérifiez les politiques RLS super admin.',
         type: 'warning',
       });
     } finally {
@@ -234,7 +234,7 @@ export default function SuperAdminPage() {
   async function safeAction(title: string, action: () => Promise<void>) {
     try {
       await action();
-      notify({ title, message: 'Super admin action saved.', type: 'success' });
+      notify({ title, message: 'Action super admin enregistrée.', type: 'success' });
     } catch (error) {
       await loadAgencies();
       notify({
@@ -253,7 +253,7 @@ export default function SuperAdminPage() {
     <div className="min-h-screen bg-carbon-950 px-4 py-6 text-white light:bg-carbon-50 light:text-carbon-950 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <PageHeader
-          eyebrow="Hidden control room"
+        eyebrow="Espace sécurisé"
           title="Super Admin"
           description="Approve agencies, manage subscriptions, and monitor billing health across MekLoc."
           action={
@@ -263,7 +263,7 @@ export default function SuperAdminPage() {
               loading={loading}
               onClick={loadAgencies}
             >
-              Refresh
+              Actualiser
             </Button>
           }
         />

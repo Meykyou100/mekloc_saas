@@ -26,10 +26,10 @@ import { daysUntil, isSubscriptionExpiringSoon } from '../lib/subscription';
 const today = '2026-05-09';
 
 const actionItems = [
-  { label: 'Add Reservation', to: '/reservations', icon: CalendarClock },
-  { label: 'Add Vehicle', to: '/vehicles', icon: Car },
-  { label: 'Add Client', to: '/clients', icon: UserPlus },
-  { label: 'Create Contract', to: '/contracts', icon: FileSignature },
+  { label: 'Ajouter réservation', to: '/reservations', icon: CalendarClock },
+  { label: 'Ajouter véhicule', to: '/vehicles', icon: Car },
+  { label: 'Ajouter client', to: '/clients', icon: UserPlus },
+  { label: 'Créer contrat', to: '/contracts', icon: FileSignature },
 ];
 
 function KpiCard({
@@ -103,14 +103,14 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       <PageHeader
-        eyebrow="Agency workspace"
-        title="Dashboard"
-        description="A clear view of today’s rentals, available fleet, payments, and the work that needs attention."
+        eyebrow="Espace agence"
+        title="Tableau de bord"
+        description="Vue claire des locations du jour, du parc disponible, des paiements et des actions prioritaires."
       />
 
       {isSubscriptionExpiringSoon(profile?.agency) ? (
         <div className="rounded-2xl border border-white/[0.07] bg-white/[0.035] px-4 py-3 text-sm font-semibold text-gold-100 light:text-gold-800">
-          Subscription expires in {daysUntil(profile?.agency?.subscriptionEndDate)} day(s). Renew soon to avoid interruption.
+          L’abonnement expire dans {daysUntil(profile?.agency?.subscriptionEndDate)} jour(s). Renouvelez pour éviter une interruption.
         </div>
       ) : null}
 

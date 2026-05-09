@@ -1,5 +1,5 @@
 import { Car, Edit3, Eye, Grid3X3, List, Plus, Search, Trash2 } from 'lucide-react';
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -29,6 +29,18 @@ export default function VehiclesPage() {
       return haystack.includes(query.toLowerCase()) && (status === 'All' || vehicle.status === status);
     });
   }, [query, status, vehicles]);
+
+  useEffect(() => {
+    if (modalOpen) {
+      document.body.style.overflow = 'hidden';
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [modalOpen]);
 
   function openNewVehicle() {
     setEditingVehicle(null);
@@ -186,11 +198,11 @@ export default function VehiclesPage() {
                   <p className="flex justify-between gap-3">Inspection <span className="font-semibold text-carbon-200 light:text-carbon-800">{vehicle.inspectionDate}</span></p>
                 </div>
                 <div className="mt-5 grid grid-cols-[1fr_1fr_auto] gap-2">
-                  <Button variant="secondary" icon={<Edit3 className="h-4 w-4" />} onClick={() => openEditVehicle(vehicle)}>Edit</Button>
+                  <Button variant="secondary" icon={<Edit3 className="h-4 w-4" />} onClick={() => openEditVehicle(vehicle)}>Modifier</Button>
                   <Button variant="secondary" icon={<Eye className="h-4 w-4" />} onClick={() => undefined}>
-                    <Link to={`/vehicles/${vehicle.id}`}>Details</Link>
+                    <Link to={`/vehicles/${vehicle.id}`}>Détails</Link>
                   </Button>
-                  <Button variant="danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => deleteVehicle(vehicle)}>Delete</Button>
+                  <Button variant="danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => deleteVehicle(vehicle)}>Supprimer</Button>
                 </div>
               </div>
             </Card>
@@ -228,8 +240,8 @@ export default function VehiclesPage() {
                     <td className="px-5 py-4"><Badge>{vehicle.status}</Badge></td>
                     <td className="px-5 py-4">
                       <div className="flex gap-2">
-                        <Button variant="secondary" className="h-9 px-3" onClick={() => openEditVehicle(vehicle)}>Edit</Button>
-                        <Button variant="danger" className="h-9 px-3" onClick={() => deleteVehicle(vehicle)}>Delete</Button>
+                        <Button variant="secondary" className="h-9 px-3" onClick={() => openEditVehicle(vehicle)}>Modifier</Button>
+                        <Button variant="danger" className="h-9 px-3" onClick={() => deleteVehicle(vehicle)}>Supprimer</Button>
                       </div>
                     </td>
                   </tr>

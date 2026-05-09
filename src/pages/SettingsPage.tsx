@@ -12,8 +12,8 @@ export default function SettingsPage() {
   const { notify } = useApp();
   const { agencyId, isSupabaseEnabled } = useAuth();
   const logoInputRef = useRef<HTMLInputElement | null>(null);
-  const [tab, setTab] = useState('General');
-  const tabs = ['General', 'Contracts', 'Billing', 'Team', 'Notifications'];
+  const [tab, setTab] = useState('Général');
+  const tabs = ['Général', 'Contrats', 'Facturation', 'Équipe', 'Notifications'];
 
   async function handleLogoUpload(file: File | undefined) {
     if (!file) return;
@@ -38,9 +38,9 @@ export default function SettingsPage() {
     <div>
       <PageHeader
         eyebrow="Workspace"
-        title="Settings"
-        description="Configure agency profile, contract preferences, currency, tax, WhatsApp, and team roles."
-        action={<Button icon={<Save className="h-4 w-4" />} onClick={() => notify({ title: 'Settings saved', message: 'Your demo workspace settings were updated.', type: 'success' })}>Save changes</Button>}
+        title="Paramètres"
+        description="Configurez le profil agence, les contrats, la devise, la fiscalité, WhatsApp et les rôles."
+        action={<Button icon={<Save className="h-4 w-4" />} onClick={() => notify({ title: 'Paramètres enregistrés', message: 'Les réglages de votre espace ont été mis à jour.', type: 'success' })}>Enregistrer</Button>}
       />
 
       <Card className="mb-6 p-2">
@@ -57,7 +57,7 @@ export default function SettingsPage() {
         </div>
       </Card>
 
-      {tab === 'General' ? (
+      {tab === 'Général' ? (
         <div className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
           <Card className="p-5">
             <div className="mb-5 flex items-center gap-3">
@@ -111,7 +111,7 @@ export default function SettingsPage() {
         </div>
       ) : null}
 
-      {tab === 'Contracts' ? (
+      {tab === 'Contrats' ? (
         <Card className="p-5">
           <div className="mb-5 flex items-center gap-3">
             <FileSignature className="h-5 w-5 text-gold-300" />
@@ -133,7 +133,7 @@ export default function SettingsPage() {
         </Card>
       ) : null}
 
-      {tab === 'Billing' ? (
+      {tab === 'Facturation' ? (
         <div className="grid gap-6 lg:grid-cols-2">
           <Card className="p-5">
             <div className="mb-5 flex items-center gap-3">
@@ -169,7 +169,7 @@ export default function SettingsPage() {
         </div>
       ) : null}
 
-      {tab === 'Team' ? (
+      {tab === 'Équipe' ? (
           <Card className="p-5">
             <div className="mb-5 flex items-center gap-3">
               <UsersRound className="h-5 w-5 text-gold-300" />
