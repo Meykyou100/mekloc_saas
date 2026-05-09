@@ -1,0 +1,222 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  background: #070909;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background:
+    linear-gradient(135deg, rgba(247, 189, 19, 0.10), transparent 34%),
+    linear-gradient(315deg, rgba(45, 212, 163, 0.06), transparent 38%),
+    #070909;
+  color: #f8fafc;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+input,
+select,
+textarea {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+select {
+  background-image:
+    linear-gradient(45deg, transparent 50%, #8a8f98 50%),
+    linear-gradient(135deg, #8a8f98 50%, transparent 50%);
+  background-position:
+    calc(100% - 16px) calc(50% - 1px),
+    calc(100% - 11px) calc(50% - 1px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 2.2rem;
+}
+
+select::-ms-expand {
+  display: none;
+}
+
+input[type='date']::-webkit-calendar-picker-indicator {
+  filter: invert(0.85) brightness(0.9);
+  opacity: 0.72;
+  cursor: pointer;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+option {
+  background: #0b0d10;
+  color: #f5f5f5;
+}
+
+::selection {
+  background: rgba(247, 189, 19, 0.35);
+  color: #ffffff;
+}
+
+@layer base {
+  .light body {
+    color: #101514;
+    background:
+      linear-gradient(135deg, rgba(247, 189, 19, 0.16), transparent 34%),
+      linear-gradient(315deg, rgba(45, 212, 163, 0.08), transparent 38%),
+      #f6f7f7;
+  }
+}
+
+@layer components {
+  .glass-card {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
+      #0b0d10;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.045),
+      0 18px 50px rgba(0, 0, 0, 0.30);
+    backdrop-filter: blur(24px);
+  }
+
+  .glass-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.045), transparent 26%);
+    opacity: 0.55;
+  }
+
+  .light .glass-card {
+    @apply border-carbon-950/10 bg-white/80 shadow-[0_18px_55px_rgba(16,21,20,.10)];
+  }
+
+  .glass-card > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .premium-surface {
+    border: 1px solid rgba(255, 255, 255, 0.065);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.038), rgba(255, 255, 255, 0.018)),
+      #0f1115;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  }
+
+  .premium-avatar {
+    border: 1px solid rgba(212, 160, 23, 0.34);
+    background:
+      linear-gradient(145deg, #d4a017, #7f6217);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20);
+  }
+
+  .vehicle-visual {
+    background:
+      linear-gradient(145deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015)),
+      #111315;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .data-table {
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: #0f1115;
+  }
+
+  .data-table thead {
+    background: rgba(255, 255, 255, 0.025);
+  }
+
+  .data-table tbody tr {
+    border-color: rgba(255, 255, 255, 0.06);
+  }
+
+  .data-table tbody tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .gold-text {
+    @apply bg-gradient-to-r from-gold-200 via-gold-400 to-gold-600 bg-clip-text text-transparent;
+  }
+
+  .surface-grid {
+    background-size: 34px 34px;
+  }
+
+  .focus-ring {
+    @apply focus:outline-none focus:ring-2 focus:ring-gold-300/70 focus:ring-offset-2 focus:ring-offset-carbon-950;
+  }
+
+  .form-control {
+    background-color: #0f1115;
+    color: #f5f5f5;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.75rem;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+    min-height: 2.5rem;
+    padding: 0.55rem 0.8rem;
+    transition: border-color 180ms ease, box-shadow 220ms ease, background-color 180ms ease;
+  }
+
+  .form-control::placeholder {
+    color: #8a8f98;
+    opacity: 1;
+  }
+
+  .form-control:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    background-color: #111315;
+  }
+
+  .form-control:focus {
+    border-color: #d4a017;
+    box-shadow:
+      0 0 0 2px rgba(212, 160, 23, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    outline: none;
+  }
+
+  .light .focus-ring {
+    @apply focus:ring-offset-white;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

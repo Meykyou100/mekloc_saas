@@ -1,0 +1,237 @@
+import { Building2, Download, FileSignature, FileText, PenLine, Printer, Wand2 } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/Card';
+import { SelectField, TextAreaField } from '../components/ui/Form';
+import PageHeader from '../components/ui/PageHeader';
+import { formatMAD, type Client, type Vehicle } from '../data/mockData';
+import { useApp } from '../context/AppContext';
+import { useData } from '../context/DataContext';
+
+const templates = ['Standard rental', 'Luxury vehicle', 'Corporate account'];
+
+export default function ContractsPage() {
+  const { clients, vehicles, createContract } = useData();
+  const [clientId, setClientId] = useState('');
+  const [vehicleId, setVehicleId] = useState('');
+  const [template, setTemplate] = useState(templates[0]);
+  const [language, setLanguage] = useState<'fr' | 'ar'>('fr');
+  const { notify } = useApp();
+
+  useEffect(() => {
+    if (!clientId && clients[0]) setClientId(clients[0].id);
+    if (!vehicleId && vehicles[0]) setVehicleId(vehicles[0].id);
+  }, [clientId, clients, vehicleId, vehicles]);
+
+  const emptyClient: Client = {
+    id: '',
+    fullName: 'No client selected',
+    phone: '',
+    email: '',
+    cin: '',
+    license: '',
+    address: '',
+    totalRentals: 0,
+    totalSpent: 0,
+    status: 'New',
+  };
+  const emptyVehicle: Vehicle = {
+    id: '',
+    brand: 'No',
+    model: 'vehicle selected',
+    plate: '',
+    year: 2026,
+    mileage: 0,
+    fuel: '',
+    transmission: '',
+    dailyPrice: 0,
+    status: 'Unavailable',
+    insuranceExpiry: '',
+    inspectionDate: '',
+    city: '',
+    revenue: 0,
+  };
+
+  const client = useMemo(() => clients.find((item) => item.id === clientId) || emptyClient, [clientId, clients]);
+  const vehicle = useMemo(() => vehicles.find((item) => item.id === vehicleId) || emptyVehicle, [vehicleId, vehicles]);
+
+  async function handleGenerateContract() {
+    if (!client.id || !vehicle.id) {
+      notify({ title: 'Missing contract data', message: 'Add at least one client and vehicle first.', type: 'warning' });
+      return;
+    }
+
+    try {
+      await createContract({
+        id: `ctr-${Date.now()}`,
+        contractNumber: `CTR-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`,
+        client: client.fullName,
+        clientId: client.id,
+        vehicle: `${vehicle.brand} ${vehicle.model}`,
+        vehicleId: vehicle.id,
+        template,
+        pickupDate: '2026-05-15',
+        returnDate: '2026-05-19',
+        totalAmount: vehicle.dailyPrice * 4,
+        terms:
+          'The renter accepts full responsibility for traffic fines, fuel level, insurance excess, late returns, and vehicle condition at handoff.',
+        status: 'Draft',
+      });
+      notify({ title: 'Contract generated', message: 'The contract was saved to the backend data layer.', type: 'success' });
+    } catch (error) {
+      notify({
+        title: 'Contract not generated',
+        message: error instanceof Error ? error.message : 'Try again later.',
+        type: 'warning',
+      });
+    }
+  }
+
+  return (
+    <div>
+      <PageHeader
+        eyebrow="Documents"
+        title="Contracts"
+        description="Generate rental contracts with agency, client, vehicle, pricing, terms, and signature sections."
+        action={
+          <Button
+            icon={<Download className="h-4 w-4" />}
+            onClick={() => notify({ title: 'PDF download prepared', message: 'This demo shows the download UI. Backend PDF export can connect here.', type: 'info' })}
+          >
+            Download PDF
+          </Button>
+        }
+      />
+
+      <div className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
+        <Card className="p-5">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="rounded-2xl bg-gold-400/10 p-3 text-gold-200">
+              <Wand2 className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-white light:text-carbon-950">Contract generator</h2>
+              <p className="text-sm text-carbon-400">Choose a template and preview the final structure.</p>
+            </div>
+          </div>
+          <div className="grid gap-4">
+            <SelectField label="Contract template" value={template} onChange={(event) => setTemplate(event.target.value)}>
+              {templates.map((item) => <option key={item}>{item}</option>)}
+            </SelectField>
+            <div>
+              <p className="mb-2 text-sm font-semibold text-carbon-300 light:text-carbon-700">Contract language</p>
+              <div className="grid grid-cols-2 rounded-xl border border-white/10 bg-white/[0.04] p-1">
+                {[
+                  ['fr', 'Français'],
+                  ['ar', 'العربية'],
+                ].map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setLanguage(value as 'fr' | 'ar')}
+                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${language === value ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300 hover:bg-white/10'}`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <SelectField label="Client" value={clientId} onChange={(event) => setClientId(event.target.value)}>
+              {clients.map((item) => <option key={item.id} value={item.id}>{item.fullName}</option>)}
+            </SelectField>
+            <SelectField label="Vehicle" value={vehicleId} onChange={(event) => setVehicleId(event.target.value)}>
+              {vehicles.map((item) => <option key={item.id} value={item.id}>{item.brand} {item.model}</option>)}
+            </SelectField>
+            <TextAreaField
+              label="Terms and conditions"
+              defaultValue="The renter accepts full responsibility for traffic fines, fuel level, insurance excess, late returns, and vehicle condition at handoff."
+            />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Button type="button" variant="secondary" icon={<Printer className="h-4 w-4" />}>Print preview</Button>
+              <Button type="button" icon={<FileSignature className="h-4 w-4" />} onClick={handleGenerateContract}>Generate contract</Button>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="overflow-hidden bg-white text-carbon-950 light:border-carbon-950/10">
+          <div className="border-b border-carbon-950/10 bg-carbon-950 px-6 py-5 text-white">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="grid h-14 w-14 place-items-center rounded-2xl border border-gold-300/25 bg-gold-400/10 text-gold-200">
+                  <Building2 className="h-7 w-7" />
+                </div>
+                <div>
+                  <p className="font-black">{language === 'fr' ? 'Contrat de location MekLoc' : 'عقد كراء MekLoc'}</p>
+                  <p className="text-xs text-carbon-400">Logo agence · {template} · PDF preview</p>
+                </div>
+              </div>
+              <span className="rounded-full bg-gold-400 px-3 py-1 text-xs font-black text-carbon-950">Draft</span>
+            </div>
+          </div>
+          <div className="space-y-6 p-6">
+            <section>
+              <h3 className="mb-3 text-sm font-black uppercase tracking-wide text-carbon-500">Agency info</h3>
+              <div className="rounded-xl border border-carbon-950/10 p-4">
+                <div className="mb-3 flex h-16 w-16 items-center justify-center rounded-2xl border border-dashed border-carbon-950/20 text-xs font-bold text-carbon-500">
+                  LOGO
+                </div>
+                <p className="font-bold">Atlas Rent Marrakech</p>
+                <p className="text-sm text-carbon-600">Av. Mohammed VI, Marrakech · +212 6 00 00 00 00</p>
+              </div>
+            </section>
+            <div className="grid gap-4 md:grid-cols-2">
+              <section>
+                <h3 className="mb-3 text-sm font-black uppercase tracking-wide text-carbon-500">Client info</h3>
+                <div className="rounded-xl border border-carbon-950/10 p-4 text-sm">
+                  <p className="font-bold text-carbon-950">{client.fullName}</p>
+                  <p>{client.phone}</p>
+                  <p>{client.cin}</p>
+                  <p>License: {client.license}</p>
+                </div>
+              </section>
+              <section>
+                <h3 className="mb-3 text-sm font-black uppercase tracking-wide text-carbon-500">Vehicle info</h3>
+                <div className="rounded-xl border border-carbon-950/10 p-4 text-sm">
+                  <p className="font-bold text-carbon-950">{vehicle.brand} {vehicle.model}</p>
+                  <p>Plate: {vehicle.plate}</p>
+                  <p>{vehicle.year} · {vehicle.fuel} · {vehicle.transmission}</p>
+                  <p>Mileage: {vehicle.mileage.toLocaleString()} km</p>
+                </div>
+              </section>
+            </div>
+            <section className="grid gap-4 md:grid-cols-3">
+              {[
+                ['Pickup date', '2026-05-15'],
+                ['Return date', '2026-05-19'],
+                ['Daily price', formatMAD(vehicle.dailyPrice)],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-xl border border-carbon-950/10 p-4">
+                  <p className="text-xs font-bold uppercase tracking-wide text-carbon-500">{label}</p>
+                  <p className="mt-1 font-black">{value}</p>
+                </div>
+              ))}
+            </section>
+            <section>
+              <h3 className="mb-3 text-sm font-black uppercase tracking-wide text-carbon-500">Terms and conditions</h3>
+              <p className="rounded-xl border border-carbon-950/10 p-4 text-sm leading-6 text-carbon-700">
+                {language === 'fr'
+                  ? 'Le locataire accepte la responsabilite des amendes, du niveau de carburant, de la franchise assurance, des retards et de l etat du vehicule au retour. Toute prolongation doit etre approuvee par l agence.'
+                  : 'يتحمل المكتري مسؤولية المخالفات والوقود والتأمين والتأخير وحالة السيارة عند الإرجاع. أي تمديد يجب أن توافق عليه الوكالة.'}
+              </p>
+            </section>
+            <section className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-dashed border-carbon-950/30 p-5">
+                <PenLine className="mb-10 h-5 w-5 text-carbon-500" />
+                <p className="text-sm font-bold">Client signature</p>
+              </div>
+              <div className="rounded-xl border border-dashed border-carbon-950/30 p-5">
+                <PenLine className="mb-10 h-5 w-5 text-carbon-500" />
+                <p className="text-sm font-bold">Agency signature</p>
+              </div>
+            </section>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}

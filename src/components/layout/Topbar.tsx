@@ -1,0 +1,99 @@
+import { Bell, CheckCircle2, LogOut, Menu, Moon, Search, Sun, UserRound } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
+import { activityFeed } from '../../data/mockData';
+import LanguageToggle from '../ui/LanguageToggle';
+
+export default function Topbar({ onMenu }: { onMenu: () => void }) {
+  const { notify, theme, toggleTheme, t } = useApp();
+  const { signOut, profile, isSupabaseEnabled } = useAuth();
+  const navigate = useNavigate();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+
+  async function handleLogout() {
+    await signOut();
+    notify({
+      title: isSupabaseEnabled ? 'Logged out' : 'Demo session closed',
+      message: isSupabaseEnabled ? 'You have been signed out of MekLoc.' : 'Supabase is not configured, so this is a demo logout.',
+      type: 'info',
+    });
+    navigate('/auth');
+  }
+
+  return (
+    <header className="sticky top-0 z-30 border-b border-white/10 bg-carbon-950/78 px-4 py-3 backdrop-blur-2xl light:bg-white/78 sm:px-6 lg:px-8">
+      <div className="flex items-center gap-3">
+        <button
+          aria-label="Open sidebar"
+          className="focus-ring rounded-xl p-2 text-carbon-200 hover:bg-white/10 lg:hidden"
+          onClick={onMenu}
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <div className="relative hidden flex-1 sm:block">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-400" />
+          <input
+            aria-label="Search"
+            placeholder={t('search')}
+            className="form-control focus-ring h-10 w-full rounded-xl pl-10 pr-4 text-sm light:bg-carbon-950/[0.04] light:text-carbon-950"
+          />
+        </div>
+        <LanguageToggle />
+        <button
+          aria-label="Toggle theme"
+          className="focus-ring grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.055] text-carbon-200 hover:bg-white/10 light:bg-carbon-950/[0.04] light:text-carbon-800"
+          onClick={toggleTheme}
+        >
+          {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+        <div className="relative">
+          <button
+            aria-label="Notifications"
+            className="focus-ring relative grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.055] text-carbon-200 hover:bg-white/10 light:bg-carbon-950/[0.04] light:text-carbon-800"
+            onClick={() => setNotificationsOpen((current) => !current)}
+          >
+            <Bell className="h-5 w-5" />
+            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-gold-400" />
+          </button>
+          {notificationsOpen ? (
+            <div className="glass-card absolute right-0 mt-3 w-80 rounded-2xl p-3">
+              <div className="mb-2 flex items-center justify-between px-2">
+                <p className="font-semibold text-white light:text-carbon-950">Live activity</p>
+                <CheckCircle2 className="h-4 w-4 text-mint-400" />
+              </div>
+              <div className="grid gap-2">
+                {activityFeed.map(({ icon: Icon, text, time }) => (
+                  <div key={text} className="flex gap-3 rounded-xl p-2 hover:bg-white/5">
+                    <div className="rounded-lg bg-gold-400/10 p-2 text-gold-200">
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-carbon-100 light:text-carbon-800">{text}</p>
+                      <p className="mt-1 text-xs text-carbon-500">{time}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+        </div>
+        <button
+          aria-label="Profile"
+          className="focus-ring hidden h-11 items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.055] px-3 text-sm font-semibold text-white hover:bg-white/10 light:bg-carbon-950/[0.04] light:text-carbon-950 md:flex"
+        >
+          <UserRound className="h-5 w-5 text-gold-300" />
+          {profile?.fullName || 'Atlas Rent'}
+        </button>
+        <button
+          aria-label="Logout"
+          className="focus-ring grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.055] text-carbon-200 hover:bg-white/10 light:bg-carbon-950/[0.04] light:text-carbon-800"
+          onClick={handleLogout}
+        >
+          <LogOut className="h-5 w-5" />
+        </button>
+      </div>
+    </header>
+  );
+}
