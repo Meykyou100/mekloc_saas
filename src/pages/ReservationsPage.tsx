@@ -52,13 +52,7 @@ function ReservationField({
 const inputClass =
   'form-control focus-ring w-full text-sm';
 
-const reservationSteps = [
-  'Client',
-  'Véhicule',
-  'Dates',
-  'Tarification',
-  'Confirmer',
-];
+const reservationSteps = ['Sélectionner client', 'Sélectionner véhicule', 'Choisir les dates', 'Tarif et caution', 'Confirmer'];
 
 export default function ReservationsPage() {
   const { clients, vehicles, reservations, createReservation } = useData();
@@ -161,7 +155,7 @@ export default function ReservationsPage() {
         eyebrow="Bookings"
         title="Réservations"
         description="Gérez les réservations, les créneaux de départ/retour, les cautions et les statuts."
-        action={<Button icon={<Plus className="h-4 w-4" />} onClick={openReservationPanel}>Ajouter</Button>}
+        action={<Button icon={<Plus className="h-4 w-4" />} onClick={openReservationPanel}>Ajouter une réservation</Button>}
       />
 
       <Card className="mb-5 p-4">
@@ -277,7 +271,7 @@ export default function ReservationsPage() {
       <AnimatePresence>
         {modalOpen ? (
           <motion.div
-            className="fixed inset-0 z-50 bg-[#050505]/82 p-2 backdrop-blur-sm sm:p-4"
+            className="fixed inset-0 z-50 overflow-hidden bg-[#050505]/88 p-0 backdrop-blur-sm sm:p-4"
             {...reservationPanelMotion}
           >
             <button
@@ -290,18 +284,16 @@ export default function ReservationsPage() {
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 28, scale: 0.985 }}
               transition={{ duration: 0.24, ease: 'easeOut' }}
-              className="relative ml-auto flex h-full w-full max-w-6xl flex-col overflow-hidden rounded-[1.1rem] border border-white/[0.07] bg-[#0B0D10] shadow-[0_26px_80px_rgba(0,0,0,.55)] sm:rounded-[1.5rem] light:bg-white"
+              className="relative ml-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-6xl flex-col overflow-hidden rounded-none border border-white/[0.07] bg-[#0B0D10] shadow-[0_26px_80px_rgba(0,0,0,.55)] sm:h-full sm:max-h-none sm:rounded-[1.5rem] light:bg-white"
             >
-              <div className="flex items-start justify-between gap-3 border-b border-white/10 px-4 py-3 sm:gap-4 sm:px-7 sm:py-4">
+              <div className="flex items-start justify-between gap-3 border-b border-white/10 px-3 py-2.5 sm:gap-4 sm:px-7 sm:py-4">
                 <div>
                   <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.035] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-carbon-300 light:text-carbon-700">
                     <CheckCircle2 className="h-3.5 w-3.5" />
-                    New booking
+                    Nouvelle réservation
                   </div>
-                  <h2 className="text-xl font-semibold tracking-tight text-white sm:text-2xl light:text-carbon-950">Add reservation</h2>
-                  <p className="mt-1 max-w-2xl text-sm leading-6 text-carbon-400 light:text-carbon-600">
-                    Create a clean booking record with client, vehicle, dates, pricing, and operational notes.
-                  </p>
+                  <h2 className="text-base font-semibold tracking-tight text-white sm:text-2xl light:text-carbon-950">Ajouter une réservation</h2>
+                  <p className="mt-0.5 max-w-2xl text-xs leading-5 text-carbon-400 sm:text-sm sm:leading-6 light:text-carbon-600">Flux simple et rapide pour créer une réservation.</p>
                 </div>
                 <button
                   className="focus-ring grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-carbon-300 transition hover:bg-white/10 hover:text-white"
@@ -314,26 +306,32 @@ export default function ReservationsPage() {
 
               <form className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[1fr_360px]" onSubmit={handleAddReservation}>
                 <div className="flex min-h-0 flex-col">
-                  <div className="border-b border-white/10 px-4 py-3 sm:px-7 sm:py-4">
-                    <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:mx-0 sm:grid sm:overflow-visible sm:px-0 sm:pb-0 sm:grid-cols-5">
+                  <div className="border-b border-white/10 px-3 py-2 sm:px-7 sm:py-4">
+                    <div className="sm:hidden">
+                      <p className="text-xs font-semibold text-carbon-400">{reservationStep + 1}/5 • {reservationSteps[reservationStep]}</p>
+                      <div className="mt-2 h-1.5 rounded-full bg-white/10">
+                        <div className="h-1.5 rounded-full bg-gold-400 transition-all" style={{ width: `${((reservationStep + 1) / reservationSteps.length) * 100}%` }} />
+                      </div>
+                    </div>
+                    <div className="hidden sm:grid sm:grid-cols-5 sm:gap-2">
                       {reservationSteps.map((step, index) => (
                         <button
                           key={step}
                           type="button"
                           onClick={() => setReservationStep(index)}
-                          className={`min-w-[104px] rounded-xl border px-3 py-2 text-left text-xs font-bold uppercase tracking-[0.12em] transition sm:min-w-0 ${
+                          className={`rounded-xl border px-3 py-2 text-left text-xs font-bold uppercase tracking-[0.08em] transition ${
                             reservationStep === index
                               ? 'border-gold-400/45 bg-white/[0.045] text-gold-200'
                               : 'border-white/10 bg-white/[0.025] text-carbon-500 hover:text-carbon-200'
                           }`}
                         >
-                          <span className="mr-2 text-carbon-500">0{index + 1}</span>{step}
+                          <span className="mr-2 text-carbon-500">0{index + 1}</span>{step.split(' ')[0]}
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-7 sm:py-6">
+                  <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 pb-28 sm:px-7 sm:py-6">
                     <AnimatePresence mode="wait">
                       {reservationStep === 0 ? (
                         <motion.section
@@ -344,8 +342,8 @@ export default function ReservationsPage() {
                           className="space-y-5"
                         >
                           <div>
-                            <h3 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Select client</h3>
-                            <p className="mt-2 text-sm text-carbon-400">Choose the customer profile attached to this booking.</p>
+                            <h3 className="text-base font-semibold tracking-tight text-white sm:text-xl light:text-carbon-950">Sélectionner client</h3>
+                            <p className="mt-1 text-xs text-carbon-400 sm:text-sm">Choisissez le client lié à cette réservation.</p>
                           </div>
                           <ReservationField label="Client">
                             <select
@@ -361,16 +359,16 @@ export default function ReservationsPage() {
                             </select>
                           </ReservationField>
                           {selectedClient ? (
-                            <div className="premium-surface rounded-3xl p-5">
-                              <div className="flex items-start gap-4">
-                                <div className="premium-avatar grid h-14 w-14 shrink-0 place-items-center rounded-2xl text-lg font-black text-carbon-950">
+                            <div className="premium-surface rounded-2xl p-3 sm:rounded-3xl sm:p-5">
+                              <div className="flex items-start gap-3">
+                                <div className="premium-avatar grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-black text-carbon-950 sm:h-14 sm:w-14 sm:rounded-2xl sm:text-lg">
                                   {selectedClient.fullName.split(' ').map((part) => part[0]).slice(0, 2).join('')}
                                 </div>
                                 <div>
                                   <div className="mb-2"><Badge>{selectedClient.status}</Badge></div>
-                                  <p className="text-lg font-semibold text-white light:text-carbon-950">{selectedClient.fullName}</p>
-                                  <p className="mt-2 text-sm text-carbon-400">{selectedClient.phone} · {selectedClient.cin}</p>
-                                  <p className="mt-1 text-sm text-carbon-500">License {selectedClient.license} · {selectedClient.totalRentals} rentals</p>
+                                  <p className="text-sm font-semibold text-white sm:text-lg light:text-carbon-950">{selectedClient.fullName}</p>
+                                  <p className="mt-1 text-xs text-carbon-400 sm:text-sm">{selectedClient.phone} · {selectedClient.cin}</p>
+                                  <p className="mt-1 text-xs text-carbon-500 sm:text-sm">Permis {selectedClient.license} · {selectedClient.totalRentals} locations</p>
                                 </div>
                               </div>
                             </div>
@@ -387,8 +385,8 @@ export default function ReservationsPage() {
                           className="space-y-5"
                         >
                           <div>
-                            <h3 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Select vehicle</h3>
-                            <p className="mt-2 text-sm text-carbon-400">Assign the car and confirm availability before pricing.</p>
+                            <h3 className="text-base font-semibold tracking-tight text-white sm:text-xl light:text-carbon-950">Sélectionner véhicule</h3>
+                            <p className="mt-1 text-xs text-carbon-400 sm:text-sm">Assignez un véhicule et vérifiez sa disponibilité.</p>
                           </div>
                           <ReservationField label="Vehicle">
                             <select
@@ -408,17 +406,17 @@ export default function ReservationsPage() {
                             </select>
                           </ReservationField>
                           {selectedVehicle ? (
-                            <div className="premium-surface grid gap-4 rounded-3xl p-5 sm:grid-cols-[180px_1fr]">
-                              <div className="vehicle-visual grid h-36 place-items-center rounded-3xl">
+                            <div className="premium-surface grid gap-3 rounded-2xl p-3 sm:grid-cols-[180px_1fr] sm:rounded-3xl sm:p-5">
+                              <div className="vehicle-visual grid h-24 place-items-center rounded-2xl sm:h-36 sm:rounded-3xl">
                                 <Car className="h-16 w-16 text-white/70" strokeWidth={1.3} />
                               </div>
                               <div>
                                 <div className="flex flex-wrap items-center gap-3">
-                                  <p className="text-lg font-semibold text-white light:text-carbon-950">{selectedVehicle.brand} {selectedVehicle.model}</p>
+                                  <p className="text-sm font-semibold text-white sm:text-lg light:text-carbon-950">{selectedVehicle.brand} {selectedVehicle.model}</p>
                                   <Badge>{selectedVehicle.status}</Badge>
                                 </div>
-                                <p className="mt-2 text-sm text-carbon-400">{selectedVehicle.plate} · {selectedVehicle.city}</p>
-                                <p className="mt-4 text-sm text-carbon-500">{selectedVehicle.mileage.toLocaleString()} km · {formatMAD(selectedVehicle.dailyPrice)} / day</p>
+                                <p className="mt-1 text-xs text-carbon-400 sm:text-sm">{selectedVehicle.plate} · {selectedVehicle.city}</p>
+                                <p className="mt-2 text-xs text-carbon-500 sm:mt-4 sm:text-sm">{selectedVehicle.mileage.toLocaleString()} km · {formatMAD(selectedVehicle.dailyPrice)} / jour</p>
                               </div>
                             </div>
                           ) : null}
@@ -434,8 +432,8 @@ export default function ReservationsPage() {
                           className="space-y-5"
                         >
                           <div>
-                            <h3 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Choose dates</h3>
-                            <p className="mt-2 text-sm text-carbon-400">Set the pickup and return window for this rental.</p>
+                            <h3 className="text-base font-semibold tracking-tight text-white sm:text-xl light:text-carbon-950">Choisir les dates</h3>
+                            <p className="mt-1 text-xs text-carbon-400 sm:text-sm">Définissez la période de location.</p>
                           </div>
                           <div className="grid gap-4 md:grid-cols-2">
                             <ReservationField label="Pickup date">
@@ -471,8 +469,8 @@ export default function ReservationsPage() {
                           className="space-y-5"
                         >
                           <div>
-                            <h3 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Pricing & deposit</h3>
-                            <p className="mt-2 text-sm text-carbon-400">Confirm the daily rate, deposit, and notes for operations.</p>
+                            <h3 className="text-base font-semibold tracking-tight text-white sm:text-xl light:text-carbon-950">Tarif et caution</h3>
+                            <p className="mt-1 text-xs text-carbon-400 sm:text-sm">Confirmez le prix journalier et la caution.</p>
                           </div>
                           <div className="grid gap-4 md:grid-cols-[1fr_1fr_1.15fr]">
                             <ReservationField label="Daily price">
@@ -527,12 +525,12 @@ export default function ReservationsPage() {
                           className="space-y-5"
                         >
                           <div>
-                            <h3 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Confirm reservation</h3>
-                            <p className="mt-2 text-sm text-carbon-400">Review the booking before saving it as confirmed.</p>
+                            <h3 className="text-base font-semibold tracking-tight text-white sm:text-xl light:text-carbon-950">Confirmer</h3>
+                            <p className="mt-1 text-xs text-carbon-400 sm:text-sm">Vérifiez les détails avant l’enregistrement.</p>
                           </div>
                           <div className="premium-surface grid gap-3 rounded-3xl p-5">
                             <p className="text-lg font-semibold text-white light:text-carbon-950">{selectedClient?.fullName} · {selectedVehicle?.brand} {selectedVehicle?.model}</p>
-                            <p className="text-sm text-carbon-400">{draftPickupDate} to {draftReturnDate} · {rentalDays} day(s)</p>
+                            <p className="text-sm text-carbon-400">{draftPickupDate} au {draftReturnDate} · {rentalDays} jour(s)</p>
                             <p className="text-2xl font-semibold text-white light:text-carbon-950">{formatMAD(totalEstimate)}</p>
                           </div>
                         </motion.section>
@@ -547,14 +545,14 @@ export default function ReservationsPage() {
                     <input type="hidden" name="deposit" value={draftDeposit} />
                   </div>
 
-                  <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-white/10 bg-[#0B0D10]/95 px-4 py-3 backdrop-blur sm:px-7 sm:py-4">
+                  <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-white/10 bg-[#0B0D10]/95 px-3 py-2.5 pb-[calc(env(safe-area-inset-bottom)+10px)] backdrop-blur sm:px-7 sm:py-4 sm:pb-4">
                     <button
                       className="focus-ring h-10 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-carbon-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
                       disabled={reservationStep === 0}
                       type="button"
                       onClick={() => setReservationStep((step) => Math.max(0, step - 1))}
                     >
-                      Back
+                      Retour
                     </button>
                     {reservationStep < reservationSteps.length - 1 ? (
                       <button
@@ -562,14 +560,14 @@ export default function ReservationsPage() {
                         type="button"
                         onClick={() => setReservationStep((step) => Math.min(reservationSteps.length - 1, step + 1))}
                       >
-                        Continue
+                        Continuer
                       </button>
                     ) : (
                       <button
                         className="focus-ring h-10 rounded-xl bg-[#D4A017] px-4 text-sm font-bold text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.14)] transition hover:-translate-y-0.5 hover:bg-[#E8B923]"
                         type="submit"
                       >
-                        Save reservation
+                        Enregistrer
                       </button>
                     )}
                   </div>
