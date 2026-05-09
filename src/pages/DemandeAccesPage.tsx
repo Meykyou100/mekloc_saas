@@ -72,7 +72,19 @@ export default function DemandeAccesPage() {
     try {
       if (isSupabaseConfigured && supabase) {
         const { error } = await supabase.from('access_requests').insert(payload);
-        if (error) throw error;
+        if (error) {
+          // Fallback local if Supabase table/RLS is not ready yet.
+          const localQueueKey = 'mekloc-access-requests-fallback';
+          const current = JSON.parse(localStorage.getItem(localQueueKey) || '[]') as unknown[];
+          localStorage.setItem(localQueueKey, JSON.stringify([{ ...payload, created_at: new Date().toISOString() }, ...current]));
+          notify({
+            title: 'Demande enregistrée localement',
+            message: 'La base Supabase n’est pas encore prête. Votre demande est conservée dans ce navigateur.',
+            type: 'info',
+          });
+          setIsSuccess(true);
+          return;
+        }
       }
 
       notify({

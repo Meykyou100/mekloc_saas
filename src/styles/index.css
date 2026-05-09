@@ -47,6 +47,13 @@ textarea {
   appearance: none;
 }
 
+input[type='checkbox'],
+input[type='radio'] {
+  -webkit-appearance: auto;
+  -moz-appearance: auto;
+  appearance: auto;
+}
+
 select {
   background-image:
     linear-gradient(45deg, transparent 50%, #8a8f98 50%),
