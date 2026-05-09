@@ -119,12 +119,38 @@ export default function SuperAdminPage() {
       .maybeSingle();
     if (existingProfile?.id) {
       await supabase.from('users_profiles').update({ agency_id: agencyId, account_status: 'active' }).eq('id', existingProfile.id);
+      const webhook = import.meta.env.VITE_CREATE_APPROVED_USER_WEBHOOK as string | undefined;
+      if (webhook) {
+        await fetch(webhook, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+          },
+          body: JSON.stringify({ email, agencyId }),
+        });
+      }
     } else {
-      notify({
-        title: 'Compte client à créer',
-        message: 'Aucun utilisateur auth trouvé pour cet email. Le client doit se connecter une première fois, puis recliquer “Créer compte client”.',
-        type: 'info',
+      const webhook = import.meta.env.VITE_CREATE_APPROVED_USER_WEBHOOK as string | undefined;
+      if (!webhook) {
+        notify({ title: 'Webhook invitation manquant', message: 'Configurez VITE_CREATE_APPROVED_USER_WEBHOOK.', type: 'warning' });
+        return;
+      }
+      const response = await fetch(webhook, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+        },
+        body: JSON.stringify({ email, agencyId }),
       });
+      if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Invitation impossible: ${text}`);
+      }
+      notify({ title: 'Invitation envoyée', message: 'Le client va recevoir un email pour définir son mot de passe.', type: 'success' });
     }
   }
 
@@ -255,7 +281,11 @@ export default function SuperAdminPage() {
                   <Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => updateRequest(req.id, { status: 'payment_pending' }, 'Paiement en attente')}>Paiement en attente</Button>
                   <Button className="h-8 px-2.5 text-xs" icon={<CheckCircle2 className="h-3.5 w-3.5" />} onClick={() => approveRequest(req)}>Approuver</Button>
                   <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<XCircle className="h-3.5 w-3.5" />} onClick={() => updateRequest(req.id, { status: 'rejected' }, 'Demande rejetée')}>Rejeter</Button>
-                  <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<UserPlus className="h-3.5 w-3.5" />} onClick={() => createOrLinkProfileFromRequest(req, '')}>Créer compte client</Button>
+                  <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<UserPlus className="h-3.5 w-3.5" />} onClick={async () => {
+                    const existingAgency = agencies.find((a) => a.agencyName === req.agency_name);
+                    if (!existingAgency) return notify({ title: 'Agence introuvable', message: 'Approuvez d’abord la demande.', type: 'warning' });
+                    await createOrLinkProfileFromRequest(req, existingAgency.id);
+                  }}>Créer compte client</Button>
                   <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setRequestToDelete(req)}>Supprimer la demande</Button>
                 </div>
                 <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">

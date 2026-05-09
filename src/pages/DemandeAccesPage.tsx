@@ -10,6 +10,12 @@ import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
 const countries = ['Maroc', 'France', 'Espagne', 'Belgique', 'Allemagne', 'Italie', 'Pays-Bas', 'Émirats Arabes Unis', 'Arabie Saoudite', 'Autre'];
 const moroccoCities = ['Casablanca', 'Rabat', 'Marrakech', 'Tanger', 'Fès', 'Meknès', 'Agadir', 'Oujda', 'Tétouan', 'Nador', 'Kénitra', 'El Jadida', 'Safi', 'Essaouira', 'Beni Mellal', 'Khouribga', 'Settat', 'Mohammedia', 'Salé', 'Laâyoune', 'Dakhla', 'Errachidia', 'Ouarzazate', 'Taza', 'Larache', 'Ksar El Kebir', 'Al Hoceima', 'Ifrane', 'Autre'];
+const plans = [
+  { id: 'gratuit', name: 'Gratuit', monthly: 0, annual: 0 },
+  { id: 'starter', name: 'Starter', monthly: 99, annual: 990 },
+  { id: 'business', name: 'Business', monthly: 249, annual: 2490 },
+] as const;
+type PlanId = (typeof plans)[number]['id'];
 
 export default function DemandeAccesPage() {
   const [searchParams] = useSearchParams();
@@ -20,6 +26,8 @@ export default function DemandeAccesPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState('');
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>('business');
+  const [billingType, setBillingType] = useState<'monthly' | 'annual'>('monthly');
   const prefilledEmail = searchParams.get('email') || '';
   const fromLogin = searchParams.get('from') === 'login';
 
@@ -38,10 +46,10 @@ export default function DemandeAccesPage() {
       phone_country_code: String(form.get('phone_country_code') || '+212'),
       phone_number: String(form.get('phone_number') || ''),
       vehicle_count: Number(form.get('vehicle_count') || 0),
-      selected_plan: 'business',
-      billing_type: 'monthly',
-      monthly_price: 249,
-      annual_price: 2490,
+      selected_plan: selectedPlan,
+      billing_type: billingType,
+      monthly_price: plans.find((p) => p.id === selectedPlan)?.monthly || 0,
+      annual_price: plans.find((p) => p.id === selectedPlan)?.annual || 0,
       promo_code: String(form.get('promo_code') || ''),
       status: 'pending',
     };
@@ -65,8 +73,12 @@ export default function DemandeAccesPage() {
       }
       const { error } = await supabase.from('access_requests').insert(payload);
       if (error) throw error;
-      const emailResult = await sendAccessRequestConfirmationEmail({ ownerName: payload.owner_name, email: payload.email, selectedPlan: payload.selected_plan });
-      if (!emailResult.sent) console.warn('email optional failed', emailResult);
+      try {
+        const emailResult = await sendAccessRequestConfirmationEmail({ ownerName: payload.owner_name, email: payload.email, selectedPlan: payload.selected_plan });
+        if (!emailResult.sent) console.warn('email optional failed', emailResult);
+      } catch (emailError) {
+        console.warn('email optional failed', emailError);
+      }
       notify({ title: 'Demande envoyée', message: 'Votre demande a été envoyée. MekLoc vous contactera après vérification.', type: 'success' });
       setIsSuccess(true);
     } catch (error) {
@@ -85,6 +97,22 @@ export default function DemandeAccesPage() {
         <Card className="mt-4 p-4 sm:mt-6 sm:p-7">
           <h1 className="text-2xl font-black sm:text-3xl">Demande d’accès MekLoc</h1>
           {fromLogin ? <p className="mt-2 text-sm text-gold-200">Votre compte n’est pas encore activé. Remplissez cette demande pour obtenir l’accès.</p> : null}
+          <div className="mt-5 inline-flex rounded-xl border border-white/10 bg-[#0f1115] p-1">
+            <button type="button" onClick={() => setBillingType('monthly')} className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${billingType === 'monthly' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300 hover:text-white'}`}>Mensuel</button>
+            <button type="button" onClick={() => setBillingType('annual')} className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${billingType === 'annual' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300 hover:text-white'}`}>Annuel</button>
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {plans.map((plan) => {
+              const active = selectedPlan === plan.id;
+              const price = billingType === 'annual' ? plan.annual : plan.monthly;
+              return (
+                <button key={plan.id} type="button" onClick={() => setSelectedPlan(plan.id)} className={`rounded-2xl border bg-[#0f1115] p-4 text-left transition ${active ? 'border-gold-300/45 shadow-[0_0_0_1px_rgba(212,160,23,0.25)]' : 'border-white/10 hover:border-white/20'}`}>
+                  <p className="font-bold">{plan.name}</p>
+                  <p className="mt-1 text-lg font-black">{price} MAD <span className="text-xs font-semibold text-carbon-400">{billingType === 'annual' ? '/an' : '/mois'}</span></p>
+                </button>
+              );
+            })}
+          </div>
           <form className="mt-6 grid gap-4" onSubmit={handleSubmit}>
             <Field label="Nom de l’agence *" name="agency_name" required />
             <Field label="Responsable *" name="owner_name" required />
