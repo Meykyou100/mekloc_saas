@@ -33,7 +33,7 @@ export default function DemandeAccesPage() {
       country: String(form.get('country') || 'Maroc'),
       city: String(form.get('city') || ''),
       website_url: String(form.get('website_url') || ''),
-      email: String(form.get('email') || ''),
+      email: normalizeEmail(String(form.get('email') || '')),
       phone_country_code: String(form.get('phone_country_code') || '+212'),
       phone_number: String(form.get('phone_number') || ''),
       vehicle_count: Number(form.get('vehicle_count') || 0),
@@ -48,8 +48,15 @@ export default function DemandeAccesPage() {
     setIsSubmitting(true);
     try {
       if (!supabase || !isSupabaseConfigured) throw new Error('Supabase non configuré');
-      const { data: existing } = await supabase.rpc('get_access_request_status', { target_email: payload.email });
-      const row = Array.isArray(existing) ? existing[0] : null;
+      const { data: row, error: existingError } = await supabase
+        .from('access_requests')
+        .select('status, agency_name, selected_plan, created_at, email')
+        .eq('email', payload.email)
+        .in('status', ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified'])
+        .order('created_at', { ascending: false })
+        .maybeSingle();
+      if (import.meta.env.DEV) console.log('Access request found:', row);
+      if (existingError) throw existingError;
       if (row && ['pending', 'pending_verification', 'contacted', 'payment_pending'].includes(row.status)) {
         window.location.href = `/verification-en-cours?email=${encodeURIComponent(payload.email)}&agency=${encodeURIComponent(row.agency_name || payload.agency_name)}&plan=${encodeURIComponent(row.selected_plan || payload.selected_plan)}&created_at=${encodeURIComponent(row.created_at || '')}${row.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`;
         return;
@@ -95,3 +102,4 @@ export default function DemandeAccesPage() {
     </div>
   );
 }
+  const normalizeEmail = (email: string) => email.trim().toLowerCase();

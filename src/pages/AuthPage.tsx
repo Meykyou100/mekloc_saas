@@ -31,7 +31,7 @@ export default function AuthPage() {
     event.preventDefault();
     setLoading(true);
     const form = new FormData(event.currentTarget);
-    const email = String(form.get('email'));
+    const email = String(form.get('email')).trim().toLowerCase();
     const password = String(form.get('password'));
 
     try {

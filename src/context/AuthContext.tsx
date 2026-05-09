@@ -219,6 +219,10 @@ async function isDeletedByEmail(email: string | null | undefined): Promise<boole
   return Boolean(data);
 }
 
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
 function createSlug(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
@@ -541,9 +545,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       getAccessRequestStatusByEmail: async (email: string) => {
         if (!supabase || !email) return null;
-        const { data, error } = await supabase.rpc('get_access_request_status', { target_email: email });
-        if (error) return null;
-        const row = Array.isArray(data) ? data[0] : null;
+        const normalized = normalizeEmail(email);
+        const { data: row, error } = await supabase
+          .from('access_requests')
+          .select('status, agency_name, selected_plan, created_at, email')
+          .eq('email', normalized)
+          .in('status', ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified', 'rejected', 'approved'])
+          .order('created_at', { ascending: false })
+          .maybeSingle();
+        if (import.meta.env.DEV) console.log('Access request found:', row);
+        if (error || !row) return null;
         if (!row) return null;
         return { status: row.status, agencyName: row.agency_name, plan: row.selected_plan, createdAt: row.created_at };
       },
