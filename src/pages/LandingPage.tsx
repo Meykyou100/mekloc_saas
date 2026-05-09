@@ -117,13 +117,13 @@ function LandingHeader() {
           </a>
         </nav>
         <div className="flex items-center gap-2">
-          <Link to="/auth" className="hidden sm:block">
-            <Button variant="secondary" className="h-10">
+          <Link to="/auth" className="block">
+            <Button variant="secondary" className="h-10 px-3 sm:px-4">
               Connexion
             </Button>
           </Link>
           <Link to="/auth">
-            <Button className="h-10">{t('startFree')}</Button>
+            <Button className="h-10 px-3 sm:px-4">{t('startFree')}</Button>
           </Link>
         </div>
       </div>
