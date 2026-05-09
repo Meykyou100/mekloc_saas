@@ -1,4 +1,4 @@
-import { ArrowLeft, Chrome, LockKeyhole, Mail, UserRound } from 'lucide-react';
+import { ArrowLeft, Chrome, LockKeyhole, Mail } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
@@ -10,7 +10,6 @@ import { useAuth } from '../context/AuthContext';
 import { getPostLoginRedirect } from '../lib/authRedirect';
 
 export default function AuthPage() {
-  const [mode, setMode] = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -18,7 +17,7 @@ export default function AuthPage() {
   const [newPassword, setNewPassword] = useState('');
   const navigate = useNavigate();
   const { notify } = useApp();
-  const { signIn, signInWithGoogle, signUp, refreshProfile, isSupabaseEnabled, requestPasswordReset, updatePassword } = useAuth();
+  const { signIn, signInWithGoogle, refreshProfile, isSupabaseEnabled, requestPasswordReset, updatePassword } = useAuth();
 
   useEffect(() => {
     const hash = window.location.hash || '';
@@ -34,14 +33,9 @@ export default function AuthPage() {
     const form = new FormData(event.currentTarget);
     const email = String(form.get('email'));
     const password = String(form.get('password'));
-    const agencyName = String(form.get('agencyName') || 'Atlas Rent Marrakech');
-    const phone = String(form.get('phone') || '');
 
     try {
-      const result =
-        mode === 'login'
-          ? await signIn(email, password)
-          : await signUp({ email, password, agencyName, fullName: agencyName, phone });
+      const result = await signIn(email, password);
 
       if (result.needsEmailConfirmation) {
         notify({
@@ -49,14 +43,13 @@ export default function AuthPage() {
           message: 'Vérifiez votre email pour confirmer le compte, puis connectez-vous pour terminer l’onboarding.',
           type: 'success',
         });
-        setMode('login');
         return;
       }
 
       const nextProfile = isSupabaseEnabled ? await refreshProfile() : null;
 
       notify({
-        title: mode === 'login' ? 'Bon retour sur MekLoc' : 'Espace créé',
+        title: 'Bon retour sur MekLoc',
         message: isSupabaseEnabled
           ? 'Votre session Supabase est active.'
           : 'Vous entrez en mode démo avec des données exemples.',
@@ -163,39 +156,12 @@ export default function AuthPage() {
               </form>
             ) : (
               <>
-            <div className="mb-7 flex rounded-2xl border border-white/10 bg-white/[0.04] p-1">
-              {(['login', 'register'] as const).map((item) => (
-                <button
-                  key={item}
-                  className={`focus-ring flex-1 rounded-xl px-4 py-2.5 text-sm font-bold capitalize transition ${
-                    mode === item ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300 hover:bg-white/10 light:text-carbon-700'
-                  }`}
-                  onClick={() => setMode(item)}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-            <h2 className="text-2xl font-black text-white light:text-carbon-950">
-              {mode === 'login' ? 'Connexion MekLoc' : 'Créer votre agence'}
-            </h2>
-            <p className="mt-2 text-sm text-carbon-400 light:text-carbon-600">
-              {mode === 'login'
-                ? 'Accédez au tableau de bord et gérez vos opérations de location.'
-                : 'Démarrez un espace MekLoc propre pour votre agence.'}
-            </p>
+            <h2 className="text-2xl font-black text-white light:text-carbon-950">Se connecter</h2>
+            <p className="mt-2 text-sm text-carbon-400 light:text-carbon-600">Accédez à votre espace MekLoc.</p>
             <form className="mt-7 grid gap-4" onSubmit={handleSubmit}>
-              {mode === 'register' ? (
-                <Field label="Nom de l’agence" name="agencyName" placeholder="Atlas Rent Marrakech" required />
-              ) : null}
               <Field label="Email" name="email" type="email" placeholder="admin@agency.ma" required />
               <Field label="Mot de passe" name="password" type="password" placeholder="••••••••" required />
-              {mode === 'register' ? (
-                <Field label="Numéro WhatsApp" name="phone" placeholder="+212 6 00 00 00 00" required />
-              ) : null}
-              <Button type="submit" loading={loading} icon={mode === 'login' ? <Mail className="h-4 w-4" /> : <UserRound className="h-4 w-4" />}>
-                {mode === 'login' ? 'Entrer dans le tableau de bord' : 'Créer le compte'}
-              </Button>
+              <Button type="submit" loading={loading} icon={<Mail className="h-4 w-4" />}>Se connecter</Button>
             </form>
             <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-carbon-500">
               <span className="h-px flex-1 bg-white/10" />
@@ -210,13 +176,12 @@ export default function AuthPage() {
               loading={loading}
               onClick={handleGoogleLogin}
             >
-              Continuer avec Google
+              Connexion avec Google
             </Button>
-            {mode === 'login' ? (
-              <button type="button" className="mt-4 text-sm font-semibold text-gold-200 hover:text-gold-100" onClick={() => setForgotOpen(true)}>
-                Mot de passe oublié ?
-              </button>
-            ) : null}
+            <button type="button" className="mt-4 text-sm font-semibold text-gold-200 hover:text-gold-100" onClick={() => setForgotOpen(true)}>
+              Mot de passe oublié ?
+            </button>
+            <p className="mt-4 text-sm text-carbon-400">Pas encore client ? <Link to="/demande-acces" className="font-semibold text-gold-200">Demander un accès</Link></p>
               </>
             )}
           </Card>

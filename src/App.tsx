@@ -9,6 +9,7 @@ import ClientProfilePage from './pages/ClientProfilePage';
 import ClientsPage from './pages/ClientsPage';
 import ContractsPage from './pages/ContractsPage';
 import DashboardPage from './pages/DashboardPage';
+import DemandeAccesPage from './pages/DemandeAccesPage';
 import LandingPage from './pages/LandingPage';
 import MaintenancePage from './pages/MaintenancePage';
 import NotFoundPage from './pages/NotFoundPage';
@@ -66,6 +67,7 @@ export default function App() {
               </AnimatedPage>
             }
           />
+          <Route path="/demande-acces" element={<AnimatedPage><DemandeAccesPage /></AnimatedPage>} />
           <Route
             path="/public-booking-preview"
             element={

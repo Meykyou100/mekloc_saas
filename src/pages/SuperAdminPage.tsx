@@ -43,6 +43,22 @@ type AdminAgency = {
 };
 
 type FilterValue = 'all' | AccountStatus | BillingStatus;
+type AccessRequestStatus = 'pending' | 'contacted' | 'payment_pending' | 'approved' | 'rejected';
+type AccessRequestRow = {
+  id: string;
+  agency_name: string;
+  owner_name: string;
+  email: string;
+  phone_country_code: string;
+  phone_number: string;
+  city: string;
+  selected_plan: string;
+  billing_type: 'monthly' | 'annual';
+  vehicle_count: number;
+  status: AccessRequestStatus;
+  admin_notes: string | null;
+  created_at: string;
+};
 
 const filters: FilterValue[] = ['all', 'pending', 'active', 'suspended', 'rejected', 'overdue', 'paid', 'unpaid'];
 const planPrices: Record<AgencyPlan, number> = {
@@ -110,6 +126,8 @@ export default function SuperAdminPage() {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<FilterValue>('all');
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
+  const [accessRequests, setAccessRequests] = useState<AccessRequestRow[]>([]);
+  const [requestNotes, setRequestNotes] = useState<Record<string, string>>({});
 
   const loadAgencies = useCallback(async () => {
     if (!supabase || !isSupabaseConfigured) {
@@ -119,7 +137,7 @@ export default function SuperAdminPage() {
 
     setLoading(true);
     try {
-      const [agenciesResult, profilesResult, vehiclesResult] = await Promise.all([
+      const [agenciesResult, profilesResult, vehiclesResult, requestsResult] = await Promise.all([
         supabase
           .from('agencies')
           .select(
@@ -131,9 +149,10 @@ export default function SuperAdminPage() {
           .select('id, agency_id, full_name, email, phone, role, account_status, is_super_admin')
           .order('created_at', { ascending: true }),
         supabase.from('vehicles').select('id, agency_id'),
+        supabase.from('access_requests').select('*').order('created_at', { ascending: false }),
       ]);
 
-      const firstError = [agenciesResult.error, profilesResult.error, vehiclesResult.error].find(Boolean);
+      const firstError = [agenciesResult.error, profilesResult.error, vehiclesResult.error, requestsResult.error].find(Boolean);
       if (firstError) throw firstError;
 
       const profiles = (profilesResult.data || []) as {
@@ -190,6 +209,9 @@ export default function SuperAdminPage() {
       setNoteDrafts(
         Object.fromEntries(nextAgencies.map((agency) => [agency.id, agency.paymentNotes])),
       );
+      const nextRequests = (requestsResult.data || []) as AccessRequestRow[];
+      setAccessRequests(nextRequests);
+      setRequestNotes(Object.fromEntries(nextRequests.map((r) => [r.id, r.admin_notes || ''])));
     } catch (error) {
       notify({
         title: 'Données admin non chargées',
@@ -256,6 +278,15 @@ export default function SuperAdminPage() {
         type: 'warning',
       });
     }
+  }
+
+  async function updateAccessRequest(id: string, patch: Partial<AccessRequestRow>, title: string) {
+    setAccessRequests((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+    if (supabase && isSupabaseConfigured) {
+      const { error } = await supabase.from('access_requests').update(patch).eq('id', id);
+      if (error) throw error;
+    }
+    notify({ title, message: 'Demande mise à jour.', type: 'success' });
   }
 
   if (!isSupabaseEnabled || !profile?.isSuperAdmin) {
@@ -421,6 +452,43 @@ export default function SuperAdminPage() {
             <p className="font-bold text-white light:text-carbon-950">No agencies match this filter.</p>
           </Card>
         ) : null}
+
+        <Card className="mt-6 overflow-hidden">
+          <div className="border-b border-white/10 p-5">
+            <h2 className="text-xl font-bold">Demandes d’accès</h2>
+            <p className="mt-1 text-sm text-carbon-400">Suivi des nouvelles demandes agences avant activation.</p>
+          </div>
+          <div className="grid gap-4 p-5">
+            {accessRequests.length === 0 ? <p className="text-sm text-carbon-400">Aucune demande d’accès.</p> : accessRequests.map((req) => (
+              <div key={req.id} className="premium-surface rounded-2xl p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-semibold text-white">{req.agency_name}</p>
+                  <Badge>{req.status}</Badge>
+                </div>
+                <div className="mt-2 grid gap-2 text-sm text-carbon-300 md:grid-cols-3">
+                  <p><strong>Responsable:</strong> {req.owner_name}</p>
+                  <p><strong>Email:</strong> {req.email}</p>
+                  <p><strong>Téléphone:</strong> {req.phone_country_code} {req.phone_number}</p>
+                  <p><strong>Ville:</strong> {req.city}</p>
+                  <p><strong>Plan:</strong> {req.selected_plan}</p>
+                  <p><strong>Facturation:</strong> {req.billing_type === 'annual' ? 'Annuel' : 'Mensuel'}</p>
+                  <p><strong>Véhicules:</strong> {req.vehicle_count}</p>
+                  <p><strong>Date:</strong> {req.created_at.slice(0, 10)}</p>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => updateAccessRequest(req.id, { status: 'contacted' }, 'Marquée contactée')}>Marquer contactée</Button>
+                  <Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => updateAccessRequest(req.id, { status: 'payment_pending' }, 'Paiement en attente')}>Paiement en attente</Button>
+                  <Button className="h-8 px-2.5 text-xs" onClick={() => updateAccessRequest(req.id, { status: 'approved' }, 'Demande approuvée')}>Approuver</Button>
+                  <Button variant="danger" className="h-8 px-2.5 text-xs" onClick={() => updateAccessRequest(req.id, { status: 'rejected' }, 'Demande rejetée')}>Rejeter</Button>
+                </div>
+                <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">
+                  <textarea className="form-control min-h-16" value={requestNotes[req.id] || ''} onChange={(e) => setRequestNotes((c) => ({ ...c, [req.id]: e.target.value }))} placeholder="Note admin..." />
+                  <Button variant="secondary" className="h-10" onClick={() => updateAccessRequest(req.id, { admin_notes: requestNotes[req.id] || '' }, 'Note enregistrée')}>Enregistrer note</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
       </div>
     </div>
   );

@@ -32,12 +32,21 @@ VITE_SUPABASE_ANON_KEY=your-supabase-anon-key
 
 7. Restart the Vite dev server.
 
-## Auth Flow
+## Auth Flow (New)
 
-- Register creates a Supabase Auth user.
-- Register creates one agency.
-- Register creates the first `users_profiles` row with role `Admin` and `account_status = pending`.
-- Login uses Supabase Auth.
+- Public registration is disabled.
+- Login uses email/password or Google for existing approved users.
+- Public prospects use `/demande-acces` to request onboarding.
+- Access requests are stored in `access_requests` and reviewed in Super Admin.
+- After admin approval/payment, account activation is handled by admin workflow.
+
+### Access Request Email (Placeholder)
+
+Current implementation stores requests in Supabase and shows success toasts.
+TODO: connect real email delivery via Resend or a Supabase Edge Function.
+
+Suggested subject:
+`Votre demande d’accès MekLoc a été reçue`
 - Google login uses Supabase Auth OAuth provider.
 - Google users without an agency profile are redirected to `/onboarding`.
 - Onboarding creates the agency and `users_profiles` row with `account_status = pending`.
