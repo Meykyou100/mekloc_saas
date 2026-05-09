@@ -59,6 +59,8 @@ export default function SuperAdminPage() {
   const [agencies, setAgencies] = useState<AdminAgency[]>([]);
   const [requestNotes, setRequestNotes] = useState<Record<string, string>>({});
   const [requestToDelete, setRequestToDelete] = useState<AccessRequestRow | null>(null);
+  const [agencyToDelete, setAgencyToDelete] = useState<AdminAgency | null>(null);
+  const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
 
   const loadAll = useCallback(async () => {
     if (!supabase || !isSupabaseConfigured) return;
@@ -99,6 +101,21 @@ export default function SuperAdminPage() {
   }, [notify]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  async function runAction(key: string, action: () => Promise<void>) {
+    setActionLoading((curr) => ({ ...curr, [key]: true }));
+    try {
+      await action();
+    } catch (error) {
+      notify({
+        title: 'Action impossible',
+        message: error instanceof Error ? error.message : 'Veuillez réessayer.',
+        type: 'warning',
+      });
+    } finally {
+      setActionLoading((curr) => ({ ...curr, [key]: false }));
+    }
+  }
 
   async function updateRequest(id: string, patch: Partial<AccessRequestRow>, toast: string) {
     if (!supabase || !isSupabaseConfigured) return;
@@ -277,20 +294,20 @@ export default function SuperAdminPage() {
                   <p><strong>Date de demande:</strong> {req.created_at.slice(0, 10)}</p>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => updateRequest(req.id, { status: 'contacted' }, 'Marquée contactée')}>Marquer contactée</Button>
-                  <Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => updateRequest(req.id, { status: 'payment_pending' }, 'Paiement en attente')}>Paiement en attente</Button>
-                  <Button className="h-8 px-2.5 text-xs" icon={<CheckCircle2 className="h-3.5 w-3.5" />} onClick={() => approveRequest(req)}>Approuver</Button>
-                  <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<XCircle className="h-3.5 w-3.5" />} onClick={() => updateRequest(req.id, { status: 'rejected' }, 'Demande rejetée')}>Rejeter</Button>
-                  <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<UserPlus className="h-3.5 w-3.5" />} onClick={async () => {
+                  <Button variant="secondary" className="h-8 px-2.5 text-xs" loading={Boolean(actionLoading[`req-contact-${req.id}`])} onClick={() => runAction(`req-contact-${req.id}`, async () => updateRequest(req.id, { status: 'contacted' }, 'Marquée contactée'))}>Marquer contactée</Button>
+                  <Button variant="secondary" className="h-8 px-2.5 text-xs" loading={Boolean(actionLoading[`req-payment-${req.id}`])} onClick={() => runAction(`req-payment-${req.id}`, async () => updateRequest(req.id, { status: 'payment_pending' }, 'Paiement en attente'))}>Paiement en attente</Button>
+                  <Button className="h-8 px-2.5 text-xs" icon={<CheckCircle2 className="h-3.5 w-3.5" />} loading={Boolean(actionLoading[`req-approve-${req.id}`])} onClick={() => runAction(`req-approve-${req.id}`, async () => approveRequest(req))}>Approuver</Button>
+                  <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<XCircle className="h-3.5 w-3.5" />} loading={Boolean(actionLoading[`req-reject-${req.id}`])} onClick={() => runAction(`req-reject-${req.id}`, async () => updateRequest(req.id, { status: 'rejected' }, 'Demande rejetée'))}>Rejeter</Button>
+                  <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<UserPlus className="h-3.5 w-3.5" />} loading={Boolean(actionLoading[`req-create-${req.id}`])} onClick={() => runAction(`req-create-${req.id}`, async () => {
                     const existingAgency = agencies.find((a) => a.agencyName === req.agency_name);
                     if (!existingAgency) return notify({ title: 'Agence introuvable', message: 'Approuvez d’abord la demande.', type: 'warning' });
                     await createOrLinkProfileFromRequest(req, existingAgency.id);
-                  }}>Créer compte client</Button>
+                  })}>Créer compte client</Button>
                   <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setRequestToDelete(req)}>Supprimer la demande</Button>
                 </div>
                 <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">
                   <textarea className="form-control min-h-16" value={requestNotes[req.id] || ''} onChange={(e) => setRequestNotes((c) => ({ ...c, [req.id]: e.target.value }))} placeholder="Notes admin..." />
-                  <Button variant="secondary" className="h-10" icon={<FileText className="h-4 w-4" />} onClick={() => updateRequest(req.id, { admin_notes: requestNotes[req.id] || '' }, 'Note enregistrée')}>Enregistrer note admin</Button>
+                  <Button variant="secondary" className="h-10" icon={<FileText className="h-4 w-4" />} loading={Boolean(actionLoading[`req-note-${req.id}`])} onClick={() => runAction(`req-note-${req.id}`, async () => updateRequest(req.id, { admin_notes: requestNotes[req.id] || '' }, 'Note enregistrée'))}>Enregistrer note admin</Button>
                 </div>
               </div>
             ))}
@@ -308,12 +325,12 @@ export default function SuperAdminPage() {
                   <p><strong>Utilisateurs:</strong> {agency.usersCount}</p><p><strong>Statut compte:</strong> {agency.accountStatus}</p><p><strong>Prix:</strong> {formatMAD(agency.monthlyPrice)}</p>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <Button variant="secondary" icon={<Crown className="h-4 w-4" />} onClick={() => changeAgencyPlan(agency, agency.plan === 'starter' ? 'pro' : agency.plan === 'pro' ? 'business' : 'starter')}>Changer plan</Button>
-                  <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} onClick={() => markBilling(agency, 'paid')}>Marquer payé</Button>
-                  <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} onClick={() => markBilling(agency, 'unpaid')}>Marquer non payé</Button>
-                  <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} onClick={() => extendSubscription(agency, 30)}>Prolonger abonnement</Button>
-                  <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} onClick={() => suspendAgency(agency)}>Suspendre compte</Button>
-                  <Button variant="danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => deleteAgency(agency)}>Delete account</Button>
+                  <Button variant="secondary" icon={<Crown className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-plan-${agency.id}`])} onClick={() => runAction(`agency-plan-${agency.id}`, async () => changeAgencyPlan(agency, agency.plan === 'starter' ? 'pro' : agency.plan === 'pro' ? 'business' : 'starter'))}>Changer plan</Button>
+                  <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-paid-${agency.id}`])} onClick={() => runAction(`agency-paid-${agency.id}`, async () => markBilling(agency, 'paid'))}>Marquer payé</Button>
+                  <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-unpaid-${agency.id}`])} onClick={() => runAction(`agency-unpaid-${agency.id}`, async () => markBilling(agency, 'unpaid'))}>Marquer non payé</Button>
+                  <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-extend-${agency.id}`])} onClick={() => runAction(`agency-extend-${agency.id}`, async () => extendSubscription(agency, 30))}>Prolonger abonnement</Button>
+                  <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-suspend-${agency.id}`])} onClick={() => runAction(`agency-suspend-${agency.id}`, async () => suspendAgency(agency))}>Suspendre compte</Button>
+                  <Button variant="danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => setAgencyToDelete(agency)}>Supprimer le compte</Button>
                 </div>
               </div>
             ))}
@@ -325,7 +342,26 @@ export default function SuperAdminPage() {
         <p className="text-sm text-carbon-300">Voulez-vous vraiment supprimer cette demande ?</p>
         <div className="mt-4 flex justify-end gap-2">
           <Button variant="secondary" onClick={() => setRequestToDelete(null)}>Annuler</Button>
-          <Button variant="danger" onClick={deleteRequest}>Supprimer</Button>
+          <Button variant="danger" loading={Boolean(actionLoading['delete-request'])} onClick={() => runAction('delete-request', deleteRequest)}>Supprimer</Button>
+        </div>
+      </Modal>
+
+      <Modal open={Boolean(agencyToDelete)} onClose={() => setAgencyToDelete(null)} title="Confirmer la suppression">
+        <p className="text-sm text-carbon-300">Cette action va supprimer l’agence et ses données associées. Continuer ?</p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="secondary" onClick={() => setAgencyToDelete(null)}>Annuler</Button>
+          <Button
+            variant="danger"
+            loading={Boolean(actionLoading['delete-agency'])}
+            onClick={() => runAction('delete-agency', async () => {
+              if (!agencyToDelete) return;
+              await deleteAgency(agencyToDelete);
+              setAgencyToDelete(null);
+              notify({ title: 'Compte supprimé', type: 'success' });
+            })}
+          >
+            Supprimer le compte
+          </Button>
         </div>
       </Modal>
     </div>
