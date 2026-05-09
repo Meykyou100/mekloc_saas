@@ -46,7 +46,7 @@ export default function AuthPage() {
         return;
       }
 
-      const nextProfile = isSupabaseEnabled ? await refreshProfile() : null;
+      const nextProfile = isSupabaseEnabled ? (result.profile ?? await refreshProfile()) : null;
 
       notify({
         title: 'Bon retour sur MekLoc',

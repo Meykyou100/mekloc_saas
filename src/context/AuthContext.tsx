@@ -44,6 +44,7 @@ type SignUpInput = {
 
 type AuthActionResult = {
   needsEmailConfirmation?: boolean;
+  profile?: UserProfile | null;
 };
 
 type AuthContextValue = {
@@ -391,7 +392,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(demoUser);
           setProfile(demoProfile);
           setLoading(false);
-          return {};
+          return { profile: demoProfile };
         }
 
         if (!supabase) return {};
@@ -403,8 +404,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           setSession(data.session);
           setUser(data.user);
-          setProfile(data.user ? await fetchProfile(data.user.id) : null);
-          return {};
+          const nextProfile = data.user ? await fetchProfile(data.user.id) : null;
+          setProfile(nextProfile);
+          return { profile: nextProfile };
         } finally {
           setLoading(false);
         }
