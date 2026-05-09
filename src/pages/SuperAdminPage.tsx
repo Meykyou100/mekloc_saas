@@ -14,6 +14,7 @@ import { Navigate, useNavigate } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import { useApp } from '../context/AppContext';
 import { useAuth, type AccountStatus, type AgencyPlan, type BillingStatus, type PaymentMethod } from '../context/AuthContext';
@@ -128,6 +129,10 @@ export default function SuperAdminPage() {
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({});
   const [accessRequests, setAccessRequests] = useState<AccessRequestRow[]>([]);
   const [requestNotes, setRequestNotes] = useState<Record<string, string>>({});
+  const [requestToDelete, setRequestToDelete] = useState<AccessRequestRow | null>(null);
+  const [agencyToDelete, setAgencyToDelete] = useState<AdminAgency | null>(null);
+  const [deletingRequestId, setDeletingRequestId] = useState<string | null>(null);
+  const [deletingAgencyId, setDeletingAgencyId] = useState<string | null>(null);
 
   const loadAgencies = useCallback(async () => {
     if (!supabase || !isSupabaseConfigured) {
@@ -300,6 +305,57 @@ export default function SuperAdminPage() {
     notify({ title, message: 'Demande mise à jour.', type: 'success' });
   }
 
+  async function deleteAccessRequest(row: AccessRequestRow) {
+    setDeletingRequestId(row.id);
+    try {
+      if (supabase && isSupabaseConfigured) {
+        const { error } = await supabase.from('access_requests').delete().eq('id', row.id);
+        if (error) throw error;
+      }
+      setAccessRequests((current) => current.filter((item) => item.id !== row.id));
+      notify({ title: 'Demande supprimée avec succès', type: 'success' });
+    } catch (error) {
+      notify({ title: 'Suppression impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+    } finally {
+      setDeletingRequestId(null);
+      setRequestToDelete(null);
+    }
+  }
+
+  async function deleteAgencyAccount(agency: AdminAgency) {
+    setDeletingAgencyId(agency.id);
+    try {
+      if (supabase && isSupabaseConfigured) {
+        const agencyId = agency.id;
+        const steps: Array<{ table: string; column: string }> = [
+          { table: 'payments', column: 'agency_id' },
+          { table: 'contracts', column: 'agency_id' },
+          { table: 'reservations', column: 'agency_id' },
+          { table: 'maintenance', column: 'agency_id' },
+          { table: 'clients', column: 'agency_id' },
+          { table: 'vehicles', column: 'agency_id' },
+          { table: 'users_profiles', column: 'agency_id' },
+        ];
+
+        for (const step of steps) {
+          const { error } = await supabase.from(step.table).delete().eq(step.column, agencyId);
+          if (error) throw error;
+        }
+
+        const { error: agencyError } = await supabase.from('agencies').delete().eq('id', agencyId);
+        if (agencyError) throw agencyError;
+      }
+
+      setAgencies((current) => current.filter((item) => item.id !== agency.id));
+      notify({ title: 'Compte agence supprimé', message: 'L’agence et ses données associées ont été supprimées.', type: 'success' });
+    } catch (error) {
+      notify({ title: 'Suppression impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+    } finally {
+      setDeletingAgencyId(null);
+      setAgencyToDelete(null);
+    }
+  }
+
   if (!isSupabaseEnabled || !profile?.isSuperAdmin) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -400,7 +456,7 @@ export default function SuperAdminPage() {
                 <div className="flex flex-wrap gap-2">
                   <Button variant="secondary" icon={<CheckCircle2 className="h-4 w-4" />} onClick={() => safeAction('Agence approuvée', () => updateAccountStatus(agency.id, 'active'))}>Approuver</Button>
                   <Button variant="danger" icon={<XCircle className="h-4 w-4" />} onClick={() => safeAction('Agence rejetée', () => updateAccountStatus(agency.id, 'rejected'))}>Rejeter</Button>
-                  <Button variant="danger" icon={<ShieldAlert className="h-4 w-4" />} onClick={() => safeAction('Agence suspendue', () => updateAccountStatus(agency.id, 'suspended'))}>Suspendre</Button>
+                  <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} onClick={() => safeAction('Agence suspendue', () => updateAccountStatus(agency.id, 'suspended'))}>Suspendre le compte</Button>
                   <Button icon={<Crown className="h-4 w-4" />} onClick={() => safeAction('Agence réactivée', () => updateAccountStatus(agency.id, 'active'))}>Réactiver</Button>
                   <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} onClick={() => safeAction('Marked as paid', () => updateAgencyRow(agency.id, {
                     billingStatus: 'paid',
@@ -417,6 +473,7 @@ export default function SuperAdminPage() {
                     nextPaymentDueDate: addDays(agency.nextPaymentDueDate, 365),
                     subscriptionEndDate: addDays(agency.subscriptionEndDate || agency.nextPaymentDueDate, 365),
                   }))}>Prolonger 1 an</Button>
+                  <Button variant="danger" loading={deletingAgencyId === agency.id} onClick={() => setAgencyToDelete(agency)}>Supprimer le compte</Button>
                 </div>
 
                 <div className="grid gap-3">
@@ -491,6 +548,7 @@ export default function SuperAdminPage() {
                   <Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => updateAccessRequest(req.id, { status: 'payment_pending' }, 'Paiement en attente')}>Paiement en attente</Button>
                   <Button className="h-8 px-2.5 text-xs" onClick={() => updateAccessRequest(req.id, { status: 'approved' }, 'Demande approuvée')}>Approuver</Button>
                   <Button variant="danger" className="h-8 px-2.5 text-xs" onClick={() => updateAccessRequest(req.id, { status: 'rejected' }, 'Demande rejetée')}>Rejeter</Button>
+                  <Button variant="danger" className="h-8 px-2.5 text-xs" loading={deletingRequestId === req.id} onClick={() => setRequestToDelete(req)}>Supprimer la demande</Button>
                 </div>
                 <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">
                   <textarea className="form-control min-h-16" value={requestNotes[req.id] || ''} onChange={(e) => setRequestNotes((c) => ({ ...c, [req.id]: e.target.value }))} placeholder="Note admin..." />
@@ -501,6 +559,26 @@ export default function SuperAdminPage() {
           </div>
         </Card>
       </div>
+
+      <Modal open={Boolean(requestToDelete)} onClose={() => setRequestToDelete(null)} title="Confirmer la suppression">
+        <p className="text-sm text-carbon-300">Voulez-vous vraiment supprimer cette demande ?</p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="secondary" onClick={() => setRequestToDelete(null)}>Annuler</Button>
+          <Button variant="danger" loading={Boolean(requestToDelete && deletingRequestId === requestToDelete.id)} onClick={() => requestToDelete && deleteAccessRequest(requestToDelete)}>
+            Supprimer
+          </Button>
+        </div>
+      </Modal>
+
+      <Modal open={Boolean(agencyToDelete)} onClose={() => setAgencyToDelete(null)} title="Suppression du compte agence">
+        <p className="text-sm text-carbon-300">Cette action va supprimer l’agence et ses données associées. Continuer ?</p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="secondary" onClick={() => setAgencyToDelete(null)}>Annuler</Button>
+          <Button variant="danger" loading={Boolean(agencyToDelete && deletingAgencyId === agencyToDelete.id)} onClick={() => agencyToDelete && deleteAgencyAccount(agencyToDelete)}>
+            Supprimer définitivement
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }
