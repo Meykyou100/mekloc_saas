@@ -106,7 +106,7 @@ export default function DemandeAccesPage() {
         } else {
           notify({
             title: 'Demande enregistrée',
-            message: 'Email non envoyé: vérifiez la fonction Supabase/Resend.',
+            message: `Email non envoyé: vérifiez la fonction Supabase/Resend.${'details' in emailResult && emailResult.details ? ` (${emailResult.details.slice(0, 120)})` : ''}`,
             type: 'warning',
           });
         }
