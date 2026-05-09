@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     if (!email || !agencyId) throw new Error('email and agencyId required');
 
     const normalized = email.trim().toLowerCase();
-    const adminRes = await fetch(`${url}/auth/v1/admin/invite`, {
+    const adminRes = await fetch(`${url}/auth/v1/invite`, {
       method: 'POST',
       headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: normalized, data: { agency_id: agencyId } }),
