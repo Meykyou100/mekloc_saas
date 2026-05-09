@@ -17,7 +17,7 @@ export default function AuthPage() {
   const [newPassword, setNewPassword] = useState('');
   const navigate = useNavigate();
   const { notify } = useApp();
-  const { signIn, signInWithGoogle, refreshProfile, isSupabaseEnabled, requestPasswordReset, updatePassword } = useAuth();
+  const { signIn, signInWithGoogle, refreshProfile, isSupabaseEnabled, requestPasswordReset, updatePassword, getAccessRequestStatusByEmail } = useAuth();
 
   useEffect(() => {
     const hash = window.location.hash || '';
@@ -63,6 +63,12 @@ export default function AuthPage() {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Authentification échouée';
       if (/Invalid login credentials/i.test(message)) {
+        const request = await getAccessRequestStatusByEmail(email);
+        if (request) {
+          if (request.status === 'payment_pending') return navigate('/payment-required', { replace: true });
+          if (request.status === 'rejected') return navigate('/account-status', { replace: true });
+          return navigate(`/verification-en-cours?email=${encodeURIComponent(email)}&agency=${encodeURIComponent(request.agencyName)}&plan=${encodeURIComponent(request.plan)}&created_at=${encodeURIComponent(request.createdAt)}${request.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`, { replace: true });
+        }
         navigate(`/demande-acces?email=${encodeURIComponent(email)}&from=login`, { replace: true });
         return;
       }

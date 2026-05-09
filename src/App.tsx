@@ -24,6 +24,7 @@ import SettingsPage from './pages/SettingsPage';
 import SuperAdminPage from './pages/SuperAdminPage';
 import VehicleDetailsPage from './pages/VehicleDetailsPage';
 import VehiclesPage from './pages/VehiclesPage';
+import VerificationEnCoursPage from './pages/VerificationEnCoursPage';
 
 const pageMotion = {
   initial: { opacity: 0, y: 12 },
@@ -68,6 +69,7 @@ export default function App() {
             }
           />
           <Route path="/demande-acces" element={<AnimatedPage><DemandeAccesPage /></AnimatedPage>} />
+          <Route path="/verification-en-cours" element={<AnimatedPage><VerificationEnCoursPage /></AnimatedPage>} />
           <Route
             path="/public-booking-preview"
             element={

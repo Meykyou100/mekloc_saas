@@ -63,6 +63,7 @@ type AuthContextValue = {
   requestPasswordReset: (email: string) => Promise<void>;
   deleteAccountWithPassword: (password: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
+  getAccessRequestStatusByEmail: (email: string) => Promise<{ status: string; agencyName: string; plan: string; createdAt: string } | null>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -537,6 +538,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!supabase) throw new Error('Supabase non configuré.');
         const { error } = await supabase.auth.updateUser({ password });
         if (error) throw error;
+      },
+      getAccessRequestStatusByEmail: async (email: string) => {
+        if (!supabase || !email) return null;
+        const { data, error } = await supabase.rpc('get_access_request_status', { target_email: email });
+        if (error) return null;
+        const row = Array.isArray(data) ? data[0] : null;
+        if (!row) return null;
+        return { status: row.status, agencyName: row.agency_name, plan: row.selected_plan, createdAt: row.created_at };
       },
     }),
     [isDemoSession, loading, profile, session, user],
