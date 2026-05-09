@@ -70,6 +70,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 const demoAuthKey = 'mekloc-demo-auth';
 const demoEmail = 'demo@mekloc.ma';
 const demoPassword = 'demo123456';
+const allowDemoMode = import.meta.env.VITE_ENABLE_DEMO_MODE === 'true';
 
 type ProfileRow = {
   id: string;
@@ -397,7 +398,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       agencyId: profile?.agencyId ?? null,
       loading,
       signIn: async (email, password) => {
-        if (email.trim().toLowerCase() === demoEmail && password === demoPassword) {
+        if (allowDemoMode && email.trim().toLowerCase() === demoEmail && password === demoPassword) {
           localStorage.setItem(demoAuthKey, 'true');
           setIsDemoSession(true);
           setSession(demoSession);
