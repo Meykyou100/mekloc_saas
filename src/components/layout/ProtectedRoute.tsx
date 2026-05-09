@@ -11,7 +11,7 @@ export default function ProtectedRoute({
   requireAgency?: boolean;
   requireSuperAdmin?: boolean;
 }) {
-  const { isSupabaseEnabled, loading, session, agencyId, profile } = useAuth();
+  const { isSupabaseEnabled, loading, session, agencyId, profile, user } = useAuth();
   const location = useLocation();
 
   if (!isSupabaseEnabled) {
@@ -43,7 +43,7 @@ export default function ProtectedRoute({
   }
 
   if (requireAgency && !agencyId) {
-    return <Navigate to="/onboarding" replace />;
+    return <Navigate to={`/demande-acces?from=login${user?.email ? `&email=${encodeURIComponent(user.email)}` : ''}`} replace />;
   }
 
   if (requireAgency && profile?.accountStatus && profile.accountStatus !== 'active') {
