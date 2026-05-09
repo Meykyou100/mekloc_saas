@@ -13,6 +13,7 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 
 body {
@@ -24,6 +25,11 @@ body {
     linear-gradient(315deg, rgba(45, 212, 163, 0.06), transparent 38%),
     #070909;
   color: #f8fafc;
+  overflow-x: hidden;
+}
+
+#root {
+  overflow-x: hidden;
 }
 
 button,

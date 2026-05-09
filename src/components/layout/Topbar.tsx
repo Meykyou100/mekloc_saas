@@ -75,7 +75,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
         </div>
         <button
           aria-label="Profile"
-          className="focus-ring hidden h-11 items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.055] px-3 text-sm font-semibold text-white hover:bg-white/10 light:bg-carbon-950/[0.04] light:text-carbon-950 md:flex"
+          className="focus-ring hidden h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.055] px-3 text-sm font-semibold text-white hover:bg-white/10 light:bg-carbon-950/[0.04] light:text-carbon-950 md:flex"
         >
           <UserRound className="h-5 w-5 text-gold-300" />
           {profile?.fullName || 'Agence MekLoc'}

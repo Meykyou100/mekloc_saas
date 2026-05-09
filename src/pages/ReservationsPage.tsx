@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { CalendarDays, Car, CheckCircle2, Filter, LayoutGrid, ListFilter, MapPin, Plus, Search, UserRound, X } from 'lucide-react';
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -54,17 +54,17 @@ const inputClass =
 
 const reservationSteps = [
   'Client',
-  'Vehicle',
+  'Véhicule',
   'Dates',
-  'Pricing',
-  'Confirm',
+  'Tarification',
+  'Confirmer',
 ];
 
 export default function ReservationsPage() {
   const { clients, vehicles, reservations, createReservation } = useData();
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<'All' | ReservationStatus>('All');
-  const [view, setView] = useState<ViewMode>('table');
+  const [view, setView] = useState<ViewMode>('calendar');
   const [modalOpen, setModalOpen] = useState(false);
   const [draftClientId, setDraftClientId] = useState('');
   const [draftVehicleId, setDraftVehicleId] = useState('');
@@ -86,6 +86,19 @@ export default function ReservationsPage() {
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === draftVehicleId) || vehicles[0];
   const rentalDays = getRentalDays(draftPickupDate, draftReturnDate);
   const totalEstimate = rentalDays * Number(draftDailyPrice || selectedVehicle?.dailyPrice || 0);
+  const isMobileCards = view === 'calendar';
+
+  useEffect(() => {
+    if (modalOpen) {
+      document.body.style.overflow = 'hidden';
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [modalOpen]);
 
   function openReservationPanel() {
     const firstClient = clients[0];
@@ -146,9 +159,9 @@ export default function ReservationsPage() {
     <div>
       <PageHeader
         eyebrow="Bookings"
-        title="Reservations"
-        description="Manage bookings, pickup windows, deposits, and reservation states across every branch."
-        action={<Button icon={<Plus className="h-4 w-4" />} onClick={openReservationPanel}>Add reservation</Button>}
+        title="Réservations"
+        description="Gérez les réservations, les créneaux de départ/retour, les cautions et les statuts."
+        action={<Button icon={<Plus className="h-4 w-4" />} onClick={openReservationPanel}>Ajouter</Button>}
       />
 
       <Card className="mb-5 p-4">
@@ -158,24 +171,24 @@ export default function ReservationsPage() {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search by client, vehicle, city, or ID"
+              placeholder="Rechercher par client, véhicule, ville ou ID"
             className="focus-ring h-10 w-full rounded-xl border border-white/[0.07] bg-[#0F1115] pl-10 pr-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,.025)] transition placeholder:text-carbon-500 hover:border-white/12 light:bg-white light:text-carbon-950"
             />
           </label>
-          <div className="flex flex-wrap gap-2">
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 no-scrollbar md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
             {statuses.map((item) => (
               <button
                 key={item}
-                className={`focus-ring rounded-xl px-3 py-2 text-sm font-semibold transition ${
+                className={`focus-ring shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition md:text-sm ${
                   status === item ? 'bg-gold-400 text-carbon-950' : 'border border-white/10 bg-white/[0.04] text-carbon-300 hover:bg-white/10 light:text-carbon-700'
                 }`}
                 onClick={() => setStatus(item)}
               >
-                {item}
+                {item === 'All' ? 'Tous' : item === 'Confirmed' ? 'Confirmée' : item === 'Active' ? 'Active' : item === 'Completed' ? 'Terminée' : 'Annulée'}
               </button>
             ))}
           </div>
-          <div className="flex rounded-xl border border-white/10 bg-white/[0.04] p-1">
+          <div className="hidden rounded-xl border border-white/10 bg-white/[0.04] p-1 md:flex">
             <button
               className={`focus-ring grid h-9 w-10 place-items-center rounded-lg ${view === 'table' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300'}`}
               onClick={() => setView('table')}
@@ -202,8 +215,8 @@ export default function ReservationsPage() {
           action="Add reservation"
           onAction={openReservationPanel}
         />
-      ) : view === 'table' ? (
-        <Card className="data-table overflow-hidden">
+      ) : !isMobileCards ? (
+        <Card className="data-table hidden overflow-hidden md:block">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[920px] text-left text-sm">
               <thead className="border-b border-white/[0.06] text-xs uppercase tracking-wide text-carbon-400">
@@ -245,6 +258,7 @@ export default function ReservationsPage() {
                 </div>
                 <Badge>{reservation.status}</Badge>
               </div>
+              <p className="text-xs text-carbon-500">{reservation.id}</p>
               <h3 className="font-black text-white light:text-carbon-950">{reservation.vehicle}</h3>
               <p className="mt-1 text-sm text-carbon-400">{reservation.client}</p>
               <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
@@ -253,6 +267,7 @@ export default function ReservationsPage() {
                   {reservation.pickupDate} → {reservation.returnDate}
                 </p>
               </div>
+              <p className="mt-4 font-semibold text-gold-200">{formatMAD(reservation.dailyPrice)}</p>
               <p className="mt-4 text-sm leading-6 text-carbon-400">{reservation.notes}</p>
             </Card>
           ))}
