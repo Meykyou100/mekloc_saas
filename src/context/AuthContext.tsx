@@ -211,6 +211,13 @@ async function fetchProfile(userId: string): Promise<UserProfile | null> {
   return data ? mapProfile(data as ProfileRow) : null;
 }
 
+async function isDeletedByEmail(email: string | null | undefined): Promise<boolean> {
+  if (!supabase || !email) return false;
+  const { data, error } = await supabase.rpc('is_deleted_account', { target_email: email });
+  if (error) return false;
+  return Boolean(data);
+}
+
 function createSlug(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
@@ -404,6 +411,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           setSession(data.session);
           setUser(data.user);
+          const deleted = await isDeletedByEmail(data.user?.email);
+          if (deleted) {
+            await supabase.auth.signOut();
+            throw new Error('Ce compte a été supprimé. Contactez MekLoc pour réactivation.');
+          }
           const nextProfile = data.user ? await fetchProfile(data.user.id) : null;
           setProfile(nextProfile);
           return { profile: nextProfile };
@@ -475,6 +487,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!supabase) return null;
         const activeUser = user ?? (await supabase.auth.getUser()).data.user;
         if (!activeUser) return null;
+        const deleted = await isDeletedByEmail(activeUser.email);
+        if (deleted) {
+          await supabase.auth.signOut();
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          throw new Error('Ce compte a été supprimé. Contactez MekLoc pour réactivation.');
+        }
         const nextProfile = await fetchProfile(activeUser.id);
         setProfile(nextProfile);
         return nextProfile;
