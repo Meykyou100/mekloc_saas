@@ -47,6 +47,10 @@ export default function AuthPage() {
       }
 
       const nextProfile = isSupabaseEnabled ? (result.profile ?? await refreshProfile()) : null;
+      if (!nextProfile && isSupabaseEnabled) {
+        navigate(`/demande-acces?email=${encodeURIComponent(email)}&from=login`, { replace: true });
+        return;
+      }
 
       notify({
         title: 'Bon retour sur MekLoc',
@@ -57,9 +61,14 @@ export default function AuthPage() {
       });
       navigate(getPostLoginRedirect(nextProfile, isSupabaseEnabled), { replace: true });
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Authentification échouée';
+      if (/Invalid login credentials/i.test(message)) {
+        navigate(`/demande-acces?email=${encodeURIComponent(email)}&from=login`, { replace: true });
+        return;
+      }
       notify({
         title: 'Authentification échouée',
-        message: error instanceof Error ? error.message : 'Vérifiez votre configuration Supabase puis réessayez.',
+        message,
         type: 'warning',
       });
     } finally {
