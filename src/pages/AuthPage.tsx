@@ -1,5 +1,5 @@
 import { ArrowLeft, Chrome, LockKeyhole, Mail, UserRound } from 'lucide-react';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -14,9 +14,19 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
+  const [resetMode, setResetMode] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
   const navigate = useNavigate();
   const { notify } = useApp();
-  const { signIn, signInWithGoogle, signUp, refreshProfile, isSupabaseEnabled, requestPasswordReset } = useAuth();
+  const { signIn, signInWithGoogle, signUp, refreshProfile, isSupabaseEnabled, requestPasswordReset, updatePassword } = useAuth();
+
+  useEffect(() => {
+    const hash = window.location.hash || '';
+    const search = window.location.search || '';
+    if (hash.includes('type=recovery') || search.includes('type=recovery')) {
+      setResetMode(true);
+    }
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -100,6 +110,23 @@ export default function AuthPage() {
     }
   }
 
+  async function handleSetNewPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (newPassword.length < 8) {
+      notify({ title: 'Mot de passe trop court', message: 'Utilisez au moins 8 caractères.', type: 'warning' });
+      return;
+    }
+    try {
+      await updatePassword(newPassword);
+      notify({ title: 'Mot de passe mis à jour', message: 'Vous pouvez vous reconnecter avec votre nouveau mot de passe.', type: 'success' });
+      setResetMode(false);
+      setNewPassword('');
+      window.history.replaceState(null, '', '/auth');
+    } catch (error) {
+      notify({ title: 'Échec de mise à jour', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+    }
+  }
+
   return (
     <div className="grid min-h-screen bg-carbon-950 text-white light:bg-carbon-50 light:text-carbon-950 lg:grid-cols-[1fr_0.85fr]">
       <section className="hidden border-r border-white/10 bg-surface-grid bg-[length:34px_34px] px-10 py-8 lg:flex lg:flex-col">
@@ -126,6 +153,16 @@ export default function AuthPage() {
             Retour à l’accueil
           </Link>
           <Card className="p-6 sm:p-8">
+            {resetMode ? (
+              <form className="grid gap-4" onSubmit={handleSetNewPassword}>
+                <h2 className="text-2xl font-black">Nouveau mot de passe</h2>
+                <p className="text-sm text-carbon-400">Définissez votre nouveau mot de passe pour sécuriser votre compte.</p>
+                <Field label="Nouveau mot de passe" name="newPassword" type="password" placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+                <Button type="submit" icon={<LockKeyhole className="h-4 w-4" />}>Mettre à jour le mot de passe</Button>
+                <Button type="button" variant="secondary" onClick={() => { setResetMode(false); window.history.replaceState(null, '', '/auth'); }}>Retour à la connexion</Button>
+              </form>
+            ) : (
+              <>
             <div className="mb-7 flex rounded-2xl border border-white/10 bg-white/[0.04] p-1">
               {(['login', 'register'] as const).map((item) => (
                 <button
@@ -180,6 +217,8 @@ export default function AuthPage() {
                 Mot de passe oublié ?
               </button>
             ) : null}
+              </>
+            )}
           </Card>
         </div>
       </section>

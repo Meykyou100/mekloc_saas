@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { Field, SelectField } from '../components/ui/Form';
+import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -30,6 +31,8 @@ export default function SettingsPage() {
   const endDiff = endDate ? Math.ceil((new Date(endDate).getTime() - now.getTime()) / 86400000) : null;
   const contactPhone = '212762971653';
   const contactEmail = 'younesmekki100@gmail.com';
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
   function downloadBillingReceipt() {
     const lines = [
       'Recu abonnement MekLoc',
@@ -96,11 +99,12 @@ startxref
   }
 
   async function handleDeleteAccount() {
-    const password = window.prompt('Pour supprimer votre compte, confirmez votre mot de passe :');
-    if (!password) return;
+    if (!deletePassword) return;
     try {
-      await deleteAccountWithPassword(password);
+      await deleteAccountWithPassword(deletePassword);
       notify({ title: 'Compte supprimé', message: 'Votre compte a été supprimé avec succès.', type: 'success' });
+      setDeleteOpen(false);
+      setDeletePassword('');
       navigate('/auth');
     } catch (error) {
       notify({ title: 'Suppression impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
@@ -347,9 +351,19 @@ startxref
         <p className="mt-2 text-sm text-carbon-400">Vous pouvez vous déconnecter ou supprimer définitivement votre compte.</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Button variant="secondary" onClick={handleLogout}>Déconnexion</Button>
-          <Button variant="danger" onClick={handleDeleteAccount}>Supprimer mon compte</Button>
+          <Button variant="danger" onClick={() => setDeleteOpen(true)}>Supprimer mon compte</Button>
         </div>
       </Card>
+      <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)} title="Supprimer mon compte">
+        <div className="space-y-4">
+          <p className="text-sm text-carbon-400">Cette action est définitive. Confirmez votre mot de passe pour supprimer votre compte.</p>
+          <Field label="Mot de passe" name="deletePassword" type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} required />
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={() => setDeleteOpen(false)}>Annuler</Button>
+            <Button type="button" variant="danger" onClick={handleDeleteAccount}>Confirmer la suppression</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -61,6 +61,7 @@ type AuthContextValue = {
   signOut: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   deleteAccountWithPassword: (password: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -509,6 +510,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(null);
         setUser(null);
         setProfile(null);
+      },
+      updatePassword: async (password: string) => {
+        if (!supabase) throw new Error('Supabase non configuré.');
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
       },
     }),
     [isDemoSession, loading, profile, session, user],
