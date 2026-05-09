@@ -1,9 +1,10 @@
-import { ArrowLeft, Chrome, Eye, LockKeyhole, Mail, UserRound } from 'lucide-react';
+import { ArrowLeft, Chrome, LockKeyhole, Mail, UserRound } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { Field } from '../components/ui/Form';
+import Modal from '../components/ui/Modal';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { getPostLoginRedirect } from '../lib/authRedirect';
@@ -11,6 +12,8 @@ import { getPostLoginRedirect } from '../lib/authRedirect';
 export default function AuthPage() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
   const navigate = useNavigate();
   const { notify } = useApp();
   const { signIn, signInWithGoogle, signUp, refreshProfile, isSupabaseEnabled, requestPasswordReset } = useAuth();
@@ -86,11 +89,12 @@ export default function AuthPage() {
   }
 
   async function handleForgotPassword() {
-    const email = window.prompt('Entrez votre email pour réinitialiser le mot de passe :');
-    if (!email) return;
+    if (!forgotEmail) return;
     try {
-      await requestPasswordReset(email);
+      await requestPasswordReset(forgotEmail);
       notify({ title: 'Email envoyé', message: 'Le lien de réinitialisation a été envoyé à votre adresse Gmail.', type: 'success' });
+      setForgotOpen(false);
+      setForgotEmail('');
     } catch (error) {
       notify({ title: 'Échec réinitialisation', message: error instanceof Error ? error.message : 'Réessayez plus tard.', type: 'warning' });
     }
@@ -172,17 +176,33 @@ export default function AuthPage() {
               Continuer avec Google
             </Button>
             {mode === 'login' ? (
-              <button type="button" className="mt-4 text-sm font-semibold text-gold-200 hover:text-gold-100" onClick={handleForgotPassword}>
+              <button type="button" className="mt-4 text-sm font-semibold text-gold-200 hover:text-gold-100" onClick={() => setForgotOpen(true)}>
                 Mot de passe oublié ?
               </button>
             ) : null}
-            <button className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-carbon-400 hover:text-gold-200">
-              <Eye className="h-4 w-4" />
-              Aperçu du tableau de bord sans compte
-            </button>
           </Card>
         </div>
       </section>
+      <Modal open={forgotOpen} onClose={() => setForgotOpen(false)} title="Réinitialiser le mot de passe">
+        <div className="space-y-4">
+          <p className="text-sm text-carbon-400">
+            Entrez votre adresse email professionnelle. Nous vous enverrons un lien sécurisé pour définir un nouveau mot de passe.
+          </p>
+          <Field
+            label="Adresse email"
+            name="forgotEmail"
+            type="email"
+            placeholder="younesmekki100@gmail.com"
+            value={forgotEmail}
+            onChange={(e) => setForgotEmail(e.target.value)}
+            required
+          />
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={() => setForgotOpen(false)}>Annuler</Button>
+            <Button type="button" onClick={handleForgotPassword}>Envoyer le lien</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
