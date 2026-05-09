@@ -48,6 +48,11 @@ export default function AuthPage() {
 
       const nextProfile = isSupabaseEnabled ? (result.profile ?? await refreshProfile()) : null;
       if (!nextProfile && isSupabaseEnabled) {
+        const request = await getAccessRequestStatusByEmail(email);
+        if (request && ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified'].includes(request.status)) {
+          navigate(`/verification-en-cours?email=${encodeURIComponent(email)}&agency=${encodeURIComponent(request.agencyName)}&plan=${encodeURIComponent(request.plan)}&created_at=${encodeURIComponent(request.createdAt)}${request.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`, { replace: true });
+          return;
+        }
         navigate(`/demande-acces?email=${encodeURIComponent(email)}&from=login`, { replace: true });
         return;
       }
@@ -67,7 +72,9 @@ export default function AuthPage() {
         if (request) {
           if (request.status === 'payment_pending') return navigate('/payment-required', { replace: true });
           if (request.status === 'rejected') return navigate('/account-status', { replace: true });
-          return navigate(`/verification-en-cours?email=${encodeURIComponent(email)}&agency=${encodeURIComponent(request.agencyName)}&plan=${encodeURIComponent(request.plan)}&created_at=${encodeURIComponent(request.createdAt)}${request.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`, { replace: true });
+          if (['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified'].includes(request.status)) {
+            return navigate(`/verification-en-cours?email=${encodeURIComponent(email)}&agency=${encodeURIComponent(request.agencyName)}&plan=${encodeURIComponent(request.plan)}&created_at=${encodeURIComponent(request.createdAt)}${request.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`, { replace: true });
+          }
         }
         navigate(`/demande-acces?email=${encodeURIComponent(email)}&from=login`, { replace: true });
         return;

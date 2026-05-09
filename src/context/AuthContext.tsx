@@ -547,16 +547,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       getAccessRequestStatusByEmail: async (email: string) => {
         if (!supabase || !email) return null;
         const normalized = normalizeEmail(email);
-        const { data: row, error } = await supabase
+        const { data, error } = await supabase
           .from('access_requests')
           .select('status, agency_name, selected_plan, created_at, email')
           .eq('email', normalized)
           .in('status', ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified', 'rejected', 'approved'])
           .order('created_at', { ascending: false })
-          .maybeSingle();
+          .limit(1);
+        const row = Array.isArray(data) ? data[0] : null;
         if (import.meta.env.DEV) console.log('Access request found:', row);
         if (error || !row) return null;
-        if (!row) return null;
         return { status: row.status, agencyName: row.agency_name, plan: row.selected_plan, createdAt: row.created_at };
       },
     }),

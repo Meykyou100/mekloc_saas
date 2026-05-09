@@ -48,16 +48,17 @@ export default function DemandeAccesPage() {
     setIsSubmitting(true);
     try {
       if (!supabase || !isSupabaseConfigured) throw new Error('Supabase non configuré');
-      const { data: row, error: existingError } = await supabase
+      const { data: existingData, error: existingError } = await supabase
         .from('access_requests')
         .select('status, agency_name, selected_plan, created_at, email')
         .eq('email', payload.email)
         .in('status', ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified'])
         .order('created_at', { ascending: false })
-        .maybeSingle();
+        .limit(1);
+      const row = Array.isArray(existingData) ? existingData[0] : null;
       if (import.meta.env.DEV) console.log('Access request found:', row);
       if (existingError) throw existingError;
-      if (row && ['pending', 'pending_verification', 'contacted', 'payment_pending'].includes(row.status)) {
+      if (row && ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified'].includes(row.status)) {
         window.location.href = `/verification-en-cours?email=${encodeURIComponent(payload.email)}&agency=${encodeURIComponent(row.agency_name || payload.agency_name)}&plan=${encodeURIComponent(row.selected_plan || payload.selected_plan)}&created_at=${encodeURIComponent(row.created_at || '')}${row.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`;
         return;
       }
