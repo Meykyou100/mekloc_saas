@@ -25,6 +25,7 @@ type AccessRequestRow = {
   city: string; selected_plan: string; billing_type: 'monthly' | 'annual'; vehicle_count: number; status: AccessRequestStatus;
   admin_notes: string | null; created_at: string;
 };
+type DeletedAccessRequest = AccessRequestRow & { deletedAt: string };
 
 const filters: FilterValue[] = ['all', 'pending', 'active', 'suspended', 'rejected', 'overdue', 'paid', 'unpaid'];
 const planPrices: Record<AgencyPlan, number> = { starter: 99, pro: 250, business: 499 };
@@ -54,11 +55,17 @@ export default function SuperAdminPage() {
   const [deletingRequestId, setDeletingRequestId] = useState<string | null>(null);
   const [deletingAgencyId, setDeletingAgencyId] = useState<string | null>(null);
   const [deletedAgencies, setDeletedAgencies] = useState<DeletedAgency[]>(() => JSON.parse(localStorage.getItem('mekloc-deleted-agencies') || '[]'));
+  const [deletedAccessRequests, setDeletedAccessRequests] = useState<DeletedAccessRequest[]>(() => JSON.parse(localStorage.getItem('mekloc-deleted-access-requests') || '[]'));
   const deletedAgencyIds = useMemo(() => new Set(deletedAgencies.map((item) => item.id)), [deletedAgencies]);
+  const deletedRequestIds = useMemo(() => new Set(deletedAccessRequests.map((item) => item.id)), [deletedAccessRequests]);
 
   const persistDeletedAgencies = (rows: DeletedAgency[]) => {
     setDeletedAgencies(rows);
     localStorage.setItem('mekloc-deleted-agencies', JSON.stringify(rows));
+  };
+  const persistDeletedRequests = (rows: DeletedAccessRequest[]) => {
+    setDeletedAccessRequests(rows);
+    localStorage.setItem('mekloc-deleted-access-requests', JSON.stringify(rows));
   };
 
   const exportAccountsCsv = (rows: AdminAgency[], filename = 'mekloc-comptes.csv') => {
@@ -78,11 +85,12 @@ export default function SuperAdminPage() {
     }
     setLoading(true);
     try {
-      const [agenciesResult, profilesResult, vehiclesResult, requestsResult] = await Promise.all([
+      const [agenciesResult, profilesResult, vehiclesResult, requestsResult, deletedRequestsResult] = await Promise.all([
         supabase.from('agencies').select('id, name, plan, billing_status, subscription_end_date, last_payment_date, next_payment_due_date, monthly_price, payment_method, payment_notes, created_at').order('created_at', { ascending: false }),
         supabase.from('users_profiles').select('agency_id, full_name, email, phone, role, account_status').order('created_at', { ascending: true }),
         supabase.from('vehicles').select('agency_id'),
         supabase.from('access_requests').select('*').order('created_at', { ascending: false }),
+        supabase.from('deleted_access_requests').select('*').order('deleted_at', { ascending: false }),
       ]);
       if (agenciesResult.error || profilesResult.error || vehiclesResult.error) throw agenciesResult.error || profilesResult.error || vehiclesResult.error;
       const profiles = (profilesResult.data || []) as Array<{ agency_id: string | null; full_name: string | null; email: string | null; phone: string | null; role: string; account_status: AccountStatus }>;
@@ -101,17 +109,56 @@ export default function SuperAdminPage() {
         });
       setAgencies(nextAgencies.filter((agency) => !deletedAgencyIds.has(agency.id)));
       setNoteDrafts(Object.fromEntries(nextAgencies.map((a) => [a.id, a.paymentNotes])));
+      if (deletedRequestsResult.error) {
+        persistDeletedRequests([]);
+      } else {
+        const deletedRows = (deletedRequestsResult.data || []) as Array<{
+          original_request_id: string;
+          agency_name: string;
+          owner_name: string;
+          email: string;
+          phone_country_code: string;
+          phone_number: string;
+          city: string;
+          selected_plan: string;
+          billing_type: 'monthly' | 'annual';
+          vehicle_count: number;
+          status: AccessRequestStatus;
+          admin_notes: string | null;
+          original_created_at: string | null;
+          deleted_at: string;
+        }>;
+        persistDeletedRequests(
+          deletedRows.map((row) => ({
+            id: row.original_request_id,
+            agency_name: row.agency_name,
+            owner_name: row.owner_name,
+            email: row.email,
+            phone_country_code: row.phone_country_code,
+            phone_number: row.phone_number,
+            city: row.city,
+            selected_plan: row.selected_plan,
+            billing_type: row.billing_type,
+            vehicle_count: row.vehicle_count,
+            status: row.status,
+            admin_notes: row.admin_notes,
+            created_at: row.original_created_at || row.deleted_at,
+            deletedAt: row.deleted_at,
+          })),
+        );
+      }
+
       if (requestsResult.error) {
         setAccessRequests([]);
       } else {
-        const reqs = (requestsResult.data || []) as AccessRequestRow[];
+        const reqs = ((requestsResult.data || []) as AccessRequestRow[]).filter((r) => !deletedRequestIds.has(r.id));
         setAccessRequests(reqs);
         setRequestNotes(Object.fromEntries(reqs.map((r) => [r.id, r.admin_notes || ''])));
       }
     } catch (error) {
       notify({ title: 'Données admin non chargées', message: error instanceof Error ? error.message : 'Vérifiez les politiques RLS super admin.', type: 'warning' });
     } finally { setLoading(false); }
-  }, [deletedAgencyIds, notify]);
+  }, [deletedAgencyIds, deletedRequestIds, notify]);
 
   useEffect(() => { loadAgencies(); }, [loadAgencies]);
   const filteredAgencies = useMemo(() => filter === 'all' ? agencies : agencies.filter((a) => a.accountStatus === filter || a.billingStatus === filter), [agencies, filter]);
@@ -157,9 +204,26 @@ export default function SuperAdminPage() {
     setDeletingRequestId(row.id);
     try {
       if (supabase && isSupabaseConfigured) {
+        const { error: archiveError } = await supabase.from('deleted_access_requests').insert({
+          original_request_id: row.id,
+          agency_name: row.agency_name,
+          owner_name: row.owner_name,
+          email: row.email,
+          phone_country_code: row.phone_country_code,
+          phone_number: row.phone_number,
+          city: row.city,
+          selected_plan: row.selected_plan,
+          billing_type: row.billing_type,
+          vehicle_count: row.vehicle_count,
+          status: row.status,
+          admin_notes: row.admin_notes,
+          original_created_at: row.created_at,
+        });
+        if (archiveError) throw archiveError;
         const { error } = await supabase.from('access_requests').delete().eq('id', row.id);
         if (error) throw error;
       }
+      persistDeletedRequests([{ ...row, deletedAt: new Date().toISOString() }, ...deletedAccessRequests]);
       setAccessRequests((curr) => curr.filter((r) => r.id !== row.id));
       notify({ title: 'Demande supprimée avec succès', type: 'success' });
     } catch (error) {
