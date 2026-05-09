@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
 import { FormEvent, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import Button from '../components/ui/Button';
@@ -18,6 +18,7 @@ export default function DemandeAccesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState('');
   const prefilledEmail = searchParams.get('email') || '';
   const fromLogin = searchParams.get('from') === 'login';
 
@@ -43,6 +44,7 @@ export default function DemandeAccesPage() {
       promo_code: String(form.get('promo_code') || ''),
       status: 'pending',
     };
+    setSubmittedEmail(payload.email);
     setIsSubmitting(true);
     try {
       if (!supabase || !isSupabaseConfigured) throw new Error('Supabase non configuré');
@@ -59,7 +61,7 @@ export default function DemandeAccesPage() {
     }
   }
 
-  if (isSuccess) return <div className="min-h-screen bg-carbon-950 px-4 py-8 text-white sm:px-6"><div className="mx-auto flex min-h-[80vh] w-full max-w-xl items-center"><Card className="w-full p-6 sm:p-8"><div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-emerald-300/35 bg-emerald-500/10 text-emerald-200"><CheckCircle2 className="h-7 w-7" /></div><h1 className="text-center text-2xl font-black">Votre demande a été envoyée</h1><p className="mt-3 text-center text-sm text-carbon-300">MekLoc vous contactera après vérification.</p><Link to="/auth" className="mt-7 block"><Button className="w-full">Retour à la connexion</Button></Link></Card></div></div>;
+  if (isSuccess) return <div className="min-h-screen bg-carbon-950 px-4 py-8 text-white sm:px-6"><div className="mx-auto flex min-h-[80vh] w-full max-w-xl items-center"><Card className="w-full p-6 sm:p-8"><p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-carbon-400">AutoLoc</p><div className="mx-auto mt-4 mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-gold-300/40 bg-gold-400/10 text-gold-200"><Mail className="h-6 w-6" /></div><h1 className="text-center text-2xl font-black">Vérifiez votre messagerie</h1><div className="mt-3 space-y-2 text-center text-sm text-carbon-300"><p>Un email de vérification a été envoyé à <span className="font-semibold text-white">{submittedEmail || prefilledEmail || 'votre adresse email'}</span>. Cliquez sur le lien pour confirmer votre demande.</p><p>Vérifiez aussi vos spams si vous ne trouvez pas l’email. Le lien expire dans 24h.</p></div><Link to="/auth" className="mt-7 block"><Button variant="secondary" className="w-full">Retour à la connexion</Button></Link></Card></div></div>;
 
   return (
     <div className="min-h-screen bg-carbon-950 px-4 py-6 text-white sm:px-6 sm:py-8">
