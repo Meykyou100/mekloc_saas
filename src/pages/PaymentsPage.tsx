@@ -29,9 +29,9 @@ export default function PaymentsPage() {
     <div>
       <PageHeader
         eyebrow="Finance"
-        title="Payments"
-        description="Track invoices, payment methods, partial balances, late dues, and monthly revenue health."
-        action={<Button icon={<Download className="h-4 w-4" />} onClick={() => notify({ title: 'Invoices exported', message: 'Demo export action completed.', type: 'success' })}>Export invoices</Button>}
+        title="Paiements"
+        description="Suivez les factures, modes de paiement, soldes partiels, retards et revenus mensuels."
+        action={<Button icon={<Download className="h-4 w-4" />} onClick={() => notify({ title: 'Factures exportées', message: 'Export démo effectué.', type: 'success' })}>Exporter les factures</Button>}
       />
 
       <div className="grid gap-4 md:grid-cols-3">

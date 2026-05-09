@@ -32,8 +32,8 @@ export default function AuthPage() {
 
       if (result.needsEmailConfirmation) {
         notify({
-          title: 'Account created',
-          message: 'Check your email to confirm the account, then login to finish onboarding.',
+          title: 'Compte créé',
+          message: 'Vérifiez votre email pour confirmer le compte, puis connectez-vous pour terminer l’onboarding.',
           type: 'success',
         });
         setMode('login');
@@ -43,17 +43,17 @@ export default function AuthPage() {
       const nextProfile = isSupabaseEnabled ? await refreshProfile() : null;
 
       notify({
-        title: mode === 'login' ? 'Welcome back to MekLoc' : 'Workspace created',
+        title: mode === 'login' ? 'Bon retour sur MekLoc' : 'Espace créé',
         message: isSupabaseEnabled
-          ? 'Your Supabase session is active.'
-          : 'You are entering the demo dashboard with mock data.',
+          ? 'Votre session Supabase est active.'
+          : 'Vous entrez en mode démo avec des données exemples.',
         type: 'success',
       });
       navigate(getPostLoginRedirect(nextProfile, isSupabaseEnabled), { replace: true });
     } catch (error) {
       notify({
-        title: 'Authentication failed',
-        message: error instanceof Error ? error.message : 'Check your Supabase settings and try again.',
+        title: 'Authentification échouée',
+        message: error instanceof Error ? error.message : 'Vérifiez votre configuration Supabase puis réessayez.',
         type: 'warning',
       });
     } finally {
@@ -64,8 +64,8 @@ export default function AuthPage() {
   async function handleGoogleLogin() {
     if (!isSupabaseEnabled) {
       notify({
-        title: 'Demo mode active',
-        message: 'Add Supabase env variables to use Google login.',
+        title: 'Mode démo actif',
+        message: 'Ajoutez les variables Supabase pour activer Google.',
         type: 'info',
       });
       navigate('/dashboard');
@@ -77,8 +77,8 @@ export default function AuthPage() {
       await signInWithGoogle();
     } catch (error) {
       notify({
-        title: 'Google login failed',
-        message: error instanceof Error ? error.message : 'Check your Google provider settings in Supabase.',
+        title: 'Connexion Google échouée',
+        message: error instanceof Error ? error.message : 'Vérifiez la configuration Google provider dans Supabase.',
         type: 'warning',
       });
       setLoading(false);
@@ -90,17 +90,17 @@ export default function AuthPage() {
       <section className="hidden border-r border-white/10 bg-surface-grid bg-[length:34px_34px] px-10 py-8 lg:flex lg:flex-col">
         <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-carbon-300 hover:text-gold-200">
           <ArrowLeft className="h-4 w-4" />
-          Back to home
+          Retour à l’accueil
         </Link>
         <div className="my-auto max-w-2xl">
           <div className="mb-8 inline-flex rounded-3xl bg-gold-400 p-4 text-carbon-950 shadow-gold">
             <LockKeyhole className="h-8 w-8" />
           </div>
           <h1 className="text-6xl font-black leading-none text-white light:text-carbon-950">
-            Run every rental workflow from one secure cockpit.
+            Pilotez toute votre activité location depuis un espace sécurisé.
           </h1>
           <p className="mt-6 text-lg leading-8 text-carbon-300 light:text-carbon-600">
-            Reservations, vehicles, clients, contracts, payments, maintenance, and reports are ready to explore with realistic demo data.
+            Réservations, véhicules, clients, contrats, paiements, entretien et rapports sont prêts avec des données réalistes.
           </p>
         </div>
       </section>
@@ -108,7 +108,7 @@ export default function AuthPage() {
         <div className="w-full max-w-md">
           <Link to="/" className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-carbon-300 hover:text-gold-200 lg:hidden">
             <ArrowLeft className="h-4 w-4" />
-            Back to home
+            Retour à l’accueil
           </Link>
           <Card className="p-6 sm:p-8">
             <div className="mb-7 flex rounded-2xl border border-white/10 bg-white/[0.04] p-1">
@@ -125,29 +125,29 @@ export default function AuthPage() {
               ))}
             </div>
             <h2 className="text-2xl font-black text-white light:text-carbon-950">
-              {mode === 'login' ? 'Login to MekLoc' : 'Create your agency'}
+              {mode === 'login' ? 'Connexion MekLoc' : 'Créer votre agence'}
             </h2>
             <p className="mt-2 text-sm text-carbon-400 light:text-carbon-600">
               {mode === 'login'
-                ? 'Access the demo dashboard and manage your rental operations.'
-                : 'Start a clean MekLoc workspace for your agency.'}
+                ? 'Accédez au tableau de bord et gérez vos opérations de location.'
+                : 'Démarrez un espace MekLoc propre pour votre agence.'}
             </p>
             <form className="mt-7 grid gap-4" onSubmit={handleSubmit}>
               {mode === 'register' ? (
-                <Field label="Agency name" name="agencyName" placeholder="Atlas Rent Marrakech" required />
+                <Field label="Nom de l’agence" name="agencyName" placeholder="Atlas Rent Marrakech" required />
               ) : null}
               <Field label="Email" name="email" type="email" placeholder="admin@agency.ma" required />
-              <Field label="Password" name="password" type="password" placeholder="••••••••" required />
+              <Field label="Mot de passe" name="password" type="password" placeholder="••••••••" required />
               {mode === 'register' ? (
-                <Field label="WhatsApp number" name="phone" placeholder="+212 6 00 00 00 00" required />
+                <Field label="Numéro WhatsApp" name="phone" placeholder="+212 6 00 00 00 00" required />
               ) : null}
               <Button type="submit" loading={loading} icon={mode === 'login' ? <Mail className="h-4 w-4" /> : <UserRound className="h-4 w-4" />}>
-                {mode === 'login' ? 'Enter dashboard' : 'Create account'}
+                {mode === 'login' ? 'Entrer dans le tableau de bord' : 'Créer le compte'}
               </Button>
             </form>
             <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-carbon-500">
               <span className="h-px flex-1 bg-white/10" />
-              or
+              ou
               <span className="h-px flex-1 bg-white/10" />
             </div>
             <Button
@@ -158,11 +158,11 @@ export default function AuthPage() {
               loading={loading}
               onClick={handleGoogleLogin}
             >
-              Continue with Google
+              Continuer avec Google
             </Button>
             <button className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-carbon-400 hover:text-gold-200">
               <Eye className="h-4 w-4" />
-              Preview dashboard without account
+              Aperçu du tableau de bord sans compte
             </button>
           </Card>
         </div>

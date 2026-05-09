@@ -80,8 +80,8 @@ export default function ClientsPage() {
       <PageHeader
         eyebrow="CRM"
         title="Clients"
-        description="Search, manage, and review rental customers with CIN/passport and driving license details."
-        action={<Button icon={<UserPlus className="h-4 w-4" />} onClick={openNewClient}>Add client</Button>}
+        description="Recherchez, gérez et suivez vos clients avec CIN/passeport et permis."
+        action={<Button icon={<UserPlus className="h-4 w-4" />} onClick={openNewClient}>Ajouter un client</Button>}
       />
 
       <Card className="mb-5 p-4">
@@ -90,14 +90,14 @@ export default function ClientsPage() {
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search by name, phone, email, CIN/passport"
+            placeholder="Rechercher par nom, téléphone, email, CIN/passeport"
             className="form-control focus-ring h-10 w-full rounded-xl pl-10 pr-4 text-sm light:bg-white light:text-carbon-950"
           />
         </label>
       </Card>
 
       {filteredClients.length === 0 ? (
-        <EmptyState icon={Users} title="No clients found" message="Add a new customer profile or adjust your search." action="Add client" onAction={openNewClient} />
+        <EmptyState icon={Users} title="Aucun client trouvé" message="Ajoutez un client ou ajustez votre recherche." action="Ajouter un client" onAction={openNewClient} />
       ) : (
         <div className="grid gap-5 xl:grid-cols-2">
           {filteredClients.map((client) => (
@@ -163,7 +163,7 @@ export default function ClientsPage() {
         </div>
       )}
 
-      <Modal open={modalOpen} title={editingClient ? 'Edit client' : 'Add client'} onClose={() => setModalOpen(false)}>
+      <Modal open={modalOpen} title={editingClient ? 'Modifier le client' : 'Ajouter un client'} onClose={() => setModalOpen(false)}>
         <form className="grid gap-4" onSubmit={handleSaveClient}>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Full name" name="fullName" defaultValue={editingClient?.fullName || ''} required />
@@ -174,8 +174,8 @@ export default function ClientsPage() {
             <Field label="Address" name="address" defaultValue={editingClient?.address || ''} required />
           </div>
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button type="submit">Save client</Button>
+            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Annuler</Button>
+            <Button type="submit">Enregistrer</Button>
           </div>
         </form>
       </Modal>

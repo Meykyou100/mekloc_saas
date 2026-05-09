@@ -84,7 +84,7 @@ export default function VehiclesPage() {
   async function deleteVehicle(vehicle: Vehicle) {
     try {
       await removeVehicle(vehicle.id);
-      notify({ title: 'Vehicle removed', message: `${vehicle.plate} was deleted from the fleet list.`, type: 'warning' });
+      notify({ title: 'Véhicule supprimé', message: `${vehicle.plate} a été retiré du parc.`, type: 'warning' });
     } catch (error) {
       notify({
         title: 'Vehicle not deleted',
@@ -98,9 +98,9 @@ export default function VehiclesPage() {
     <div>
       <PageHeader
         eyebrow="Fleet"
-        title="Vehicles"
-        description="Track availability, pricing, mileage, documents, and service readiness for every vehicle."
-        action={<Button icon={<Plus className="h-4 w-4" />} onClick={openNewVehicle}>Add vehicle</Button>}
+        title="Véhicules"
+        description="Suivez disponibilité, tarifs, kilométrage, documents et état de service de chaque véhicule."
+        action={<Button icon={<Plus className="h-4 w-4" />} onClick={openNewVehicle}>Ajouter un véhicule</Button>}
       />
 
       <Card className="mb-5 p-4">
@@ -110,7 +110,7 @@ export default function VehiclesPage() {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search brand, model, plate, or city"
+              placeholder="Rechercher marque, modèle, plaque ou ville"
               className="form-control focus-ring h-10 w-full rounded-xl pl-10 pr-4 text-sm light:bg-white light:text-carbon-950"
             />
           </label>
@@ -147,7 +147,7 @@ export default function VehiclesPage() {
       </Card>
 
       {filteredVehicles.length === 0 ? (
-        <EmptyState icon={Car} title="No vehicles found" message="Try a different search or add a new fleet vehicle." action="Add vehicle" onAction={openNewVehicle} />
+        <EmptyState icon={Car} title="Aucun véhicule trouvé" message="Essayez une autre recherche ou ajoutez un véhicule." action="Ajouter un véhicule" onAction={openNewVehicle} />
       ) : view === 'grid' ? (
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {filteredVehicles.map((vehicle) => (
@@ -240,7 +240,7 @@ export default function VehiclesPage() {
         </Card>
       )}
 
-      <Modal open={modalOpen} title={editingVehicle ? 'Edit vehicle' : 'Add vehicle'} onClose={() => setModalOpen(false)}>
+      <Modal open={modalOpen} title={editingVehicle ? 'Modifier le véhicule' : 'Ajouter un véhicule'} onClose={() => setModalOpen(false)}>
         <form className="grid gap-4" onSubmit={handleSaveVehicle}>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Brand" name="brand" defaultValue={editingVehicle?.brand || 'Toyota'} required />
@@ -270,8 +270,8 @@ export default function VehiclesPage() {
             <Field label="Technical inspection date" name="inspectionDate" type="date" defaultValue={editingVehicle?.inspectionDate || '2026-08-20'} required />
           </div>
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Cancel</Button>
-            <Button type="submit">Save vehicle</Button>
+            <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Annuler</Button>
+            <Button type="submit">Enregistrer</Button>
           </div>
         </form>
       </Modal>
