@@ -15,7 +15,6 @@ export default function ContractsPage() {
   const [clientId, setClientId] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const [template, setTemplate] = useState(templates[0]);
-  const [language, setLanguage] = useState<'fr' | 'ar'>('fr');
   const { notify } = useApp();
 
   useEffect(() => {
@@ -118,24 +117,7 @@ export default function ContractsPage() {
             <SelectField label="Contract template" value={template} onChange={(event) => setTemplate(event.target.value)}>
               {templates.map((item) => <option key={item}>{item}</option>)}
             </SelectField>
-            <div>
-              <p className="mb-2 text-sm font-semibold text-carbon-300 light:text-carbon-700">Contract language</p>
-              <div className="grid grid-cols-2 rounded-xl border border-white/10 bg-white/[0.04] p-1">
-                {[
-                  ['fr', 'Français'],
-                  ['ar', 'العربية'],
-                ].map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setLanguage(value as 'fr' | 'ar')}
-                    className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${language === value ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300 hover:bg-white/10'}`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <p className="text-sm text-carbon-400">Langue du contrat: Français</p>
             <SelectField label="Client" value={clientId} onChange={(event) => setClientId(event.target.value)}>
               {clients.map((item) => <option key={item.id} value={item.id}>{item.fullName}</option>)}
             </SelectField>
@@ -161,7 +143,7 @@ export default function ContractsPage() {
                   <Building2 className="h-7 w-7" />
                 </div>
                 <div>
-                  <p className="font-black">{language === 'fr' ? 'Contrat de location MekLoc' : 'عقد كراء MekLoc'}</p>
+                  <p className="font-black">Contrat de location MekLoc</p>
                   <p className="text-xs text-carbon-400">Logo agence · {template} · PDF preview</p>
                 </div>
               </div>
@@ -214,9 +196,7 @@ export default function ContractsPage() {
             <section>
               <h3 className="mb-3 text-sm font-black uppercase tracking-wide text-carbon-500">Terms and conditions</h3>
               <p className="rounded-xl border border-carbon-950/10 p-4 text-sm leading-6 text-carbon-700">
-                {language === 'fr'
-                  ? 'Le locataire accepte la responsabilite des amendes, du niveau de carburant, de la franchise assurance, des retards et de l etat du vehicule au retour. Toute prolongation doit etre approuvee par l agence.'
-                  : 'يتحمل المكتري مسؤولية المخالفات والوقود والتأمين والتأخير وحالة السيارة عند الإرجاع. أي تمديد يجب أن توافق عليه الوكالة.'}
+                {'Le locataire accepte la responsabilite des amendes, du niveau de carburant, de la franchise assurance, des retards et de l etat du vehicule au retour. Toute prolongation doit etre approuvee par l agence.'}
               </p>
             </section>
             <section className="grid gap-4 md:grid-cols-2">

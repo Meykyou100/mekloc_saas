@@ -13,7 +13,6 @@ import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
-import LanguageToggle from '../components/ui/LanguageToggle';
 import { features, plans } from '../data/mockData';
 import { useApp } from '../context/AppContext';
 
@@ -89,7 +88,7 @@ function DashboardMockup() {
 }
 
 function LandingHeader() {
-  const { t, theme, toggleTheme } = useApp();
+  const { t } = useApp();
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-carbon-950/70 backdrop-blur-2xl light:bg-white/75">
@@ -118,16 +117,9 @@ function LandingHeader() {
           </a>
         </nav>
         <div className="flex items-center gap-2">
-          <LanguageToggle compact />
-          <button
-            className="focus-ring hidden h-10 rounded-xl border border-white/10 bg-white/[0.055] px-3 text-sm font-semibold text-carbon-100 light:text-carbon-900 sm:block"
-            onClick={toggleTheme}
-          >
-            {theme === 'dark' ? 'Light' : 'Dark'}
-          </button>
           <Link to="/auth" className="hidden sm:block">
             <Button variant="secondary" className="h-10">
-              Login
+              Connexion
             </Button>
           </Link>
           <Link to="/auth">

@@ -2,7 +2,6 @@ import { Languages } from 'lucide-react';
 import { useApp, type Language } from '../../context/AppContext';
 
 const languages: { label: string; value: Language }[] = [
-  { label: 'EN', value: 'en' },
   { label: 'FR', value: 'fr' },
 ];
 

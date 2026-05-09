@@ -1,13 +1,12 @@
-import { Bell, CheckCircle2, LogOut, Menu, Moon, Search, Sun, UserRound } from 'lucide-react';
+import { Bell, CheckCircle2, LogOut, Menu, Search, UserRound } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { activityFeed } from '../../data/mockData';
-import LanguageToggle from '../ui/LanguageToggle';
 
 export default function Topbar({ onMenu }: { onMenu: () => void }) {
-  const { notify, theme, toggleTheme, t } = useApp();
+  const { notify, t } = useApp();
   const { signOut, profile, isSupabaseEnabled } = useAuth();
   const navigate = useNavigate();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -15,8 +14,8 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
   async function handleLogout() {
     await signOut();
     notify({
-      title: isSupabaseEnabled ? 'Logged out' : 'Demo session closed',
-      message: isSupabaseEnabled ? 'You have been signed out of MekLoc.' : 'Supabase is not configured, so this is a demo logout.',
+      title: isSupabaseEnabled ? 'Déconnexion effectuée' : 'Session démo fermée',
+      message: isSupabaseEnabled ? 'Vous êtes déconnecté de MekLoc.' : 'Supabase n’est pas configuré, c’est une déconnexion en mode démo.',
       type: 'info',
     });
     navigate('/auth');
@@ -32,7 +31,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
         >
           <Menu className="h-5 w-5" />
         </button>
-        <div className="relative hidden flex-1 sm:block">
+        <div className="relative hidden flex-1 md:block">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-400" />
           <input
             aria-label="Search"
@@ -40,14 +39,9 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
             className="form-control focus-ring h-10 w-full rounded-xl pl-10 pr-4 text-sm light:bg-carbon-950/[0.04] light:text-carbon-950"
           />
         </div>
-        <LanguageToggle />
-        <button
-          aria-label="Toggle theme"
-          className="focus-ring grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.055] text-carbon-200 hover:bg-white/10 light:bg-carbon-950/[0.04] light:text-carbon-800"
-          onClick={toggleTheme}
-        >
-          {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-        </button>
+        <div className="mr-auto md:hidden">
+          <span className="text-lg font-black tracking-wide">MekLoc</span>
+        </div>
         <div className="relative">
           <button
             aria-label="Notifications"
@@ -60,7 +54,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
           {notificationsOpen ? (
             <div className="glass-card absolute right-0 mt-3 w-80 rounded-2xl p-3">
               <div className="mb-2 flex items-center justify-between px-2">
-                <p className="font-semibold text-white light:text-carbon-950">Live activity</p>
+                <p className="font-semibold text-white light:text-carbon-950">Activité en direct</p>
                 <CheckCircle2 className="h-4 w-4 text-mint-400" />
               </div>
               <div className="grid gap-2">
@@ -84,7 +78,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
           className="focus-ring hidden h-11 items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.055] px-3 text-sm font-semibold text-white hover:bg-white/10 light:bg-carbon-950/[0.04] light:text-carbon-950 md:flex"
         >
           <UserRound className="h-5 w-5 text-gold-300" />
-          {profile?.fullName || 'Atlas Rent'}
+          {profile?.fullName || 'Agence MekLoc'}
         </button>
         <button
           aria-label="Logout"

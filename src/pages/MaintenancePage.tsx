@@ -82,7 +82,7 @@ export default function MaintenancePage() {
   }
 
   return <div>
-    <PageHeader eyebrow="Fleet operations" title="Maintenance" description="Track service records, costs, due reminders, and vehicle history from one place." action={<Button onClick={openCreate}>Add Maintenance Record</Button>} />
+    <PageHeader eyebrow="Opérations flotte" title="Entretien" description="Suivez les interventions, les coûts, les échéances et l’historique des véhicules." action={<Button onClick={openCreate}>Ajouter un entretien</Button>} />
     <div className="grid gap-4 md:grid-cols-4">
       <Card className="p-4"><p className="text-xs text-carbon-400">Insurance reminders</p><p className="mt-2 text-2xl font-bold">{insuranceReminders}</p></Card>
       <Card className="p-4"><p className="text-xs text-carbon-400">Oil change reminders</p><p className="mt-2 text-2xl font-bold">{oilReminders}</p></Card>
@@ -91,12 +91,12 @@ export default function MaintenancePage() {
     </div>
     <Card className="mt-6 p-5">
       <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="font-semibold">Maintenance Records</h2>
+        <h2 className="font-semibold">Registre des entretiens</h2>
         <select className="form-control w-56" value={selectedVehicleId} onChange={(e) => setSelectedVehicleId(e.target.value)}>
-          <option value="all">All vehicles</option>{vehicles.map((v) => <option key={v.id} value={v.id}>{v.brand} {v.model}</option>)}
+          <option value="all">Tous les véhicules</option>{vehicles.map((v) => <option key={v.id} value={v.id}>{v.brand} {v.model}</option>)}
         </select>
       </div>
-      {!filtered.length ? <EmptyState icon={ClipboardList} title="Add your first maintenance record" message="Once you add a record, reminders and service history will appear here." action="Add Maintenance Record" onAction={openCreate} /> :
+      {!filtered.length ? <EmptyState icon={ClipboardList} title="Ajouter votre premier entretien" message="Une fois ajouté, les rappels et l’historique apparaîtront ici." action="Ajouter un entretien" onAction={openCreate} /> :
       <div className="grid gap-3">{filtered.map((item) => <div key={item.id} className="premium-surface rounded-2xl p-4">
         <div className="flex items-start justify-between gap-4">
           <div><p className="font-semibold">{item.vehicle} {item.plate ? `· ${item.plate}` : ''}</p><p className="mt-1 text-sm text-carbon-400">{item.serviceType} · Last: {item.lastServiceDate} · Next: {item.nextServiceDate}</p><p className="mt-1 text-sm text-carbon-400">Mileage {item.currentMileage.toLocaleString()} km · Next at {item.nextServiceMileage.toLocaleString()} km</p></div>
@@ -110,9 +110,9 @@ export default function MaintenancePage() {
         </div>
       </div>)}</div>}
     </Card>
-    <Modal open={open} onClose={() => setOpen(false)} title={editing ? 'Edit Maintenance Record' : 'Add Maintenance Record'}>
+    <Modal open={open} onClose={() => setOpen(false)} title={editing ? 'Modifier l’entretien' : 'Ajouter un entretien'}>
       <div className="grid gap-4 md:grid-cols-2">
-        <SelectField label="Vehicle" value={form.vehicleId} onChange={(e) => setForm((c) => ({ ...c, vehicleId: e.target.value }))}><option value="">Select vehicle</option>{vehicles.map((v) => <option key={v.id} value={v.id}>{v.brand} {v.model} · {v.plate}</option>)}</SelectField>
+        <SelectField label="Véhicule" value={form.vehicleId} onChange={(e) => setForm((c) => ({ ...c, vehicleId: e.target.value }))}><option value="">Choisir un véhicule</option>{vehicles.map((v) => <option key={v.id} value={v.id}>{v.brand} {v.model} · {v.plate}</option>)}</SelectField>
         <SelectField label="Service type" value={form.serviceType} onChange={(e) => setForm((c) => ({ ...c, serviceType: e.target.value as MaintenanceItem['serviceType'] }))}>{SERVICE_TYPES.map((s) => <option key={s} value={s}>{s}</option>)}</SelectField>
         <Field label="Last service date" type="date" value={form.lastServiceDate} onChange={(e) => setForm((c) => ({ ...c, lastServiceDate: e.target.value }))} />
         <Field label="Next service date" type="date" value={form.nextServiceDate} onChange={(e) => setForm((c) => ({ ...c, nextServiceDate: e.target.value }))} />
@@ -125,7 +125,7 @@ export default function MaintenancePage() {
         <div className="md:col-span-2"><TextAreaField label="Notes" value={form.notes} onChange={(e) => setForm((c) => ({ ...c, notes: e.target.value }))} /></div>
         <div className="md:col-span-2"><Field label="Invoice/photo upload placeholder (URL)" value={form.invoiceUrl || ''} onChange={(e) => setForm((c) => ({ ...c, invoiceUrl: e.target.value }))} /></div>
       </div>
-      <div className="mt-5 flex justify-end gap-2"><Button variant="ghost" onClick={() => setOpen(false)}>Cancel</Button><Button icon={<Wrench className="h-4 w-4" />} onClick={saveRecord}>{editing ? 'Update Record' : 'Save Record'}</Button></div>
+      <div className="mt-5 flex justify-end gap-2"><Button variant="ghost" onClick={() => setOpen(false)}>Annuler</Button><Button icon={<Wrench className="h-4 w-4" />} onClick={saveRecord}>{editing ? 'Mettre à jour' : 'Enregistrer'}</Button></div>
     </Modal>
   </div>;
 }
