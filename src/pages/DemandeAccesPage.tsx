@@ -90,26 +90,27 @@ export default function DemandeAccesPage() {
         }
       }
 
-      try {
-        const emailResult = await sendAccessRequestConfirmationEmail({
-          ownerName: payload.owner_name,
-          email: payload.email,
-          selectedPlan: planConfig[selectedPlan].name,
-        });
+      const emailResult = await sendAccessRequestConfirmationEmail({
+        ownerName: payload.owner_name,
+        email: payload.email,
+        selectedPlan: planConfig[selectedPlan].name,
+      });
 
-        if (!emailResult.sent) {
+      if (!emailResult.sent) {
+        if (emailResult.reason === 'missing_webhook') {
           notify({
-            title: 'Demande envoyée',
-            message: 'Demande enregistrée. Activez le service email pour envoyer automatiquement la confirmation.',
-            type: 'info',
+            title: 'Demande enregistrée',
+            message: 'Email non envoyé: configuration webhook manquante.',
+            type: 'warning',
+          });
+        } else {
+          notify({
+            title: 'Demande enregistrée',
+            message: 'Email non envoyé: vérifiez la fonction Supabase/Resend.',
+            type: 'warning',
           });
         }
-      } catch {
-        notify({
-          title: 'Demande envoyée',
-          message: 'Demande enregistrée, mais l’email de confirmation n’a pas pu être envoyé.',
-          type: 'warning',
-        });
+        return;
       }
 
       notify({

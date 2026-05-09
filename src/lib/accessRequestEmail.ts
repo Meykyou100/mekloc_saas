@@ -48,9 +48,7 @@ export async function sendAccessRequestConfirmationEmail(input: AccessRequestEma
     body: JSON.stringify(payload),
   });
 
-  if (!response.ok) {
-    throw new Error('Échec envoi email de confirmation.');
-  }
+  if (!response.ok) return { sent: false as const, reason: 'provider_error' as const };
 
   return { sent: true as const };
 }

@@ -152,8 +152,9 @@ export default function SuperAdminPage() {
         supabase.from('access_requests').select('*').order('created_at', { ascending: false }),
       ]);
 
-      const firstError = [agenciesResult.error, profilesResult.error, vehiclesResult.error, requestsResult.error].find(Boolean);
-      if (firstError) throw firstError;
+      if (agenciesResult.error || profilesResult.error || vehiclesResult.error) {
+        throw agenciesResult.error || profilesResult.error || vehiclesResult.error;
+      }
 
       const profiles = (profilesResult.data || []) as {
         agency_id: string | null;
@@ -209,9 +210,19 @@ export default function SuperAdminPage() {
       setNoteDrafts(
         Object.fromEntries(nextAgencies.map((agency) => [agency.id, agency.paymentNotes])),
       );
-      const nextRequests = (requestsResult.data || []) as AccessRequestRow[];
-      setAccessRequests(nextRequests);
-      setRequestNotes(Object.fromEntries(nextRequests.map((r) => [r.id, r.admin_notes || ''])));
+      if (requestsResult.error) {
+        setAccessRequests([]);
+        setRequestNotes({});
+        notify({
+          title: 'Demandes d’accès indisponibles',
+          message: 'Vérifiez la table/policies access_requests. Le reste du panneau reste accessible.',
+          type: 'warning',
+        });
+      } else {
+        const nextRequests = (requestsResult.data || []) as AccessRequestRow[];
+        setAccessRequests(nextRequests);
+        setRequestNotes(Object.fromEntries(nextRequests.map((r) => [r.id, r.admin_notes || ''])));
+      }
     } catch (error) {
       notify({
         title: 'Données admin non chargées',
