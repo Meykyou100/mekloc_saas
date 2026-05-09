@@ -1,4 +1,4 @@
-import { Banknote, CalendarClock, CheckCircle2, Crown, FileText, Filter, RefreshCw, ShieldAlert, XCircle } from 'lucide-react';
+import { Banknote, CalendarClock, CheckCircle2, Crown, FileText, RefreshCw, ShieldAlert, Trash2, UserPlus, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
@@ -8,67 +8,296 @@ import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import { useApp } from '../context/AppContext';
 import { useAuth, type AccountStatus, type AgencyPlan, type BillingStatus, type PaymentMethod } from '../context/AuthContext';
-import { clients, formatMAD, payments, vehicles } from '../data/mockData';
+import { formatMAD } from '../data/mockData';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
-type AdminAgency = { id:string; agencyName:string; ownerName:string; email:string; phone:string; vehiclesCount:number; plan:AgencyPlan; billingStatus:BillingStatus; subscriptionEndDate:string|null; lastPaymentDate:string|null; nextPaymentDueDate:string|null; monthlyPrice:number; annualPrice:number; billingType:'monthly'|'annual'; usersCount:number; accountStatus:AccountStatus; createdDate:string; paymentMethod:PaymentMethod; paymentNotes:string };
-type DeletedAgency = AdminAgency & { deletedAt: string };
-type FilterValue = 'all' | AccountStatus | BillingStatus;
-type AccessRequestStatus = 'pending' | 'contacted' | 'payment_pending' | 'approved' | 'rejected';
-type AccessRequestRow = { id:string; agency_name:string; owner_name:string; email:string; phone_country_code:string; phone_number:string; city:string; selected_plan:string; billing_type:'monthly'|'annual'; vehicle_count:number; status:AccessRequestStatus; admin_notes:string|null; created_at:string };
-type DeletedAccessRequest = AccessRequestRow & { deletedAt:string };
+type AccessRequestStatus = 'pending' | 'pending_verification' | 'contacted' | 'payment_pending' | 'approved' | 'rejected' | 'verified';
+type AccessRequestRow = {
+  id: string;
+  agency_name: string;
+  owner_name: string;
+  email: string;
+  phone_country_code: string;
+  phone_number: string;
+  country: string;
+  city: string;
+  selected_plan: AgencyPlan;
+  billing_type: 'monthly' | 'annual';
+  vehicle_count: number;
+  status: AccessRequestStatus;
+  admin_notes: string | null;
+  created_at: string;
+};
 
-const filters: FilterValue[] = ['all','pending','active','suspended','rejected','overdue','paid','unpaid'];
-const planPrices: Record<AgencyPlan, number> = { starter:99, pro:250, business:499 };
-const demoAgencies: AdminAgency[] = [
-  { id:'demo-agency-1', agencyName:'Atlas Rent Marrakech', ownerName:clients[0].fullName, email:clients[0].email, phone:clients[0].phone, vehiclesCount:vehicles.length, plan:'pro', billingStatus:'paid', subscriptionEndDate:'2026-06-01', lastPaymentDate:'2026-05-01', nextPaymentDueDate:'2026-06-01', monthlyPrice:250, annualPrice:2500, billingType:'monthly', usersCount:3, accountStatus:'active', createdDate:'2026-04-18', paymentMethod:'bank_transfer', paymentNotes:'Demo agency account.' },
-  { id:'demo-agency-2', agencyName:'Casa Premium Cars', ownerName:clients[1].fullName, email:clients[1].email, phone:clients[1].phone, vehiclesCount:0, plan:'business', billingStatus:'overdue', subscriptionEndDate:'2026-05-05', lastPaymentDate:payments[1].dueDate, nextPaymentDueDate:'2026-05-05', monthlyPrice:499, annualPrice:4990, billingType:'monthly', usersCount:1, accountStatus:'pending', createdDate:'2026-05-08', paymentMethod:'cash', paymentNotes:'Waiting for first subscription payment.' },
-];
-const addDays = (d:string|null|undefined, days:number) => { const x=d?new Date(d):new Date(); x.setDate(x.getDate()+days); return x.toISOString().slice(0,10); };
+type AdminAgency = {
+  id: string;
+  agencyName: string;
+  email: string;
+  plan: AgencyPlan;
+  billingStatus: BillingStatus;
+  nextPaymentDueDate: string | null;
+  vehiclesCount: number;
+  usersCount: number;
+  accountStatus: AccountStatus;
+  monthlyPrice: number;
+};
 
-export default function SuperAdminPage(){
- const {notify}=useApp(); const {isSupabaseEnabled,profile,signOut}=useAuth(); const navigate=useNavigate();
- const [agencies,setAgencies]=useState<AdminAgency[]>(demoAgencies); const [loading,setLoading]=useState(false); const [filter,setFilter]=useState<FilterValue>('all');
- const [initialLoaded, setInitialLoaded] = useState(false);
- const [noteDrafts,setNoteDrafts]=useState<Record<string,string>>({}); const [accessRequests,setAccessRequests]=useState<AccessRequestRow[]>([]); const [requestNotes,setRequestNotes]=useState<Record<string,string>>({});
- const [deletedAgencies,setDeletedAgencies]=useState<DeletedAgency[]>([]); const [deletedAccessRequests,setDeletedAccessRequests]=useState<DeletedAccessRequest[]>([]);
- const [requestToDelete,setRequestToDelete]=useState<AccessRequestRow|null>(null); const [agencyToDelete,setAgencyToDelete]=useState<AdminAgency|null>(null); const [deletingRequestId,setDeletingRequestId]=useState<string|null>(null); const [deletingAgencyId,setDeletingAgencyId]=useState<string|null>(null);
- const deletedAgencyIds=useMemo(()=>new Set(deletedAgencies.map(x=>x.id)),[deletedAgencies]); const deletedRequestIds=useMemo(()=>new Set(deletedAccessRequests.map(x=>x.id)),[deletedAccessRequests]);
- const filteredAgencies=useMemo(()=>filter==='all'?agencies:agencies.filter(a=>a.accountStatus===filter||a.billingStatus===filter),[agencies,filter]);
- const exportCsv=(rows:AdminAgency[],f='mekloc-comptes.csv')=>{const h=['Nom agence','Propriétaire','Email'];const b=rows.map(r=>[r.agencyName,r.ownerName,r.email]);const csv=[h,...b].map(l=>l.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=f;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(url);};
+const monthlyPriceByPlan: Record<AgencyPlan, number> = { starter: 99, pro: 250, business: 499 };
 
- const loadAgencies=useCallback(async()=>{ if(!supabase||!isSupabaseConfigured){setAgencies(demoAgencies.filter(a=>!deletedAgencyIds.has(a.id))); setInitialLoaded(true); return true;} setLoading(true); try{
-  const [aRes,pRes,vRes,rRes,drRes,daRes]=await Promise.all([
-   supabase.from('agencies').select('id,name,plan,billing_status,subscription_end_date,last_payment_date,next_payment_due_date,monthly_price,payment_method,payment_notes,created_at').order('created_at',{ascending:false}),
-   supabase.from('users_profiles').select('agency_id,full_name,email,phone,role,account_status'),
-   supabase.from('vehicles').select('agency_id'),
-   supabase.from('access_requests').select('*').order('created_at',{ascending:false}),
-   supabase.from('deleted_access_requests').select('*').order('deleted_at',{ascending:false}),
-   supabase.from('deleted_access_accounts').select('*').order('deleted_at',{ascending:false}),
-  ]);
-  if(aRes.error||pRes.error||vRes.error) throw (aRes.error||pRes.error||vRes.error);
-  const profiles=(pRes.data||[]) as Array<{agency_id:string|null;full_name:string|null;email:string|null;phone:string|null;role:string;account_status:AccountStatus}>; const veh=(vRes.data||[]) as Array<{agency_id:string}>;
-  const next=((aRes.data||[]) as any[]).map((a)=>{const o=profiles.find(p=>p.agency_id===a.id&&p.role==='Admin')||profiles.find(p=>p.agency_id===a.id); return {id:a.id,agencyName:a.name,ownerName:o?.full_name||'Propriétaire agence',email:o?.email||'Aucun email',phone:o?.phone||'Aucun téléphone',vehiclesCount:veh.filter(x=>x.agency_id===a.id).length,plan:a.plan||'starter',billingStatus:a.billing_status||'trial',subscriptionEndDate:a.subscription_end_date,lastPaymentDate:a.last_payment_date,nextPaymentDueDate:a.next_payment_due_date,monthlyPrice:Number(a.monthly_price??0),annualPrice:Number((a.monthly_price??0)*10),billingType:'monthly' as const,usersCount:profiles.filter(p=>p.agency_id===a.id).length,accountStatus:o?.account_status||'pending',createdDate:a.created_at,paymentMethod:a.payment_method||'other',paymentNotes:a.payment_notes||''};});
-  setAgencies(next.filter(x=>!deletedAgencyIds.has(x.id))); setNoteDrafts(Object.fromEntries(next.map(n=>[n.id,n.paymentNotes])));
-  if(!drRes.error){const rr=(drRes.data||[]) as any[]; setDeletedAccessRequests(rr.map(r=>({id:r.original_request_id,agency_name:r.agency_name,owner_name:r.owner_name,email:r.email,phone_country_code:r.phone_country_code,phone_number:r.phone_number,city:r.city,selected_plan:r.selected_plan,billing_type:r.billing_type,vehicle_count:r.vehicle_count,status:r.status,admin_notes:r.admin_notes,created_at:r.original_created_at||r.deleted_at,deletedAt:r.deleted_at})));}
-  if(!daRes.error){const aa=(daRes.data||[]) as any[]; setDeletedAgencies(aa.map(a=>({id:a.original_agency_id,agencyName:a.agency_name,ownerName:a.owner_name||'Propriétaire agence',email:a.email||'Aucun email',phone:a.phone||'Aucun téléphone',vehiclesCount:a.vehicles_count||0,plan:a.plan||'starter',billingStatus:a.billing_status||'trial',subscriptionEndDate:null,lastPaymentDate:null,nextPaymentDueDate:null,monthlyPrice:Number(a.monthly_price||0),annualPrice:Number(a.annual_price||0),billingType:a.billing_type||'monthly',usersCount:a.users_count||0,accountStatus:a.account_status||'suspended',createdDate:a.original_created_at||a.deleted_at,paymentMethod:a.payment_method||'other',paymentNotes:a.payment_notes||'',deletedAt:a.deleted_at})))}
-  if(rRes.error) setAccessRequests([]); else {const rr=((rRes.data||[]) as AccessRequestRow[]).filter(r=>!deletedRequestIds.has(r.id)); setAccessRequests(rr); setRequestNotes(Object.fromEntries(rr.map(r=>[r.id,r.admin_notes||''])));}
-   setInitialLoaded(true);
-   return true;
- }catch(e){
-   notify({title:'Données admin non chargées',message:e instanceof Error?e.message:'Erreur',type:'warning'});
-   setInitialLoaded(true);
-   return false;
- } finally{setLoading(false);} },[deletedAgencyIds,deletedRequestIds,notify]);
+function addDays(baseDate: string | null, days: number) {
+  const d = baseDate ? new Date(baseDate) : new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
 
- useEffect(()=>{loadAgencies();},[loadAgencies]);
- const safeAction=async(title:string,action:()=>Promise<void>)=>{try{await action();notify({title,message:'Action enregistrée',type:'success'});}catch(e){await loadAgencies();notify({title:'Action impossible',message:e instanceof Error?e.message:'Réessayez',type:'warning'});}};
- const updateAgencyRow=async(id:string,patch:Partial<AdminAgency>)=>{setAgencies(c=>c.map(a=>a.id===id?{...a,...patch}:a)); if(!supabase||!isSupabaseConfigured)return; const p:any={}; if(patch.plan)p.plan=patch.plan; if(patch.billingStatus)p.billing_status=patch.billingStatus; if(patch.monthlyPrice!==undefined)p.monthly_price=patch.monthlyPrice; if(patch.nextPaymentDueDate!==undefined)p.next_payment_due_date=patch.nextPaymentDueDate; if(patch.subscriptionEndDate!==undefined)p.subscription_end_date=patch.subscriptionEndDate; if(patch.lastPaymentDate!==undefined)p.last_payment_date=patch.lastPaymentDate; if(patch.paymentNotes!==undefined)p.payment_notes=patch.paymentNotes; const {error}=await supabase.from('agencies').update(p).eq('id',id); if(error) throw error;};
- const updateAccountStatus=async(id:string,status:AccountStatus)=>{setAgencies(c=>c.map(a=>a.id===id?{...a,accountStatus:status}:a)); if(!supabase||!isSupabaseConfigured)return; const {error}=await supabase.from('users_profiles').update({account_status:status}).eq('agency_id',id).eq('role','Admin'); if(error) throw error;};
- const updateAccessRequest=async(id:string,patch:Partial<AccessRequestRow>,title:string)=>{setAccessRequests(c=>c.map(r=>r.id===id?{...r,...patch}:r)); if(supabase&&isSupabaseConfigured){const {error}=await supabase.from('access_requests').update(patch).eq('id',id); if(error) throw error;} notify({title,message:'Demande mise à jour.',type:'success'});};
- const deleteAccessRequest=async(r:AccessRequestRow)=>{setDeletingRequestId(r.id); try{ if(supabase&&isSupabaseConfigured){ const {error:e1}=await supabase.from('deleted_access_requests').insert({original_request_id:r.id,agency_name:r.agency_name,owner_name:r.owner_name,email:r.email,phone_country_code:r.phone_country_code,phone_number:r.phone_number,city:r.city,selected_plan:r.selected_plan,billing_type:r.billing_type,vehicle_count:r.vehicle_count,status:r.status,admin_notes:r.admin_notes,original_created_at:r.created_at}); if(e1) throw e1; const {error:e2}=await supabase.from('access_requests').delete().eq('id',r.id); if(e2) throw e2; } setAccessRequests(c=>c.filter(x=>x.id!==r.id)); setDeletedAccessRequests(c=>[{...r,deletedAt:new Date().toISOString()},...c]); notify({title:'Demande supprimée avec succès',type:'success'});}catch(e){notify({title:'Suppression impossible',message:e instanceof Error?e.message:'Réessayez',type:'warning'});} finally{setDeletingRequestId(null);setRequestToDelete(null);} };
- const deleteAgencyAccount=async(a:AdminAgency)=>{setDeletingAgencyId(a.id); try{ if(supabase&&isSupabaseConfigured){ const {error:e0}=await supabase.from('deleted_access_accounts').insert({original_agency_id:a.id,agency_name:a.agencyName,owner_name:a.ownerName,email:a.email,phone:a.phone,plan:a.plan,billing_status:a.billingStatus,account_status:a.accountStatus,monthly_price:a.monthlyPrice,annual_price:a.annualPrice,billing_type:a.billingType,users_count:a.usersCount,vehicles_count:a.vehiclesCount,payment_method:a.paymentMethod,payment_notes:a.paymentNotes,original_created_at:a.createdDate}); if(e0) throw e0; for(const t of ['payments','contracts','reservations','maintenance','clients','vehicles','users_profiles']){const {error}=await supabase.from(t).delete().eq('agency_id',a.id); if(error) throw error;} const {error:eA}=await supabase.from('agencies').delete().eq('id',a.id); if(eA) throw eA;} setAgencies(c=>c.filter(x=>x.id!==a.id)); setDeletedAgencies(c=>[{...a,deletedAt:new Date().toISOString()},...c]); notify({title:'Compte agence supprimé',message:'Agence supprimée',type:'success'});}catch(e){notify({title:'Suppression impossible',message:e instanceof Error?e.message:'Réessayez',type:'warning'});} finally{setDeletingAgencyId(null);setAgencyToDelete(null);} };
+export default function SuperAdminPage() {
+  const { profile, isSupabaseEnabled, signOut } = useAuth();
+  const { notify } = useApp();
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [accessRequests, setAccessRequests] = useState<AccessRequestRow[]>([]);
+  const [agencies, setAgencies] = useState<AdminAgency[]>([]);
+  const [requestNotes, setRequestNotes] = useState<Record<string, string>>({});
+  const [requestToDelete, setRequestToDelete] = useState<AccessRequestRow | null>(null);
 
- if(!isSupabaseEnabled||!profile?.isSuperAdmin) return <Navigate to="/dashboard" replace/>;
- return <div className="min-h-screen bg-carbon-950 px-4 py-6 text-white sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><PageHeader eyebrow="Espace sécurisé" title="Super Admin" description="Gestion des agences" action={<div className="flex gap-2"><Button variant="secondary" onClick={()=>exportCsv(agencies,'mekloc-comptes-actifs.csv')}>Exporter Excel</Button><Button variant="secondary" icon={<RefreshCw className="h-4 w-4"/>} loading={loading} onClick={async()=>{const ok=await loadAgencies(); if(ok) notify({title:'Données actualisées',type:'success'});}}>Actualiser</Button><Button variant="secondary" onClick={async()=>{await signOut();navigate('/auth');}}>Déconnexion</Button></div>}/>{!initialLoaded ? <Card className="p-6 text-sm text-carbon-300">Chargement des données admin...</Card> : <><Card className="mb-5 p-4"><div className="flex flex-wrap gap-2">{filters.map(i=><button key={i} className={`focus-ring rounded-xl px-3 py-2 text-sm font-semibold capitalize transition ${filter===i?'bg-gold-400 text-carbon-950':'border border-white/10 bg-white/[0.04] text-carbon-300 hover:bg-white/10'}`} onClick={()=>setFilter(i)}>{i}</button>)}</div></Card>{filteredAgencies.map(a=><Card key={a.id} className="mb-5 overflow-hidden"><div className="p-5"><h2 className="text-xl font-black">{a.agencyName}</h2><div className="mt-2 flex flex-wrap gap-2"><Badge>{a.accountStatus}</Badge><Badge>{a.billingStatus}</Badge></div><p className="mt-2 text-sm text-carbon-300">{a.ownerName} • {a.email}</p><div className="mt-3 flex flex-wrap gap-2"><Button variant="secondary" onClick={()=>safeAction('Agence approuvée',()=>updateAccountStatus(a.id,'active'))}>Approuver</Button><Button variant="secondary" onClick={()=>safeAction('Agence suspendue',()=>updateAccountStatus(a.id,'suspended'))}>Suspendre le compte</Button><Button variant="danger" loading={deletingAgencyId===a.id} onClick={()=>setAgencyToDelete(a)}>Supprimer le compte</Button><Button variant="secondary" onClick={()=>exportCsv([a],`compte-${a.agencyName}.csv`)}>Exporter</Button></div></div></Card>)}<Card className="mt-6 overflow-hidden"><div className="border-b border-white/10 p-5"><h2 className="text-xl font-bold">Demandes d’accès</h2></div><div className="grid gap-4 p-5">{accessRequests.length===0?<p className="text-sm text-carbon-400">Aucune demande d’accès.</p>:accessRequests.map(r=><div key={r.id} className="premium-surface rounded-2xl p-4"><div className="flex items-center justify-between"><p className="font-semibold text-white">{r.agency_name}</p><Badge>{r.status}</Badge></div><div className="mt-3 flex flex-wrap gap-2"><Button className="h-8 px-2.5 text-xs" onClick={()=>updateAccessRequest(r.id,{status:'approved'},'Demande approuvée')}>Approuver</Button><Button variant="danger" className="h-8 px-2.5 text-xs" loading={deletingRequestId===r.id} onClick={()=>setRequestToDelete(r)}>Supprimer la demande</Button></div></div>)}</div></Card><Card className="mt-6 overflow-hidden"><div className="border-b border-white/10 p-5"><h2 className="text-xl font-bold">Comptes supprimés</h2></div><div className="grid gap-3 p-5">{deletedAgencies.length===0?<p className="text-sm text-carbon-400">Aucun compte supprimé.</p>:deletedAgencies.map(a=><div key={`${a.id}-${a.deletedAt}`} className="premium-surface rounded-2xl p-4"><p className="font-semibold text-white">{a.agencyName}</p><p className="mt-1 text-xs text-carbon-400">Supprimé le: {a.deletedAt.slice(0,10)}</p></div>)}</div></Card></>} </div><Modal open={Boolean(requestToDelete)} onClose={()=>setRequestToDelete(null)} title="Confirmer la suppression"><p className="text-sm text-carbon-300">Voulez-vous vraiment supprimer cette demande ?</p><div className="mt-4 flex justify-end gap-2"><Button variant="secondary" onClick={()=>setRequestToDelete(null)}>Annuler</Button><Button variant="danger" onClick={()=>requestToDelete&&deleteAccessRequest(requestToDelete)}>Supprimer</Button></div></Modal><Modal open={Boolean(agencyToDelete)} onClose={()=>setAgencyToDelete(null)} title="Suppression du compte agence"><p className="text-sm text-carbon-300">Cette action va supprimer l’agence et ses données associées. Continuer ?</p><div className="mt-4 flex justify-end gap-2"><Button variant="secondary" onClick={()=>setAgencyToDelete(null)}>Annuler</Button><Button variant="danger" onClick={()=>agencyToDelete&&deleteAgencyAccount(agencyToDelete)}>Supprimer définitivement</Button></div></Modal></div>;
+  const loadAll = useCallback(async () => {
+    if (!supabase || !isSupabaseConfigured) return;
+    setLoading(true);
+    try {
+      const [reqRes, agencyRes, usersRes, vehicleRes] = await Promise.all([
+        supabase.from('access_requests').select('*').order('created_at', { ascending: false }),
+        supabase.from('agencies').select('id,name,plan,billing_status,next_payment_due_date,monthly_price'),
+        supabase.from('users_profiles').select('agency_id,account_status,email'),
+        supabase.from('vehicles').select('agency_id'),
+      ]);
+      if (reqRes.error || agencyRes.error || usersRes.error || vehicleRes.error) throw reqRes.error || agencyRes.error || usersRes.error || vehicleRes.error;
+      const reqs = (reqRes.data || []) as AccessRequestRow[];
+      setAccessRequests(reqs);
+      setRequestNotes(Object.fromEntries(reqs.map((r) => [r.id, r.admin_notes || ''])));
+
+      const profiles = (usersRes.data || []) as Array<{ agency_id: string | null; account_status: AccountStatus; email: string | null }>;
+      const vehicles = (vehicleRes.data || []) as Array<{ agency_id: string | null }>;
+      const mapped = ((agencyRes.data || []) as Array<{ id: string; name: string; plan: AgencyPlan; billing_status: BillingStatus; next_payment_due_date: string | null; monthly_price: number | null }>)
+        .map((a) => ({
+          id: a.id,
+          agencyName: a.name,
+          email: profiles.find((p) => p.agency_id === a.id)?.email || '—',
+          plan: a.plan || 'starter',
+          billingStatus: a.billing_status || 'trial',
+          nextPaymentDueDate: a.next_payment_due_date,
+          vehiclesCount: vehicles.filter((v) => v.agency_id === a.id).length,
+          usersCount: profiles.filter((p) => p.agency_id === a.id).length,
+          accountStatus: profiles.find((p) => p.agency_id === a.id)?.account_status || 'pending',
+          monthlyPrice: Number(a.monthly_price || monthlyPriceByPlan[a.plan || 'starter']),
+        }));
+      setAgencies(mapped);
+    } catch (error) {
+      notify({ title: 'Erreur chargement', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+    } finally {
+      setLoading(false);
+    }
+  }, [notify]);
+
+  useEffect(() => { loadAll(); }, [loadAll]);
+
+  async function updateRequest(id: string, patch: Partial<AccessRequestRow>, toast: string) {
+    if (!supabase || !isSupabaseConfigured) return;
+    const { error } = await supabase.from('access_requests').update(patch).eq('id', id);
+    if (error) throw error;
+    setAccessRequests((curr) => curr.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+    notify({ title: toast, type: 'success' });
+  }
+
+  async function createOrLinkProfileFromRequest(request: AccessRequestRow, agencyId: string) {
+    if (!supabase) return;
+    const email = request.email.trim().toLowerCase();
+    const { data: existingProfile } = await supabase
+      .from('users_profiles')
+      .select('id')
+      .eq('email', email)
+      .limit(1)
+      .maybeSingle();
+    if (existingProfile?.id) {
+      await supabase.from('users_profiles').update({ agency_id: agencyId, account_status: 'active' }).eq('id', existingProfile.id);
+    } else {
+      notify({
+        title: 'Compte client à créer',
+        message: 'Aucun utilisateur auth trouvé pour cet email. Le client doit se connecter une première fois, puis recliquer “Créer compte client”.',
+        type: 'info',
+      });
+    }
+  }
+
+  async function approveRequest(request: AccessRequestRow) {
+    if (!supabase || !isSupabaseConfigured) return;
+    const plan = request.selected_plan || 'starter';
+    const monthlyPrice = monthlyPriceByPlan[plan];
+    const now = new Date().toISOString().slice(0, 10);
+    const nextDue = addDays(now, 30);
+
+    const { data: existingAgency } = await supabase
+      .from('agencies')
+      .select('id')
+      .eq('name', request.agency_name)
+      .limit(1)
+      .maybeSingle();
+
+    let agencyId = existingAgency?.id;
+    if (!agencyId) {
+      const { data: created, error } = await supabase
+        .from('agencies')
+        .insert({
+          name: request.agency_name,
+          slug: `${request.agency_name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString().slice(-5)}`,
+          created_by: profile?.id || null,
+          plan,
+          billing_status: 'trial',
+          subscription_start_date: now,
+          subscription_end_date: nextDue,
+          next_payment_due_date: nextDue,
+          monthly_price: monthlyPrice,
+        })
+        .select('id')
+        .single();
+      if (error) throw error;
+      agencyId = created.id;
+    } else {
+      await supabase
+        .from('agencies')
+        .update({
+          plan,
+          billing_status: 'trial',
+          next_payment_due_date: nextDue,
+          monthly_price: monthlyPrice,
+        })
+        .eq('id', agencyId);
+    }
+
+    await createOrLinkProfileFromRequest(request, agencyId);
+    await updateRequest(request.id, { status: 'approved' }, 'Demande approuvée');
+    await loadAll();
+  }
+
+  async function deleteRequest() {
+    if (!requestToDelete || !supabase) return;
+    const { error } = await supabase.from('access_requests').delete().eq('id', requestToDelete.id);
+    if (error) throw error;
+    setAccessRequests((curr) => curr.filter((r) => r.id !== requestToDelete.id));
+    setRequestToDelete(null);
+    notify({ title: 'Demande supprimée', type: 'success' });
+  }
+
+  async function changeAgencyPlan(agency: AdminAgency, plan: AgencyPlan) {
+    if (!supabase) return;
+    const { error } = await supabase.from('agencies').update({ plan, monthly_price: monthlyPriceByPlan[plan] }).eq('id', agency.id);
+    if (error) throw error;
+    await loadAll();
+  }
+
+  async function markBilling(agency: AdminAgency, status: BillingStatus) {
+    if (!supabase) return;
+    const { error } = await supabase.from('agencies').update({ billing_status: status }).eq('id', agency.id);
+    if (error) throw error;
+    await loadAll();
+  }
+
+  async function extendSubscription(agency: AdminAgency, days: number) {
+    if (!supabase) return;
+    const { error } = await supabase.from('agencies').update({ next_payment_due_date: addDays(agency.nextPaymentDueDate, days) }).eq('id', agency.id);
+    if (error) throw error;
+    await loadAll();
+  }
+
+  async function suspendAgency(agency: AdminAgency) {
+    if (!supabase) return;
+    const { error } = await supabase.from('users_profiles').update({ account_status: 'suspended' }).eq('agency_id', agency.id);
+    if (error) throw error;
+    await loadAll();
+  }
+
+  async function deleteAgency(agency: AdminAgency) {
+    if (!supabase) return;
+    for (const table of ['payments', 'contracts', 'reservations', 'maintenance', 'clients', 'vehicles', 'users_profiles']) {
+      const { error } = await supabase.from(table).delete().eq('agency_id', agency.id);
+      if (error) throw error;
+    }
+    const { error } = await supabase.from('agencies').delete().eq('id', agency.id);
+    if (error) throw error;
+    await loadAll();
+  }
+
+  if (!isSupabaseEnabled || !profile?.isSuperAdmin) return <Navigate to="/dashboard" replace />;
+
+  return (
+    <div className="min-h-screen bg-carbon-950 px-4 py-6 text-white sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <PageHeader
+          eyebrow="Espace sécurisé"
+          title="Super Admin"
+          description="Gestion des demandes d’accès et des comptes agences."
+          action={<div className="flex gap-2"><Button variant="secondary" icon={<RefreshCw className="h-4 w-4" />} loading={loading} onClick={loadAll}>Actualiser</Button><Button variant="secondary" onClick={async () => { await signOut(); navigate('/auth'); }}>Déconnexion</Button></div>}
+        />
+
+        <Card className="mt-4 overflow-hidden">
+          <div className="border-b border-white/10 p-5"><h2 className="text-xl font-bold">Demandes d’accès</h2></div>
+          <div className="grid gap-4 p-5">
+            {accessRequests.length === 0 ? <p className="text-sm text-carbon-400">Aucune demande d’accès.</p> : accessRequests.map((req) => (
+              <div key={req.id} className="premium-surface rounded-2xl p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold text-white">{req.agency_name}</p><Badge>{req.status}</Badge></div>
+                <div className="mt-2 grid gap-2 text-sm text-carbon-300 md:grid-cols-3">
+                  <p><strong>Agence:</strong> {req.agency_name}</p><p><strong>Responsable:</strong> {req.owner_name}</p><p><strong>Email:</strong> {req.email}</p>
+                  <p><strong>Téléphone:</strong> {req.phone_country_code} {req.phone_number}</p><p><strong>Pays:</strong> {req.country}</p><p><strong>Ville:</strong> {req.city}</p>
+                  <p><strong>Plan demandé:</strong> {req.selected_plan}</p><p><strong>Facturation:</strong> {req.billing_type === 'annual' ? 'Annuel' : 'Mensuel'}</p><p><strong>Nombre de véhicules:</strong> {req.vehicle_count}</p>
+                  <p><strong>Date de demande:</strong> {req.created_at.slice(0, 10)}</p>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => updateRequest(req.id, { status: 'contacted' }, 'Marquée contactée')}>Marquer contactée</Button>
+                  <Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => updateRequest(req.id, { status: 'payment_pending' }, 'Paiement en attente')}>Paiement en attente</Button>
+                  <Button className="h-8 px-2.5 text-xs" icon={<CheckCircle2 className="h-3.5 w-3.5" />} onClick={() => approveRequest(req)}>Approuver</Button>
+                  <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<XCircle className="h-3.5 w-3.5" />} onClick={() => updateRequest(req.id, { status: 'rejected' }, 'Demande rejetée')}>Rejeter</Button>
+                  <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<UserPlus className="h-3.5 w-3.5" />} onClick={() => createOrLinkProfileFromRequest(req, '')}>Créer compte client</Button>
+                  <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setRequestToDelete(req)}>Supprimer la demande</Button>
+                </div>
+                <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">
+                  <textarea className="form-control min-h-16" value={requestNotes[req.id] || ''} onChange={(e) => setRequestNotes((c) => ({ ...c, [req.id]: e.target.value }))} placeholder="Notes admin..." />
+                  <Button variant="secondary" className="h-10" icon={<FileText className="h-4 w-4" />} onClick={() => updateRequest(req.id, { admin_notes: requestNotes[req.id] || '' }, 'Note enregistrée')}>Enregistrer note admin</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="mt-6 overflow-hidden">
+          <div className="border-b border-white/10 p-5"><h2 className="text-xl font-bold">Comptes agences approuvés</h2></div>
+          <div className="grid gap-4 p-5">
+            {agencies.map((agency) => (
+              <div key={agency.id} className="premium-surface rounded-2xl p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold text-white">{agency.agencyName}</p><div className="flex gap-2"><Badge>{agency.plan}</Badge><Badge>{agency.billingStatus}</Badge></div></div>
+                <div className="mt-2 grid gap-2 text-sm text-carbon-300 md:grid-cols-3">
+                  <p><strong>Email:</strong> {agency.email}</p><p><strong>Prochaine échéance:</strong> {agency.nextPaymentDueDate || '-'}</p><p><strong>Véhicules:</strong> {agency.vehiclesCount}</p>
+                  <p><strong>Utilisateurs:</strong> {agency.usersCount}</p><p><strong>Statut compte:</strong> {agency.accountStatus}</p><p><strong>Prix:</strong> {formatMAD(agency.monthlyPrice)}</p>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button variant="secondary" icon={<Crown className="h-4 w-4" />} onClick={() => changeAgencyPlan(agency, agency.plan === 'starter' ? 'pro' : agency.plan === 'pro' ? 'business' : 'starter')}>Changer plan</Button>
+                  <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} onClick={() => markBilling(agency, 'paid')}>Marquer payé</Button>
+                  <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} onClick={() => markBilling(agency, 'unpaid')}>Marquer non payé</Button>
+                  <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} onClick={() => extendSubscription(agency, 30)}>Prolonger abonnement</Button>
+                  <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} onClick={() => suspendAgency(agency)}>Suspendre compte</Button>
+                  <Button variant="danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => deleteAgency(agency)}>Delete account</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      <Modal open={Boolean(requestToDelete)} onClose={() => setRequestToDelete(null)} title="Confirmer la suppression">
+        <p className="text-sm text-carbon-300">Voulez-vous vraiment supprimer cette demande ?</p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="secondary" onClick={() => setRequestToDelete(null)}>Annuler</Button>
+          <Button variant="danger" onClick={deleteRequest}>Supprimer</Button>
+        </div>
+      </Modal>
+    </div>
+  );
 }

@@ -14,6 +14,7 @@ const moroccoCities = ['Casablanca', 'Rabat', 'Marrakech', 'Tanger', 'Fès', 'Me
 export default function DemandeAccesPage() {
   const [searchParams] = useSearchParams();
   const { notify } = useApp();
+  const normalizeEmail = (email: string) => email.trim().toLowerCase();
   const [country, setCountry] = useState('Maroc');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -48,14 +49,14 @@ export default function DemandeAccesPage() {
     setIsSubmitting(true);
     try {
       if (!supabase || !isSupabaseConfigured) throw new Error('Supabase non configuré');
-      const { data: existingData, error: existingError } = await supabase
+      const { data: row, error: existingError } = await supabase
         .from('access_requests')
         .select('status, agency_name, selected_plan, created_at, email')
         .eq('email', payload.email)
         .in('status', ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified'])
         .order('created_at', { ascending: false })
-        .limit(1);
-      const row = Array.isArray(existingData) ? existingData[0] : null;
+        .limit(1)
+        .maybeSingle();
       if (import.meta.env.DEV) console.log('Access request found:', row);
       if (existingError) throw existingError;
       if (row && ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified'].includes(row.status)) {
@@ -103,4 +104,3 @@ export default function DemandeAccesPage() {
     </div>
   );
 }
-  const normalizeEmail = (email: string) => email.trim().toLowerCase();
