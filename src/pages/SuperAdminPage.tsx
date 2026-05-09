@@ -138,10 +138,14 @@ export default function SuperAdminPage() {
       await supabase.from('users_profiles').update({ agency_id: agencyId, account_status: 'active' }).eq('id', existingProfile.id);
       const webhook = import.meta.env.VITE_CREATE_APPROVED_USER_WEBHOOK as string | undefined;
       if (webhook) {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const accessToken = sessionData.session?.access_token;
+        if (!accessToken) throw new Error('Session admin introuvable. Reconnectez-vous puis réessayez.');
         await fetch(webhook, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            Authorization: `Bearer ${accessToken}`,
             apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
             'x-internal-key': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
           },
@@ -154,10 +158,14 @@ export default function SuperAdminPage() {
         notify({ title: 'Webhook invitation manquant', message: 'Configurez VITE_CREATE_APPROVED_USER_WEBHOOK.', type: 'warning' });
         return;
       }
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      if (!accessToken) throw new Error('Session admin introuvable. Reconnectez-vous puis réessayez.');
       const response = await fetch(webhook, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
           apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
           'x-internal-key': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
         },
