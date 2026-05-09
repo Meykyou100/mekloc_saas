@@ -53,6 +53,19 @@ export default function ContractsPage() {
 
   const client = useMemo(() => clients.find((item) => item.id === clientId) || emptyClient, [clientId, clients]);
   const vehicle = useMemo(() => vehicles.find((item) => item.id === vehicleId) || emptyVehicle, [vehicleId, vehicles]);
+  const contractFileName = `contrat-${client.fullName.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.txt`;
+
+  function downloadContractPreview() {
+    const content = `Contrat MekLoc\nClient: ${client.fullName}\nVéhicule: ${vehicle.brand} ${vehicle.model}\nDate: ${new Date().toLocaleDateString('fr-MA')}\n`;
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = contractFileName;
+    a.click();
+    URL.revokeObjectURL(url);
+    notify({ title: 'Téléchargement lancé', message: 'Le fichier contrat a été généré.', type: 'success' });
+  }
 
   async function handleGenerateContract() {
     if (!client.id || !vehicle.id) {
@@ -95,9 +108,9 @@ export default function ContractsPage() {
         action={
           <Button
             icon={<Download className="h-4 w-4" />}
-            onClick={() => notify({ title: 'PDF download prepared', message: 'This demo shows the download UI. Backend PDF export can connect here.', type: 'info' })}
+            onClick={downloadContractPreview}
           >
-            Download PDF
+            Télécharger PDF
           </Button>
         }
       />
@@ -129,8 +142,8 @@ export default function ContractsPage() {
               defaultValue="The renter accepts full responsibility for traffic fines, fuel level, insurance excess, late returns, and vehicle condition at handoff."
             />
             <div className="grid gap-3 sm:grid-cols-2">
-              <Button type="button" variant="secondary" icon={<Printer className="h-4 w-4" />}>Print preview</Button>
-              <Button type="button" icon={<FileSignature className="h-4 w-4" />} onClick={handleGenerateContract}>Generate contract</Button>
+              <Button type="button" variant="secondary" icon={<Printer className="h-4 w-4" />} onClick={() => window.print()}>Aperçu impression</Button>
+              <Button type="button" icon={<FileSignature className="h-4 w-4" />} onClick={handleGenerateContract}>Générer contrat</Button>
             </div>
           </div>
         </Card>

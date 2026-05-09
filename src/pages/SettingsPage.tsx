@@ -26,6 +26,18 @@ export default function SettingsPage() {
   const now = new Date();
   const nextDiff = nextPaymentDate ? Math.ceil((new Date(nextPaymentDate).getTime() - now.getTime()) / 86400000) : null;
   const endDiff = endDate ? Math.ceil((new Date(endDate).getTime() - now.getTime()) / 86400000) : null;
+  const contactPhone = '212762971653';
+  const contactEmail = 'younesmekki100@gmail.com';
+  function downloadBillingReceipt() {
+    const content = `Reçu abonnement MekLoc\nAgence: ${agency?.name || 'Agence'}\nPlan: ${agency?.plan || 'starter'}\nStatut: ${billingStatusFr}\nDate: ${new Date().toLocaleDateString('fr-MA')}\n`;
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `recu-abonnement-${(agency?.name || 'mekloc').replace(/\s+/g, '-').toLowerCase()}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function handleLogoUpload(file: File | undefined) {
     if (!file) return;
@@ -206,9 +218,10 @@ export default function SettingsPage() {
               {endDiff !== null && endDiff < 0 ? <p className="rounded-2xl border border-rose-300/25 bg-rose-400/10 p-3 text-sm text-rose-100">Votre abonnement a expiré.</p> : null}
             </div>
             <div className="mt-5 grid gap-2">
-              <Button type="button" onClick={() => notify({ title: 'WhatsApp MekLoc', message: 'Ouverture du contact WhatsApp (placeholder).', type: 'info' })}>Contacter MekLoc sur WhatsApp</Button>
+              <Button type="button" onClick={() => window.open(`https://wa.me/${contactPhone}`, '_blank', 'noopener,noreferrer')}>Contacter MekLoc sur WhatsApp</Button>
               <Button type="button" variant="secondary" onClick={() => window.location.href = '/pricing'}>Voir les plans</Button>
-              <Button type="button" variant="secondary" onClick={() => notify({ title: 'Reçu prêt', message: 'Téléchargement du reçu disponible (placeholder).', type: 'info' })}>Télécharger reçu</Button>
+              <Button type="button" variant="secondary" onClick={downloadBillingReceipt}>Télécharger reçu</Button>
+              <Button type="button" variant="secondary" onClick={() => window.location.href = `mailto:${contactEmail}?subject=Contact%20MekLoc`}>Contacter MekLoc par email</Button>
             </div>
           </Card>
         </div>

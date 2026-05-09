@@ -28,6 +28,7 @@ export default function PaymentsPage() {
   const [query, setQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [paidOverrides, setPaidOverrides] = useState<Record<string, number>>({});
+  const supportPhone = '212762971653';
 
   const enriched = useMemo(() => {
     const now = new Date().toISOString().slice(0, 10);
@@ -83,6 +84,23 @@ export default function PaymentsPage() {
     setModalOpen(false);
   }
 
+  function downloadReceipt(invoice: string, total: number, paid: number, remaining: number) {
+    const content = `Reçu MekLoc\nFacture: ${invoice}\nMontant total: ${formatMAD(total)}\nMontant payé: ${formatMAD(paid)}\nReste: ${formatMAD(remaining)}\n`;
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `recu-${invoice}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function sendWhatsappReminder(invoice: string, amount: number) {
+    const text = encodeURIComponent(`Bonjour, rappel de paiement MekLoc pour la facture ${invoice}. Montant: ${formatMAD(amount)}.`);
+    window.open(`https://wa.me/${supportPhone}?text=${text}`, '_blank', 'noopener,noreferrer');
+    notify({ title: 'WhatsApp', message: 'Rappel WhatsApp prêt à être envoyé.', type: 'info' });
+  }
+
   return (
     <div>
       <PageHeader
@@ -125,7 +143,7 @@ export default function PaymentsPage() {
               {filtered.map((item) => (
                 <tr key={item.id} className="hover:bg-white/[0.03]">
                   <td className="px-5 py-4 font-semibold">{item.invoice}</td><td className="px-5 py-4">{item.client}</td><td className="px-5 py-4">{item.vehicleLabel}</td><td className="px-5 py-4">{item.reservationCode}</td><td className="px-5 py-4">{formatMAD(item.total)}</td><td className="px-5 py-4">{formatMAD(item.paid)}</td><td className="px-5 py-4">{formatMAD(item.remaining)}</td><td className="px-5 py-4">{item.dueDate}</td><td className="px-5 py-4">{item.method}</td><td className="px-5 py-4"><Badge>{item.statusFr}</Badge></td>
-                  <td className="px-5 py-4"><div className="flex gap-2"><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => notify({ title: 'Détail facture', message: `${item.invoice} · ${formatMAD(item.total)}`, type: 'info' })}>Voir</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => setModalOpen(true)}>Ajouter paiement</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => notify({ title: 'Téléchargement prêt', message: 'Le reçu PDF est prêt à être généré.', type: 'info' })}>Télécharger reçu</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => notify({ title: 'Rappel WhatsApp', message: 'Rappel WhatsApp prêt à être envoyé.', type: 'info' })}>Envoyer rappel</Button></div></td>
+                  <td className="px-5 py-4"><div className="flex gap-2"><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => notify({ title: 'Détail facture', message: `${item.invoice} · ${formatMAD(item.total)}`, type: 'info' })}>Voir</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => setModalOpen(true)}>Ajouter paiement</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => downloadReceipt(item.invoice, item.total, item.paid, item.remaining)}>Télécharger reçu</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => sendWhatsappReminder(item.invoice, item.remaining)}>Envoyer rappel</Button></div></td>
                 </tr>
               ))}
             </tbody>
@@ -143,7 +161,7 @@ export default function PaymentsPage() {
               <p>Total: <strong>{formatMAD(item.total)}</strong></p><p>Payé: <strong>{formatMAD(item.paid)}</strong></p><p>Reste: <strong>{formatMAD(item.remaining)}</strong></p><p>Échéance: <strong>{item.dueDate}</strong></p>
             </div>
             <div className="mt-3 h-2 rounded-full bg-white/10"><div className={`h-2 rounded-full ${item.statusFr === 'En retard' ? 'bg-rose-400' : item.statusFr === 'Partiel' ? 'bg-gold-400' : 'bg-mint-400'}`} style={{ width: `${item.progress}%` }} /></div>
-            <div className="mt-3 grid grid-cols-2 gap-2"><Button variant="secondary" className="h-9 text-xs" onClick={() => notify({ title: 'Reçu', message: 'Le reçu PDF est prêt à être généré.', type: 'info' })}>Télécharger reçu</Button><Button variant="secondary" className="h-9 text-xs" onClick={() => notify({ title: 'Rappel WhatsApp', message: 'Rappel WhatsApp prêt à être envoyé.', type: 'info' })}>Envoyer rappel</Button></div>
+            <div className="mt-3 grid grid-cols-2 gap-2"><Button variant="secondary" className="h-9 text-xs" onClick={() => downloadReceipt(item.invoice, item.total, item.paid, item.remaining)}>Télécharger reçu</Button><Button variant="secondary" className="h-9 text-xs" onClick={() => sendWhatsappReminder(item.invoice, item.remaining)}>Envoyer rappel</Button></div>
           </Card>
         ))}
       </div>
