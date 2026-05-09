@@ -54,6 +54,7 @@ export default function SuperAdminPage() {
   const [deletingRequestId, setDeletingRequestId] = useState<string | null>(null);
   const [deletingAgencyId, setDeletingAgencyId] = useState<string | null>(null);
   const [deletedAgencies, setDeletedAgencies] = useState<DeletedAgency[]>(() => JSON.parse(localStorage.getItem('mekloc-deleted-agencies') || '[]'));
+  const deletedAgencyIds = useMemo(() => new Set(deletedAgencies.map((item) => item.id)), [deletedAgencies]);
 
   const persistDeletedAgencies = (rows: DeletedAgency[]) => {
     setDeletedAgencies(rows);
@@ -71,7 +72,10 @@ export default function SuperAdminPage() {
   };
 
   const loadAgencies = useCallback(async () => {
-    if (!supabase || !isSupabaseConfigured) return setAgencies(demoAgencies);
+    if (!supabase || !isSupabaseConfigured) {
+      setAgencies(demoAgencies.filter((agency) => !deletedAgencyIds.has(agency.id)));
+      return;
+    }
     setLoading(true);
     try {
       const [agenciesResult, profilesResult, vehiclesResult, requestsResult] = await Promise.all([
@@ -95,7 +99,7 @@ export default function SuperAdminPage() {
             createdDate: a.created_at, paymentMethod: a.payment_method || 'other', paymentNotes: a.payment_notes || '',
           };
         });
-      setAgencies(nextAgencies);
+      setAgencies(nextAgencies.filter((agency) => !deletedAgencyIds.has(agency.id)));
       setNoteDrafts(Object.fromEntries(nextAgencies.map((a) => [a.id, a.paymentNotes])));
       if (requestsResult.error) {
         setAccessRequests([]);
@@ -107,7 +111,7 @@ export default function SuperAdminPage() {
     } catch (error) {
       notify({ title: 'Données admin non chargées', message: error instanceof Error ? error.message : 'Vérifiez les politiques RLS super admin.', type: 'warning' });
     } finally { setLoading(false); }
-  }, [notify]);
+  }, [deletedAgencyIds, notify]);
 
   useEffect(() => { loadAgencies(); }, [loadAgencies]);
   const filteredAgencies = useMemo(() => filter === 'all' ? agencies : agencies.filter((a) => a.accountStatus === filter || a.billingStatus === filter), [agencies, filter]);
@@ -174,8 +178,9 @@ export default function SuperAdminPage() {
         const { error } = await supabase.from('agencies').delete().eq('id', agency.id);
         if (error) throw error;
       }
+      const nextDeleted = [{ ...agency, deletedAt: new Date().toISOString() }, ...deletedAgencies];
+      persistDeletedAgencies(nextDeleted);
       setAgencies((curr) => curr.filter((a) => a.id !== agency.id));
-      persistDeletedAgencies([{ ...agency, deletedAt: new Date().toISOString() }, ...deletedAgencies]);
       notify({ title: 'Compte agence supprimé', message: 'L’agence et ses données associées ont été supprimées.', type: 'success' });
     } catch (error) {
       notify({ title: 'Suppression impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
