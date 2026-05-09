@@ -10,10 +10,22 @@ import { uploadAgencyLogo } from '../lib/storage';
 
 export default function SettingsPage() {
   const { notify } = useApp();
-  const { agencyId, isSupabaseEnabled } = useAuth();
+  const { agencyId, isSupabaseEnabled, profile } = useAuth();
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const [tab, setTab] = useState('Général');
-  const tabs = ['Général', 'Contrats', 'Facturation', 'Équipe', 'Notifications'];
+  const tabs = ['Général', 'Contrats', 'Facturation', 'Abonnement', 'Équipe', 'Notifications'];
+  const agency = profile?.agency;
+  const billingStatusFr =
+    agency?.billingStatus === 'trial' ? 'Essai' :
+    agency?.billingStatus === 'paid' ? 'Payé' :
+    agency?.billingStatus === 'unpaid' ? 'Non payé' :
+    agency?.billingStatus === 'overdue' ? 'En retard' : 'Annulé';
+  const billingTypeFr = (agency as { billingType?: 'monthly' | 'annual' } | null)?.billingType === 'annual' ? 'Annuel' : 'Mensuel';
+  const nextPaymentDate = agency?.nextPaymentDueDate || null;
+  const endDate = agency?.subscriptionEndDate || null;
+  const now = new Date();
+  const nextDiff = nextPaymentDate ? Math.ceil((new Date(nextPaymentDate).getTime() - now.getTime()) / 86400000) : null;
+  const endDiff = endDate ? Math.ceil((new Date(endDate).getTime() - now.getTime()) / 86400000) : null;
 
   async function handleLogoUpload(file: File | undefined) {
     if (!file) return;
@@ -164,6 +176,39 @@ export default function SettingsPage() {
                 <option>Bank transfer</option>
                 <option>Card</option>
               </SelectField>
+            </div>
+          </Card>
+        </div>
+      ) : null}
+
+      {tab === 'Abonnement' ? (
+        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <Card className="p-5">
+            <h2 className="mb-4 text-lg font-semibold text-white light:text-carbon-950">Abonnement</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Plan actuel</p><p className="mt-1 font-semibold capitalize">{agency?.plan || 'starter'}</p></div>
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Prix</p><p className="mt-1 font-semibold">{agency?.monthlyPrice ? `${agency.monthlyPrice} MAD / mois` : '99 MAD / mois'}</p></div>
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Type facturation</p><p className="mt-1 font-semibold">{billingTypeFr}</p></div>
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Statut paiement</p><p className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${agency?.billingStatus === 'paid' ? 'bg-emerald-400/15 text-emerald-200' : agency?.billingStatus === 'trial' ? 'bg-sky-400/15 text-sky-200' : agency?.billingStatus === 'overdue' ? 'bg-orange-400/15 text-orange-200' : agency?.billingStatus === 'unpaid' ? 'bg-rose-400/15 text-rose-200' : 'bg-slate-400/15 text-slate-200'}`}>{billingStatusFr}</p></div>
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Dernier paiement</p><p className="mt-1 font-semibold">{agency?.lastPaymentDate || '—'}</p></div>
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Prochain paiement</p><p className="mt-1 font-semibold">{agency?.nextPaymentDueDate || '—'}</p></div>
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Fin d’abonnement</p><p className="mt-1 font-semibold">{agency?.subscriptionEndDate || '—'}</p></div>
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Méthode de paiement</p><p className="mt-1 font-semibold">{agency?.paymentMethod || 'other'}</p></div>
+            </div>
+            {agency?.paymentNotes ? <p className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-sm text-carbon-300">Notes paiement: {agency.paymentNotes}</p> : null}
+          </Card>
+          <Card className="p-5">
+            <h2 className="mb-4 text-lg font-semibold text-white light:text-carbon-950">Alertes abonnement</h2>
+            <div className="grid gap-3">
+              {nextDiff !== null && nextDiff >= 0 && nextDiff <= 7 ? <p className="rounded-2xl border border-gold-300/25 bg-gold-400/10 p-3 text-sm text-gold-100">Votre abonnement expire bientôt. Prochain paiement le {nextPaymentDate}.</p> : null}
+              {agency?.billingStatus === 'unpaid' ? <p className="rounded-2xl border border-rose-300/25 bg-rose-400/10 p-3 text-sm text-rose-100">Votre paiement est en attente. Merci de régulariser votre abonnement.</p> : null}
+              {agency?.billingStatus === 'overdue' ? <p className="rounded-2xl border border-orange-300/25 bg-orange-400/10 p-3 text-sm text-orange-100">Votre abonnement est en retard. Contactez MekLoc pour éviter la suspension.</p> : null}
+              {endDiff !== null && endDiff < 0 ? <p className="rounded-2xl border border-rose-300/25 bg-rose-400/10 p-3 text-sm text-rose-100">Votre abonnement a expiré.</p> : null}
+            </div>
+            <div className="mt-5 grid gap-2">
+              <Button type="button" onClick={() => notify({ title: 'WhatsApp MekLoc', message: 'Ouverture du contact WhatsApp (placeholder).', type: 'info' })}>Contacter MekLoc sur WhatsApp</Button>
+              <Button type="button" variant="secondary" onClick={() => window.location.href = '/pricing'}>Voir les plans</Button>
+              <Button type="button" variant="secondary" onClick={() => notify({ title: 'Reçu prêt', message: 'Téléchargement du reçu disponible (placeholder).', type: 'info' })}>Télécharger reçu</Button>
             </div>
           </Card>
         </div>
