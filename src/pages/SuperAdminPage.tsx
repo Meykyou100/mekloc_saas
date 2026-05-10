@@ -76,6 +76,7 @@ export default function SuperAdminPage() {
       ]);
       if (reqRes.error || agencyRes.error || usersRes.error || vehicleRes.error) throw reqRes.error || agencyRes.error || usersRes.error || vehicleRes.error;
       const reqs = ((reqRes.data || []) as AccessRequestRow[]).filter((r) => r.status !== 'approved');
+      const approvedReqs = ((reqRes.data || []) as AccessRequestRow[]).filter((r) => r.status === 'approved');
       setAccessRequests(reqs);
       setRequestNotes(Object.fromEntries(reqs.map((r) => [r.id, r.admin_notes || ''])));
 
@@ -85,7 +86,7 @@ export default function SuperAdminPage() {
         .map((a) => ({
           id: a.id,
           agencyName: a.name,
-          email: profiles.find((p) => p.agency_id === a.id)?.email || '—',
+          email: profiles.find((p) => p.agency_id === a.id)?.email || approvedReqs.find((r) => r.agency_name === a.name)?.email || '—',
           plan: a.plan || 'starter',
           billingStatus: a.billing_status || 'trial',
           nextPaymentDueDate: a.next_payment_due_date,
