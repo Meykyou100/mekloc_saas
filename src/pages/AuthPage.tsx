@@ -22,7 +22,13 @@ export default function AuthPage() {
   useEffect(() => {
     const hash = window.location.hash || '';
     const search = window.location.search || '';
-    if (hash.includes('type=recovery') || search.includes('type=recovery')) {
+    if (
+      hash.includes('type=recovery') ||
+      hash.includes('type=invite') ||
+      search.includes('type=recovery') ||
+      search.includes('type=invite') ||
+      search.includes('mode=set-password')
+    ) {
       setResetMode(true);
     }
   }, []);

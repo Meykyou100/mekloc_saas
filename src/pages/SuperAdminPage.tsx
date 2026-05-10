@@ -73,7 +73,7 @@ export default function SuperAdminPage() {
         supabase.from('vehicles').select('agency_id'),
       ]);
       if (reqRes.error || agencyRes.error || usersRes.error || vehicleRes.error) throw reqRes.error || agencyRes.error || usersRes.error || vehicleRes.error;
-      const reqs = (reqRes.data || []) as AccessRequestRow[];
+      const reqs = ((reqRes.data || []) as AccessRequestRow[]).filter((r) => r.status !== 'approved');
       setAccessRequests(reqs);
       setRequestNotes(Object.fromEntries(reqs.map((r) => [r.id, r.admin_notes || ''])));
 
@@ -128,6 +128,7 @@ export default function SuperAdminPage() {
   async function createOrLinkProfileFromRequest(request: AccessRequestRow, agencyId: string) {
     if (!supabase) return;
     const email = request.email.trim().toLowerCase();
+    const redirectTo = `${window.location.origin}/auth?mode=set-password`;
     const { data: existingProfile } = await supabase
       .from('users_profiles')
       .select('id')
@@ -149,7 +150,7 @@ export default function SuperAdminPage() {
             apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
             'x-internal-key': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
           },
-          body: JSON.stringify({ email, agencyId }),
+          body: JSON.stringify({ email, agencyId, redirectTo }),
         });
       }
     } else {
@@ -169,7 +170,7 @@ export default function SuperAdminPage() {
           apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
           'x-internal-key': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
         },
-        body: JSON.stringify({ email, agencyId }),
+        body: JSON.stringify({ email, agencyId, redirectTo }),
       });
       if (!response.ok) {
         const text = await response.text();
@@ -231,6 +232,24 @@ export default function SuperAdminPage() {
 
   async function deleteRequest() {
     if (!requestToDelete || !supabase) return;
+    const archivedPayload = {
+      original_request_id: requestToDelete.id,
+      agency_name: requestToDelete.agency_name,
+      owner_name: requestToDelete.owner_name,
+      email: requestToDelete.email,
+      phone_country_code: requestToDelete.phone_country_code,
+      phone_number: requestToDelete.phone_number,
+      country: requestToDelete.country,
+      city: requestToDelete.city,
+      selected_plan: requestToDelete.selected_plan,
+      billing_type: requestToDelete.billing_type,
+      vehicle_count: requestToDelete.vehicle_count,
+      status: requestToDelete.status,
+      admin_notes: requestToDelete.admin_notes,
+      deleted_by: profile?.id ?? null,
+      deleted_reason: 'Suppression depuis Super Admin',
+    };
+    await supabase.from('deleted_access_requests').insert(archivedPayload);
     const { error } = await supabase.from('access_requests').delete().eq('id', requestToDelete.id);
     if (error) throw error;
     setAccessRequests((curr) => curr.filter((r) => r.id !== requestToDelete.id));
@@ -268,12 +287,41 @@ export default function SuperAdminPage() {
 
   async function deleteAgency(agency: AdminAgency) {
     if (!supabase) return;
-    for (const table of ['payments', 'contracts', 'reservations', 'maintenance', 'clients', 'vehicles', 'users_profiles']) {
-      const { error } = await supabase.from(table).delete().eq('agency_id', agency.id);
-      if (error) throw error;
+    const webhook = import.meta.env.VITE_DELETE_AGENCY_ACCOUNT_WEBHOOK as string | undefined;
+    if (!webhook) {
+      throw new Error('Webhook suppression manquant. Configurez VITE_DELETE_AGENCY_ACCOUNT_WEBHOOK.');
     }
-    const { error } = await supabase.from('agencies').delete().eq('id', agency.id);
-    if (error) throw error;
+    const { data: linkedProfiles } = await supabase.from('users_profiles').select('id,email').eq('agency_id', agency.id);
+    const ownerEmail = linkedProfiles?.[0]?.email || agency.email || null;
+    await supabase.from('deleted_access_accounts').insert({
+      agency_id: agency.id,
+      agency_name: agency.agencyName,
+      owner_email: ownerEmail,
+      owner_profile_id: linkedProfiles?.[0]?.id ?? null,
+      plan: agency.plan,
+      billing_status: agency.billingStatus,
+      deleted_by: profile?.id ?? null,
+      deleted_reason: 'Suppression depuis Super Admin',
+    });
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) throw new Error('Session admin introuvable. Reconnectez-vous puis réessayez.');
+
+    const response = await fetch(webhook, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+        'x-internal-key': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+      },
+      body: JSON.stringify({ agencyId: agency.id }),
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Suppression définitive impossible: ${text}`);
+    }
+    setAgencies((curr) => curr.filter((a) => a.id !== agency.id));
     await loadAll();
   }
 

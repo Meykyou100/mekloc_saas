@@ -15,19 +15,35 @@ Deno.serve(async (req) => {
     const url = Deno.env.get('PROJECT_URL')!;
     const serviceRole = Deno.env.get('SERVICE_ROLE_KEY')!;
     const body = await req.json();
-    const { email, agencyId } = body as { email: string; agencyId: string };
+    const { email, agencyId, redirectTo } = body as { email: string; agencyId: string; redirectTo?: string };
     if (!email || !agencyId) throw new Error('email and agencyId required');
 
     const normalized = email.trim().toLowerCase();
     const adminRes = await fetch(`${url}/auth/v1/invite`, {
       method: 'POST',
       headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: normalized, data: { agency_id: agencyId } }),
+      body: JSON.stringify({
+        email: normalized,
+        data: { agency_id: agencyId },
+        ...(redirectTo ? { redirect_to: redirectTo } : {}),
+      }),
     });
     if (!adminRes.ok) {
       const text = await adminRes.text();
       if (text.includes('email_exists')) {
-        return new Response(JSON.stringify({ success: true, info: 'email_exists' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        const recoverRes = await fetch(`${url}/auth/v1/recover`, {
+          method: 'POST',
+          headers: { apikey: anonKey, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: normalized,
+            ...(redirectTo ? { redirect_to: redirectTo } : {}),
+          }),
+        });
+        if (!recoverRes.ok) {
+          const recoverText = await recoverRes.text();
+          return new Response(JSON.stringify({ error: recoverText }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+        }
+        return new Response(JSON.stringify({ success: true, info: 'password_recovery_sent' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
       }
       return new Response(JSON.stringify({ error: text }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
