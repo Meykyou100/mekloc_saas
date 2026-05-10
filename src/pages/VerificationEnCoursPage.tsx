@@ -1,15 +1,39 @@
 import { Clock3, Mail, MessageCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Link, useSearchParams } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import { supabase } from '../lib/supabase';
 
 export default function VerificationEnCoursPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const email = searchParams.get('email') || '';
-  const agency = searchParams.get('agency') || 'Agence';
-  const plan = searchParams.get('plan') || 'starter';
-  const createdAt = searchParams.get('created_at') || '';
-  const note = searchParams.get('note') || '';
+  const [agency, setAgency] = useState('Agence');
+  const [plan, setPlan] = useState('starter');
+  const [createdAt, setCreatedAt] = useState('');
+  const [status, setStatus] = useState('pending');
+
+  useEffect(() => {
+    async function loadRequest() {
+      if (!supabase || !email) return navigate('/demande-acces', { replace: true });
+      const normalized = email.trim().toLowerCase();
+      const { data } = await supabase
+        .from('access_requests')
+        .select('agency_name,selected_plan,created_at,status,email')
+        .eq('email', normalized)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!data) return navigate(`/demande-acces?email=${encodeURIComponent(normalized)}`, { replace: true });
+      setAgency(data.agency_name || 'Agence');
+      setPlan(data.selected_plan || 'starter');
+      setCreatedAt(data.created_at || '');
+      setStatus(data.status || 'pending');
+    }
+    loadRequest();
+  }, [email, navigate]);
 
   return (
     <div className="grid min-h-screen place-items-center bg-carbon-950 px-4 py-10 text-white">
@@ -19,12 +43,11 @@ export default function VerificationEnCoursPage() {
         </div>
         <h1 className="mt-4 text-center text-2xl font-black">Votre compte est en cours de vérification</h1>
         <p className="mt-3 text-center text-sm text-carbon-300">Nous avons bien reçu votre demande d’accès. Notre équipe vérifie vos informations et vous contactera prochainement.</p>
-        {note ? <p className="mt-2 text-center text-sm text-gold-200">{note}</p> : null}
         <div className="mt-6 space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-carbon-300">
           <p><strong className="text-white">Email:</strong> {email || '-'}</p>
           <p><strong className="text-white">Agence:</strong> {agency}</p>
           <p><strong className="text-white">Plan demandé:</strong> {plan}</p>
-          <p><strong className="text-white">Statut:</strong> En vérification</p>
+          <p><strong className="text-white">Statut:</strong> {status}</p>
           <p><strong className="text-white">Date de demande:</strong> {createdAt ? createdAt.slice(0, 10) : '-'}</p>
         </div>
         <div className="mt-6 space-y-2">

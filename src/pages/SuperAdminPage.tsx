@@ -7,7 +7,7 @@ import Card from '../components/ui/Card';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import { useApp } from '../context/AppContext';
-import { useAuth, type AccountStatus, type AgencyPlan, type BillingStatus, type PaymentMethod } from '../context/AuthContext';
+import { useAuth, type AccountStatus, type AgencyPlan, type BillingStatus } from '../context/AuthContext';
 import { formatMAD } from '../data/mockData';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
@@ -128,55 +128,23 @@ export default function SuperAdminPage() {
   async function createOrLinkProfileFromRequest(request: AccessRequestRow, agencyId: string) {
     if (!supabase) return;
     const email = request.email.trim().toLowerCase();
-    const redirectTo = `${window.location.origin}/auth?mode=set-password`;
     const { data: existingProfile } = await supabase
       .from('users_profiles')
-      .select('id')
+      .select('id,full_name')
       .eq('email', email)
       .limit(1)
       .maybeSingle();
     if (existingProfile?.id) {
       await supabase.from('users_profiles').update({ agency_id: agencyId, account_status: 'active' }).eq('id', existingProfile.id);
-      const webhook = import.meta.env.VITE_CREATE_APPROVED_USER_WEBHOOK as string | undefined;
-      if (webhook) {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const accessToken = sessionData.session?.access_token;
-        if (!accessToken) throw new Error('Session admin introuvable. Reconnectez-vous puis réessayez.');
-        await fetch(webhook, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken}`,
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-            'x-internal-key': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-          },
-          body: JSON.stringify({ email, agencyId, redirectTo }),
-        });
-      }
     } else {
-      const webhook = import.meta.env.VITE_CREATE_APPROVED_USER_WEBHOOK as string | undefined;
-      if (!webhook) {
-        notify({ title: 'Webhook invitation manquant', message: 'Configurez VITE_CREATE_APPROVED_USER_WEBHOOK.', type: 'warning' });
-        return;
-      }
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-      if (!accessToken) throw new Error('Session admin introuvable. Reconnectez-vous puis réessayez.');
-      const response = await fetch(webhook, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-          'x-internal-key': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-        },
-        body: JSON.stringify({ email, agencyId, redirectTo }),
+      await supabase.from('users_profiles').insert({
+        agency_id: agencyId,
+        email,
+        full_name: request.owner_name || 'Responsable agence',
+        role: 'Admin',
+        account_status: 'active',
+        is_super_admin: false,
       });
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Invitation impossible: ${text}`);
-      }
-      notify({ title: 'Invitation envoyée', message: 'Le client va recevoir un email pour définir son mot de passe.', type: 'success' });
     }
   }
 
@@ -225,21 +193,9 @@ export default function SuperAdminPage() {
         .eq('id', agencyId);
     }
 
-    let invitationWarning: string | null = null;
-    try {
-      await createOrLinkProfileFromRequest(request, agencyId);
-    } catch (error) {
-      invitationWarning = error instanceof Error ? error.message : "L'email d'invitation n'a pas pu être envoyé.";
-    }
+    await createOrLinkProfileFromRequest(request, agencyId);
 
     await updateRequest(request.id, { status: 'approved' }, 'Demande approuvée');
-    if (invitationWarning) {
-      notify({
-        title: "Demande approuvée, invitation à vérifier",
-        message: invitationWarning,
-        type: 'warning',
-      });
-    }
     await loadAll();
   }
 
