@@ -232,6 +232,8 @@ export default function SuperAdminPage() {
 
   async function deleteRequest() {
     if (!requestToDelete || !supabase) return;
+    const webhook = import.meta.env.VITE_DELETE_ACCESS_REQUEST_WEBHOOK as string | undefined;
+    if (!webhook) throw new Error('Webhook suppression demande manquant. Configurez VITE_DELETE_ACCESS_REQUEST_WEBHOOK.');
     const archivedPayload = {
       original_request_id: requestToDelete.id,
       agency_name: requestToDelete.agency_name,
@@ -250,8 +252,23 @@ export default function SuperAdminPage() {
       deleted_reason: 'Suppression depuis Super Admin',
     };
     await supabase.from('deleted_access_requests').insert(archivedPayload);
-    const { error } = await supabase.from('access_requests').delete().eq('id', requestToDelete.id);
-    if (error) throw error;
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) throw new Error('Session admin introuvable. Reconnectez-vous puis réessayez.');
+    const response = await fetch(webhook, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+        'x-internal-key': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+      },
+      body: JSON.stringify({ requestId: requestToDelete.id }),
+    });
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(`Suppression demande impossible: ${text}`);
+    }
     setAccessRequests((curr) => curr.filter((r) => r.id !== requestToDelete.id));
     setRequestToDelete(null);
     notify({ title: 'Demande supprimée', type: 'success' });
