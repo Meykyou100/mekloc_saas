@@ -26,6 +26,9 @@ Deno.serve(async (req) => {
     });
     if (!adminRes.ok) {
       const text = await adminRes.text();
+      if (text.includes('email_exists')) {
+        return new Response(JSON.stringify({ success: true, info: 'email_exists' }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+      }
       return new Response(JSON.stringify({ error: text }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
