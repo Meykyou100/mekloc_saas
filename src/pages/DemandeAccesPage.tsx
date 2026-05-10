@@ -1,5 +1,5 @@
 import { ArrowLeft, Mail } from 'lucide-react';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -26,10 +26,18 @@ export default function DemandeAccesPage() {
   const [isSuccess, setIsSuccess] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('business');
   const [billingType, setBillingType] = useState<'monthly' | 'annual'>('monthly');
   const prefilledEmail = searchParams.get('email') || '';
   const fromLogin = searchParams.get('from') === 'login';
+
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = window.setTimeout(() => setResendCooldown((s) => s - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendCooldown]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -88,7 +96,69 @@ export default function DemandeAccesPage() {
     }
   }
 
-  if (isSuccess) return <div className="min-h-screen bg-carbon-950 px-4 py-8 text-white sm:px-6"><div className="mx-auto flex min-h-[80vh] w-full max-w-xl items-center"><Card className="w-full p-6 sm:p-8"><p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-carbon-400">MekLoc</p><div className="mx-auto mt-4 mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-gold-300/40 bg-gold-400/10 text-gold-200"><Mail className="h-6 w-6" /></div><h1 className="text-center text-2xl font-black">Vérifiez votre messagerie</h1><div className="mt-3 space-y-2 text-center text-sm text-carbon-300"><p>Un email de vérification a été envoyé à <span className="font-semibold text-white">{submittedEmail || prefilledEmail || 'votre adresse email'}</span>. Cliquez sur le lien pour confirmer votre demande.</p><p>Vérifiez aussi vos spams si vous ne trouvez pas l’email. Le lien expire dans 24h.</p></div><Link to="/auth" className="mt-7 block"><Button variant="secondary" className="w-full">Retour à la connexion</Button></Link></Card></div></div>;
+  async function handleResendEmail() {
+    const email = submittedEmail || prefilledEmail;
+    if (!email) return;
+    setResendLoading(true);
+    try {
+      await sendAccessRequestConfirmationEmail({
+        ownerName: 'Client MekLoc',
+        email,
+        selectedPlan,
+      });
+      notify({
+        title: 'Email renvoyé',
+        message: `Un nouvel email de vérification a été envoyé à ${email}.`,
+        type: 'success',
+      });
+      setResendCooldown(45);
+    } catch {
+      notify({
+        title: 'Réessayer plus tard',
+        message: "Impossible d'envoyer l'email pour le moment.",
+        type: 'warning',
+      });
+    } finally {
+      setResendLoading(false);
+    }
+  }
+
+  if (isSuccess) {
+    const targetEmail = submittedEmail || prefilledEmail || 'votre adresse email';
+    return (
+      <div className="min-h-screen bg-carbon-950 px-4 py-8 text-white sm:px-6">
+        <div className="mx-auto flex min-h-[80vh] w-full max-w-xl items-center">
+          <Card className="w-full p-6 sm:p-8">
+            <p className="text-center text-xs font-semibold uppercase tracking-[0.2em] text-carbon-400">MekLoc</p>
+            <div className="mx-auto mt-4 mb-4 flex h-14 w-14 items-center justify-center rounded-full border border-gold-300/40 bg-gold-400/10 text-gold-200">
+              <Mail className="h-6 w-6" />
+            </div>
+            <h1 className="text-center text-2xl font-black">Vérifiez votre messagerie</h1>
+            <div className="mt-3 space-y-2 text-center text-sm text-carbon-300">
+              <p>
+                Un email de vérification a été envoyé à <span className="font-semibold text-white">{targetEmail}</span>.
+                Cliquez sur le lien pour confirmer votre demande.
+              </p>
+              <p>Vérifiez aussi vos spams si vous ne trouvez pas l’email. Le lien expire dans 24h.</p>
+            </div>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <Button
+                variant="secondary"
+                onClick={handleResendEmail}
+                loading={resendLoading}
+                disabled={resendCooldown > 0}
+              >
+                {resendCooldown > 0 ? `Renvoyer dans ${resendCooldown}s` : "Renvoyer l'email"}
+              </Button>
+              <Link to="/auth">
+                <Button variant="secondary" className="w-full">Retour à la connexion</Button>
+              </Link>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-carbon-950 px-4 py-6 text-white sm:px-6 sm:py-8">

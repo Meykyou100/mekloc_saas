@@ -225,8 +225,21 @@ export default function SuperAdminPage() {
         .eq('id', agencyId);
     }
 
-    await createOrLinkProfileFromRequest(request, agencyId);
+    let invitationWarning: string | null = null;
+    try {
+      await createOrLinkProfileFromRequest(request, agencyId);
+    } catch (error) {
+      invitationWarning = error instanceof Error ? error.message : "L'email d'invitation n'a pas pu être envoyé.";
+    }
+
     await updateRequest(request.id, { status: 'approved' }, 'Demande approuvée');
+    if (invitationWarning) {
+      notify({
+        title: "Demande approuvée, invitation à vérifier",
+        message: invitationWarning,
+        type: 'warning',
+      });
+    }
     await loadAll();
   }
 
