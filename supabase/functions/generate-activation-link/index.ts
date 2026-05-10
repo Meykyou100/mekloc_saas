@@ -51,8 +51,8 @@ Deno.serve(async (req) => {
     });
     const txt = await genRes.text();
     if (!genRes.ok) throw new Error(txt);
-    const data = JSON.parse(txt) as { properties?: { action_link?: string } };
-    const link = data?.properties?.action_link || '';
+    const data = JSON.parse(txt) as { action_link?: string; properties?: { action_link?: string } };
+    const link = data?.action_link || data?.properties?.action_link || '';
     if (!link) throw new Error('Lien non généré');
 
     return new Response(JSON.stringify({ success: true, activationLink: link }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -63,4 +63,3 @@ Deno.serve(async (req) => {
     });
   }
 });
-
