@@ -33,6 +33,11 @@ export default function SettingsPage() {
   const contactEmail = 'younesmekki100@gmail.com';
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
+  const [agencyName, setAgencyName] = useState(profile?.agency?.name || '');
+  const [agencyEmail, setAgencyEmail] = useState(profile?.email || '');
+  const [agencyPhone, setAgencyPhone] = useState(profile?.phone || '');
+  const [agencyAddress, setAgencyAddress] = useState('');
+  const [logoFileName, setLogoFileName] = useState('');
   function downloadBillingReceipt() {
     const lines = [
       'Recu abonnement MekLoc',
@@ -76,6 +81,7 @@ startxref
 
   async function handleLogoUpload(file: File | undefined) {
     if (!file) return;
+    setLogoFileName(file.name);
     if (!isSupabaseEnabled || !agencyId) {
       notify({ title: 'Logo selected', message: 'Supabase is not configured, so this stays in demo mode.', type: 'info' });
       return;
@@ -90,6 +96,30 @@ startxref
         message: error instanceof Error ? error.message : 'Try again later.',
         type: 'warning',
       });
+    }
+  }
+
+  async function handleSaveSettings() {
+    if (!isSupabaseEnabled || !agencyId || !profile?.id) {
+      notify({ title: 'Paramètres enregistrés', message: 'Mode démonstration actif.', type: 'success' });
+      return;
+    }
+    try {
+      const { error: agencyErr } = await (await import('../lib/supabase')).supabase!
+        .from('agencies')
+        .update({ name: agencyName })
+        .eq('id', agencyId);
+      if (agencyErr) throw agencyErr;
+
+      const { error: profileErr } = await (await import('../lib/supabase')).supabase!
+        .from('users_profiles')
+        .update({ email: agencyEmail.trim().toLowerCase(), phone: agencyPhone, full_name: profile.fullName })
+        .eq('id', profile.id);
+      if (profileErr) throw profileErr;
+
+      notify({ title: 'Paramètres enregistrés', message: 'Profil agence mis à jour.', type: 'success' });
+    } catch (error) {
+      notify({ title: 'Enregistrement impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
     }
   }
 
@@ -117,7 +147,7 @@ startxref
         eyebrow="Workspace"
         title="Paramètres"
         description="Configurez le profil agence, les contrats, la devise, la fiscalité, WhatsApp et les rôles."
-        action={<div className="flex gap-2"><Button icon={<Save className="h-4 w-4" />} onClick={() => notify({ title: 'Paramètres enregistrés', message: 'Les réglages de votre espace ont été mis à jour.', type: 'success' })}>Enregistrer</Button><Button variant="secondary" onClick={handleLogout}>Déconnexion</Button></div>}
+        action={<div className="flex gap-2"><Button icon={<Save className="h-4 w-4" />} onClick={handleSaveSettings}>Enregistrer</Button><Button variant="secondary" onClick={handleLogout}>Déconnexion</Button></div>}
       />
 
       <Card className="mb-6 p-2">
@@ -139,13 +169,13 @@ startxref
           <Card className="p-5">
             <div className="mb-5 flex items-center gap-3">
               <Building2 className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">Agency profile</h2>
+              <h2 className="font-semibold text-white light:text-carbon-950">Profil agence</h2>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Agency name" defaultValue="Atlas Rent Marrakech" />
-              <Field label="WhatsApp number" defaultValue="+212 6 00 00 00 00" />
-              <Field label="Email" defaultValue="hello@atlasrent.ma" />
-              <Field label="Address" defaultValue="Av. Mohammed VI, Marrakech" />
+              <Field label="Nom de l’agence" value={agencyName} onChange={(e) => setAgencyName(e.target.value)} />
+              <Field label="Numéro WhatsApp" value={agencyPhone} onChange={(e) => setAgencyPhone(e.target.value)} />
+              <Field label="Email" value={agencyEmail} onChange={(e) => setAgencyEmail(e.target.value)} />
+              <Field label="Adresse" value={agencyAddress} onChange={(e) => setAgencyAddress(e.target.value)} placeholder="Adresse agence" />
             </div>
             <div className="mt-5 flex flex-col gap-4 rounded-2xl border border-dashed border-gold-300/30 bg-gold-400/5 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
@@ -153,8 +183,9 @@ startxref
                   <Camera className="h-6 w-6" />
                 </div>
                 <div>
-                  <p className="font-bold text-white light:text-carbon-950">Upload logo UI</p>
-                  <p className="text-sm text-carbon-400">PNG, JPG, or SVG for contracts and invoices.</p>
+                  <p className="font-bold text-white light:text-carbon-950">Logo agence</p>
+                  <p className="text-sm text-carbon-400">PNG, JPG, ou SVG pour contrats et factures.</p>
+                  {logoFileName ? <p className="mt-1 text-xs text-gold-200">{logoFileName}</p> : null}
                 </div>
               </div>
               <input
@@ -164,7 +195,7 @@ startxref
                 accept="image/png,image/jpeg,image/svg+xml"
                 onChange={(event) => handleLogoUpload(event.target.files?.[0])}
               />
-              <Button type="button" variant="secondary" onClick={() => logoInputRef.current?.click()}>Choose logo</Button>
+              <Button type="button" variant="secondary" onClick={() => logoInputRef.current?.click()}>Choisir le logo</Button>
             </div>
           </Card>
           <Card className="p-5">

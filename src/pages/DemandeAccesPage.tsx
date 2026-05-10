@@ -58,13 +58,13 @@ export default function DemandeAccesPage() {
         .from('access_requests')
         .select('status, agency_name, selected_plan, created_at, email')
         .eq('email', payload.email)
-        .in('status', ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified'])
+        .in('status', ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified', 'approved'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
       if (import.meta.env.DEV) console.log('Access request found:', row);
       if (existingError) throw existingError;
-      if (row && ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified'].includes(row.status)) {
+      if (row && ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified', 'approved'].includes(row.status)) {
         window.location.href = `/verification-en-cours?email=${encodeURIComponent(payload.email)}&agency=${encodeURIComponent(row.agency_name || payload.agency_name)}&plan=${encodeURIComponent(row.selected_plan || payload.selected_plan)}&created_at=${encodeURIComponent(row.created_at || '')}${row.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`;
         return;
       }

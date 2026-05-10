@@ -76,6 +76,14 @@ export default function AuthPage() {
       if (/Invalid login credentials/i.test(message)) {
         const request = await getAccessRequestStatusByEmail(email);
         if (request) {
+          if (request.status === 'approved') {
+            notify({
+              title: 'Connexion impossible',
+              message: 'Email ou mot de passe incorrect.',
+              type: 'warning',
+            });
+            return;
+          }
           if (request.status === 'payment_pending') return navigate('/payment-required', { replace: true });
           if (request.status === 'rejected') return navigate('/account-status', { replace: true });
           if (['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified'].includes(request.status)) {
