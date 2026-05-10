@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         type: 'recovery',
         email: normalized,
-        ...(redirectTo ? { options: { redirectTo } } : {}),
+        ...(redirectTo ? { redirect_to: redirectTo } : {}),
       }),
     });
     const txt = await genRes.text();
