@@ -116,8 +116,8 @@ export default function ReservationsPage() {
     const vehicle = vehicles.find((item) => item.id === vehicleId) || vehicles[0];
     if (!client || !vehicle) {
       notify({
-        title: 'Missing booking data',
-        message: 'Add at least one client and one vehicle before creating a reservation.',
+        title: 'Données incomplètes',
+        message: 'Ajoutez au moins un client et un véhicule avant de créer une réservation.',
         type: 'warning',
       });
       return;
@@ -139,11 +139,11 @@ export default function ReservationsPage() {
     try {
       await createReservation(nextReservation);
       setModalOpen(false);
-      notify({ title: 'Reservation added', message: `${client.fullName} is booked for ${vehicle.model}.`, type: 'success' });
+      notify({ title: 'Réservation ajoutée', message: `${client.fullName} est réservé(e) pour ${vehicle.model}.`, type: 'success' });
     } catch (error) {
       notify({
-        title: 'Reservation not saved',
-        message: error instanceof Error ? error.message : 'Try again later.',
+        title: 'Réservation non enregistrée',
+        message: error instanceof Error ? error.message : 'Réessayez dans quelques instants.',
         type: 'warning',
       });
     }

@@ -245,6 +245,32 @@ function toReservationRow(reservation: Reservation, agencyId: string) {
   };
 }
 
+async function assertNoReservationOverlap(
+  reservation: Reservation,
+  agencyId: string,
+  currentReservationNumber?: string,
+) {
+  if (!supabase) return;
+
+  const { data, error } = await supabase
+    .from('reservations')
+    .select('reservation_number,pickup_date,return_date')
+    .eq('agency_id', agencyId)
+    .eq('vehicle_id', reservation.vehicleId)
+    .in('status', ['Confirmed', 'Active'])
+    .lte('pickup_date', reservation.returnDate)
+    .gte('return_date', reservation.pickupDate);
+
+  if (error) throw error;
+
+  const overlap = (data || []).find((row) => row.reservation_number !== currentReservationNumber);
+  if (overlap) {
+    throw new Error(
+      `Ce véhicule est déjà réservé du ${overlap.pickup_date} au ${overlap.return_date}. Veuillez choisir d'autres dates.`,
+    );
+  }
+}
+
 function mapContract(row: ContractRow, client?: Client, vehicle?: Vehicle): Contract {
   return {
     id: row.id,
@@ -561,12 +587,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setReservations((current) => [reservation, ...current]);
           return reservation;
         }
+        await assertNoReservationOverlap(reservation, agencyId!);
         const { data, error } = await supabase!
           .from('reservations')
           .insert(toReservationRow(reservation, agencyId!))
           .select('*')
           .single();
-        if (error) throw error;
+        if (error) {
+          if (error.message?.includes('overlap_reservation') || error.message?.includes('chevauche')) {
+            throw new Error("Ce véhicule est déjà réservé sur cette période.");
+          }
+          throw error;
+        }
         const nextReservation = mapReservation(
           data as ReservationRow,
           clients.find((item) => item.id === reservation.clientId),
@@ -580,13 +612,19 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setReservations((current) => current.map((item) => (item.id === reservation.id ? reservation : item)));
           return reservation;
         }
+        await assertNoReservationOverlap(reservation, agencyId!, reservation.id);
         const { data, error } = await supabase!
           .from('reservations')
           .update(toReservationRow(reservation, agencyId!))
           .eq('reservation_number', reservation.id)
           .select('*')
           .single();
-        if (error) throw error;
+        if (error) {
+          if (error.message?.includes('overlap_reservation') || error.message?.includes('chevauche')) {
+            throw new Error("Ce véhicule est déjà réservé sur cette période.");
+          }
+          throw error;
+        }
         const nextReservation = mapReservation(
           data as ReservationRow,
           clients.find((item) => item.id === reservation.clientId),
