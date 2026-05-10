@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import { activityFeed } from '../../data/mockData';
 
 export default function Topbar({ onMenu }: { onMenu: () => void }) {
   const { notify, t } = useApp();
@@ -54,21 +53,11 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
           {notificationsOpen ? (
             <div className="glass-card absolute right-0 mt-3 w-80 rounded-2xl p-3">
               <div className="mb-2 flex items-center justify-between px-2">
-                <p className="font-semibold text-white light:text-carbon-950">Activité en direct</p>
+                <p className="font-semibold text-white light:text-carbon-950">Notifications</p>
                 <CheckCircle2 className="h-4 w-4 text-mint-400" />
               </div>
-              <div className="grid gap-2">
-                {activityFeed.map(({ icon: Icon, text, time }) => (
-                  <div key={text} className="flex gap-3 rounded-xl p-2 hover:bg-white/5">
-                    <div className="rounded-lg bg-gold-400/10 p-2 text-gold-200">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-carbon-100 light:text-carbon-800">{text}</p>
-                      <p className="mt-1 text-xs text-carbon-500">{time}</p>
-                    </div>
-                  </div>
-                ))}
+              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-4 text-sm text-carbon-300">
+                Aucune notification pour le moment.
               </div>
             </div>
           ) : null}

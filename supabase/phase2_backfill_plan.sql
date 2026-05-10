@@ -1,0 +1,167 @@
+-- ============================================
+-- MekLoc Phase 2 - Backfill Plan (Draft Only)
+-- File: supabase/phase2_backfill_plan.sql
+-- ============================================
+--
+-- IMPORTANT
+-- - This file is a MANUAL PLAN and optional SQL examples only.
+-- - Do NOT run this whole file in production as-is.
+-- - Review each block, adapt IDs/emails/status values, then execute
+--   line-by-line in a controlled maintenance window.
+-- - No destructive cleanup is automated here.
+--
+-- ==========================================================
+-- 0) Preparation Checklist (Manual)
+-- ==========================================================
+-- [ ] Export a backup before any data update.
+-- [ ] Run supabase/phase2_audit.sql and save results.
+-- [ ] Decide authoritative status vocabulary (French UI mappings stay in app).
+-- [ ] Validate agency ownership and account emails with business team/admin.
+-- [ ] Freeze risky admin operations during backfill window.
+--
+-- ==========================================================
+-- 1) Normalize Emails (Recommended Manual Step)
+-- ==========================================================
+-- Goal:
+-- - Ensure all emails are stored in lower-case trimmed form.
+-- - Reduce duplicate accounts/requests caused by case differences.
+--
+-- Example (access requests):
+-- update public.access_requests
+-- set email = lower(trim(email))
+-- where email is not null
+--   and email <> lower(trim(email));
+--
+-- Example (user profiles):
+-- update public.users_profiles
+-- set email = lower(trim(email))
+-- where email is not null
+--   and email <> lower(trim(email));
+--
+-- ==========================================================
+-- 2) Merge Duplicate access_requests by Email (Manual)
+-- ==========================================================
+-- Strategy:
+-- - Keep one canonical row per normalized email (usually newest non-rejected).
+-- - Preserve audit trail in admin notes.
+-- - Soft-delete/archive duplicates first if your policy requires traceability.
+--
+-- Inspect duplicates:
+-- select lower(trim(email)) as normalized_email, count(*)
+-- from public.access_requests
+-- where email is not null and trim(email) <> ''
+-- group by lower(trim(email))
+-- having count(*) > 1;
+--
+-- Optional example to mark old duplicates as rejected (adapt rules first):
+-- with ranked as (
+--   select id,
+--          row_number() over (
+--            partition by lower(trim(email))
+--            order by updated_at desc nulls last, created_at desc nulls last
+--          ) as rn
+--   from public.access_requests
+--   where email is not null and trim(email) <> ''
+-- )
+-- update public.access_requests ar
+-- set status = 'rejected',
+--     admin_notes = coalesce(ar.admin_notes, '') || E'\n[Backfill] doublon archivé.'
+-- from ranked r
+-- where ar.id = r.id
+--   and r.rn > 1
+--   and ar.status not in ('approved');
+--
+-- ==========================================================
+-- 3) Backfill Missing agency_id (Vehicles / Clients)
+-- ==========================================================
+-- Goal:
+-- - Attach orphan records to the correct agency.
+-- - Prefer deterministic mapping from related reservation/client data.
+--
+-- Manual approach:
+-- 1) identify orphans from phase2_audit.sql.
+-- 2) map each orphan to a known agency ID.
+-- 3) update row-by-row (or small batches).
+--
+-- Example (single vehicle):
+-- update public.vehicles
+-- set agency_id = '00000000-0000-0000-0000-000000000000'::uuid
+-- where id = '00000000-0000-0000-0000-000000000000'::uuid
+--   and agency_id is null;
+--
+-- Example (single client):
+-- update public.clients
+-- set agency_id = '00000000-0000-0000-0000-000000000000'::uuid
+-- where id = '00000000-0000-0000-0000-000000000000'::uuid
+--   and agency_id is null;
+--
+-- ==========================================================
+-- 4) Backfill users_profiles Email / Agency Link (Manual)
+-- ==========================================================
+-- Goal:
+-- - Ensure approved agency accounts have consistent owner email/profile link.
+--
+-- Example: set missing profile email from matched approved access request
+-- (review matches carefully before applying):
+-- update public.users_profiles up
+-- set email = lower(trim(ar.email)),
+--     updated_at = now()
+-- from public.access_requests ar
+-- where up.agency_id is not null
+--   and up.email is null
+--   and ar.status = 'approved'
+--   and lower(trim(ar.agency_name)) = lower(trim((select a.name from public.agencies a where a.id = up.agency_id)));
+--
+-- ==========================================================
+-- 5) Normalize Status Values (Manual)
+-- ==========================================================
+-- Goal:
+-- - Bring legacy status values into allowed vocabulary.
+-- - Keep business meaning intact.
+--
+-- Suggested mapping examples (adapt to your real rules):
+-- access_requests:
+-- - 'in_review' -> 'pending'
+-- - 'verified'  -> 'contacted'
+--
+-- agencies.billing_status:
+-- - 'late'      -> 'overdue'
+--
+-- users_profiles.account_status:
+-- - 'disabled'  -> 'suspended'
+--
+-- Example (access_requests):
+-- update public.access_requests
+-- set status = 'pending'
+-- where status = 'in_review';
+--
+-- ==========================================================
+-- 6) Resolve Orphan Rows Before Future FK Validation
+-- ==========================================================
+-- Goal:
+-- - Make future FK VALIDATE steps succeed without runtime failures.
+--
+-- For each orphan category found in audit:
+-- - reservations without valid client/vehicle/agency references
+-- - payments without valid reservation/agency references
+-- - contracts without valid reservation/agency references
+--
+-- Recommended order:
+-- 1) fix parent entities (agencies, clients, vehicles, reservations)
+-- 2) fix child entities (contracts, payments, maintenance)
+-- 3) rerun phase2_audit.sql
+-- 4) only then run VALIDATE CONSTRAINT manually.
+--
+-- ==========================================================
+-- 7) Post-Backfill Verification Checklist
+-- ==========================================================
+-- [ ] Re-run supabase/phase2_audit.sql: all critical orphan checks = 0.
+-- [ ] Confirm duplicate access request emails are resolved.
+-- [ ] Verify super-admin flows still approve + activate correctly.
+-- [ ] Verify login behavior:
+--     - bad password => invalid credentials (not redirected to request flow)
+--     - pending request => verification page
+--     - approved active account => dashboard
+-- [ ] Verify no RLS regression for agency-isolated data access.
+--
+-- End of draft file.

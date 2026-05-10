@@ -1,5 +1,5 @@
 import { BellRing, Building2, Camera, FileSignature, Globe2, MessageCircle, Percent, Save, ShieldCheck, UsersRound } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -9,6 +9,7 @@ import PageHeader from '../components/ui/PageHeader';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { uploadAgencyLogo } from '../lib/storage';
+import { supabase } from '../lib/supabase';
 
 export default function SettingsPage() {
   const { notify } = useApp();
@@ -38,6 +39,11 @@ export default function SettingsPage() {
   const [agencyPhone, setAgencyPhone] = useState(profile?.phone || '');
   const [agencyAddress, setAgencyAddress] = useState('');
   const [logoFileName, setLogoFileName] = useState('');
+  useEffect(() => {
+    setAgencyName(profile?.agency?.name || '');
+    setAgencyEmail(profile?.email || '');
+    setAgencyPhone(profile?.phone || '');
+  }, [profile?.agency?.name, profile?.email, profile?.phone]);
   function downloadBillingReceipt() {
     const lines = [
       'Recu abonnement MekLoc',
@@ -83,13 +89,13 @@ startxref
     if (!file) return;
     setLogoFileName(file.name);
     if (!isSupabaseEnabled || !agencyId) {
-      notify({ title: 'Logo selected', message: 'Supabase is not configured, so this stays in demo mode.', type: 'info' });
+      notify({ title: 'Logo sélectionné', message: 'Le logo sera enregistré après connexion Supabase.', type: 'info' });
       return;
     }
 
     try {
       await uploadAgencyLogo(agencyId, file);
-      notify({ title: 'Logo uploaded', message: 'The agency logo was saved in Supabase Storage.', type: 'success' });
+      notify({ title: 'Logo téléversé', message: 'Le logo agence a été enregistré.', type: 'success' });
     } catch (error) {
       notify({
         title: 'Logo not uploaded',
@@ -105,13 +111,14 @@ startxref
       return;
     }
     try {
-      const { error: agencyErr } = await (await import('../lib/supabase')).supabase!
+      if (!supabase) throw new Error('Supabase non configuré');
+      const { error: agencyErr } = await supabase
         .from('agencies')
         .update({ name: agencyName })
         .eq('id', agencyId);
       if (agencyErr) throw agencyErr;
 
-      const { error: profileErr } = await (await import('../lib/supabase')).supabase!
+      const { error: profileErr } = await supabase
         .from('users_profiles')
         .update({ email: agencyEmail.trim().toLowerCase(), phone: agencyPhone, full_name: profile.fullName })
         .eq('id', profile.id);
@@ -201,16 +208,15 @@ startxref
           <Card className="p-5">
             <div className="mb-5 flex items-center gap-3">
               <Globe2 className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">Currency settings</h2>
+              <h2 className="font-semibold text-white light:text-carbon-950">Paramètres de devise</h2>
             </div>
             <div className="grid gap-4">
-              <SelectField label="Currency" defaultValue="MAD">
+              <SelectField label="Devise" defaultValue="MAD">
                 <option>MAD</option>
                 <option>EUR</option>
                 <option>USD</option>
               </SelectField>
-              <SelectField label="Number format" defaultValue="en-MA">
-                <option>en-MA</option>
+              <SelectField label="Format numérique" defaultValue="fr-MA">
                 <option>fr-MA</option>
                 <option>ar-MA</option>
               </SelectField>
@@ -223,20 +229,20 @@ startxref
         <Card className="p-5">
           <div className="mb-5 flex items-center gap-3">
             <FileSignature className="h-5 w-5 text-gold-300" />
-            <h2 className="font-semibold text-white light:text-carbon-950">Contract settings</h2>
+              <h2 className="font-semibold text-white light:text-carbon-950">Paramètres contrats</h2>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <SelectField label="Default contract language" defaultValue="Français">
+            <SelectField label="Langue contrat par défaut" defaultValue="Français">
               <option>Français</option>
               <option>العربية</option>
             </SelectField>
-            <SelectField label="Deposit rule" defaultValue="Fixed">
-              <option>Fixed</option>
-              <option>Percentage</option>
-              <option>Vehicle category</option>
+            <SelectField label="Règle de caution" defaultValue="Fixe">
+              <option>Fixe</option>
+              <option>Pourcentage</option>
+              <option>Catégorie véhicule</option>
             </SelectField>
-            <Field label="Default deposit" defaultValue="4000" type="number" />
-            <Field label="Late return fee / hour" defaultValue="150" type="number" />
+            <Field label="Caution par défaut" defaultValue="4000" type="number" />
+            <Field label="Frais retard / heure" defaultValue="150" type="number" />
           </div>
         </Card>
       ) : null}
@@ -246,31 +252,31 @@ startxref
           <Card className="p-5">
             <div className="mb-5 flex items-center gap-3">
               <Percent className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">Tax settings</h2>
+              <h2 className="font-semibold text-white light:text-carbon-950">Paramètres fiscaux</h2>
             </div>
             <div className="grid gap-4">
-              <Field label="VAT rate" defaultValue="20" type="number" />
-              <SelectField label="Invoice tax display" defaultValue="Inclusive">
-                <option>Inclusive</option>
-                <option>Exclusive</option>
+              <Field label="Taux TVA" defaultValue="20" type="number" />
+              <SelectField label="Affichage taxe facture" defaultValue="Incluse">
+                <option>Incluse</option>
+                <option>Exclue</option>
               </SelectField>
             </div>
           </Card>
           <Card className="p-5">
             <div className="mb-5 flex items-center gap-3">
               <ShieldCheck className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">Subscription billing</h2>
+              <h2 className="font-semibold text-white light:text-carbon-950">Facturation abonnement</h2>
             </div>
             <div className="grid gap-4">
-              <SelectField label="Current plan" defaultValue="Pro">
-                <option>Free</option>
+              <SelectField label="Plan actuel" defaultValue="Pro">
+                <option>Gratuit</option>
                 <option>Pro</option>
                 <option>Business</option>
               </SelectField>
-              <SelectField label="Payment method" defaultValue="Bank transfer">
-                <option>Cash</option>
-                <option>Bank transfer</option>
-                <option>Card</option>
+              <SelectField label="Méthode de paiement" defaultValue="Virement bancaire">
+                <option>Espèces</option>
+                <option>Virement bancaire</option>
+                <option>Carte</option>
               </SelectField>
             </div>
           </Card>
@@ -315,26 +321,10 @@ startxref
           <Card className="p-5">
             <div className="mb-5 flex items-center gap-3">
               <UsersRound className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">Team management</h2>
+              <h2 className="font-semibold text-white light:text-carbon-950">Gestion équipe</h2>
             </div>
-            <div className="grid gap-3">
-              {[
-                ['Mekki Admin', 'Admin'],
-                ['Nadia Operations', 'Manager'],
-                ['Karim Desk', 'Staff'],
-              ].map(([name, role]) => (
-                <div key={name} className="premium-surface flex items-center justify-between rounded-2xl p-4">
-                  <div>
-                    <p className="font-bold text-white light:text-carbon-950">{name}</p>
-                    <p className="text-sm text-carbon-400">{role}</p>
-                  </div>
-                  <SelectField label="Role" defaultValue={role} className="min-w-32">
-                    <option>Admin</option>
-                    <option>Manager</option>
-                    <option>Staff</option>
-                  </SelectField>
-                </div>
-              ))}
+            <div className="premium-surface rounded-2xl p-4 text-sm text-carbon-300">
+              Gestion d’équipe avancée bientôt disponible.
             </div>
           </Card>
       ) : null}
@@ -344,11 +334,11 @@ startxref
           <Card className="p-5">
             <div className="mb-5 flex items-center gap-3">
               <BellRing className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">Notification preferences</h2>
+              <h2 className="font-semibold text-white light:text-carbon-950">Préférences notifications</h2>
             </div>
             <div className="grid gap-4">
-              <Field label="WhatsApp number" defaultValue="+212 6 00 00 00 00" />
-              <SelectField label="Default reminder time" defaultValue="09:00">
+              <Field label="Numéro WhatsApp" defaultValue={agencyPhone || '+212 6 00 00 00 00'} />
+              <SelectField label="Heure rappel par défaut" defaultValue="09:00">
                 <option>09:00</option>
                 <option>12:00</option>
                 <option>18:00</option>
@@ -358,16 +348,16 @@ startxref
           <Card className="p-5">
             <div className="mb-5 flex items-center gap-3">
               <MessageCircle className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">WhatsApp automation placeholder</h2>
+              <h2 className="font-semibold text-white light:text-carbon-950">Automatisation WhatsApp</h2>
             </div>
             <div className="grid gap-3">
-              {['Reservation confirmation', 'Payment reminder', 'Return reminder', 'Send contract'].map((item) => (
+              {['Confirmation réservation', 'Rappel paiement', 'Rappel retour', 'Envoi contrat'].map((item) => (
                 <div key={item} className="premium-surface flex items-center justify-between rounded-2xl p-4">
                   <div>
                     <p className="font-bold text-white light:text-carbon-950">{item}</p>
-                    <p className="text-sm text-carbon-400">Template ready for future WhatsApp API connection.</p>
+                    <p className="text-sm text-carbon-400">Bientôt disponible.</p>
                   </div>
-                  <button className="h-6 w-11 rounded-full bg-gold-400/30 p-1">
+                  <button disabled className="h-6 w-11 cursor-not-allowed rounded-full bg-gold-400/20 p-1 opacity-70">
                     <span className="block h-4 w-4 rounded-full bg-gold-300" />
                   </button>
                 </div>

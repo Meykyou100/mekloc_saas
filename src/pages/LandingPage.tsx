@@ -104,10 +104,10 @@ function LandingHeader() {
         </Link>
         <nav className="hidden items-center gap-6 text-sm font-semibold text-carbon-300 lg:flex">
           <a href="#features" className="hover:text-white light:hover:text-carbon-950">
-            Features
+            Fonctionnalités
           </a>
           <a href="#pricing" className="hover:text-white light:hover:text-carbon-950">
-            Pricing
+            Tarifs
           </a>
           <a href="#faq" className="hover:text-white light:hover:text-carbon-950">
             FAQ
@@ -147,7 +147,7 @@ export default function LandingPage() {
                 className="mb-6 inline-flex items-center gap-2 rounded-full border border-gold-300/20 bg-gold-400/10 px-4 py-2 text-sm font-semibold text-gold-200 light:text-gold-800"
               >
                 <Sparkles className="h-4 w-4" />
-                Built for Moroccan rental agencies
+                Conçu pour les agences de location au Maroc
               </motion.div>
               <motion.h1
                 initial={{ opacity: 0, y: 18 }}
@@ -155,7 +155,7 @@ export default function LandingPage() {
                 transition={{ delay: 0.08 }}
                 className="max-w-4xl text-5xl font-black leading-[1.02] text-white light:text-carbon-950 sm:text-6xl lg:text-7xl"
               >
-                Manage Your Rental Agency <span className="gold-text">Smarter</span>
+                Gérez votre agence de location <span className="gold-text">plus intelligemment</span>
               </motion.h1>
               <motion.p
                 initial={{ opacity: 0, y: 18 }}
@@ -236,7 +236,7 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.3em] text-gold-300">Pricing</p>
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-gold-300">Tarifs</p>
                 <h2 className="mt-3 text-3xl font-black text-white light:text-carbon-950 sm:text-4xl">
                   Start lean, scale into every branch.
                 </h2>
@@ -258,7 +258,7 @@ export default function LandingPage() {
                     </div>
                     {plan.featured ? (
                       <span className="rounded-full bg-gold-400 px-3 py-1 text-xs font-black text-carbon-950">
-                        Popular
+                        Populaire
                       </span>
                     ) : null}
                   </div>
@@ -276,7 +276,7 @@ export default function LandingPage() {
                   </div>
                   <Link to="/auth" className="mt-7 block">
                     <Button className="w-full" variant={plan.featured ? 'primary' : 'secondary'}>
-                      Choose {plan.name}
+                      Choisir {plan.name}
                     </Button>
                   </Link>
                 </Card>
@@ -327,11 +327,11 @@ export default function LandingPage() {
           <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <p className="text-xs font-bold uppercase tracking-[0.3em] text-gold-300">FAQ</p>
-              <h2 className="mt-3 text-3xl font-black text-white light:text-carbon-950">Questions agencies ask first.</h2>
+              <h2 className="mt-3 text-3xl font-black text-white light:text-carbon-950">Questions fréquentes.</h2>
             </div>
             <div className="mt-10 grid gap-3">
               {[
-                ['Can I use MekLoc without a backend?', 'Yes. This frontend uses mock data and local state so every workflow can be tested before connecting APIs.'],
+                ['Comment demander un accès ?', 'Utilisez le bouton “Demander un accès”, puis suivez votre statut de vérification.'],
                 ['Does it support Moroccan rental workflows?', 'The interface is designed around MAD pricing, CIN/passport fields, WhatsApp follow-up, insurance, and technical inspection reminders.'],
                 ['Can my team use different roles?', 'Yes. Settings include Admin, Manager, and Staff role management UI.'],
               ].map(([question, answer]) => (
@@ -355,21 +355,21 @@ export default function LandingPage() {
               <div>
                 <p className="text-xs font-bold uppercase tracking-[0.3em] text-gold-300">Contact</p>
                 <h2 className="mt-3 text-3xl font-black text-white light:text-carbon-950">
-                  Book a premium onboarding session.
+                  Réservez une session de cadrage.
                 </h2>
                 <p className="mt-4 max-w-xl text-carbon-300 light:text-carbon-600">
                   Tell us about your fleet, branches, and contract workflow. MekLoc can be shaped to fit your agency before backend integration.
                 </p>
                 <div className="mt-8 flex items-center gap-3 text-sm text-carbon-300 light:text-carbon-700">
                   <Clock3 className="h-5 w-5 text-gold-300" />
-                  Typical setup call: 30 minutes
+                  Appel de cadrage: 30 minutes
                 </div>
               </div>
               <form className="grid gap-3">
                 <input className="focus-ring rounded-xl border border-white/10 bg-carbon-950/45 px-4 py-3 text-white light:bg-white light:text-carbon-950" placeholder="Agency name" />
                 <input className="focus-ring rounded-xl border border-white/10 bg-carbon-950/45 px-4 py-3 text-white light:bg-white light:text-carbon-950" placeholder="WhatsApp number" />
                 <textarea className="focus-ring min-h-28 rounded-xl border border-white/10 bg-carbon-950/45 px-4 py-3 text-white light:bg-white light:text-carbon-950" placeholder="Tell us about your fleet" />
-                <Button type="button" icon={<ShieldCheck className="h-4 w-4" />}>Request demo</Button>
+                <Button type="button" icon={<ShieldCheck className="h-4 w-4" />}>Demander une démo</Button>
               </form>
             </Card>
           </div>
@@ -379,9 +379,9 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 text-sm text-carbon-400 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
           <p>© 2026 MekLoc. Smart Rental Management System.</p>
           <div className="flex gap-4">
-            <Link to="/dashboard" className="hover:text-gold-200">Dashboard</Link>
-            <Link to="/pricing" className="hover:text-gold-200">Pricing</Link>
-            <Link to="/auth" className="hover:text-gold-200">Login</Link>
+            <Link to="/dashboard" className="hover:text-gold-200">Tableau</Link>
+            <Link to="/pricing" className="hover:text-gold-200">Tarifs</Link>
+            <Link to="/auth" className="hover:text-gold-200">Connexion</Link>
           </div>
         </div>
       </footer>

@@ -4,7 +4,6 @@ import {
   CalendarClock,
   Car,
   FileSignature,
-  MessageCircle,
   Plus,
   UserPlus,
   WalletCards,
@@ -16,8 +15,6 @@ import Card from '../components/ui/Card';
 import PageHeader from '../components/ui/PageHeader';
 import {
   formatMAD,
-  revenueByMonth,
-  activityFeed,
 } from '../data/mockData';
 import { useData } from '../context/DataContext';
 import { useAuth } from '../context/AuthContext';
@@ -90,7 +87,7 @@ export default function DashboardPage() {
   const activeReservations = reservations.filter((reservation) => reservation.status === 'Active').length;
   const monthlyRevenue = payments
     .filter((payment) => payment.status === 'Paid' || payment.status === 'Partial')
-    .reduce((total, payment) => total + payment.amount, 0) || revenueByMonth[4].value;
+    .reduce((total, payment) => total + payment.amount, 0);
   const pendingPayments = payments.filter((payment) => payment.status === 'Pending' || payment.status === 'Late').length;
   const pickupsToday = reservations.filter((reservation) => reservation.pickupDate === today).length;
   const returnsToday = reservations.filter((reservation) => reservation.returnDate === today).length;
@@ -286,40 +283,22 @@ export default function DashboardPage() {
         </Card>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+      <section>
         <Card className="p-5 sm:p-6">
           <div className="mb-5 flex items-center gap-3">
             <Wrench className="h-5 w-5 text-gold-200" />
             <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Maintenance Alerts</h2>
           </div>
           <div className="grid gap-3">
-            {maintenanceItems.map((item) => (
+            {maintenanceItems.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-carbon-400">Aucune donnée pour le moment.</div>
+            ) : maintenanceItems.map((item) => (
               <div key={item.id} className="premium-surface flex items-center justify-between gap-4 rounded-2xl p-4">
                 <div>
                   <p className="font-semibold text-white light:text-carbon-950">{item.vehicle}</p>
                   <p className="mt-1 text-sm text-carbon-400">{item.type} · {item.date}</p>
                 </div>
                 <Badge>{item.priority}</Badge>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card className="p-5 sm:p-6">
-          <div className="mb-5 flex items-center gap-3">
-            <MessageCircle className="h-5 w-5 text-carbon-300" />
-            <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Recent Activity Timeline</h2>
-          </div>
-          <div className="grid gap-4">
-            {activityFeed.map(({ icon: Icon, text, time }) => (
-              <div key={text} className="flex gap-3">
-                <div className="mt-1 grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-carbon-300">
-                  <Icon className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-carbon-200 light:text-carbon-800">{text}</p>
-                  <p className="mt-1 text-xs text-carbon-500">{time}</p>
-                </div>
               </div>
             ))}
           </div>
