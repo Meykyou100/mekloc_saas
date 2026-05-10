@@ -27,6 +27,7 @@ type AccessRequestRow = {
   status: AccessRequestStatus;
   admin_notes: string | null;
   created_at: string;
+  activation_link?: string | null;
 };
 
 type AdminAgency = {
@@ -49,6 +50,7 @@ function addDays(baseDate: string | null, days: number) {
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
 }
+
 
 export default function SuperAdminPage() {
   const { profile, isSupabaseEnabled, signOut } = useAuth();
@@ -125,77 +127,32 @@ export default function SuperAdminPage() {
     notify({ title: toast, type: 'success' });
   }
 
-  async function createOrLinkProfileFromRequest(request: AccessRequestRow, agencyId: string) {
-    if (!supabase) return;
-    const email = request.email.trim().toLowerCase();
-    const { data: existingProfile } = await supabase
-      .from('users_profiles')
-      .select('id,full_name')
-      .eq('email', email)
-      .limit(1)
-      .maybeSingle();
-    if (existingProfile?.id) {
-      await supabase.from('users_profiles').update({ agency_id: agencyId, account_status: 'active' }).eq('id', existingProfile.id);
-    } else {
-      await supabase.from('users_profiles').insert({
-        agency_id: agencyId,
-        email,
-        full_name: request.owner_name || 'Responsable agence',
-        role: 'Admin',
-        account_status: 'active',
-        is_super_admin: false,
-      });
-    }
-  }
-
   async function approveRequest(request: AccessRequestRow) {
     if (!supabase || !isSupabaseConfigured) return;
-    const plan = request.selected_plan || 'starter';
-    const monthlyPrice = monthlyPriceByPlan[plan];
-    const now = new Date().toISOString().slice(0, 10);
-    const nextDue = addDays(now, 30);
-
-    const { data: existingAgency } = await supabase
-      .from('agencies')
-      .select('id')
-      .eq('name', request.agency_name)
-      .limit(1)
-      .maybeSingle();
-
-    let agencyId = existingAgency?.id;
-    if (!agencyId) {
-      const { data: created, error } = await supabase
-        .from('agencies')
-        .insert({
-          name: request.agency_name,
-          slug: `${request.agency_name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now().toString().slice(-5)}`,
-          created_by: profile?.id || null,
-          plan,
-          billing_status: 'trial',
-          subscription_start_date: now,
-          subscription_end_date: nextDue,
-          next_payment_due_date: nextDue,
-          monthly_price: monthlyPrice,
-        })
-        .select('id')
-        .single();
-      if (error) throw error;
-      agencyId = created.id;
-    } else {
-      await supabase
-        .from('agencies')
-        .update({
-          plan,
-          billing_status: 'trial',
-          next_payment_due_date: nextDue,
-          monthly_price: monthlyPrice,
-        })
-        .eq('id', agencyId);
+    const webhook = import.meta.env.VITE_APPROVE_ACCESS_REQUEST_WEBHOOK as string | undefined;
+    if (!webhook) throw new Error('Webhook approbation manquant. Configurez VITE_APPROVE_ACCESS_REQUEST_WEBHOOK.');
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!accessToken) throw new Error('Session admin introuvable. Reconnectez-vous puis réessayez.');
+    const response = await fetch(webhook, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+        'x-internal-key': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+      },
+      body: JSON.stringify({
+        accessRequestId: request.id,
+        redirectTo: `${window.location.origin}/auth?mode=set-password`,
+      }),
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload?.error || 'Approbation impossible');
+    if (payload?.activationLink) {
+      await supabase.from('access_requests').update({ activation_link: payload.activationLink }).eq('id', request.id);
     }
-
-    await createOrLinkProfileFromRequest(request, agencyId);
-
-    await updateRequest(request.id, { status: 'approved' }, 'Demande approuvée');
+    notify({ title: "Demande approuvée", message: "Un lien d’activation a été envoyé au client.", type: 'success' });
     await loadAll();
   }
 
@@ -341,9 +298,9 @@ export default function SuperAdminPage() {
                   <Button className="h-8 px-2.5 text-xs" icon={<CheckCircle2 className="h-3.5 w-3.5" />} loading={Boolean(actionLoading[`req-approve-${req.id}`])} onClick={() => runAction(`req-approve-${req.id}`, async () => approveRequest(req))}>Approuver</Button>
                   <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<XCircle className="h-3.5 w-3.5" />} loading={Boolean(actionLoading[`req-reject-${req.id}`])} onClick={() => runAction(`req-reject-${req.id}`, async () => updateRequest(req.id, { status: 'rejected' }, 'Demande rejetée'))}>Rejeter</Button>
                   <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<UserPlus className="h-3.5 w-3.5" />} loading={Boolean(actionLoading[`req-create-${req.id}`])} onClick={() => runAction(`req-create-${req.id}`, async () => {
-                    const existingAgency = agencies.find((a) => a.agencyName === req.agency_name);
-                    if (!existingAgency) return notify({ title: 'Agence introuvable', message: 'Approuvez d’abord la demande.', type: 'warning' });
-                    await createOrLinkProfileFromRequest(req, existingAgency.id);
+                    if (!req.activation_link) return notify({ title: 'Lien indisponible', message: "Aucun lien d’activation enregistré.", type: 'warning' });
+                    await navigator.clipboard.writeText(req.activation_link);
+                    notify({ title: 'Lien copié', message: 'Lien d’activation copié dans le presse-papiers.', type: 'success' });
                   })}>Créer compte client</Button>
                   <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setRequestToDelete(req)}>Supprimer la demande</Button>
                 </div>
