@@ -10,6 +10,11 @@ function slugify(name: string) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
+    const authHeader = req.headers.get('Authorization') || '';
+    if (!authHeader.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Session admin manquante.' }), { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
+
     const internalKey = req.headers.get('x-internal-key') || '';
     const anonKey = Deno.env.get('ANON_KEY') || '';
     if (!anonKey || internalKey !== anonKey) {
@@ -28,6 +33,22 @@ Deno.serve(async (req) => {
       Authorization: `Bearer ${serviceRole}`,
       'Content-Type': 'application/json',
     };
+
+    // Validate caller and ensure only super admin can approve.
+    const userRes = await fetch(`${projectUrl}/auth/v1/user`, {
+      method: 'GET',
+      headers: { apikey: anonKey, Authorization: authHeader },
+    });
+    if (!userRes.ok) throw new Error('Session admin invalide.');
+    const authUser = await userRes.json() as { id?: string };
+    const adminUserId = authUser?.id;
+    if (!adminUserId) throw new Error('Utilisateur admin introuvable.');
+
+    const adminCheckRes = await fetch(`${projectUrl}/rest/v1/users_profiles?id=eq.${encodeURIComponent(adminUserId)}&select=is_super_admin&limit=1`, { headers });
+    const adminCheckRows = await adminCheckRes.json() as Array<{ is_super_admin: boolean }>;
+    if (!adminCheckRows?.[0]?.is_super_admin) {
+      return new Response(JSON.stringify({ error: 'Accès refusé. Super admin requis.' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
+    }
 
     const reqRes = await fetch(`${projectUrl}/rest/v1/access_requests?id=eq.${encodeURIComponent(accessRequestId)}&select=*`, { headers });
     const reqRows = (await reqRes.json()) as Array<Record<string, unknown>>;
@@ -57,36 +78,34 @@ Deno.serve(async (req) => {
         body: JSON.stringify([{
           name: agencyName,
           slug: `${slugify(agencyName)}-${Date.now().toString().slice(-5)}`,
-          owner_email: email,
-          phone,
-          country: String(row.country || 'Maroc'),
-          city: String(row.city || ''),
-          address: String(row.address || ''),
+          created_by: adminUserId,
           plan,
-          billing_type: billingType,
           billing_status: 'trial',
-          account_status: 'active',
           subscription_start_date: startDate,
-          subscription_end_date: nextDueDate,
           next_payment_due_date: nextDueDate,
         }]),
       });
-      const createdAgency = (await createAgencyRes.json()) as Array<{ id: string }>;
+      const createAgencyText = await createAgencyRes.text();
+      if (!createAgencyRes.ok) {
+        throw new Error(`Erreur création agence: ${createAgencyText}`);
+      }
+      const createdAgency = JSON.parse(createAgencyText) as Array<{ id: string }>;
       agencyId = createdAgency?.[0]?.id;
       if (!agencyId) throw new Error('Création agence impossible');
     } else {
-      await fetch(`${projectUrl}/rest/v1/agencies?id=eq.${encodeURIComponent(agencyId)}`, {
+      const updateAgencyRes = await fetch(`${projectUrl}/rest/v1/agencies?id=eq.${encodeURIComponent(agencyId)}`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify({
-          owner_email: email,
           plan,
-          billing_type: billingType,
           billing_status: 'trial',
-          account_status: 'active',
           next_payment_due_date: nextDueDate,
         }),
       });
+      if (!updateAgencyRes.ok) {
+        const txt = await updateAgencyRes.text();
+        throw new Error(`Erreur mise à jour agence: ${txt}`);
+      }
     }
 
     const profileLookupRes = await fetch(`${projectUrl}/rest/v1/users_profiles?email=eq.${encodeURIComponent(email)}&select=id&limit=1`, { headers });
@@ -127,12 +146,12 @@ Deno.serve(async (req) => {
           body: JSON.stringify({ email, ...(redirectTo ? { redirect_to: redirectTo } : {}) }),
         });
         if (!recoverRes.ok) {
-          const recoverText = await recoverRes.text();
-          throw new Error(`Activation email impossible: ${recoverText}`);
+          inviteInfo = 'email_failed';
+        } else {
+          inviteInfo = 'recover_sent';
         }
-        inviteInfo = 'recover_sent';
       } else {
-        throw new Error(`Activation email impossible: ${txt}`);
+        inviteInfo = 'email_failed';
       }
     } else {
       const inviteJson = await inviteRes.json() as { action_link?: string };
@@ -149,4 +168,3 @@ Deno.serve(async (req) => {
     });
   }
 });
-

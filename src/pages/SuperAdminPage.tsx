@@ -144,7 +144,7 @@ export default function SuperAdminPage() {
       },
       body: JSON.stringify({
         accessRequestId: request.id,
-        redirectTo: `${window.location.origin}/auth?mode=set-password`,
+        redirectTo: `${window.location.origin}/set-password`,
       }),
     });
     const payload = await response.json();
@@ -152,7 +152,15 @@ export default function SuperAdminPage() {
     if (payload?.activationLink) {
       await supabase.from('access_requests').update({ activation_link: payload.activationLink }).eq('id', request.id);
     }
-    notify({ title: "Demande approuvée", message: "Un lien d’activation a été envoyé au client.", type: 'success' });
+    if (payload?.inviteInfo === 'email_failed') {
+      notify({
+        title: "Demande approuvée",
+        message: "Compte approuvé. Email d’activation non envoyé, utilisez “Créer compte client” pour copier le lien.",
+        type: 'warning',
+      });
+    } else {
+      notify({ title: "Demande approuvée", message: "Un lien d’activation a été envoyé au client.", type: 'success' });
+    }
     await loadAll();
   }
 

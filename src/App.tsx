@@ -21,6 +21,7 @@ import PublicBookingPreviewPage from './pages/PublicBookingPreviewPage';
 import ReportsPage from './pages/ReportsPage';
 import ReservationsPage from './pages/ReservationsPage';
 import SettingsPage from './pages/SettingsPage';
+import SetPasswordPage from './pages/SetPasswordPage';
 import SuperAdminPage from './pages/SuperAdminPage';
 import VehicleDetailsPage from './pages/VehicleDetailsPage';
 import VehiclesPage from './pages/VehiclesPage';
@@ -57,6 +58,14 @@ export default function App() {
             element={
               <AnimatedPage>
                 <AuthPage />
+              </AnimatedPage>
+            }
+          />
+          <Route
+            path="/set-password"
+            element={
+              <AnimatedPage>
+                <SetPasswordPage />
               </AnimatedPage>
             }
           />
