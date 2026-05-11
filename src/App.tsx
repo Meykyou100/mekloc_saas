@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect } from 'react';
 import AppLayout from './components/layout/AppLayout';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import ToastViewport from './components/ui/ToastViewport';
@@ -40,6 +41,10 @@ function AnimatedPage({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   const location = useLocation();
+
+  useEffect(() => {
+    (window as Window & { __MEKLOC_APP_READY__?: boolean }).__MEKLOC_APP_READY__ = true;
+  }, []);
 
   return (
     <>
