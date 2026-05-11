@@ -154,7 +154,7 @@ function mapAgency(row: AgencyRow | AgencyRow[] | null): AgencySubscription | nu
     id: agency.id,
     name: agency.name,
     logoPath: agency.logo_path || null,
-    logoUrl: agency.logo_path ? supabase!.storage.from('logos').getPublicUrl(agency.logo_path).data.publicUrl : null,
+    logoUrl: agency.logo_path && supabase ? supabase.storage.from('logos').getPublicUrl(agency.logo_path).data.publicUrl : null,
     plan: agency.plan || 'starter',
     billingStatus: agency.billing_status || 'trial',
     subscriptionStartDate: agency.subscription_start_date,
@@ -199,6 +199,7 @@ async function fetchProfile(userId: string): Promise<UserProfile | null> {
       agencies (
         id,
         name,
+        logo_path,
         plan,
         billing_status,
         subscription_start_date,
@@ -297,6 +298,7 @@ async function createAgencyAndProfile(
       agencies (
         id,
         name,
+        logo_path,
         plan,
         billing_status,
         subscription_start_date,
