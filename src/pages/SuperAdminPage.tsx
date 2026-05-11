@@ -63,6 +63,7 @@ export default function SuperAdminPage() {
   const [requestToDelete, setRequestToDelete] = useState<AccessRequestRow | null>(null);
   const [agencyToDelete, setAgencyToDelete] = useState<AdminAgency | null>(null);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
+  const [activationLinkToCopy, setActivationLinkToCopy] = useState<{ email: string; link: string } | null>(null);
 
   const loadAll = useCallback(async () => {
     if (!supabase || !isSupabaseConfigured) return;
@@ -299,8 +300,17 @@ export default function SuperAdminPage() {
     const payload = await response.json();
     if (!response.ok) throw new Error(payload?.error || 'Génération du lien impossible');
     if (payload?.activationLink) {
-      await navigator.clipboard.writeText(payload.activationLink);
-      notify({ title: 'Lien copié', message: 'Lien d’activation copié. Envoyez-le au client via WhatsApp ou Gmail.', type: 'success' });
+      setActivationLinkToCopy({ email: normalized, link: payload.activationLink });
+      try {
+        await navigator.clipboard.writeText(payload.activationLink);
+        notify({ title: 'Lien copié', message: 'Lien d’activation copié. Envoyez-le au client via WhatsApp ou Gmail.', type: 'success' });
+      } catch {
+        notify({
+          title: 'Lien généré',
+          message: 'Safari a bloqué la copie automatique. Copiez le lien affiché manuellement.',
+          type: 'warning',
+        });
+      }
       return;
     }
     if (payload?.inviteSent) {
@@ -322,6 +332,32 @@ export default function SuperAdminPage() {
           action={<div className="flex gap-2"><Button variant="secondary" icon={<RefreshCw className="h-4 w-4" />} loading={loading} onClick={loadAll}>Actualiser</Button><Button variant="secondary" onClick={async () => { await signOut(); navigate('/auth'); }}>Déconnexion</Button></div>}
         />
 
+        {activationLinkToCopy ? (
+          <Card className="mt-4 p-5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end">
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-white">Lien d’activation généré</p>
+                <p className="mt-1 text-xs text-carbon-400">{activationLinkToCopy.email}</p>
+                <input className="form-control mt-3" value={activationLinkToCopy.link} readOnly />
+              </div>
+              <Button
+                variant="secondary"
+                className="h-10"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(activationLinkToCopy.link);
+                    notify({ title: 'Lien copié', type: 'success' });
+                  } catch {
+                    notify({ title: 'Copie bloquée', message: 'Sélectionnez le lien et copiez-le manuellement.', type: 'warning' });
+                  }
+                }}
+              >
+                Copier
+              </Button>
+            </div>
+          </Card>
+        ) : null}
+
         <Card className="mt-4 overflow-hidden">
           <div className="border-b border-white/10 p-5"><h2 className="text-xl font-bold">Demandes d’accès</h2></div>
           <div className="grid gap-4 p-5">
@@ -341,8 +377,13 @@ export default function SuperAdminPage() {
                   <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<XCircle className="h-3.5 w-3.5" />} loading={Boolean(actionLoading[`req-reject-${req.id}`])} onClick={() => runAction(`req-reject-${req.id}`, async () => updateRequest(req.id, { status: 'rejected' }, 'Demande rejetée'))}>Rejeter</Button>
                   <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<UserPlus className="h-3.5 w-3.5" />} loading={Boolean(actionLoading[`req-create-${req.id}`])} onClick={() => runAction(`req-create-${req.id}`, async () => {
                     if (!req.activation_link) return notify({ title: 'Lien indisponible', message: "Aucun lien d’activation enregistré.", type: 'warning' });
-                    await navigator.clipboard.writeText(req.activation_link);
-                    notify({ title: 'Lien copié', message: 'Lien d’activation copié dans le presse-papiers.', type: 'success' });
+                    setActivationLinkToCopy({ email: req.email, link: req.activation_link });
+                    try {
+                      await navigator.clipboard.writeText(req.activation_link);
+                      notify({ title: 'Lien copié', message: 'Lien d’activation copié dans le presse-papiers.', type: 'success' });
+                    } catch {
+                      notify({ title: 'Lien affiché', message: 'Safari a bloqué la copie automatique. Copiez le lien affiché manuellement.', type: 'warning' });
+                    }
                   })}>Créer compte client</Button>
                   <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setRequestToDelete(req)}>Supprimer la demande</Button>
                 </div>
