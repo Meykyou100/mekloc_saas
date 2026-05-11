@@ -60,6 +60,11 @@ export default function AuthPage() {
         if (request.status === 'payment_pending') return navigate('/payment-required', { replace: true });
         if (request.status === 'rejected') return navigate('/account-status', { replace: true });
         if (['pending', 'pending_verification', 'contacted', 'verified'].includes(request.status)) {
+          notify({
+            title: 'Demande en cours',
+            message: 'Votre demande est toujours en traitement. Consultez la page de vérification pour le suivi.',
+            type: 'info',
+          });
           return navigate(`/verification-en-cours?email=${encodeURIComponent(email)}&agency=${encodeURIComponent(request.agencyName)}&plan=${encodeURIComponent(request.plan)}&created_at=${encodeURIComponent(request.createdAt)}${request.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`, { replace: true });
         }
       }
