@@ -14,6 +14,7 @@ import { supabase } from '../lib/supabase';
 const templates = ['Standard rental', 'Luxury vehicle', 'Corporate account'];
 
 export default function ContractsPage() {
+  const [searchParams] = useSearchParams();
   const { clients, vehicles, reservations, createContract } = useData();
   const { agencyId, profile } = useAuth();
   const [clientId, setClientId] = useState('');
@@ -461,4 +462,3 @@ startxref
     </div>
   );
 }
-  const [searchParams] = useSearchParams();
