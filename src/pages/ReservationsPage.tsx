@@ -1,11 +1,13 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarDays, Car, CheckCircle2, Filter, LayoutGrid, ListFilter, MapPin, Plus, Search, UserRound, X } from 'lucide-react';
+import { CalendarDays, Car, CheckCircle2, Eye, FileSignature, Filter, LayoutGrid, ListFilter, MapPin, Pencil, Plus, Search, Trash2, UserRound, X } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
 import PageHeader from '../components/ui/PageHeader';
+import Modal from '../components/ui/Modal';
 import {
   formatMAD,
   type Reservation,
@@ -59,7 +61,8 @@ function isDateOverlap(startA: string, endA: string, startB: string, endB: strin
 }
 
 export default function ReservationsPage() {
-  const { clients, vehicles, reservations, createReservation } = useData();
+  const { clients, vehicles, reservations, createReservation, updateReservation, deleteReservation } = useData();
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<'All' | ReservationStatus>('All');
   const [view, setView] = useState<ViewMode>('calendar');
@@ -71,6 +74,7 @@ export default function ReservationsPage() {
   const [draftDailyPrice, setDraftDailyPrice] = useState(850);
   const [draftDeposit, setDraftDeposit] = useState(4000);
   const [reservationStep, setReservationStep] = useState(0);
+  const [deleteTarget, setDeleteTarget] = useState<Reservation | null>(null);
   const { notify } = useApp();
 
   const filteredReservations = useMemo(() => {
@@ -198,6 +202,30 @@ export default function ReservationsPage() {
     }
   }
 
+  async function handleUpdateStatus(reservation: Reservation, nextStatus: ReservationStatus | 'Brouillon') {
+    if (nextStatus === 'Brouillon') {
+      notify({ title: 'Statut non appliqué', message: 'Le statut Brouillon n’est pas encore persisté côté base.', type: 'info' });
+      return;
+    }
+    try {
+      await updateReservation({ ...reservation, status: nextStatus });
+      notify({ title: 'Statut mis à jour', message: `Réservation ${reservation.id} mise à jour.`, type: 'success' });
+    } catch (error) {
+      notify({ title: 'Mise à jour impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+    }
+  }
+
+  async function confirmDeleteReservation() {
+    if (!deleteTarget) return;
+    try {
+      await deleteReservation(deleteTarget.id);
+      notify({ title: 'Réservation supprimée', message: `${deleteTarget.id} a été supprimée.`, type: 'success' });
+      setDeleteTarget(null);
+    } catch (error) {
+      notify({ title: 'Suppression impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+    }
+  }
+
   return (
     <div>
       <PageHeader
@@ -272,6 +300,7 @@ export default function ReservationsPage() {
                   <th className="px-5 py-4">Daily price</th>
                   <th className="px-5 py-4">Deposit</th>
                   <th className="px-5 py-4">Status</th>
+                  <th className="px-5 py-4">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.06]">
@@ -285,6 +314,26 @@ export default function ReservationsPage() {
                     <td className="px-5 py-4 text-white light:text-carbon-950">{formatMAD(reservation.dailyPrice)}</td>
                     <td className="px-5 py-4 text-carbon-300 light:text-carbon-700">{formatMAD(reservation.deposit)}</td>
                     <td className="px-5 py-4"><Badge>{reservation.status}</Badge></td>
+                    <td className="px-5 py-4">
+                      <div className="flex flex-wrap gap-2">
+                        <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => notify({ title: reservation.id, message: `${reservation.client} · ${reservation.vehicle}`, type: 'info' })}>Voir détails</Button>
+                        <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<Pencil className="h-3.5 w-3.5" />} onClick={openReservationPanel}>Modifier réservation</Button>
+                        <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<FileSignature className="h-3.5 w-3.5" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}`)}>Générer / voir contrat</Button>
+                        <Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}&download=1`)}>Télécharger contrat PDF</Button>
+                        <select
+                          className="form-control h-8 rounded-lg px-2 text-xs"
+                          value={reservation.status}
+                          onChange={(e) => handleUpdateStatus(reservation, e.target.value as ReservationStatus)}
+                        >
+                          <option>Brouillon</option>
+                          <option value="Confirmed">Confirmée</option>
+                          <option value="Active">Active</option>
+                          <option value="Completed">Terminée</option>
+                          <option value="Cancelled">Annulée</option>
+                        </select>
+                        <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setDeleteTarget(reservation)}>Supprimer réservation</Button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -312,6 +361,10 @@ export default function ReservationsPage() {
               </div>
               <p className="mt-4 font-semibold text-gold-200">{formatMAD(reservation.dailyPrice)}</p>
               <p className="mt-4 text-sm leading-6 text-carbon-400">{reservation.notes}</p>
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <Button variant="secondary" className="h-9 text-xs" onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}`)}>Générer contrat</Button>
+                <Button variant="danger" className="h-9 text-xs" onClick={() => setDeleteTarget(reservation)}>Supprimer</Button>
+              </div>
             </Card>
           ))}
         </div>
@@ -724,6 +777,16 @@ export default function ReservationsPage() {
           </motion.div>
         ) : null}
       </AnimatePresence>
+
+      <Modal open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} title="Supprimer la réservation">
+        <div className="space-y-4">
+          <p className="text-sm text-carbon-300">Voulez-vous vraiment supprimer cette réservation ?</p>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setDeleteTarget(null)}>Annuler</Button>
+            <Button variant="danger" onClick={confirmDeleteReservation}>Supprimer</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

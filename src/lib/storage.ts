@@ -12,7 +12,8 @@ export async function uploadAgencyLogo(agencyId: string, file: File) {
 
   if (error) throw error;
 
-  await supabase.from('agencies').update({ logo_path: data.path }).eq('id', agencyId);
+  const { data: publicData } = supabase.storage.from(storageBuckets.logos).getPublicUrl(data.path);
+  await supabase.from('agencies').update({ logo_path: data.path, logo_url: publicData.publicUrl }).eq('id', agencyId);
   return data.path;
 }
 

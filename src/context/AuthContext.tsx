@@ -22,6 +22,8 @@ export type PaymentMethod = 'cash' | 'bank_transfer' | 'card' | 'other';
 export type AgencySubscription = {
   id: string;
   name: string;
+  logoPath?: string | null;
+  logoUrl?: string | null;
   plan: AgencyPlan;
   billingStatus: BillingStatus;
   subscriptionStartDate: string | null;
@@ -87,6 +89,7 @@ type ProfileRow = {
 type AgencyRow = {
   id: string;
   name: string;
+  logo_path: string | null;
   plan: AgencyPlan | null;
   billing_status: BillingStatus | null;
   subscription_start_date: string | null;
@@ -150,6 +153,8 @@ function mapAgency(row: AgencyRow | AgencyRow[] | null): AgencySubscription | nu
   return {
     id: agency.id,
     name: agency.name,
+    logoPath: agency.logo_path || null,
+    logoUrl: agency.logo_path ? supabase!.storage.from('logos').getPublicUrl(agency.logo_path).data.publicUrl : null,
     plan: agency.plan || 'starter',
     billingStatus: agency.billing_status || 'trial',
     subscriptionStartDate: agency.subscription_start_date,

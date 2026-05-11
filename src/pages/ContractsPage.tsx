@@ -1,5 +1,6 @@
 import { Building2, Download, FileSignature, PenLine, Wand2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { SelectField, TextAreaField } from '../components/ui/Form';
@@ -34,7 +35,14 @@ export default function ContractsPage() {
     if (!clientId && clients[0]) setClientId(clients[0].id);
     if (!vehicleId && vehicles[0]) setVehicleId(vehicles[0].id);
     if (!reservationId && reservations[0]) setReservationId(reservations[0].id);
-  }, [clientId, clients, vehicleId, vehicles]);
+  }, [clientId, clients, reservationId, reservations, vehicleId, vehicles]);
+
+  useEffect(() => {
+    const fromReservation = searchParams.get('reservation');
+    if (fromReservation && reservations.some((item) => item.id === fromReservation)) {
+      setReservationId(fromReservation);
+    }
+  }, [reservations, searchParams]);
 
   const selectedReservation = useMemo(
     () => reservations.find((item) => item.id === reservationId),
@@ -260,6 +268,13 @@ startxref
     notify({ title: 'Téléchargement lancé', message: 'Le contrat PDF a été généré.', type: 'success' });
   }
 
+  useEffect(() => {
+    if (searchParams.get('download') === '1' && reservationId && client.id && vehicle.id) {
+      downloadContractPreview();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, reservationId, client.id, vehicle.id]);
+
   async function handleGenerateContract() {
     if (!client.id || !vehicle.id) {
       notify({ title: 'Données manquantes', message: 'Veuillez sélectionner un client et un véhicule avant de générer le contrat.', type: 'warning' });
@@ -446,3 +461,4 @@ startxref
     </div>
   );
 }
+  const [searchParams] = useSearchParams();

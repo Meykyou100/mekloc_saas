@@ -39,7 +39,10 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
           />
         </div>
         <div className="mr-auto md:hidden">
-          <span className="text-lg font-black tracking-wide">MekLoc</span>
+          <span className="flex items-center gap-2 text-lg font-black tracking-wide">
+            {profile?.agency?.logoUrl ? <img src={profile.agency.logoUrl} alt="Logo agence" className="h-7 w-7 rounded-lg object-contain" /> : null}
+            MekLoc
+          </span>
         </div>
         <div className="relative">
           <button

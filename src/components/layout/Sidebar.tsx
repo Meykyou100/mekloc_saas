@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
+import { useAuth } from '../../context/AuthContext';
 
 const navItems = [
   { label: 'dashboard', to: '/dashboard', icon: LayoutDashboard },
@@ -27,14 +28,22 @@ const navItems = [
 
 function SidebarContent({ onClose }: { onClose?: () => void }) {
   const { t } = useApp();
+  const { profile } = useAuth();
+  const logoUrl = profile?.agency?.logoUrl;
 
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between px-5 py-5">
         <NavLink to="/" className="flex items-center gap-3" onClick={onClose}>
-          <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#D4A017] text-xl font-black text-carbon-950 shadow-[0_10px_22px_rgba(212,160,23,.14)]">
-            M
-          </span>
+          {logoUrl ? (
+            <span className="grid h-11 w-11 place-items-center overflow-hidden rounded-2xl border border-white/10 bg-white shadow-[0_10px_22px_rgba(212,160,23,.14)]">
+              <img src={logoUrl} alt="Logo agence" className="h-full w-full object-contain" />
+            </span>
+          ) : (
+            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#D4A017] text-xl font-black text-carbon-950 shadow-[0_10px_22px_rgba(212,160,23,.14)]">
+              M
+            </span>
+          )}
           <span>
             <span className="block text-xl font-black tracking-wide text-white light:text-carbon-950">
               MekLoc
