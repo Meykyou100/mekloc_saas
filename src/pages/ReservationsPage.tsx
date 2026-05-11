@@ -54,6 +54,10 @@ const inputClass =
 
 const reservationSteps = ['Sélectionner client', 'Sélectionner véhicule', 'Choisir les dates', 'Tarif et caution', 'Confirmer'];
 
+function isDateOverlap(startA: string, endA: string, startB: string, endB: string) {
+  return new Date(startA) <= new Date(endB) && new Date(endA) >= new Date(startB);
+}
+
 export default function ReservationsPage() {
   const { clients, vehicles, reservations, createReservation } = useData();
   const [query, setQuery] = useState('');
@@ -81,6 +85,46 @@ export default function ReservationsPage() {
   const rentalDays = getRentalDays(draftPickupDate, draftReturnDate);
   const totalEstimate = rentalDays * Number(draftDailyPrice || selectedVehicle?.dailyPrice || 0);
   const isMobileCards = view === 'calendar';
+  const today = new Date().toISOString().slice(0, 10);
+
+  const vehicleReservations = useMemo(
+    () =>
+      reservations.filter(
+        (reservation) =>
+          reservation.vehicleId === draftVehicleId &&
+          (reservation.status === 'Confirmed' || reservation.status === 'Active'),
+      ),
+    [draftVehicleId, reservations],
+  );
+
+  const overlapReservation = useMemo(
+    () =>
+      vehicleReservations.find((reservation) =>
+        isDateOverlap(draftPickupDate, draftReturnDate, reservation.pickupDate, reservation.returnDate),
+      ),
+    [draftPickupDate, draftReturnDate, vehicleReservations],
+  );
+
+  const nextAvailableDate = useMemo(() => {
+    if (!overlapReservation) return null;
+    const next = new Date(overlapReservation.returnDate);
+    next.setDate(next.getDate() + 1);
+    return next.toISOString().slice(0, 10);
+  }, [overlapReservation]);
+
+  const canContinueFromDates = reservationStep !== 2 || !overlapReservation;
+  const timelineDays = useMemo(() => {
+    const start = new Date(draftPickupDate || today);
+    start.setDate(start.getDate() - 7);
+    return Array.from({ length: 35 }).map((_, index) => {
+      const d = new Date(start);
+      d.setDate(start.getDate() + index);
+      const iso = d.toISOString().slice(0, 10);
+      const isBlocked = vehicleReservations.some((reservation) => isDateOverlap(iso, iso, reservation.pickupDate, reservation.returnDate));
+      const isSelected = isDateOverlap(iso, iso, draftPickupDate, draftReturnDate);
+      return { iso, day: d.getDate(), isBlocked, isSelected, isToday: iso === today };
+    });
+  }, [draftPickupDate, draftReturnDate, today, vehicleReservations]);
 
   useEffect(() => {
     if (modalOpen) {
@@ -441,7 +485,7 @@ export default function ReservationsPage() {
                             <p className="mt-1 text-xs text-carbon-400 sm:text-sm">Définissez la période de location.</p>
                           </div>
                           <div className="grid gap-4 md:grid-cols-2">
-                            <ReservationField label="Pickup date">
+                            <ReservationField label="Date de départ">
                               <input
                                 className={inputClass}
                                 name="pickupDate"
@@ -451,7 +495,7 @@ export default function ReservationsPage() {
                                 required
                               />
                             </ReservationField>
-                            <ReservationField label="Return date">
+                            <ReservationField label="Date de retour">
                               <input
                                 className={inputClass}
                                 name="returnDate"
@@ -461,6 +505,40 @@ export default function ReservationsPage() {
                                 required
                               />
                             </ReservationField>
+                          </div>
+                          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                            <div className="mb-3 flex flex-wrap items-center gap-3 text-xs">
+                              <span className="inline-flex items-center gap-2 text-carbon-400"><span className="h-2.5 w-2.5 rounded-full bg-white/25" /> Disponible</span>
+                              <span className="inline-flex items-center gap-2 text-carbon-400"><span className="h-2.5 w-2.5 rounded-full bg-rose-400/90" /> Réservé</span>
+                              <span className="inline-flex items-center gap-2 text-carbon-400"><span className="h-2.5 w-2.5 rounded-full bg-gold-400" /> Sélection</span>
+                            </div>
+                            <div className="overflow-x-auto pb-1">
+                              <div className="grid min-w-[560px] grid-cols-[repeat(35,minmax(0,1fr))] gap-1.5">
+                                {timelineDays.map((item) => (
+                                  <div
+                                    key={item.iso}
+                                    className={`grid h-11 place-items-center rounded-lg border text-xs font-semibold ${
+                                      item.isSelected
+                                        ? 'border-gold-300/70 bg-gold-400/20 text-gold-100'
+                                        : item.isBlocked
+                                          ? 'border-rose-300/45 bg-rose-400/15 text-rose-100'
+                                          : 'border-white/10 bg-white/[0.02] text-carbon-300'
+                                    } ${item.isToday ? 'ring-1 ring-white/40' : ''}`}
+                                    title={item.iso}
+                                  >
+                                    {item.day}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            {overlapReservation ? (
+                              <p className="mt-3 text-sm font-semibold text-rose-200">
+                                Ce véhicule est déjà réservé sur cette période.
+                                {nextAvailableDate ? ` Prochaine date disponible: ${nextAvailableDate}.` : ''}
+                              </p>
+                            ) : (
+                              <p className="mt-3 text-sm font-semibold text-emerald-200">Véhicule disponible pour cette période.</p>
+                            )}
                           </div>
                         </motion.section>
                       ) : null}
@@ -569,8 +647,9 @@ export default function ReservationsPage() {
                     </button>
                     {reservationStep < reservationSteps.length - 1 ? (
                       <button
-                        className="focus-ring h-10 rounded-xl bg-[#D4A017] px-4 text-sm font-bold text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.14)] transition hover:-translate-y-0.5 hover:bg-[#E8B923]"
+                        className="focus-ring h-10 rounded-xl bg-[#D4A017] px-4 text-sm font-bold text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.14)] transition hover:-translate-y-0.5 hover:bg-[#E8B923] disabled:cursor-not-allowed disabled:opacity-50"
                         type="button"
+                        disabled={!canContinueFromDates}
                         onClick={() => setReservationStep((step) => Math.min(reservationSteps.length - 1, step + 1))}
                       >
                         Continuer
