@@ -63,6 +63,23 @@ export default function AuthPage() {
           return navigate(`/verification-en-cours?email=${encodeURIComponent(email)}&agency=${encodeURIComponent(request.agencyName)}&plan=${encodeURIComponent(request.plan)}&created_at=${encodeURIComponent(request.createdAt)}${request.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`, { replace: true });
         }
       }
+      if (supabase) {
+        const { data: profileRow } = await supabase
+          .from('users_profiles')
+          .select('id,email,account_status')
+          .eq('email', email)
+          .limit(1)
+          .maybeSingle();
+        if (!profileRow) {
+          notify({
+            title: 'Email introuvable',
+            message: 'Cet email n’existe pas encore. Faites une nouvelle demande d’accès.',
+            type: 'warning',
+          });
+          navigate(`/demande-acces?email=${encodeURIComponent(email)}&from=login`, { replace: true });
+          return;
+        }
+      }
       setLoginStep('password');
     } finally {
       setLoading(false);
