@@ -1,9 +1,8 @@
-import { LockKeyhole, ShieldCheck } from 'lucide-react';
+import { Eye, EyeOff, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
-import { Field } from '../components/ui/Form';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -14,6 +13,8 @@ export default function SetPasswordPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const hasNotifiedInvalidLink = useRef(false);
 
   useEffect(() => {
@@ -66,24 +67,24 @@ export default function SetPasswordPage() {
           Choisissez un mot de passe sécurisé pour activer votre accès MekLoc.
         </p>
         <form className="mt-6 grid gap-4" onSubmit={handleSubmit}>
-          <Field
-            label="Nouveau mot de passe"
-            name="newPassword"
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          <Field
-            label="Confirmer le mot de passe"
-            name="confirmPassword"
-            type="password"
-            placeholder="••••••••"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-          />
+          <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
+            <span>Nouveau mot de passe</span>
+            <div className="relative">
+              <input className="form-control focus-ring w-full pr-12" name="newPassword" type={showPassword ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <button type="button" className="absolute inset-y-0 right-2 my-auto grid h-8 w-8 place-items-center rounded-lg text-carbon-300 hover:bg-white/10 hover:text-white" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </label>
+          <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
+            <span>Confirmer le mot de passe</span>
+            <div className="relative">
+              <input className="form-control focus-ring w-full pr-12" name="confirmPassword" type={showConfirmPassword ? 'text' : 'password'} placeholder="••••••••" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} required />
+              <button type="button" className="absolute inset-y-0 right-2 my-auto grid h-8 w-8 place-items-center rounded-lg text-carbon-300 hover:bg-white/10 hover:text-white" onClick={() => setShowConfirmPassword((v) => !v)} aria-label={showConfirmPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
+                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+          </label>
           <Button type="submit" loading={loading} icon={<LockKeyhole className="h-4 w-4" />}>
             Enregistrer le mot de passe
           </Button>

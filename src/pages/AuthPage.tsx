@@ -1,4 +1,4 @@
-import { ArrowLeft, Chrome, LockKeyhole, Mail } from 'lucide-react';
+import { ArrowLeft, Chrome, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Button from '../components/ui/Button';
@@ -8,6 +8,7 @@ import Modal from '../components/ui/Modal';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { getPostLoginRedirect } from '../lib/authRedirect';
+import { supabase } from '../lib/supabase';
 
 export default function AuthPage() {
   const [searchParams] = useSearchParams();
@@ -16,6 +17,10 @@ export default function AuthPage() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [resetMode, setResetMode] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [loginStep, setLoginStep] = useState<'email' | 'password'>('email');
+  const [loginEmail, setLoginEmail] = useState(searchParams.get('email') || '');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const navigate = useNavigate();
   const { notify } = useApp();
   const { signIn, signInWithGoogle, refreshProfile, isSupabaseEnabled, requestPasswordReset, updatePassword, getAccessRequestStatusByEmail } = useAuth();
@@ -44,11 +49,31 @@ export default function AuthPage() {
     }
   }, [notify, searchParams]);
 
+  async function handleEmailStep(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const email = loginEmail.trim().toLowerCase();
+    if (!email) return;
+    setLoading(true);
+    try {
+      const request = await getAccessRequestStatusByEmail(email);
+      if (request) {
+        if (request.status === 'payment_pending') return navigate('/payment-required', { replace: true });
+        if (request.status === 'rejected') return navigate('/account-status', { replace: true });
+        if (['pending', 'pending_verification', 'contacted', 'verified'].includes(request.status)) {
+          return navigate(`/verification-en-cours?email=${encodeURIComponent(email)}&agency=${encodeURIComponent(request.agencyName)}&plan=${encodeURIComponent(request.plan)}&created_at=${encodeURIComponent(request.createdAt)}${request.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`, { replace: true });
+        }
+      }
+      setLoginStep('password');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setLoading(true);
     const form = new FormData(event.currentTarget);
-    const email = String(form.get('email')).trim().toLowerCase();
+    const email = loginEmail.trim().toLowerCase();
     const password = String(form.get('password'));
 
     try {
@@ -99,6 +124,23 @@ export default function AuthPage() {
           if (request.status === 'rejected') return navigate('/account-status', { replace: true });
           if (['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified'].includes(request.status)) {
             return navigate(`/verification-en-cours?email=${encodeURIComponent(email)}&agency=${encodeURIComponent(request.agencyName)}&plan=${encodeURIComponent(request.plan)}&created_at=${encodeURIComponent(request.createdAt)}${request.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`, { replace: true });
+          }
+        }
+        if (supabase) {
+          const normalized = email.trim().toLowerCase();
+          const { data: profileRow } = await supabase
+            .from('users_profiles')
+            .select('id,account_status,email')
+            .eq('email', normalized)
+            .limit(1)
+            .maybeSingle();
+          if (profileRow) {
+            notify({
+              title: 'Activation requise',
+              message: "Votre compte existe mais n’est pas encore activé côté connexion. Utilisez votre lien d’activation ou contactez MekLoc.",
+              type: 'warning',
+            });
+            return;
           }
         }
         navigate(`/demande-acces?email=${encodeURIComponent(email)}&from=login`, { replace: true });
@@ -197,38 +239,64 @@ export default function AuthPage() {
               <form className="grid gap-4" onSubmit={handleSetNewPassword}>
                 <h2 className="text-2xl font-black">Nouveau mot de passe</h2>
                 <p className="text-sm text-carbon-400">Définissez votre nouveau mot de passe pour sécuriser votre compte.</p>
-                <Field label="Nouveau mot de passe" name="newPassword" type="password" placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+                <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
+                  <span>Nouveau mot de passe</span>
+                  <div className="relative">
+                    <input className="form-control focus-ring w-full pr-12" name="newPassword" type={showResetPassword ? 'text' : 'password'} placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+                    <button type="button" className="absolute inset-y-0 right-2 my-auto grid h-8 w-8 place-items-center rounded-lg text-carbon-300 hover:bg-white/10 hover:text-white" onClick={() => setShowResetPassword((v) => !v)} aria-label={showResetPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
+                      {showResetPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </label>
                 <Button type="submit" icon={<LockKeyhole className="h-4 w-4" />}>Mettre à jour le mot de passe</Button>
                 <Button type="button" variant="secondary" onClick={() => { setResetMode(false); window.history.replaceState(null, '', '/auth'); }}>Retour à la connexion</Button>
               </form>
             ) : (
               <>
-            <h2 className="text-2xl font-black text-white light:text-carbon-950">Se connecter</h2>
-            <p className="mt-2 text-sm text-carbon-400 light:text-carbon-600">Accédez à votre espace MekLoc.</p>
-            <form className="mt-7 grid gap-4" onSubmit={handleSubmit}>
-              <Field label="Email" name="email" type="email" placeholder="admin@agency.ma" defaultValue={searchParams.get('email') || ''} required />
-              <Field label="Mot de passe" name="password" type="password" placeholder="••••••••" required />
-              <Button type="submit" loading={loading} icon={<Mail className="h-4 w-4" />}>Se connecter</Button>
-            </form>
-            <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-carbon-500">
-              <span className="h-px flex-1 bg-white/10" />
-              ou
-              <span className="h-px flex-1 bg-white/10" />
-            </div>
-            <Button
-              type="button"
-              variant="secondary"
-              className="w-full"
-              icon={<Chrome className="h-4 w-4" />}
-              loading={loading}
-              onClick={handleGoogleLogin}
-            >
-              Connexion avec Google
-            </Button>
-            <button type="button" className="mt-4 text-sm font-semibold text-gold-200 hover:text-gold-100" onClick={() => setForgotOpen(true)}>
-              Mot de passe oublié ?
-            </button>
-            <p className="mt-4 text-sm text-carbon-400">Pas encore client ? <Link to="/demande-acces" className="font-semibold text-gold-200">Demander un accès</Link></p>
+                <h2 className="text-2xl font-black text-white light:text-carbon-950">Se connecter</h2>
+                <p className="mt-2 text-sm text-carbon-400 light:text-carbon-600">Accédez à votre espace MekLoc.</p>
+                {loginStep === 'email' ? (
+                  <form className="mt-7 grid gap-4" onSubmit={handleEmailStep}>
+                    <Field label="Email" name="email" type="email" placeholder="admin@agency.ma" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
+                    <Button type="submit" loading={loading} icon={<Mail className="h-4 w-4" />}>Suivant</Button>
+                  </form>
+                ) : (
+                  <form className="mt-7 grid gap-4" onSubmit={handleSubmit}>
+                  <Field label="Email" name="email" type="email" placeholder="admin@agency.ma" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
+                  <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
+                    <span>Mot de passe</span>
+                    <div className="relative">
+                      <input className="form-control focus-ring w-full pr-12" name="password" type={showLoginPassword ? 'text' : 'password'} placeholder="••••••••" required />
+                      <button type="button" className="absolute inset-y-0 right-2 my-auto grid h-8 w-8 place-items-center rounded-lg text-carbon-300 hover:bg-white/10 hover:text-white" onClick={() => setShowLoginPassword((v) => !v)} aria-label={showLoginPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
+                        {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </label>
+                  <div className="flex gap-2">
+                    <Button type="button" variant="secondary" onClick={() => setLoginStep('email')}>Retour</Button>
+                    <Button type="submit" loading={loading} icon={<Mail className="h-4 w-4" />}>Se connecter</Button>
+                  </div>
+                </form>
+                )}
+                <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-carbon-500">
+                  <span className="h-px flex-1 bg-white/10" />
+                  ou
+                  <span className="h-px flex-1 bg-white/10" />
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="w-full"
+                  icon={<Chrome className="h-4 w-4" />}
+                  loading={loading}
+                  onClick={handleGoogleLogin}
+                >
+                  Connexion avec Google
+                </Button>
+                <button type="button" className="mt-4 text-sm font-semibold text-gold-200 hover:text-gold-100" onClick={() => setForgotOpen(true)}>
+                  Mot de passe oublié ?
+                </button>
+                <p className="mt-4 text-sm text-carbon-400">Pas encore client ? <Link to="/demande-acces" className="font-semibold text-gold-200">Demander un accès</Link></p>
               </>
             )}
           </Card>
