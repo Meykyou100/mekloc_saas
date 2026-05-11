@@ -10,23 +10,29 @@ export default function VerificationEnCoursPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const email = searchParams.get('email') || '';
-  const [agency, setAgency] = useState('Agence');
-  const [plan, setPlan] = useState('starter');
-  const [createdAt, setCreatedAt] = useState('');
-  const [status, setStatus] = useState('pending');
+  const fallbackAgency = searchParams.get('agency') || 'Agence';
+  const fallbackPlan = searchParams.get('plan') || 'starter';
+  const fallbackCreatedAt = searchParams.get('created_at') || '';
+  const fallbackStatus = searchParams.get('status') || 'pending';
+  const [agency, setAgency] = useState(fallbackAgency);
+  const [plan, setPlan] = useState(fallbackPlan);
+  const [createdAt, setCreatedAt] = useState(fallbackCreatedAt);
+  const [status, setStatus] = useState(fallbackStatus);
 
   useEffect(() => {
     async function loadRequest() {
-      if (!supabase || !email) return navigate('/demande-acces', { replace: true });
+      if (!email) return navigate('/demande-acces', { replace: true });
+      if (!supabase) return;
       const normalized = email.trim().toLowerCase();
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('access_requests')
         .select('agency_name,selected_plan,created_at,status,email')
         .eq('email', normalized)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
-      if (!data) return navigate(`/demande-acces?email=${encodeURIComponent(normalized)}`, { replace: true });
+      if (error) return;
+      if (!data) return;
       setAgency(data.agency_name || 'Agence');
       setPlan(data.selected_plan || 'starter');
       setCreatedAt(data.created_at || '');

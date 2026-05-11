@@ -1,6 +1,6 @@
 import { ArrowLeft } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { Field, SelectField } from '../components/ui/Form';
@@ -18,6 +18,7 @@ type PlanId = (typeof plans)[number]['id'];
 
 export default function DemandeAccesPage() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { notify } = useApp();
   const normalizeEmail = (email: string) => email.trim().toLowerCase();
   const [country, setCountry] = useState('Maroc');
@@ -65,13 +66,18 @@ export default function DemandeAccesPage() {
       if (import.meta.env.DEV) console.log('Access request found:', row);
       if (existingError) throw existingError;
       if (row && ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified', 'approved'].includes(row.status)) {
-        window.location.href = `/verification-en-cours?email=${encodeURIComponent(payload.email)}&agency=${encodeURIComponent(row.agency_name || payload.agency_name)}&plan=${encodeURIComponent(row.selected_plan || payload.selected_plan)}&created_at=${encodeURIComponent(row.created_at || '')}${row.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`;
+        navigate(`/verification-en-cours?email=${encodeURIComponent(payload.email)}&agency=${encodeURIComponent(row.agency_name || payload.agency_name)}&plan=${encodeURIComponent(row.selected_plan || payload.selected_plan)}&created_at=${encodeURIComponent(row.created_at || '')}&status=${encodeURIComponent(row.status || 'pending')}${row.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`, { replace: true });
         return;
       }
       const { error } = await supabase.from('access_requests').insert(payload);
       if (error) throw error;
-      window.location.href = `/verification-en-cours?email=${encodeURIComponent(payload.email)}`;
+      navigate(`/verification-en-cours?email=${encodeURIComponent(payload.email)}&agency=${encodeURIComponent(payload.agency_name)}&plan=${encodeURIComponent(payload.selected_plan)}&status=pending`, { replace: true });
     } catch (error) {
+      const maybePostgrest = typeof error === 'object' && error !== null ? (error as { code?: string }).code : undefined;
+      if (maybePostgrest === '23505') {
+        navigate(`/verification-en-cours?email=${encodeURIComponent(payload.email)}&agency=${encodeURIComponent(payload.agency_name)}&plan=${encodeURIComponent(payload.selected_plan)}&status=pending`, { replace: true });
+        return;
+      }
       notify({ title: 'Envoi impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
     } finally {
       setIsSubmitting(false);
