@@ -196,21 +196,7 @@ async function fetchProfile(userId: string): Promise<UserProfile | null> {
       role,
       account_status,
       is_super_admin,
-      agencies (
-        id,
-        name,
-        logo_path,
-        plan,
-        billing_status,
-        subscription_start_date,
-        subscription_end_date,
-        last_payment_date,
-        next_payment_due_date,
-        monthly_price,
-        payment_method,
-        payment_notes,
-        created_at
-      )
+      agencies (*)
     `)
     .eq('id', userId)
     .maybeSingle();
@@ -295,21 +281,7 @@ async function createAgencyAndProfile(
       role,
       account_status,
       is_super_admin,
-      agencies (
-        id,
-        name,
-        logo_path,
-        plan,
-        billing_status,
-        subscription_start_date,
-        subscription_end_date,
-        last_payment_date,
-        next_payment_due_date,
-        monthly_price,
-        payment_method,
-        payment_notes,
-        created_at
-      )
+      agencies (*)
     `)
     .single();
 
