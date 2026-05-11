@@ -1,31 +1,31 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import AppLayout from './components/layout/AppLayout';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import ToastViewport from './components/ui/ToastViewport';
 import AccountStatusPage from './pages/AccountStatusPage';
 import AuthPage from './pages/AuthPage';
-import ClientProfilePage from './pages/ClientProfilePage';
-import ClientsPage from './pages/ClientsPage';
-import ContractsPage from './pages/ContractsPage';
-import DashboardPage from './pages/DashboardPage';
+const ClientProfilePage = lazy(() => import('./pages/ClientProfilePage'));
+const ClientsPage = lazy(() => import('./pages/ClientsPage'));
+const ContractsPage = lazy(() => import('./pages/ContractsPage'));
+const DashboardPage = lazy(() => import('./pages/DashboardPage'));
 import DemandeAccesPage from './pages/DemandeAccesPage';
 import LandingPage from './pages/LandingPage';
-import MaintenancePage from './pages/MaintenancePage';
+const MaintenancePage = lazy(() => import('./pages/MaintenancePage'));
 import NotFoundPage from './pages/NotFoundPage';
 import OnboardingPage from './pages/OnboardingPage';
 import PaymentRequiredPage from './pages/PaymentRequiredPage';
-import PaymentsPage from './pages/PaymentsPage';
+const PaymentsPage = lazy(() => import('./pages/PaymentsPage'));
 import PricingPage from './pages/PricingPage';
 import PublicBookingPreviewPage from './pages/PublicBookingPreviewPage';
-import ReportsPage from './pages/ReportsPage';
-import ReservationsPage from './pages/ReservationsPage';
-import SettingsPage from './pages/SettingsPage';
+const ReportsPage = lazy(() => import('./pages/ReportsPage'));
+const ReservationsPage = lazy(() => import('./pages/ReservationsPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 import SetPasswordPage from './pages/SetPasswordPage';
-import SuperAdminPage from './pages/SuperAdminPage';
-import VehicleDetailsPage from './pages/VehicleDetailsPage';
-import VehiclesPage from './pages/VehiclesPage';
+const SuperAdminPage = lazy(() => import('./pages/SuperAdminPage'));
+const VehicleDetailsPage = lazy(() => import('./pages/VehicleDetailsPage'));
+const VehiclesPage = lazy(() => import('./pages/VehiclesPage'));
 import VerificationEnCoursPage from './pages/VerificationEnCoursPage';
 
 const pageMotion = {
@@ -48,8 +48,9 @@ export default function App() {
 
   return (
     <>
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
+      <Suspense fallback={<div className="min-h-screen bg-[#050505]" />}>
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
           <Route
             path="/"
             element={
@@ -117,8 +118,9 @@ export default function App() {
           </Route>
           <Route path="/login" element={<Navigate to="/auth" replace />} />
           <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </AnimatePresence>
+          </Routes>
+        </AnimatePresence>
+      </Suspense>
       <ToastViewport />
     </>
   );
