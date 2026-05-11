@@ -70,13 +70,22 @@ export default function DemandeAccesPage() {
         .from('access_requests')
         .select('status, agency_name, selected_plan, created_at, email')
         .eq('email', payload.email)
-        .in('status', ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified', 'approved'])
+        .in('status', ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified', 'approved', 'rejected'])
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
       if (import.meta.env.DEV) console.log('Access request found:', row);
       if (existingError) throw existingError;
-      if (row && ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified', 'approved'].includes(row.status)) {
+      if (row?.status === 'approved') {
+        notify({
+          title: 'Accès déjà approuvé',
+          message: 'Votre demande est déjà validée. Connectez-vous pour accéder à MekLoc.',
+          type: 'success',
+        });
+        navigate(`/auth?email=${encodeURIComponent(payload.email)}`, { replace: true });
+        return;
+      }
+      if (row && ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified'].includes(row.status)) {
         navigate(`/verification-en-cours?email=${encodeURIComponent(payload.email)}&agency=${encodeURIComponent(row.agency_name || payload.agency_name)}&plan=${encodeURIComponent(row.selected_plan || payload.selected_plan)}&created_at=${encodeURIComponent(row.created_at || '')}&status=${encodeURIComponent(row.status || 'pending')}${row.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`, { replace: true });
         return;
       }

@@ -1,6 +1,6 @@
 import { ArrowLeft, Chrome, LockKeyhole, Mail } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { Field } from '../components/ui/Form';
@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { getPostLoginRedirect } from '../lib/authRedirect';
 
 export default function AuthPage() {
+  const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
@@ -32,6 +33,16 @@ export default function AuthPage() {
       setResetMode(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (searchParams.get('approved') === '1') {
+      notify({
+        title: 'Accès approuvé',
+        message: 'Votre accès est validé. Connectez-vous avec votre email et mot de passe.',
+        type: 'success',
+      });
+    }
+  }, [notify, searchParams]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -195,7 +206,7 @@ export default function AuthPage() {
             <h2 className="text-2xl font-black text-white light:text-carbon-950">Se connecter</h2>
             <p className="mt-2 text-sm text-carbon-400 light:text-carbon-600">Accédez à votre espace MekLoc.</p>
             <form className="mt-7 grid gap-4" onSubmit={handleSubmit}>
-              <Field label="Email" name="email" type="email" placeholder="admin@agency.ma" required />
+              <Field label="Email" name="email" type="email" placeholder="admin@agency.ma" defaultValue={searchParams.get('email') || ''} required />
               <Field label="Mot de passe" name="password" type="password" placeholder="••••••••" required />
               <Button type="submit" loading={loading} icon={<Mail className="h-4 w-4" />}>Se connecter</Button>
             </form>

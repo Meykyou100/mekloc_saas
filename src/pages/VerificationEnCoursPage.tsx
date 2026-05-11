@@ -32,7 +32,16 @@ export default function VerificationEnCoursPage() {
         .limit(1)
         .maybeSingle();
       if (error) return;
-      if (!data) return;
+      if (!data) {
+        if (fallbackStatus === 'approved') {
+          navigate(`/auth?email=${encodeURIComponent(normalized)}`, { replace: true });
+        }
+        return;
+      }
+      if (data.status === 'approved') {
+        navigate(`/auth?email=${encodeURIComponent(normalized)}&approved=1`, { replace: true });
+        return;
+      }
       setAgency(data.agency_name || 'Agence');
       setPlan(data.selected_plan || 'starter');
       setCreatedAt(data.created_at || '');
