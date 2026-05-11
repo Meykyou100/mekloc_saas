@@ -59,6 +59,11 @@ export type Reservation = {
   returnDate: string;
   dailyPrice: number;
   deposit: number;
+  totalAmount?: number;
+  pickupLocation?: string;
+  returnLocation?: string;
+  mileageOut?: number;
+  fuelLevelOut?: string;
   status: ReservationStatus;
   notes: string;
   city: string;

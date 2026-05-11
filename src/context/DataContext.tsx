@@ -92,6 +92,11 @@ type ReservationRow = {
   return_date: string;
   daily_price: number;
   deposit: number;
+  total_amount?: number | null;
+  pickup_location?: string | null;
+  return_location?: string | null;
+  mileage_out?: number | null;
+  fuel_level_out?: string | null;
   status: ReservationStatus;
   notes: string | null;
   city: string | null;
@@ -223,6 +228,11 @@ function mapReservation(row: ReservationRow, client?: Client, vehicle?: Vehicle)
     returnDate: row.return_date,
     dailyPrice: row.daily_price,
     deposit: row.deposit,
+    totalAmount: row.total_amount ?? row.daily_price,
+    pickupLocation: row.pickup_location || '',
+    returnLocation: row.return_location || '',
+    mileageOut: row.mileage_out ?? 0,
+    fuelLevelOut: row.fuel_level_out || '',
     status: row.status,
     notes: row.notes || '',
     city: row.city || vehicle?.city || '',
@@ -239,6 +249,11 @@ function toReservationRow(reservation: Reservation, agencyId: string) {
     return_date: reservation.returnDate,
     daily_price: reservation.dailyPrice,
     deposit: reservation.deposit,
+    total_amount: reservation.totalAmount ?? reservation.dailyPrice,
+    pickup_location: reservation.pickupLocation || null,
+    return_location: reservation.returnLocation || null,
+    mileage_out: reservation.mileageOut ?? null,
+    fuel_level_out: reservation.fuelLevelOut || null,
     status: reservation.status,
     notes: reservation.notes,
     city: reservation.city,

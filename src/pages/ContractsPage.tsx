@@ -13,11 +13,12 @@ import { supabase } from '../lib/supabase';
 const templates = ['Standard rental', 'Luxury vehicle', 'Corporate account'];
 
 export default function ContractsPage() {
-  const { clients, vehicles, createContract } = useData();
+  const { clients, vehicles, reservations, createContract } = useData();
   const { agencyId, profile } = useAuth();
   const [clientId, setClientId] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const [template, setTemplate] = useState(templates[0]);
+  const [reservationId, setReservationId] = useState('');
   const [agencyMeta, setAgencyMeta] = useState<{
     address?: string;
     phone?: string;
@@ -32,7 +33,19 @@ export default function ContractsPage() {
   useEffect(() => {
     if (!clientId && clients[0]) setClientId(clients[0].id);
     if (!vehicleId && vehicles[0]) setVehicleId(vehicles[0].id);
+    if (!reservationId && reservations[0]) setReservationId(reservations[0].id);
   }, [clientId, clients, vehicleId, vehicles]);
+
+  const selectedReservation = useMemo(
+    () => reservations.find((item) => item.id === reservationId),
+    [reservationId, reservations],
+  );
+
+  useEffect(() => {
+    if (!selectedReservation) return;
+    setClientId(selectedReservation.clientId);
+    setVehicleId(selectedReservation.vehicleId);
+  }, [selectedReservation]);
 
   useEffect(() => {
     async function loadAgencyMeta() {
@@ -86,10 +99,10 @@ export default function ContractsPage() {
 
   const client = useMemo(() => clients.find((item) => item.id === clientId) || emptyClient, [clientId, clients]);
   const vehicle = useMemo(() => vehicles.find((item) => item.id === vehicleId) || emptyVehicle, [vehicleId, vehicles]);
-  const pickupDate = '2026-05-15';
-  const returnDate = '2026-05-19';
+  const pickupDate = selectedReservation?.pickupDate || '2026-05-15';
+  const returnDate = selectedReservation?.returnDate || '2026-05-19';
   const rentalDays = Math.max(1, Math.ceil((new Date(returnDate).getTime() - new Date(pickupDate).getTime()) / (1000 * 60 * 60 * 24)));
-  const totalAmount = vehicle.dailyPrice * rentalDays;
+  const totalAmount = selectedReservation?.totalAmount || vehicle.dailyPrice * rentalDays;
   const generatedAt = new Date().toLocaleDateString('fr-MA');
   const contractReference = `CONTRAT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`;
 
@@ -106,10 +119,34 @@ export default function ContractsPage() {
   const contractFileName = `contrat-location-${sanitizeFileName(client.fullName || 'client')}-${sanitizeFileName(vehicle.plate || 'vehicule')}-${new Date().toISOString().slice(0, 10)}.pdf`;
 
   function ensureRequiredData() {
-    if (!client.id || !vehicle.id) {
+    if (!client.id) {
       notify({
         title: 'Données manquantes',
-        message: 'Veuillez sélectionner un client et un véhicule avant de générer le contrat.',
+        message: 'Veuillez sélectionner un client.',
+        type: 'warning',
+      });
+      return false;
+    }
+    if (!vehicle.id) {
+      notify({
+        title: 'Données manquantes',
+        message: 'Veuillez sélectionner un véhicule.',
+        type: 'warning',
+      });
+      return false;
+    }
+    if (!pickupDate || !returnDate) {
+      notify({
+        title: 'Données manquantes',
+        message: 'Veuillez choisir les dates de location.',
+        type: 'warning',
+      });
+      return false;
+    }
+    if (!selectedReservation?.pickupLocation) {
+      notify({
+        title: 'Données manquantes',
+        message: 'Veuillez indiquer le lieu de prise en charge.',
         type: 'warning',
       });
       return false;
@@ -293,6 +330,13 @@ startxref
             <SelectField label="Véhicule" value={vehicleId} onChange={(event) => setVehicleId(event.target.value)}>
               {vehicles.map((item) => <option key={item.id} value={item.id}>{item.brand} {item.model}</option>)}
             </SelectField>
+            <SelectField label="Réservation source" value={reservationId} onChange={(event) => setReservationId(event.target.value)}>
+              {reservations.map((item) => (
+                <option key={item.id} value={item.id}>
+                  {item.id} · {item.client} · {item.pickupDate} → {item.returnDate}
+                </option>
+              ))}
+            </SelectField>
             <TextAreaField
               label="Conditions générales"
               defaultValue="Le locataire reconnaît avoir reçu le véhicule en bon état de fonctionnement et s’engage à le restituer dans le même état."
@@ -336,7 +380,8 @@ startxref
                 </div>
                 <p className="font-bold">{profile?.agency?.name || 'MekLoc Agency'}</p>
                 <p className="text-sm text-carbon-600">{agencyMeta.address || 'Adresse non renseignée'}</p>
-                <p className="text-sm text-carbon-600">{agencyMeta.phone || profile?.phone || 'Téléphone non renseigné'} · {agencyMeta.email || profile?.email || 'Email non renseigné'}</p>
+                  <p className="text-sm text-carbon-600">{agencyMeta.phone || profile?.phone || 'Téléphone non renseigné'} · {agencyMeta.email || profile?.email || 'Email non renseigné'}</p>
+                  <p className="mt-1 text-xs text-carbon-500">Référence: {selectedReservation?.id || contractReference}</p>
               </div>
             </section>
             <div className="grid gap-4 md:grid-cols-2">
@@ -356,6 +401,7 @@ startxref
                   <p>Plaque: {vehicle.plate}</p>
                   <p>{vehicle.year} · {vehicle.fuel} · {vehicle.transmission}</p>
                   <p>Kilométrage: {vehicle.mileage.toLocaleString()} km</p>
+                  <p>Sortie km: {selectedReservation?.mileageOut || '—'} · Carburant: {selectedReservation?.fuelLevelOut || '—'}</p>
                 </div>
               </section>
             </div>
@@ -364,6 +410,8 @@ startxref
                 ['Date de départ', pickupDate],
                 ['Date de retour', returnDate],
                 ['Prix journalier', formatMAD(vehicle.dailyPrice)],
+                ['Lieu départ', selectedReservation?.pickupLocation || '—'],
+                ['Lieu retour', selectedReservation?.returnLocation || '—'],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-xl border border-carbon-950/10 p-4">
                   <p className="text-xs font-bold uppercase tracking-wide text-carbon-500">{label}</p>

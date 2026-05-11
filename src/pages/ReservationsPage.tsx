@@ -132,6 +132,11 @@ export default function ReservationsPage() {
       returnDate: String(form.get('returnDate')),
       dailyPrice: Number(form.get('dailyPrice') || vehicle.dailyPrice),
       deposit: Number(form.get('deposit') || 0),
+      totalAmount: totalEstimate,
+      pickupLocation: String(form.get('pickupLocation') || ''),
+      returnLocation: String(form.get('returnLocation') || ''),
+      mileageOut: Number(form.get('mileageOut') || 0),
+      fuelLevelOut: String(form.get('fuelLevelOut') || ''),
       status: 'Confirmed',
       notes: String(form.get('notes') || ''),
       city: vehicle.city,
@@ -499,11 +504,19 @@ export default function ReservationsPage() {
                             </div>
                           </div>
                           <div className="grid gap-4 md:grid-cols-2">
-                            <ReservationField label="Pickup location" hint="Optional operational detail">
-                              <input className={inputClass} placeholder="Airport, hotel, agency desk..." />
+                            <ReservationField label="Lieu de prise en charge" hint="Obligatoire pour le contrat">
+                              <input className={inputClass} name="pickupLocation" required placeholder="Aéroport, hôtel, agence..." />
                             </ReservationField>
-                            <ReservationField label="Accessories" hint="Optional customer request">
-                              <input className={inputClass} placeholder="Child seat, GPS, extra driver..." />
+                            <ReservationField label="Lieu de retour" hint="Recommandé">
+                              <input className={inputClass} name="returnLocation" placeholder="Adresse de retour..." />
+                            </ReservationField>
+                          </div>
+                          <div className="grid gap-4 md:grid-cols-2">
+                            <ReservationField label="Kilométrage sortie">
+                              <input className={inputClass} name="mileageOut" type="number" placeholder="Ex: 45300" />
+                            </ReservationField>
+                            <ReservationField label="Niveau carburant sortie">
+                              <input className={inputClass} name="fuelLevelOut" placeholder="Ex: 3/4" />
                             </ReservationField>
                           </div>
                           <ReservationField label="Custom notes">
