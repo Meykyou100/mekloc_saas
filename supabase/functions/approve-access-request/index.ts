@@ -7,6 +7,14 @@ function slugify(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
+function normalizePlan(rawPlan: string): 'starter' | 'pro' | 'business' {
+  const value = rawPlan.trim().toLowerCase();
+  if (value === 'pro') return 'pro';
+  if (value === 'business') return 'business';
+  if (value === 'gratuit' || value === 'free' || value === 'starter') return 'starter';
+  return 'starter';
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
@@ -58,7 +66,7 @@ Deno.serve(async (req) => {
     const email = String(row.email || '').trim().toLowerCase();
     const agencyName = String(row.agency_name || 'Agence MekLoc');
     const ownerName = String(row.owner_name || 'Responsable');
-    const plan = String(row.selected_plan || 'starter');
+    const plan = normalizePlan(String(row.selected_plan || 'starter'));
     const billingType = String(row.billing_type || 'monthly');
     const phone = `${String(row.phone_country_code || '+212')} ${String(row.phone_number || '')}`.trim();
     const today = new Date();

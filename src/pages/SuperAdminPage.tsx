@@ -298,8 +298,16 @@ export default function SuperAdminPage() {
     });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload?.error || 'Génération du lien impossible');
-    await navigator.clipboard.writeText(payload.activationLink);
-    notify({ title: 'Lien copié', message: 'Lien d’activation copié. Envoyez-le au client via WhatsApp ou Gmail.', type: 'success' });
+    if (payload?.activationLink) {
+      await navigator.clipboard.writeText(payload.activationLink);
+      notify({ title: 'Lien copié', message: 'Lien d’activation copié. Envoyez-le au client via WhatsApp ou Gmail.', type: 'success' });
+      return;
+    }
+    if (payload?.inviteSent) {
+      notify({ title: 'Invitation envoyée', message: "Le client a reçu un email d’activation.", type: 'success' });
+      return;
+    }
+    notify({ title: 'Action effectuée', message: 'Activation traitée avec succès.', type: 'success' });
   }
 
   if (!isSupabaseEnabled || !profile?.isSuperAdmin) return <Navigate to="/dashboard" replace />;

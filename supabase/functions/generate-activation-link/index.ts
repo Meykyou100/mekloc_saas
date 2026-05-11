@@ -50,7 +50,22 @@ Deno.serve(async (req) => {
       }),
     });
     const txt = await genRes.text();
-    if (!genRes.ok) throw new Error(txt);
+    if (!genRes.ok) {
+      if (txt.includes('user_not_found')) {
+        const inviteRes = await fetch(`${projectUrl}/auth/v1/invite`, {
+          method: 'POST',
+          headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: normalized, ...(redirectTo ? { redirect_to: redirectTo } : {}) }),
+        });
+        const inviteText = await inviteRes.text();
+        if (!inviteRes.ok) throw new Error(inviteText);
+        return new Response(
+          JSON.stringify({ success: true, inviteSent: true, message: "Invitation envoyée au client." }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      throw new Error(txt);
+    }
     const data = JSON.parse(txt) as { action_link?: string; properties?: { action_link?: string } };
     const link = data?.action_link || data?.properties?.action_link || '';
     if (!link) throw new Error('Lien non généré');
