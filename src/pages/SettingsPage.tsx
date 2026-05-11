@@ -13,7 +13,7 @@ import { supabase } from '../lib/supabase';
 
 export default function SettingsPage() {
   const { notify } = useApp();
-  const { agencyId, isSupabaseEnabled, profile, signOut, deleteAccountWithPassword } = useAuth();
+  const { agencyId, isSupabaseEnabled, profile, signOut, deleteAccountWithPassword, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const [tab, setTab] = useState('Général');
@@ -39,11 +39,13 @@ export default function SettingsPage() {
   const [agencyPhone, setAgencyPhone] = useState(profile?.phone || '');
   const [agencyAddress, setAgencyAddress] = useState('');
   const [logoFileName, setLogoFileName] = useState('');
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
   useEffect(() => {
     setAgencyName(profile?.agency?.name || '');
     setAgencyEmail(profile?.email || '');
     setAgencyPhone(profile?.phone || '');
-  }, [profile?.agency?.name, profile?.email, profile?.phone]);
+    setLogoPreviewUrl(profile?.agency?.logoUrl || '');
+  }, [profile?.agency?.name, profile?.agency?.logoUrl, profile?.email, profile?.phone]);
   function downloadBillingReceipt() {
     const lines = [
       'Recu abonnement MekLoc',
@@ -95,6 +97,7 @@ startxref
 
     try {
       await uploadAgencyLogo(agencyId, file);
+      await refreshProfile();
       notify({ title: 'Logo téléversé', message: 'Le logo agence a été enregistré.', type: 'success' });
     } catch (error) {
       notify({
@@ -123,6 +126,7 @@ startxref
         .update({ email: agencyEmail.trim().toLowerCase(), phone: agencyPhone, full_name: profile.fullName })
         .eq('id', profile.id);
       if (profileErr) throw profileErr;
+      await refreshProfile();
 
       notify({ title: 'Paramètres enregistrés', message: 'Profil agence mis à jour.', type: 'success' });
     } catch (error) {
@@ -193,6 +197,15 @@ startxref
                   <p className="font-bold text-white light:text-carbon-950">Logo agence</p>
                   <p className="text-sm text-carbon-400">PNG, JPG, ou SVG pour contrats et factures.</p>
                   {logoFileName ? <p className="mt-1 text-xs text-gold-200">{logoFileName}</p> : null}
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="h-14 w-14 overflow-hidden rounded-xl border border-white/10 bg-carbon-900">
+                  {logoPreviewUrl ? (
+                    <img src={logoPreviewUrl} alt="Logo agence" className="h-full w-full object-contain" />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center text-sm font-black text-gold-200">M</div>
+                  )}
                 </div>
               </div>
               <input

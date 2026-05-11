@@ -52,6 +52,17 @@ export default function DemandeAccesPage() {
       promo_code: String(form.get('promo_code') || ''),
       status: 'pending',
     };
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    if (!emailRegex.test(payload.email)) {
+      notify({ title: 'Email invalide', message: 'Veuillez saisir une adresse email valide.', type: 'warning' });
+      setIsSubmitting(false);
+      return;
+    }
+    if (!/^\d{6,15}$/.test(payload.phone_number)) {
+      notify({ title: 'Numéro invalide', message: 'Le numéro de téléphone doit contenir uniquement des chiffres.', type: 'warning' });
+      setIsSubmitting(false);
+      return;
+    }
     setIsSubmitting(true);
     try {
       if (!supabase || !isSupabaseConfigured) throw new Error('Supabase non configuré');
@@ -115,8 +126,32 @@ export default function DemandeAccesPage() {
             <SelectField label="Pays *" name="country" value={country} onChange={(e) => setCountry(e.target.value)} required>{countries.map((c) => <option key={c} value={c}>{c}</option>)}</SelectField>
             {country === 'Maroc' ? <SelectField label="Ville *" name="city" defaultValue="" required><option value="" disabled>Choisir une ville</option>{moroccoCities.map((c) => <option key={c} value={c}>{c}</option>)}</SelectField> : <Field label="Ville *" name="city" required />}
             <Field label="Site web / Instagram / Réseau social" name="website_url" />
-            <Field label="Email *" name="email" type="email" defaultValue={prefilledEmail} required />
-            <div className="grid gap-3 sm:grid-cols-[120px_1fr]"><Field label="Indicatif" name="phone_country_code" defaultValue="+212" required /><Field label="Numéro de téléphone *" name="phone_number" required /></div>
+            <Field
+              label="Email *"
+              name="email"
+              type="email"
+              defaultValue={prefilledEmail}
+              required
+              onInvalid={(event) => event.currentTarget.setCustomValidity('Veuillez saisir une adresse email valide.')}
+              onInput={(event) => event.currentTarget.setCustomValidity('')}
+            />
+            <div className="grid grid-cols-[104px_minmax(0,1fr)] gap-2.5 sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-3">
+              <Field label="Indicatif" name="phone_country_code" defaultValue="+212" required />
+              <Field
+                label="Numéro de téléphone *"
+                name="phone_number"
+                required
+                inputMode="numeric"
+                pattern="[0-9]{6,15}"
+                maxLength={15}
+                onInput={(event) => {
+                  const target = event.currentTarget;
+                  target.value = target.value.replace(/\D/g, '');
+                  target.setCustomValidity('');
+                }}
+                onInvalid={(event) => event.currentTarget.setCustomValidity('Le numéro doit contenir uniquement des chiffres (6 à 15).')}
+              />
+            </div>
             <Field label="Nombre de véhicules *" name="vehicle_count" type="number" min={1} required />
             <Field label="Code promo (optionnel)" name="promo_code" />
             <label className="mt-1 flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-carbon-300"><input type="checkbox" className="mt-0.5 h-4 w-4 rounded border border-gold-300/70 bg-transparent accent-[#D4A017]" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} required /><span>J’ai lu et j’accepte les conditions d’utilisation et la politique de confidentialité.</span></label>
