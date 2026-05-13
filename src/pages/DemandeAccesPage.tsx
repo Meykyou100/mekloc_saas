@@ -52,6 +52,18 @@ const plans = [
 ] as const;
 type PlanId = (typeof plans)[number]['id'];
 
+function extractErrorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'object' && error !== null) {
+    const maybe = error as { message?: string; details?: string; hint?: string; code?: string };
+    if (maybe.message) return maybe.message;
+    if (maybe.details) return maybe.details;
+    if (maybe.hint) return maybe.hint;
+    if (maybe.code) return `Erreur Supabase (${maybe.code})`;
+  }
+  return 'Réessayez.';
+}
+
 export default function DemandeAccesPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -96,6 +108,7 @@ export default function DemandeAccesPage() {
       promo_code: String(form.get('promo_code') || ''),
       status: 'pending',
     };
+    const selectedPlanDb = selectedPlan === 'pro' ? 'starter' : selectedPlan;
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
     if (!emailRegex.test(payload.email)) {
       notify({ title: 'Email invalide', message: 'Veuillez saisir une adresse email valide.', type: 'warning' });
@@ -133,7 +146,10 @@ export default function DemandeAccesPage() {
         navigate(`/verification-en-cours?email=${encodeURIComponent(payload.email)}&agency=${encodeURIComponent(row.agency_name || payload.agency_name)}&plan=${encodeURIComponent(row.selected_plan || payload.selected_plan)}&created_at=${encodeURIComponent(row.created_at || '')}&status=${encodeURIComponent(row.status || 'pending')}${row.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`, { replace: true });
         return;
       }
-      const { error } = await supabase.from('access_requests').insert(payload);
+      const { error } = await supabase.from('access_requests').insert({
+        ...payload,
+        selected_plan: selectedPlanDb,
+      });
       if (error) throw error;
       navigate(`/verification-en-cours?email=${encodeURIComponent(payload.email)}&agency=${encodeURIComponent(payload.agency_name)}&plan=${encodeURIComponent(payload.selected_plan)}&status=pending`, { replace: true });
     } catch (error) {
@@ -142,7 +158,7 @@ export default function DemandeAccesPage() {
         navigate(`/verification-en-cours?email=${encodeURIComponent(payload.email)}&agency=${encodeURIComponent(payload.agency_name)}&plan=${encodeURIComponent(payload.selected_plan)}&status=pending`, { replace: true });
         return;
       }
-      notify({ title: 'Envoi impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+      notify({ title: 'Envoi impossible', message: extractErrorMessage(error), type: 'warning' });
     } finally {
       setIsSubmitting(false);
     }
