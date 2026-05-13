@@ -526,6 +526,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       getAccessRequestStatusByEmail: async (email: string) => {
         if (!supabase || !email) return null;
         const normalized = normalizeEmail(email);
+        const { data: rpcRowRaw, error: rpcError } = await supabase
+          .rpc('get_access_request_status', { target_email: normalized })
+          .maybeSingle();
+        const rpcRow = rpcRowRaw as
+          | { status?: string; agency_name?: string; selected_plan?: string; created_at?: string }
+          | null;
+        if (!rpcError && rpcRow) {
+          if (import.meta.env.DEV) console.log('Access request found (rpc):', rpcRow);
+          return {
+            status: rpcRow.status,
+            agencyName: rpcRow.agency_name,
+            plan: rpcRow.selected_plan,
+            createdAt: rpcRow.created_at,
+          };
+        }
+
+        // Fallback for environments where RPC is not yet applied.
         const { data: row, error } = await supabase
           .from('access_requests')
           .select('status, agency_name, selected_plan, created_at, email')
@@ -534,7 +551,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
-        if (import.meta.env.DEV) console.log('Access request found:', row);
+        if (import.meta.env.DEV) console.log('Access request found (table):', row);
         if (error || !row) return null;
         return { status: row.status, agencyName: row.agency_name, plan: row.selected_plan, createdAt: row.created_at };
       },
