@@ -18,6 +18,17 @@ export default function VerificationEnCoursPage() {
   const [plan, setPlan] = useState(fallbackPlan);
   const [createdAt, setCreatedAt] = useState(fallbackCreatedAt);
   const [status, setStatus] = useState(fallbackStatus);
+  const formattedCreatedAt = createdAt
+    ? new Date(createdAt).toLocaleString('fr-MA', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      })
+    : '-';
 
   useEffect(() => {
     async function loadRequest() {
@@ -63,7 +74,7 @@ export default function VerificationEnCoursPage() {
           <p><strong className="text-white">Agence:</strong> {agency}</p>
           <p><strong className="text-white">Plan demandé:</strong> {plan}</p>
           <p><strong className="text-white">Statut:</strong> {status}</p>
-          <p><strong className="text-white">Date de demande:</strong> {createdAt ? createdAt.slice(0, 10) : '-'}</p>
+          <p><strong className="text-white">Date de demande:</strong> {formattedCreatedAt}</p>
         </div>
         <div className="mt-6 space-y-2">
           <div className="flex items-center gap-2 text-sm"><Clock3 className="h-4 w-4 text-gold-200" />Demande reçue</div>
