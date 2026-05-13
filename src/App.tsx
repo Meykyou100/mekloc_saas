@@ -18,6 +18,7 @@ import OnboardingPage from './pages/OnboardingPage';
 import PaymentRequiredPage from './pages/PaymentRequiredPage';
 const PaymentsPage = lazy(() => import('./pages/PaymentsPage'));
 import PricingPage from './pages/PricingPage';
+import PrivacyPage from './pages/PrivacyPage';
 import PublicBookingPreviewPage from './pages/PublicBookingPreviewPage';
 const ReportsPage = lazy(() => import('./pages/ReportsPage'));
 const ReservationsPage = lazy(() => import('./pages/ReservationsPage'));
@@ -27,6 +28,8 @@ const SuperAdminPage = lazy(() => import('./pages/SuperAdminPage'));
 const VehicleDetailsPage = lazy(() => import('./pages/VehicleDetailsPage'));
 const VehiclesPage = lazy(() => import('./pages/VehiclesPage'));
 import VerificationEnCoursPage from './pages/VerificationEnCoursPage';
+import ConditionsPage from './pages/ConditionsPage';
+import CancellationRefundPage from './pages/CancellationRefundPage';
 
 const pageMotion = {
   initial: { opacity: 0, y: 12 },
@@ -85,6 +88,9 @@ export default function App() {
           />
           <Route path="/demande-acces" element={<AnimatedPage><DemandeAccesPage /></AnimatedPage>} />
           <Route path="/verification-en-cours" element={<AnimatedPage><VerificationEnCoursPage /></AnimatedPage>} />
+          <Route path="/conditions-utilisation" element={<AnimatedPage><ConditionsPage /></AnimatedPage>} />
+          <Route path="/politique-confidentialite" element={<AnimatedPage><PrivacyPage /></AnimatedPage>} />
+          <Route path="/annulation-remboursement" element={<AnimatedPage><CancellationRefundPage /></AnimatedPage>} />
           <Route
             path="/public-booking-preview"
             element={

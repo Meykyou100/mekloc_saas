@@ -133,6 +133,8 @@ function LandingHeader() {
 
 export default function LandingPage() {
   const { t } = useApp();
+  const whatsappUrl = 'https://wa.me/212762971653';
+  const contactEmail = 'mailto:younesmekki100@gmail.com';
 
   return (
     <div className="min-h-screen overflow-hidden bg-carbon-950 text-white light:bg-carbon-50 light:text-carbon-950">
@@ -163,8 +165,8 @@ export default function LandingPage() {
                 transition={{ delay: 0.16 }}
                 className="mt-6 max-w-2xl text-lg leading-8 text-carbon-300 light:text-carbon-600"
               >
-                Centralize reservations, contracts, payments and fleet management in one powerful
-                platform.
+                Centralisez vos réservations, contrats, paiements et votre flotte dans une seule
+                plateforme professionnelle.
               </motion.p>
               <motion.div
                 initial={{ opacity: 0, y: 18 }}
@@ -177,18 +179,18 @@ export default function LandingPage() {
                     {t('startFree')}
                   </Button>
                 </Link>
-                <a href="#contact">
+                <a href={whatsappUrl} target="_blank" rel="noreferrer">
                   <Button
                     variant="secondary"
                     className="w-full sm:w-auto"
                     icon={<PlayCircle className="h-4 w-4" />}
                   >
-                    {t('bookDemo')}
+                    Réserver une démo
                   </Button>
                 </a>
               </motion.div>
               <div className="mt-10 grid gap-3 sm:grid-cols-3">
-                {['Contracts in seconds', 'WhatsApp-ready flows', 'MAD revenue tracking'].map((item) => (
+                {['Contrats en quelques secondes', 'Workflows WhatsApp', 'Suivi de revenus en MAD'].map((item) => (
                   <div key={item} className="flex items-center gap-2 text-sm text-carbon-300 light:text-carbon-700">
                     <CheckCircle2 className="h-4 w-4 text-gold-300" />
                     {item}
@@ -204,9 +206,9 @@ export default function LandingPage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="max-w-2xl">
               <p className="text-xs font-bold uppercase tracking-[0.3em] text-gold-300">Platform</p>
-              <h2 className="mt-3 text-3xl font-black text-white light:text-carbon-950 sm:text-4xl">
-                Everything an agency needs to operate with confidence.
-              </h2>
+                <h2 className="mt-3 text-3xl font-black text-white light:text-carbon-950 sm:text-4xl">
+                Tout ce dont votre agence a besoin, en un seul endroit.
+                </h2>
             </div>
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
               {features.map(({ title, icon: Icon }, index) => (
@@ -223,7 +225,7 @@ export default function LandingPage() {
                     </div>
                     <h3 className="font-bold text-white light:text-carbon-950">{title}</h3>
                     <p className="mt-3 text-sm leading-6 text-carbon-400 light:text-carbon-600">
-                      Clean workflows with smart states, reminders, and team visibility.
+                      Processus clairs, statuts intelligents, rappels automatiques et visibilité équipe.
                     </p>
                   </Card>
                 </motion.div>
@@ -238,11 +240,11 @@ export default function LandingPage() {
               <div>
               <p className="text-xs font-bold uppercase tracking-[0.3em] text-gold-300">Tarifs</p>
                 <h2 className="mt-3 text-3xl font-black text-white light:text-carbon-950 sm:text-4xl">
-                  Start lean, scale into every branch.
+                  Des tarifs simples et transparents.
                 </h2>
               </div>
               <Link to="/pricing">
-                <Button variant="secondary">View subscription page</Button>
+                <Button variant="secondary">Voir tous les plans</Button>
               </Link>
             </div>
             <div className="mt-10 grid gap-5 lg:grid-cols-3">
@@ -323,6 +325,28 @@ export default function LandingPage() {
           </div>
         </section>
 
+        <section id="ceo" className="py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <Card className="p-7 sm:p-9">
+              <p className="text-xs font-bold uppercase tracking-[0.3em] text-gold-300">Direction</p>
+              <h2 className="mt-3 text-3xl font-black text-white sm:text-4xl">CEO</h2>
+              <p className="mt-2 text-xl font-bold text-gold-200">YOUNES MEKKI</p>
+              <p className="mt-4 max-w-3xl text-carbon-300">
+                MekLoc accompagne les agences de location au Maroc avec une plateforme claire,
+                rapide et fiable, pensée pour le terrain et la croissance.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <a href={whatsappUrl} target="_blank" rel="noreferrer">
+                  <Button icon={<MessageCircle className="h-4 w-4" />}>Contacter sur WhatsApp</Button>
+                </a>
+                <a href={contactEmail}>
+                  <Button variant="secondary">Contacter par email</Button>
+                </a>
+              </div>
+            </Card>
+          </div>
+        </section>
+
         <section id="faq" className="py-20">
           <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
             <div className="text-center">
@@ -358,19 +382,26 @@ export default function LandingPage() {
                   Réservez une session de cadrage.
                 </h2>
                 <p className="mt-4 max-w-xl text-carbon-300 light:text-carbon-600">
-                  Tell us about your fleet, branches, and contract workflow. MekLoc can be shaped to fit your agency before backend integration.
+                  Partagez votre besoin (taille flotte, ville, opérations). Nous vous aidons à lancer MekLoc rapidement.
                 </p>
                 <div className="mt-8 flex items-center gap-3 text-sm text-carbon-300 light:text-carbon-700">
                   <Clock3 className="h-5 w-5 text-gold-300" />
                   Appel de cadrage: 30 minutes
                 </div>
               </div>
-              <form className="grid gap-3">
-                <input className="focus-ring rounded-xl border border-white/10 bg-carbon-950/45 px-4 py-3 text-white light:bg-white light:text-carbon-950" placeholder="Agency name" />
-                <input className="focus-ring rounded-xl border border-white/10 bg-carbon-950/45 px-4 py-3 text-white light:bg-white light:text-carbon-950" placeholder="WhatsApp number" />
-                <textarea className="focus-ring min-h-28 rounded-xl border border-white/10 bg-carbon-950/45 px-4 py-3 text-white light:bg-white light:text-carbon-950" placeholder="Tell us about your fleet" />
-                <Button type="button" icon={<ShieldCheck className="h-4 w-4" />}>Demander une démo</Button>
-              </form>
+              <div className="grid gap-3">
+                <input className="focus-ring rounded-xl border border-white/10 bg-carbon-950/45 px-4 py-3 text-white light:bg-white light:text-carbon-950" placeholder="Nom de l’agence" />
+                <input className="focus-ring rounded-xl border border-white/10 bg-carbon-950/45 px-4 py-3 text-white light:bg-white light:text-carbon-950" placeholder="Numéro WhatsApp" />
+                <textarea className="focus-ring min-h-28 rounded-xl border border-white/10 bg-carbon-950/45 px-4 py-3 text-white light:bg-white light:text-carbon-950" placeholder="Décrivez votre besoin" />
+                <div className="flex flex-wrap gap-3">
+                  <a href={whatsappUrl} target="_blank" rel="noreferrer">
+                    <Button type="button" icon={<ShieldCheck className="h-4 w-4" />}>Demander une démo</Button>
+                  </a>
+                  <a href={contactEmail}>
+                    <Button type="button" variant="secondary">Envoyer un email</Button>
+                  </a>
+                </div>
+              </div>
             </Card>
           </div>
         </section>
@@ -378,15 +409,18 @@ export default function LandingPage() {
       <footer className="border-t border-white/10 py-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 text-sm text-carbon-400 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
           <p>© 2026 MekLoc. Smart Rental Management System.</p>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4">
             <Link to="/dashboard" className="hover:text-gold-200">Tableau</Link>
             <Link to="/pricing" className="hover:text-gold-200">Tarifs</Link>
             <Link to="/auth" className="hover:text-gold-200">Connexion</Link>
+            <Link to="/conditions-utilisation" className="hover:text-gold-200">Conditions</Link>
+            <Link to="/politique-confidentialite" className="hover:text-gold-200">Confidentialité</Link>
+            <Link to="/annulation-remboursement" className="hover:text-gold-200">Annulation & Remboursement</Link>
           </div>
         </div>
       </footer>
       <a
-        href="https://wa.me/212600000000"
+        href={whatsappUrl}
         target="_blank"
         rel="noreferrer"
         aria-label="Open WhatsApp"
