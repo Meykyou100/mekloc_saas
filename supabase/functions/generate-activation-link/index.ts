@@ -52,17 +52,39 @@ Deno.serve(async (req) => {
     const txt = await genRes.text();
     if (!genRes.ok) {
       if (txt.includes('user_not_found')) {
-        const inviteRes = await fetch(`${projectUrl}/auth/v1/invite`, {
+        // 1) Ensure Auth user exists (create if missing)
+        const createUserRes = await fetch(`${projectUrl}/auth/v1/admin/users`, {
           method: 'POST',
           headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: normalized, ...(redirectTo ? { redirect_to: redirectTo } : {}) }),
+          body: JSON.stringify({
+            email: normalized,
+            email_confirm: true,
+            user_metadata: { source: 'mekloc-super-admin-activation' },
+          }),
         });
-        const inviteText = await inviteRes.text();
-        if (!inviteRes.ok) throw new Error(inviteText);
-        return new Response(
-          JSON.stringify({ success: true, inviteSent: true, message: "Invitation envoyée au client." }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
+        const createUserText = await createUserRes.text();
+        if (!createUserRes.ok && !createUserText.includes('already')) {
+          throw new Error(createUserText || 'Création utilisateur Auth impossible');
+        }
+
+        // 2) Retry activation link generation after creation
+        const retryRes = await fetch(`${projectUrl}/auth/v1/admin/generate_link`, {
+          method: 'POST',
+          headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'recovery',
+            email: normalized,
+            ...(redirectTo ? { redirect_to: redirectTo } : {}),
+          }),
+        });
+        const retryTxt = await retryRes.text();
+        if (!retryRes.ok) throw new Error(retryTxt || 'Génération du lien impossible après création user');
+        const retryData = JSON.parse(retryTxt) as { action_link?: string; properties?: { action_link?: string } };
+        const retryLink = retryData?.action_link || retryData?.properties?.action_link || '';
+        if (!retryLink) throw new Error('Lien non généré après création user');
+        return new Response(JSON.stringify({ success: true, activationLink: retryLink }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
       throw new Error(txt);
     }
