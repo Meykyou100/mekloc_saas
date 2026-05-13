@@ -57,6 +57,15 @@ export default function AuthPage() {
     try {
       const request = await getAccessRequestStatusByEmail(email);
       if (request) {
+        if (request.status === 'approved') {
+          notify({
+            title: 'Accès approuvé',
+            message: 'Votre demande est approuvée. Saisissez maintenant votre mot de passe.',
+            type: 'success',
+          });
+          setLoginStep('password');
+          return;
+        }
         if (request.status === 'payment_pending') return navigate('/payment-required', { replace: true });
         if (request.status === 'rejected') return navigate('/account-status', { replace: true });
         if (['pending', 'pending_verification', 'contacted', 'verified'].includes(request.status)) {

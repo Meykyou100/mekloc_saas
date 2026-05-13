@@ -121,6 +121,41 @@ export default function SuperAdminPage() {
     }
   }
 
+  async function getFreshAccessToken() {
+    if (!supabase) return null;
+    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+    if (!refreshError && refreshed.session?.access_token) return refreshed.session.access_token;
+    const { data: sessionData } = await supabase.auth.getSession();
+    return sessionData.session?.access_token ?? null;
+  }
+
+  async function fetchWithAdminAuth(webhook: string, body: unknown) {
+    if (!supabase) throw new Error('Supabase indisponible.');
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+    let token = await getFreshAccessToken();
+    if (!token) throw new Error('Session admin introuvable. Reconnectez-vous puis réessayez.');
+
+    const doFetch = (accessToken: string) =>
+      fetch(webhook, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+          apikey: anonKey,
+          'x-internal-key': anonKey,
+        },
+        body: JSON.stringify(body),
+      });
+
+    let response = await doFetch(token);
+    if (response.status === 401 || response.status === 403) {
+      token = await getFreshAccessToken();
+      if (!token) throw new Error('Session expirée. Reconnectez-vous puis réessayez.');
+      response = await doFetch(token);
+    }
+    return response;
+  }
+
   async function updateRequest(id: string, patch: Partial<AccessRequestRow>, toast: string) {
     if (!supabase || !isSupabaseConfigured) return;
     const { error } = await supabase.from('access_requests').update(patch).eq('id', id);
@@ -133,21 +168,9 @@ export default function SuperAdminPage() {
     if (!supabase || !isSupabaseConfigured) return;
     const webhook = import.meta.env.VITE_APPROVE_ACCESS_REQUEST_WEBHOOK as string | undefined;
     if (!webhook) throw new Error('Webhook approbation manquant. Configurez VITE_APPROVE_ACCESS_REQUEST_WEBHOOK.');
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) throw new Error('Session admin introuvable. Reconnectez-vous puis réessayez.');
-    const response = await fetch(webhook, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-        'x-internal-key': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-      },
-      body: JSON.stringify({
-        accessRequestId: request.id,
-        redirectTo: `${window.location.origin}/set-password`,
-      }),
+    const response = await fetchWithAdminAuth(webhook, {
+      accessRequestId: request.id,
+      redirectTo: `${window.location.origin}/set-password`,
     });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload?.error || 'Approbation impossible');
@@ -188,19 +211,7 @@ export default function SuperAdminPage() {
       deleted_reason: 'Suppression depuis Super Admin',
     };
     await supabase.from('deleted_access_requests').insert(archivedPayload);
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) throw new Error('Session admin introuvable. Reconnectez-vous puis réessayez.');
-    const response = await fetch(webhook, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-        'x-internal-key': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-      },
-      body: JSON.stringify({ requestId: requestToDelete.id }),
-    });
+    const response = await fetchWithAdminAuth(webhook, { requestId: requestToDelete.id });
     if (!response.ok) {
       const text = await response.text();
       throw new Error(`Suppression demande impossible: ${text}`);
@@ -256,20 +267,7 @@ export default function SuperAdminPage() {
       deleted_by: profile?.id ?? null,
       deleted_reason: 'Suppression depuis Super Admin',
     });
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) throw new Error('Session admin introuvable. Reconnectez-vous puis réessayez.');
-
-    const response = await fetch(webhook, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-        'x-internal-key': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-      },
-      body: JSON.stringify({ agencyId: agency.id }),
-    });
+    const response = await fetchWithAdminAuth(webhook, { agencyId: agency.id });
     if (!response.ok) {
       const text = await response.text();
       throw new Error(`Suppression définitive impossible: ${text}`);
@@ -284,18 +282,9 @@ export default function SuperAdminPage() {
     if (!webhook) throw new Error('Webhook génération lien manquant. Configurez VITE_GENERATE_ACTIVATION_LINK_WEBHOOK.');
     const normalized = email.trim().toLowerCase();
     if (!normalized || normalized === '—') throw new Error('Email client introuvable.');
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData.session?.access_token;
-    if (!accessToken) throw new Error('Session admin introuvable. Reconnectez-vous puis réessayez.');
-    const response = await fetch(webhook, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-        'x-internal-key': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-      },
-      body: JSON.stringify({ email: normalized, redirectTo: `${window.location.origin}/set-password` }),
+    const response = await fetchWithAdminAuth(webhook, {
+      email: normalized,
+      redirectTo: `${window.location.origin}/set-password`,
     });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload?.error || 'Génération du lien impossible');
