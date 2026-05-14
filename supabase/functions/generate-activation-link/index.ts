@@ -40,16 +40,21 @@ Deno.serve(async (req) => {
     const rows = await adminCheckRes.json() as Array<{ is_super_admin: boolean }>;
     if (!rows?.[0]?.is_super_admin) return new Response(JSON.stringify({ error: 'Accès refusé' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
 
-    const genRes = await fetch(`${projectUrl}/auth/v1/admin/generate_link`, {
-      method: 'POST',
-      headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: 'recovery',
-        email: normalized,
-        ...(redirectTo ? { redirect_to: redirectTo } : {}),
-      }),
-    });
-    const txt = await genRes.text();
+    const buildLink = async (type: 'recovery' | 'invite') => {
+      const res = await fetch(`${projectUrl}/auth/v1/admin/generate_link`, {
+        method: 'POST',
+        headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type,
+          email: normalized,
+          ...(redirectTo ? { redirect_to: redirectTo } : {}),
+        }),
+      });
+      const txt = await res.text();
+      return { res, txt };
+    };
+
+    const { res: genRes, txt } = await buildLink('recovery');
     if (!genRes.ok) {
       if (txt.includes('user_not_found')) {
         // 1) Ensure Auth user exists (create if missing)
@@ -63,28 +68,33 @@ Deno.serve(async (req) => {
           }),
         });
         const createUserText = await createUserRes.text();
-        if (!createUserRes.ok && !createUserText.includes('already')) {
+        if (!createUserRes.ok && !createUserText.toLowerCase().includes('already')) {
           throw new Error(createUserText || 'Création utilisateur Auth impossible');
         }
 
-        // 2) Retry activation link generation after creation
-        const retryRes = await fetch(`${projectUrl}/auth/v1/admin/generate_link`, {
-          method: 'POST',
-          headers: { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: 'recovery',
-            email: normalized,
-            ...(redirectTo ? { redirect_to: redirectTo } : {}),
-          }),
-        });
-        const retryTxt = await retryRes.text();
-        if (!retryRes.ok) throw new Error(retryTxt || 'Génération du lien impossible après création user');
-        const retryData = JSON.parse(retryTxt) as { action_link?: string; properties?: { action_link?: string } };
-        const retryLink = retryData?.action_link || retryData?.properties?.action_link || '';
-        if (!retryLink) throw new Error('Lien non généré après création user');
-        return new Response(JSON.stringify({ success: true, activationLink: retryLink }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        // 2) Retry recovery link generation
+        const retry = await buildLink('recovery');
+        if (retry.res.ok) {
+          const retryData = JSON.parse(retry.txt) as { action_link?: string; properties?: { action_link?: string } };
+          const retryLink = retryData?.action_link || retryData?.properties?.action_link || '';
+          if (!retryLink) throw new Error('Lien non généré après création user');
+          return new Response(JSON.stringify({ success: true, activationLink: retryLink }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        // 3) Final fallback: invite link (also creates user in many setups)
+        const inviteTry = await buildLink('invite');
+        if (inviteTry.res.ok) {
+          const inviteData = JSON.parse(inviteTry.txt) as { action_link?: string; properties?: { action_link?: string } };
+          const inviteLink = inviteData?.action_link || inviteData?.properties?.action_link || '';
+          if (!inviteLink) throw new Error('Lien invitation non généré');
+          return new Response(JSON.stringify({ success: true, activationLink: inviteLink }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          });
+        }
+
+        throw new Error(retry.txt || inviteTry.txt || txt);
       }
       throw new Error(txt);
     }
