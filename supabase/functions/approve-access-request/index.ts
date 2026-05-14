@@ -15,6 +15,78 @@ function normalizePlan(rawPlan: string): 'starter' | 'pro' | 'business' {
   return 'starter';
 }
 
+async function generateActivationLink(params: {
+  projectUrl: string;
+  serviceRole: string;
+  email: string;
+  redirectTo?: string;
+}) {
+  const { projectUrl, serviceRole, email, redirectTo } = params;
+  const headers = { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, 'Content-Type': 'application/json' };
+
+  const requestLink = async (type: 'recovery' | 'invite') => {
+    const res = await fetch(`${projectUrl}/auth/v1/admin/generate_link`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        type,
+        email,
+        ...(redirectTo ? { redirect_to: redirectTo } : {}),
+      }),
+    });
+    const txt = await res.text();
+    return { res, txt };
+  };
+
+  // First try recovery for existing users
+  const first = await requestLink('recovery');
+  if (first.res.ok) {
+    const data = JSON.parse(first.txt) as { action_link?: string; properties?: { action_link?: string } };
+    return data?.action_link || data?.properties?.action_link || '';
+  }
+
+  // If user does not exist, create Auth user then retry recovery
+  if (first.txt.includes('user_not_found')) {
+    const createRes = await fetch(`${projectUrl}/auth/v1/admin/users`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        email,
+        email_confirm: true,
+        user_metadata: { source: 'mekloc-approve-access-request' },
+      }),
+    });
+    const createTxt = await createRes.text();
+    if (!createRes.ok && !createTxt.toLowerCase().includes('already')) {
+      throw new Error(createTxt || 'Création utilisateur Auth impossible');
+    }
+
+    const retry = await requestLink('recovery');
+    if (retry.res.ok) {
+      const data = JSON.parse(retry.txt) as { action_link?: string; properties?: { action_link?: string } };
+      return data?.action_link || data?.properties?.action_link || '';
+    }
+
+    // Last fallback
+    const inviteFallback = await requestLink('invite');
+    if (inviteFallback.res.ok) {
+      const data = JSON.parse(inviteFallback.txt) as { action_link?: string; properties?: { action_link?: string } };
+      return data?.action_link || data?.properties?.action_link || '';
+    }
+
+    throw new Error(retry.txt || inviteFallback.txt || first.txt);
+  }
+
+  // If user exists but recovery flow failed, try invite link
+  const invite = await requestLink('invite');
+  if (invite.res.ok) {
+    const data = JSON.parse(invite.txt) as { action_link?: string; properties?: { action_link?: string } };
+    return data?.action_link || data?.properties?.action_link || '';
+  }
+
+  throw new Error(first.txt || invite.txt || 'Génération du lien impossible');
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
@@ -138,32 +210,20 @@ Deno.serve(async (req) => {
       body: JSON.stringify({ status: 'approved' }),
     });
 
-    const inviteRes = await fetch(`${projectUrl}/auth/v1/invite`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({ email, data: { agency_id: agencyId }, ...(redirectTo ? { redirect_to: redirectTo } : {}) }),
-    });
     let activationLink = '';
-    let inviteInfo = 'invite_sent';
-    if (!inviteRes.ok) {
-      const txt = await inviteRes.text();
-      if (txt.includes('email_exists')) {
-        const recoverRes = await fetch(`${projectUrl}/auth/v1/recover`, {
-          method: 'POST',
-          headers: { apikey: anonKey, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, ...(redirectTo ? { redirect_to: redirectTo } : {}) }),
-        });
-        if (!recoverRes.ok) {
-          inviteInfo = 'email_failed';
-        } else {
-          inviteInfo = 'recover_sent';
-        }
-      } else {
+    let inviteInfo = 'activation_link_generated';
+    try {
+      activationLink = await generateActivationLink({
+        projectUrl,
+        serviceRole,
+        email,
+        redirectTo,
+      });
+      if (!activationLink) {
         inviteInfo = 'email_failed';
       }
-    } else {
-      const inviteJson = await inviteRes.json() as { action_link?: string };
-      activationLink = inviteJson.action_link || '';
+    } catch {
+      inviteInfo = 'email_failed';
     }
 
     return new Response(JSON.stringify({ success: true, inviteInfo, activationLink }), {
