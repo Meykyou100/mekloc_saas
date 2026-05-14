@@ -68,6 +68,8 @@ type VehicleRow = {
   technical_inspection_date: string;
   city: string;
   revenue: number | null;
+  image_url?: string | null;
+  image_path?: string | null;
 };
 
 type ClientRow = {
@@ -165,11 +167,13 @@ function mapVehicle(row: VehicleRow): Vehicle {
     inspectionDate: row.technical_inspection_date,
     city: row.city,
     revenue: row.revenue ?? 0,
+    imageUrl: row.image_url || undefined,
+    imagePath: row.image_path || undefined,
   };
 }
 
-function toVehicleRow(vehicle: Vehicle, agencyId: string) {
-  return {
+function toVehicleRow(vehicle: Vehicle, agencyId: string, withImage = true) {
+  const base = {
     agency_id: agencyId,
     brand: vehicle.brand,
     model: vehicle.model,
@@ -184,6 +188,12 @@ function toVehicleRow(vehicle: Vehicle, agencyId: string) {
     technical_inspection_date: vehicle.inspectionDate,
     city: vehicle.city,
     revenue: vehicle.revenue,
+  };
+  if (!withImage) return base;
+  return {
+    ...base,
+    image_url: vehicle.imageUrl || null,
+    image_path: vehicle.imagePath || null,
   };
 }
 
@@ -526,11 +536,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setVehicles((current) => [vehicle, ...current]);
           return vehicle;
         }
-        const { data, error } = await supabase!
-          .from('vehicles')
-          .insert(toVehicleRow(vehicle, agencyId!))
-          .select('*')
-          .single();
+        let data: unknown = null;
+        let error: Error | null = null;
+        {
+          const result = await supabase!
+            .from('vehicles')
+            .insert(toVehicleRow(vehicle, agencyId!, true))
+            .select('*')
+            .single();
+          data = result.data;
+          error = result.error as Error | null;
+        }
+        if (error && /image_(url|path)/i.test(error.message || '')) {
+          const fallback = await supabase!
+            .from('vehicles')
+            .insert(toVehicleRow(vehicle, agencyId!, false))
+            .select('*')
+            .single();
+          data = fallback.data;
+          error = fallback.error as Error | null;
+        }
         if (error) throw error;
         const nextVehicle = mapVehicle(data as VehicleRow);
         setVehicles((current) => [nextVehicle, ...current]);
@@ -541,12 +566,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setVehicles((current) => current.map((item) => (item.id === vehicle.id ? vehicle : item)));
           return vehicle;
         }
-        const { data, error } = await supabase!
-          .from('vehicles')
-          .update(toVehicleRow(vehicle, agencyId!))
-          .eq('id', vehicle.id)
-          .select('*')
-          .single();
+        let data: unknown = null;
+        let error: Error | null = null;
+        {
+          const result = await supabase!
+            .from('vehicles')
+            .update(toVehicleRow(vehicle, agencyId!, true))
+            .eq('id', vehicle.id)
+            .select('*')
+            .single();
+          data = result.data;
+          error = result.error as Error | null;
+        }
+        if (error && /image_(url|path)/i.test(error.message || '')) {
+          const fallback = await supabase!
+            .from('vehicles')
+            .update(toVehicleRow(vehicle, agencyId!, false))
+            .eq('id', vehicle.id)
+            .select('*')
+            .single();
+          data = fallback.data;
+          error = fallback.error as Error | null;
+        }
         if (error) throw error;
         const nextVehicle = mapVehicle(data as VehicleRow);
         setVehicles((current) => current.map((item) => (item.id === vehicle.id ? nextVehicle : item)));

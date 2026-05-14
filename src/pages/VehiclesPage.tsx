@@ -10,17 +10,23 @@ import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import { formatMAD, type Vehicle, type VehicleStatus } from '../data/mockData';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
+import { storageBuckets, supabase } from '../lib/supabase';
 
 const vehicleStatuses: Array<'All' | VehicleStatus> = ['All', 'Available', 'Rented', 'Maintenance', 'Unavailable'];
 
 export default function VehiclesPage() {
   const { vehicles, createVehicle, updateVehicle, deleteVehicle: removeVehicle } = useData();
+  const { agencyId } = useAuth();
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<'All' | VehicleStatus>('All');
   const [view, setView] = useState<'grid' | 'table'>('grid');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [uploadingImage, setUploadingImage] = useState(false);
   const { notify } = useApp();
 
   const filteredVehicles = useMemo(() => {
@@ -44,19 +50,36 @@ export default function VehiclesPage() {
 
   function openNewVehicle() {
     setEditingVehicle(null);
+    setImageFile(null);
+    setImagePreview('');
     setModalOpen(true);
   }
 
   function openEditVehicle(vehicle: Vehicle) {
     setEditingVehicle(vehicle);
+    setImageFile(null);
+    setImagePreview(vehicle.imageUrl || '');
     setModalOpen(true);
+  }
+
+  async function uploadVehicleImage(vehicleId: string, file: File) {
+    if (!supabase || !agencyId) return null;
+    const extension = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const filePath = `${agencyId}/${vehicleId}-${Date.now()}.${extension}`;
+    const { error: uploadError } = await supabase.storage
+      .from(storageBuckets.vehicleImages)
+      .upload(filePath, file, { upsert: true, contentType: file.type });
+    if (uploadError) throw uploadError;
+    const { data } = supabase.storage.from(storageBuckets.vehicleImages).getPublicUrl(filePath);
+    return { imageUrl: data.publicUrl, imagePath: filePath };
   }
 
   async function handleSaveVehicle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    const vehicleId = editingVehicle?.id || `veh-${Date.now()}`;
     const vehicle: Vehicle = {
-      id: editingVehicle?.id || `veh-${Date.now()}`,
+      id: vehicleId,
       brand: String(form.get('brand')),
       model: String(form.get('model')),
       plate: String(form.get('plate')),
@@ -70,26 +93,40 @@ export default function VehiclesPage() {
       inspectionDate: String(form.get('inspectionDate')),
       city: String(form.get('city')),
       revenue: editingVehicle?.revenue || 0,
+      imageUrl: editingVehicle?.imageUrl,
+      imagePath: editingVehicle?.imagePath,
     };
 
     try {
+      if (imageFile) {
+        setUploadingImage(true);
+        const uploaded = await uploadVehicleImage(vehicleId, imageFile);
+        if (uploaded) {
+          vehicle.imageUrl = uploaded.imageUrl;
+          vehicle.imagePath = uploaded.imagePath;
+        }
+      }
       if (editingVehicle) {
         await updateVehicle(vehicle);
       } else {
         await createVehicle(vehicle);
       }
       setModalOpen(false);
+      setImageFile(null);
+      setImagePreview('');
       notify({
-        title: editingVehicle ? 'Vehicle updated' : 'Vehicle added',
-        message: `${vehicle.brand} ${vehicle.model} is now in the fleet list.`,
+        title: editingVehicle ? 'Véhicule modifié' : 'Véhicule ajouté',
+        message: `${vehicle.brand} ${vehicle.model} est maintenant enregistré.`,
         type: 'success',
       });
     } catch (error) {
       notify({
-        title: 'Vehicle not saved',
-        message: error instanceof Error ? error.message : 'Try again later.',
+        title: 'Enregistrement impossible',
+        message: error instanceof Error ? error.message : 'Réessayez plus tard.',
         type: 'warning',
       });
+    } finally {
+      setUploadingImage(false);
     }
   }
 
@@ -171,9 +208,17 @@ export default function VehiclesPage() {
                     <Badge>{vehicle.status}</Badge>
                     <span className="rounded-full bg-carbon-950/70 px-3 py-1 text-xs font-bold text-gold-200">{vehicle.plate}</span>
                   </div>
-                  <div className="ml-auto grid h-24 w-32 place-items-center rounded-[2rem] border border-white/10 bg-carbon-950/35 text-white/75 shadow-2xl">
-                    <Car className="h-16 w-16" strokeWidth={1.3} />
-                  </div>
+                  {vehicle.imageUrl ? (
+                    <img
+                      src={vehicle.imageUrl}
+                      alt={`${vehicle.brand} ${vehicle.model}`}
+                      className="ml-auto h-24 w-32 rounded-2xl border border-white/10 object-cover shadow-2xl"
+                    />
+                  ) : (
+                    <div className="ml-auto grid h-24 w-32 place-items-center rounded-[2rem] border border-white/10 bg-carbon-950/35 text-white/75 shadow-2xl">
+                      <Car className="h-16 w-16" strokeWidth={1.3} />
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="p-5">
@@ -229,7 +274,16 @@ export default function VehiclesPage() {
                 {filteredVehicles.map((vehicle) => (
                   <tr key={vehicle.id} className="hover:bg-white/[0.035]">
                     <td className="px-5 py-4 font-bold text-white light:text-carbon-950">
-                      <Link to={`/vehicles/${vehicle.id}`}>{vehicle.brand} {vehicle.model}</Link>
+                      <div className="flex items-center gap-3">
+                        {vehicle.imageUrl ? (
+                          <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} className="h-10 w-12 rounded-lg object-cover" />
+                        ) : (
+                          <div className="grid h-10 w-12 place-items-center rounded-lg bg-white/5">
+                            <Car className="h-4 w-4 text-carbon-400" />
+                          </div>
+                        )}
+                        <Link to={`/vehicles/${vehicle.id}`}>{vehicle.brand} {vehicle.model}</Link>
+                      </div>
                     </td>
                     <td className="px-5 py-4 text-carbon-300">{vehicle.plate}</td>
                     <td className="px-5 py-4 text-carbon-300">{vehicle.year}</td>
@@ -281,9 +335,35 @@ export default function VehiclesPage() {
             <Field label="Insurance expiry" name="insuranceExpiry" type="date" defaultValue={editingVehicle?.insuranceExpiry || '2026-09-20'} required />
             <Field label="Technical inspection date" name="inspectionDate" type="date" defaultValue={editingVehicle?.inspectionDate || '2026-08-20'} required />
           </div>
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <p className="mb-2 text-sm font-semibold text-white">Photo du véhicule</p>
+            <input
+              type="file"
+              accept="image/*"
+              className="form-control"
+              onChange={(event) => {
+                const file = event.target.files?.[0] || null;
+                setImageFile(file);
+                if (file) {
+                  setImagePreview(URL.createObjectURL(file));
+                } else {
+                  setImagePreview(editingVehicle?.imageUrl || '');
+                }
+              }}
+            />
+            <div className="mt-3">
+              {imagePreview ? (
+                <img src={imagePreview} alt="Aperçu véhicule" className="h-36 w-full rounded-xl object-cover sm:h-44" />
+              ) : (
+                <div className="grid h-28 place-items-center rounded-xl border border-dashed border-white/20 text-sm text-carbon-400">
+                  Aucune image sélectionnée
+                </div>
+              )}
+            </div>
+          </div>
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Annuler</Button>
-            <Button type="submit">Enregistrer</Button>
+            <Button type="submit" loading={uploadingImage}>Enregistrer</Button>
           </div>
         </form>
       </Modal>

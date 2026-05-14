@@ -34,6 +34,8 @@ export type Vehicle = {
   inspectionDate: string;
   city: string;
   revenue: number;
+  imageUrl?: string;
+  imagePath?: string;
 };
 
 export type Client = {

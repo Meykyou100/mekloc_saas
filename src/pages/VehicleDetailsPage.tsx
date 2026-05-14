@@ -51,7 +51,15 @@ export default function VehicleDetailsPage() {
                 <Badge>{vehicle.status}</Badge>
                 <span className="rounded-full bg-carbon-950/70 px-4 py-2 text-sm font-bold text-gold-200">{formatMAD(vehicle.dailyPrice)} / day</span>
               </div>
-              <Car className="ml-auto h-36 w-36 text-white/80" strokeWidth={1.1} />
+              {vehicle.imageUrl ? (
+                <img
+                  src={vehicle.imageUrl}
+                  alt={`${vehicle.brand} ${vehicle.model}`}
+                  className="ml-auto h-40 w-56 rounded-2xl border border-white/10 object-cover shadow-2xl"
+                />
+              ) : (
+                <Car className="ml-auto h-36 w-36 text-white/80" strokeWidth={1.1} />
+              )}
             </div>
           </div>
           <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
