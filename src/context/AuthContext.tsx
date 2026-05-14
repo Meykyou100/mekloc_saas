@@ -205,6 +205,21 @@ async function fetchProfile(userId: string): Promise<UserProfile | null> {
   return data ? mapProfile(data as ProfileRow) : null;
 }
 
+async function hasApprovedAccessRequest(email: string | null | undefined): Promise<boolean> {
+  if (!supabase || !email) return false;
+  const normalized = normalizeEmail(email);
+  const { data, error } = await supabase
+    .from('access_requests')
+    .select('id')
+    .eq('email', normalized)
+    .eq('status', 'approved')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) return false;
+  return Boolean(data?.id);
+}
+
 async function isDeletedByEmail(email: string | null | undefined): Promise<boolean> {
   if (!supabase || !email) return false;
   const { data, error } = await supabase.rpc('is_deleted_account', { target_email: email });
@@ -401,7 +416,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await supabase.auth.signOut();
             throw new Error('Ce compte a été supprimé. Contactez MekLoc pour réactivation.');
           }
-          const nextProfile = data.user ? await fetchProfile(data.user.id) : null;
+          let nextProfile = data.user ? await fetchProfile(data.user.id) : null;
+
+          // Self-heal legacy rows: if approved request exists but profile still pending,
+          // activate the current profile automatically.
+          if (
+            supabase &&
+            nextProfile &&
+            nextProfile.accountStatus !== 'active' &&
+            data.user?.email &&
+            await hasApprovedAccessRequest(data.user.email)
+          ) {
+            const { error: activateError } = await supabase
+              .from('users_profiles')
+              .update({ account_status: 'active' })
+              .eq('id', nextProfile.id);
+            if (!activateError) {
+              nextProfile = await fetchProfile(data.user.id);
+            }
+          }
+
           setProfile(nextProfile);
           return { profile: nextProfile };
         } finally {
