@@ -78,13 +78,27 @@ function extractAgencyCityFromAddress(address?: string) {
   return cleaned;
 }
 
-function escapePdfHexUtf16(value: string) {
-  const text = String(value ?? '');
-  let hex = 'FEFF';
+function escapePdfWinAnsi(value: string) {
+  const text = String(value ?? '')
+    .replace(/[’‘]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/–|—/g, '-');
+
+  let out = '';
   for (let i = 0; i < text.length; i += 1) {
-    hex += text.charCodeAt(i).toString(16).padStart(4, '0').toUpperCase();
+    const code = text.charCodeAt(i);
+    if (code === 40 || code === 41 || code === 92) {
+      out += `\\${String(code).padStart(3, '0')}`;
+      continue;
+    }
+    if (code < 32 || code > 126) {
+      const byte = code <= 255 ? code : 63;
+      out += `\\${byte.toString(8).padStart(3, '0')}`;
+      continue;
+    }
+    out += text[i];
   }
-  return `<${hex}>`;
+  return `(${out})`;
 }
 
 export default function ContractsPage() {
@@ -286,7 +300,7 @@ export default function ContractsPage() {
     };
     const addText = (text: string, x: number, yPos: number, size = 11, color = dark, bold = false) => {
       addRaw(`q ${color}`);
-      addRaw(`BT /${bold ? 'F2' : 'F1'} ${size} Tf 1 0 0 1 ${x.toFixed(2)} ${yPos.toFixed(2)} Tm ${escapePdfHexUtf16(text)} Tj ET`);
+      addRaw(`BT /${bold ? 'F2' : 'F1'} ${size} Tf 1 0 0 1 ${x.toFixed(2)} ${yPos.toFixed(2)} Tm ${escapePdfWinAnsi(text)} Tj ET`);
       addRaw('Q');
     };
     const wrapText = (text: string, maxChars: number) => {
@@ -421,11 +435,11 @@ export default function ContractsPage() {
     pages.forEach((commands, idx) => {
       const footerY = 28;
       commands.push(`q ${gold}`);
-      commands.push(`BT /F2 9 Tf 1 0 0 1 ${margin.toFixed(2)} ${footerY.toFixed(2)} Tm ${escapePdfHexUtf16('Document généré par MekLoc')} Tj ET`);
+      commands.push(`BT /F2 9 Tf 1 0 0 1 ${margin.toFixed(2)} ${footerY.toFixed(2)} Tm ${escapePdfWinAnsi('Document généré par MekLoc')} Tj ET`);
       commands.push('Q');
       commands.push(`q ${muted}`);
-      commands.push(`BT /F1 9 Tf 1 0 0 1 ${(pageWidth / 2 - 40).toFixed(2)} ${footerY.toFixed(2)} Tm ${escapePdfHexUtf16(contractReference)} Tj ET`);
-      commands.push(`BT /F1 9 Tf 1 0 0 1 ${(pageWidth - margin - 55).toFixed(2)} ${footerY.toFixed(2)} Tm ${escapePdfHexUtf16(`Page ${idx + 1}/${pages.length}`)} Tj ET`);
+      commands.push(`BT /F1 9 Tf 1 0 0 1 ${(pageWidth / 2 - 40).toFixed(2)} ${footerY.toFixed(2)} Tm ${escapePdfWinAnsi(contractReference)} Tj ET`);
+      commands.push(`BT /F1 9 Tf 1 0 0 1 ${(pageWidth - margin - 55).toFixed(2)} ${footerY.toFixed(2)} Tm ${escapePdfWinAnsi(`Page ${idx + 1}/${pages.length}`)} Tj ET`);
       commands.push('Q');
     });
 
@@ -434,12 +448,8 @@ export default function ContractsPage() {
     const PAGES_ID = 2;
     const FONT_REGULAR_ID = 3;
     const FONT_BOLD_ID = 4;
-    const DESC_REGULAR_ID = 5;
-    const TO_UNICODE_REGULAR_ID = 6;
-    const DESC_BOLD_ID = 7;
-    const TO_UNICODE_BOLD_ID = 8;
 
-    let nextId = 9;
+    let nextId = 5;
     const contentIds = pages.map(() => nextId++);
     const pageObjectIds = pages.map(() => nextId++);
     const maxId = nextId - 1;
@@ -447,12 +457,8 @@ export default function ContractsPage() {
 
     objects[CATALOG_ID] = `${CATALOG_ID} 0 obj\n<< /Type /Catalog /Pages ${PAGES_ID} 0 R >>\nendobj`;
     objects[PAGES_ID] = `${PAGES_ID} 0 obj\n<< /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pageObjectIds.length} >>\nendobj`;
-    objects[FONT_REGULAR_ID] = `${FONT_REGULAR_ID} 0 obj\n<< /Type /Font /Subtype /Type0 /BaseFont /Helvetica /Encoding /Identity-H /DescendantFonts [${DESC_REGULAR_ID} 0 R] /ToUnicode ${TO_UNICODE_REGULAR_ID} 0 R >>\nendobj`;
-    objects[FONT_BOLD_ID] = `${FONT_BOLD_ID} 0 obj\n<< /Type /Font /Subtype /Type0 /BaseFont /Helvetica-Bold /Encoding /Identity-H /DescendantFonts [${DESC_BOLD_ID} 0 R] /ToUnicode ${TO_UNICODE_BOLD_ID} 0 R >>\nendobj`;
-    objects[DESC_REGULAR_ID] = `${DESC_REGULAR_ID} 0 obj\n<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Helvetica /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /DW 1000 >>\nendobj`;
-    objects[TO_UNICODE_REGULAR_ID] = `${TO_UNICODE_REGULAR_ID} 0 obj\n<< /Length 337 >> stream\n/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n1 beginbfrange\n<0000> <FFFF> <0000>\nendbfrange\nendcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\nendstream >>\nendobj`;
-    objects[DESC_BOLD_ID] = `${DESC_BOLD_ID} 0 obj\n<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Helvetica-Bold /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /DW 1000 >>\nendobj`;
-    objects[TO_UNICODE_BOLD_ID] = `${TO_UNICODE_BOLD_ID} 0 obj\n<< /Length 337 >> stream\n/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n1 beginbfrange\n<0000> <FFFF> <0000>\nendbfrange\nendcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\nendstream >>\nendobj`;
+    objects[FONT_REGULAR_ID] = `${FONT_REGULAR_ID} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj`;
+    objects[FONT_BOLD_ID] = `${FONT_BOLD_ID} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj`;
 
     pages.forEach((commands, index) => {
       const stream = commands.join('\n');
