@@ -70,6 +70,9 @@ type VehicleRow = {
   revenue: number | null;
   image_url?: string | null;
   image_path?: string | null;
+  vehicle_color?: string | null;
+  accessories?: Record<string, boolean> | null;
+  damage_marks?: Array<{ id: string; zone: string; type: string; x?: number; y?: number; note?: string }> | null;
 };
 
 type ClientRow = {
@@ -172,6 +175,9 @@ function mapVehicle(row: VehicleRow): Vehicle {
     revenue: row.revenue ?? 0,
     imageUrl: row.image_url || undefined,
     imagePath: row.image_path || undefined,
+    vehicleColor: row.vehicle_color || undefined,
+    accessories: row.accessories || undefined,
+    damageMarks: row.damage_marks as Vehicle['damageMarks'],
   };
 }
 
@@ -191,6 +197,9 @@ function toVehicleRow(vehicle: Vehicle, agencyId: string, withImage = true) {
     technical_inspection_date: vehicle.inspectionDate,
     city: vehicle.city,
     revenue: vehicle.revenue,
+    vehicle_color: vehicle.vehicleColor || null,
+    accessories: vehicle.accessories || {},
+    damage_marks: vehicle.damageMarks || [],
   };
   if (!withImage) return base;
   return {

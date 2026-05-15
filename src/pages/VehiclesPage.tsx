@@ -11,12 +11,46 @@ import PageHeader from '../components/ui/PageHeader';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { formatMAD, type Vehicle, type VehicleStatus } from '../data/mockData';
+import { formatMAD, type DamageType, type Vehicle, type VehicleAccessories, type VehicleDamageMark, type VehicleStatus } from '../data/mockData';
 import { storageBuckets, supabase } from '../lib/supabase';
 
 const vehicleStatuses: Array<'All' | VehicleStatus> = ['All', 'Available', 'Rented', 'Maintenance', 'Unavailable'];
 
 type FormErrors = Partial<Record<'brand' | 'model' | 'plate' | 'year' | 'mileage' | 'dailyPrice', string>>;
+const accessoryItems: Array<{ key: keyof VehicleAccessories; label: string }> = [
+  { key: 'roue_secours', label: 'Roue de secours' },
+  { key: 'cric', label: 'Cric' },
+  { key: 'poste_radio', label: 'Poste radio' },
+  { key: 'batterie', label: 'Batterie' },
+  { key: 'allume_cigare', label: 'Allume cigare' },
+  { key: 'siege_enfant', label: 'Siège enfant' },
+  { key: 'porte_bagage', label: 'Porte bagage' },
+  { key: 'triangle', label: 'Triangle' },
+  { key: 'gilet', label: 'Gilet' },
+  { key: 'documents_vehicule', label: 'Documents véhicule' },
+];
+
+const damageZones: Array<{ value: VehicleDamageMark['zone']; label: string }> = [
+  { value: 'avant', label: 'Avant' },
+  { value: 'arriere', label: 'Arrière' },
+  { value: 'porte_gauche', label: 'Porte gauche' },
+  { value: 'porte_droite', label: 'Porte droite' },
+  { value: 'capot', label: 'Capot' },
+  { value: 'coffre', label: 'Coffre' },
+  { value: 'aile_gauche', label: 'Aile gauche' },
+  { value: 'aile_droite', label: 'Aile droite' },
+  { value: 'parechoc_avant', label: 'Pare-choc avant' },
+  { value: 'parechoc_arriere', label: 'Pare-choc arrière' },
+];
+
+const damageTypes: Array<{ value: DamageType; label: string }> = [
+  { value: 'rayure', label: 'Rayure' },
+  { value: 'cassure', label: 'Cassure' },
+  { value: 'eclat', label: 'Éclat' },
+  { value: 'bosse', label: 'Bosse' },
+  { value: 'peinture', label: 'Peinture' },
+  { value: 'autre', label: 'Autre' },
+];
 
 function isDateExpired(date?: string) {
   if (!date) return false;
@@ -38,6 +72,17 @@ function isDateSoon(date?: string, days = 30) {
 }
 
 function normalizeVehicleForm(form: FormData, base?: Vehicle): Vehicle {
+  const accessories: VehicleAccessories = {};
+  accessoryItems.forEach(({ key }) => {
+    accessories[key] = form.get(`acc_${key}`) === 'on';
+  });
+  const damageMarksRaw = String(form.get('damageMarks') || '[]');
+  let damageMarks: VehicleDamageMark[] = [];
+  try {
+    damageMarks = JSON.parse(damageMarksRaw) as VehicleDamageMark[];
+  } catch {
+    damageMarks = [];
+  }
   return {
     id: base?.id || `veh-${Date.now()}`,
     brand: String(form.get('brand') || '').trim(),
@@ -55,6 +100,9 @@ function normalizeVehicleForm(form: FormData, base?: Vehicle): Vehicle {
     revenue: base?.revenue || 0,
     imagePath: base?.imagePath,
     imageUrl: base?.imageUrl,
+    vehicleColor: String(form.get('vehicleColor') || '').trim(),
+    accessories,
+    damageMarks,
   };
 }
 
@@ -84,6 +132,10 @@ export default function VehiclesPage() {
   const [imagePreview, setImagePreview] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [damageMarks, setDamageMarks] = useState<VehicleDamageMark[]>([]);
+  const [damageZone, setDamageZone] = useState<VehicleDamageMark['zone']>('avant');
+  const [damageType, setDamageType] = useState<DamageType>('rayure');
+  const [damageNote, setDamageNote] = useState('');
 
   const filteredVehicles = useMemo(
     () =>
@@ -120,6 +172,10 @@ export default function VehiclesPage() {
     setImageFile(null);
     setImagePreview('');
     setErrors({});
+    setDamageMarks([]);
+    setDamageZone('avant');
+    setDamageType('rayure');
+    setDamageNote('');
     setModalOpen(true);
   }
 
@@ -128,6 +184,10 @@ export default function VehiclesPage() {
     setImageFile(null);
     setImagePreview(vehicle.imageUrl || '');
     setErrors({});
+    setDamageMarks(vehicle.damageMarks || []);
+    setDamageZone('avant');
+    setDamageType('rayure');
+    setDamageNote('');
     setModalOpen(true);
   }
 
@@ -147,6 +207,7 @@ export default function VehiclesPage() {
   async function handleSaveVehicle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    form.set('damageMarks', JSON.stringify(damageMarks));
     const vehicle = normalizeVehicleForm(form, editingVehicle || undefined);
     const nextErrors = validateVehicle(vehicle);
     setErrors(nextErrors);
@@ -172,6 +233,7 @@ export default function VehiclesPage() {
       setImageFile(null);
       setImagePreview('');
       setErrors({});
+      setDamageMarks([]);
       notify({
         title: editingVehicle ? 'Véhicule modifié' : 'Véhicule ajouté',
         message: `${vehicle.brand} ${vehicle.model} est bien enregistré.`,
@@ -186,6 +248,18 @@ export default function VehiclesPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function addDamageMark() {
+    setDamageMarks((prev) => [
+      ...prev,
+      { id: `dmg-${Date.now()}`, zone: damageZone, type: damageType, note: damageNote.trim() || undefined },
+    ]);
+    setDamageNote('');
+  }
+
+  function removeDamageMark(id: string) {
+    setDamageMarks((prev) => prev.filter((item) => item.id !== id));
   }
 
   async function deleteVehicle(vehicle: Vehicle) {
@@ -421,6 +495,54 @@ export default function VehiclesPage() {
                 <option>Available</option><option>Rented</option><option>Maintenance</option><option>Unavailable</option>
               </SelectField>
               <Field label="Ville" name="city" defaultValue={editingVehicle?.city || ''} required />
+              <Field label="Couleur du véhicule" name="vehicleColor" defaultValue={editingVehicle?.vehicleColor || ''} placeholder="Ex: Blanc, Noir, Gris" />
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+            <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-carbon-400">État du véhicule</h3>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {accessoryItems.map((item) => (
+                <label key={item.key} className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name={`acc_${item.key}`}
+                    defaultChecked={Boolean(editingVehicle?.accessories?.[item.key])}
+                    className="h-4 w-4 accent-[#D4A017]"
+                  />
+                  <span>{item.label}</span>
+                </label>
+              ))}
+            </div>
+            <div className="mt-4 rounded-xl border border-white/10 bg-black/20 p-3">
+              <p className="mb-2 text-xs font-semibold text-carbon-400">Dommages (zone + type)</p>
+              <div className="grid gap-2 sm:grid-cols-4">
+                <SelectField label="Zone" value={damageZone} onChange={(e) => setDamageZone(e.target.value as VehicleDamageMark['zone'])}>
+                  {damageZones.map((z) => <option key={z.value} value={z.value}>{z.label}</option>)}
+                </SelectField>
+                <SelectField label="Type" value={damageType} onChange={(e) => setDamageType(e.target.value as DamageType)}>
+                  {damageTypes.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </SelectField>
+                <Field label="Note" value={damageNote} onChange={(e) => setDamageNote(e.target.value)} placeholder="Optionnel" />
+                <div className="flex items-end">
+                  <Button type="button" variant="secondary" className="w-full" onClick={addDamageMark}>Ajouter</Button>
+                </div>
+              </div>
+              <div className="mt-3 space-y-2">
+                {damageMarks.length === 0 ? (
+                  <p className="text-xs text-carbon-500">Aucun dommage signalé.</p>
+                ) : (
+                  damageMarks.map((mark) => (
+                    <div key={mark.id} className="flex items-center justify-between rounded-lg border border-white/10 px-3 py-2 text-sm">
+                      <span>
+                        {damageZones.find((z) => z.value === mark.zone)?.label || mark.zone} · {damageTypes.find((t) => t.value === mark.type)?.label || mark.type}
+                        {mark.note ? ` · ${mark.note}` : ''}
+                      </span>
+                      <Button type="button" variant="danger" className="h-8 px-2 text-xs" onClick={() => removeDamageMark(mark.id)}>Retirer</Button>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </section>
 
@@ -490,4 +612,3 @@ export default function VehiclesPage() {
     </div>
   );
 }
-

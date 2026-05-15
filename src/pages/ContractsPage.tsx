@@ -37,6 +37,43 @@ const defaultTerms = [
   'Le retard de restitution peut entraîner des frais supplémentaires.',
 ];
 
+const contractBorder = '#d08a2f';
+
+const accessoryLabels: Record<string, string> = {
+  roue_secours: 'Roue de secours',
+  cric: 'Cric',
+  poste_radio: 'Poste radio',
+  batterie: 'Batterie',
+  allume_cigare: 'Allume cigare',
+  siege_enfant: 'Siège enfant',
+  porte_bagage: 'Porte bagage',
+  triangle: 'Triangle',
+  gilet: 'Gilet',
+  documents_vehicule: 'Documents véhicule',
+};
+
+const damageTypeLabels: Record<string, string> = {
+  rayure: 'R',
+  cassure: 'C',
+  eclat: 'E',
+  bosse: 'B',
+  peinture: 'P',
+  autre: 'A',
+};
+
+const zoneCoords: Record<string, { x: number; y: number }> = {
+  avant: { x: 296, y: 228 },
+  arriere: { x: 296, y: 148 },
+  capot: { x: 296, y: 214 },
+  coffre: { x: 296, y: 162 },
+  porte_gauche: { x: 270, y: 188 },
+  porte_droite: { x: 322, y: 188 },
+  aile_gauche: { x: 257, y: 204 },
+  aile_droite: { x: 335, y: 204 },
+  parechoc_avant: { x: 296, y: 236 },
+  parechoc_arriere: { x: 296, y: 140 },
+};
+
 function statusLabel(status: string) {
   if (status === 'Signed') return 'Finalisé';
   if (status === 'Downloaded') return 'Téléchargé';
@@ -236,6 +273,8 @@ export default function ContractsPage() {
   const rentalDays = getDiffDays(pickupDate, returnDate);
   const totalAmount = selectedReservation?.totalAmount || vehicle.dailyPrice * rentalDays;
   const deposit = selectedReservation?.deposit ?? 0;
+  const accessories = vehicle.accessories || {};
+  const damageMarks = vehicle.damageMarks || [];
 
   const contractReference = useMemo(() => {
     return selectedReservation?.id || `CONTRAT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`;
@@ -311,7 +350,7 @@ export default function ContractsPage() {
     const sectionGap = 12;
     const boxPad = 10;
     const contentWidth = pageWidth - margin * 2;
-    const gold = '0.73 0.62 0.28 rg';
+    const gold = '0.82 0.54 0.18 rg';
     const muted = '0.35 0.40 0.47 rg';
     const dark = '0.12 0.15 0.2 rg';
 
@@ -360,10 +399,10 @@ export default function ContractsPage() {
       const boxHeight = boxPad * 2 + titleHeight + rows.length * rowHeight + 8;
       ensureSpace(boxHeight + sectionGap);
       y -= boxHeight;
-      addRaw('q 0.93 0.94 0.97 RG 1 w');
+      addRaw('q 0.82 0.54 0.18 RG 1 w');
       addRaw(`${margin} ${y} ${contentWidth} ${boxHeight} re S`);
       addRaw('Q');
-      addText(title, margin + boxPad, y + boxHeight - 18, 10, muted, true);
+      addText(title, margin + boxPad, y + boxHeight - 18, 10, gold, true);
       let rowY = y + boxHeight - 34;
       rows.forEach(([label, value]) => {
         addText(label, margin + boxPad, rowY, 9, muted, false);
@@ -379,7 +418,7 @@ export default function ContractsPage() {
     addText(`Adresse: ${agencyMeta.address || 'Non renseigné'}`, margin, y - 24, 9, muted);
     addText(`Téléphone: ${agencyMeta.phone || profile?.phone || 'Non renseigné'} · Email: ${agencyMeta.email || profile?.email || 'Non renseigné'}`, margin, y - 38, 9, muted);
     addText(`ICE/RC: ${agencyMeta.ice || 'Non renseigné'} / ${agencyMeta.rc || 'Non renseigné'}`, margin, y - 52, 9, muted);
-    addText('CONTRAT DE LOCATION DE VÉHICULE', margin, y - 78, 16, dark, true);
+    addText('CONTRAT DE LOCATION', margin, y - 78, 16, dark, true);
     addText(`Référence: ${contractReference}`, margin, y - 96, 10, muted, true);
     addText(`Date: ${new Date().toLocaleDateString('fr-MA')}`, pageWidth - margin - 120, y - 96, 10, muted, true);
     y -= 112;
@@ -403,9 +442,21 @@ export default function ContractsPage() {
       ['Adresse', client.address || 'Non renseigné'],
     ]);
 
+    addSection('2ème conducteur', [
+      ['Nom', '—'],
+      ['Prénom', '—'],
+      ['Date de naissance', '—'],
+      ['Nationalité', '—'],
+      ['CIN/Passport', '—'],
+      ['Permis N°', '—'],
+      ['Adresse', '—'],
+      ['Téléphone', '—'],
+    ]);
+
     addSection('Informations du véhicule', [
       ['Marque + modèle', `${vehicle.brand || 'Non renseigné'} ${vehicle.model || ''}`.trim()],
       ['Immatriculation', vehicle.plate || 'Non renseigné'],
+      ['Couleur', vehicle.vehicleColor || 'Non renseigné'],
       ['Année', String(vehicle.year || 'Non renseigné')],
       ['Carburant', vehicle.fuel || 'Non renseigné'],
       ['Transmission', vehicle.transmission || 'Non renseigné'],
@@ -413,15 +464,31 @@ export default function ContractsPage() {
       ['Kilométrage retour', 'Non renseigné'],
     ]);
 
-    addSection('Location', [
+    // Accessoires
+    const accessoryRows = Object.entries(accessoryLabels).map(([key, label]) => [
+      label,
+      accessories[key as keyof typeof accessories] ? '☑ Oui' : '☐ Non',
+    ] as [string, string]);
+    addSection('Accessoires véhicule', accessoryRows);
+
+    addSection('Départ / Retour', [
       ['Date de départ', formatDateFr(pickupDate)],
       ['Date de retour', formatDateFr(returnDate)],
+      ['Retour réel', '—'],
+      ['Heure départ', '—'],
+      ['Heure retour', '—'],
       ['Lieu départ', selectedReservation?.pickupLocation || 'Non renseigné'],
       ['Lieu retour', selectedReservation?.returnLocation || 'Non renseigné'],
+    ]);
+
+    addSection('Montants', [
       ['Nombre de jours', String(rentalDays)],
       ['Prix journalier', formatMAD(vehicle.dailyPrice || 0)],
       ['Montant total', formatMAD(totalAmount || 0)],
       ['Caution', formatMAD(deposit || 0)],
+      ['Franchise assurance', '—'],
+      ['Mode de règlement', '—'],
+      ['Payé par', client.fullName || 'Non renseigné'],
       ['Statut paiement', selectedReservation?.status || 'Non renseigné'],
     ]);
 
@@ -433,10 +500,10 @@ export default function ContractsPage() {
     const conditionsHeight = Math.max(90, boxPad * 2 + 16 + conditionLines.length * 12 + 6);
     ensureSpace(conditionsHeight + sectionGap);
     y -= conditionsHeight;
-    addRaw('q 0.93 0.94 0.97 RG 1 w');
+    addRaw('q 0.82 0.54 0.18 RG 1 w');
     addRaw(`${margin} ${y} ${contentWidth} ${conditionsHeight} re S`);
     addRaw('Q');
-    addText('Conditions générales', margin + boxPad, y + conditionsHeight - 18, 10, muted, true);
+    addText('Conditions générales', margin + boxPad, y + conditionsHeight - 18, 10, gold, true);
     let conditionY = y + conditionsHeight - 34;
     conditionLines.forEach((line) => {
       addText(line, margin + boxPad, conditionY, 9, dark);
@@ -444,12 +511,49 @@ export default function ContractsPage() {
     });
     y -= sectionGap;
 
+    // Schéma dommages
+    const damageHeight = 150;
+    ensureSpace(damageHeight + sectionGap);
+    y -= damageHeight;
+    addRaw('q 0.93 0.94 0.97 RG 1 w');
+    addRaw(`${margin} ${y} ${contentWidth} ${damageHeight} re S`);
+    addRaw('Q');
+    addText('Schéma des dommages', margin + boxPad, y + damageHeight - 18, 10, muted, true);
+    // top-view car
+    addRaw('q 0.20 0.24 0.31 RG 1 w');
+    addRaw('286 150 20 78 re S');
+    addRaw('278 164 36 50 re S');
+    addRaw('286 188 20 1 re S');
+    addRaw('272 170 6 14 re S');
+    addRaw('314 170 6 14 re S');
+    addRaw('272 194 6 14 re S');
+    addRaw('314 194 6 14 re S');
+    addRaw('Q');
+    if (damageMarks.length === 0) {
+      addText('Aucun dommage signalé au départ.', 340, 188, 9, muted);
+    } else {
+      damageMarks.forEach((mark) => {
+        const pos = zoneCoords[mark.zone] || { x: 296, y: 188 };
+        addText(damageTypeLabels[mark.type] || 'A', pos.x, pos.y, 10, '0.86 0.18 0.18 rg', true);
+      });
+      const notes = damageMarks
+        .map((mark) => `${mark.zone}: ${damageTypeLabels[mark.type] || 'A'}${mark.note ? ` (${mark.note})` : ''}`)
+        .slice(0, 5);
+      let noteY = 206;
+      notes.forEach((note) => {
+        addText(note, 340, noteY, 8.5, muted);
+        noteY -= 11;
+      });
+    }
+    addText('Légende: R=Rayure C=Cassure E=Éclat B=Bosse P=Peinture A=Autre', margin + boxPad, y + 10, 8.5, muted);
+    y -= sectionGap;
+
     // Signatures
     const signHeight = 82;
     ensureSpace(signHeight + 46);
     y -= signHeight;
     const signWidth = (contentWidth - 10) / 2;
-    addRaw('q 0.80 0.84 0.90 RG 1 w');
+    addRaw('q 0.82 0.54 0.18 RG 1 w');
     addRaw(`${margin} ${y} ${signWidth} ${signHeight} re S`);
     addRaw(`${margin + signWidth + 10} ${y} ${signWidth} ${signHeight} re S`);
     addRaw('Q');
@@ -701,7 +805,7 @@ export default function ContractsPage() {
               <section className="mt-5 grid gap-4 md:grid-cols-2">
                 <InfoBlock
                   icon={<Landmark className="h-4 w-4 text-[#a58b3f]" />}
-                  title="Informations de l’agence"
+                  title="Agence"
                   rows={[
                     ['Nom agence', profile?.agency?.name || 'Non renseigné'],
                     ['Adresse', agencyMeta.address || 'Non renseigné'],
@@ -712,7 +816,7 @@ export default function ContractsPage() {
                 />
                 <InfoBlock
                   icon={<UserRound className="h-4 w-4 text-[#a58b3f]" />}
-                  title="Informations du client"
+                  title="Locataire"
                   rows={[
                     ['Nom complet', client.fullName || 'Non renseigné'],
                     ['Téléphone', client.phone || 'Non renseigné'],
@@ -725,13 +829,24 @@ export default function ContractsPage() {
                 />
               </section>
 
+              <section className="mt-4 rounded-xl border p-4" style={{ borderColor: contractBorder }}>
+                <p className="text-[11px] font-bold uppercase tracking-[.12em]" style={{ color: contractBorder }}>2ème conducteur</p>
+                <div className="mt-2 grid gap-2 md:grid-cols-2 text-sm text-[#334155]">
+                  <p>Nom: —</p><p>Prénom: —</p>
+                  <p>Date de naissance: —</p><p>Nationalité: —</p>
+                  <p>CIN/Passport: —</p><p>Permis N°: —</p>
+                  <p>Adresse: —</p><p>Téléphone: —</p>
+                </div>
+              </section>
+
               <section className="mt-4 grid gap-4 md:grid-cols-2">
                 <InfoBlock
                   icon={<Building2 className="h-4 w-4 text-[#a58b3f]" />}
-                  title="Informations du véhicule"
+                  title="Véhicule"
                   rows={[
                     ['Marque + modèle', `${vehicle.brand || 'Non renseigné'} ${vehicle.model || ''}`.trim()],
                     ['Immatriculation', vehicle.plate || 'Non renseigné'],
+                    ['Couleur', vehicle.vehicleColor || 'Non renseigné'],
                     ['Année', String(vehicle.year || 'Non renseigné')],
                     ['Carburant', vehicle.fuel || 'Non renseigné'],
                     ['Transmission', vehicle.transmission || 'Non renseigné'],
@@ -741,20 +856,31 @@ export default function ContractsPage() {
                 />
                 <InfoBlock
                   icon={<CalendarDays className="h-4 w-4 text-[#a58b3f]" />}
-                  title="Détails de la réservation"
+                  title="Départ / Retour"
                   rows={[
                     ['Date de départ', formatDateFr(pickupDate)],
                     ['Date de retour', formatDateFr(returnDate)],
-                    ['Heure départ/retour', 'Non renseigné'],
+                    ['Retour réel', '—'],
+                    ['Heure départ', '—'],
+                    ['Heure retour', '—'],
                     ['Lieu départ', selectedReservation?.pickupLocation || 'Non renseigné'],
                     ['Lieu retour', selectedReservation?.returnLocation || 'Non renseigné'],
-                    ['Nombre de jours', String(rentalDays)],
-                    ['Prix journalier', formatMAD(vehicle.dailyPrice || 0)],
-                    ['Montant total', formatMAD(totalAmount || 0)],
-                    ['Caution', formatMAD(deposit || 0)],
-                    ['Statut paiement', selectedReservation?.status || 'Non renseigné'],
                   ]}
                 />
+              </section>
+
+              <section className="mt-4 rounded-xl border p-4" style={{ borderColor: contractBorder }}>
+                <p className="text-[11px] font-bold uppercase tracking-[.12em]" style={{ color: contractBorder }}>Montants</p>
+                <div className="mt-2 grid gap-2 md:grid-cols-2 text-sm text-[#334155]">
+                  <p>Nombre de jours: <span className="font-semibold">{rentalDays}</span></p>
+                  <p>Prix / 24h: <span className="font-semibold">{formatMAD(vehicle.dailyPrice || 0)}</span></p>
+                  <p>Prix total: <span className="font-semibold">{formatMAD(totalAmount || 0)}</span></p>
+                  <p>Caution: <span className="font-semibold">{formatMAD(deposit || 0)}</span></p>
+                  <p>Franchise d’assurance: <span className="font-semibold">—</span></p>
+                  <p>Mode de règlement: <span className="font-semibold">—</span></p>
+                  <p>Payé par: <span className="font-semibold">{client.fullName || 'Non renseigné'}</span></p>
+                  <p>Statut paiement: <span className="font-semibold">{selectedReservation?.status || 'Non renseigné'}</span></p>
+                </div>
               </section>
 
               <section className="mt-5 rounded-xl border border-[#e8edf4] p-4">
@@ -763,6 +889,64 @@ export default function ContractsPage() {
                   {(terms.trim() ? terms.split('\n').filter(Boolean) : defaultTerms).map((item, index) => (
                     <p key={`${item}-${index}`}>{index + 1}. {item}</p>
                   ))}
+                </div>
+              </section>
+
+              <section className="mt-4 rounded-xl border border-[#e8edf4] p-4">
+                <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#6b7280]">Accessoires véhicule</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {Object.entries(accessoryLabels).map(([key, label]) => (
+                    <p key={key} className="text-sm text-[#334155]">
+                      {accessories[key as keyof typeof accessories] ? '☑' : '☐'} {label}
+                    </p>
+                  ))}
+                </div>
+              </section>
+
+              <section className="mt-4 rounded-xl border border-[#e8edf4] p-4">
+                <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#6b7280]">Schéma des dommages</p>
+                <div className="mt-3 grid gap-3 md:grid-cols-[180px_1fr]">
+                  <svg viewBox="0 0 120 220" className="h-52 w-full max-w-[180px] rounded-lg border border-[#dbe3ee] bg-[#f8fafc]">
+                    <rect x="48" y="20" width="24" height="180" rx="8" fill="#fff" stroke="#334155" strokeWidth="1.2" />
+                    <rect x="40" y="48" width="40" height="124" rx="8" fill="none" stroke="#64748b" strokeWidth="1" />
+                    <line x1="48" y1="108" x2="72" y2="108" stroke="#64748b" strokeWidth="1" />
+                    <rect x="33" y="56" width="7" height="24" fill="none" stroke="#64748b" />
+                    <rect x="80" y="56" width="7" height="24" fill="none" stroke="#64748b" />
+                    <rect x="33" y="140" width="7" height="24" fill="none" stroke="#64748b" />
+                    <rect x="80" y="140" width="7" height="24" fill="none" stroke="#64748b" />
+                    {damageMarks.map((mark) => {
+                      const coords: Record<string, { x: number; y: number }> = {
+                        avant: { x: 60, y: 24 },
+                        arriere: { x: 60, y: 196 },
+                        capot: { x: 60, y: 42 },
+                        coffre: { x: 60, y: 178 },
+                        porte_gauche: { x: 45, y: 110 },
+                        porte_droite: { x: 75, y: 110 },
+                        aile_gauche: { x: 40, y: 62 },
+                        aile_droite: { x: 80, y: 62 },
+                        parechoc_avant: { x: 60, y: 16 },
+                        parechoc_arriere: { x: 60, y: 204 },
+                      };
+                      const point = coords[mark.zone] || { x: 60, y: 110 };
+                      return (
+                        <text key={mark.id} x={point.x} y={point.y} textAnchor="middle" fill="#dc2626" fontSize="10" fontWeight="700">
+                          {damageTypeLabels[mark.type] || 'A'}
+                        </text>
+                      );
+                    })}
+                  </svg>
+                  <div className="space-y-2 text-sm text-[#334155]">
+                    {damageMarks.length === 0 ? (
+                      <p>Aucun dommage signalé au départ.</p>
+                    ) : (
+                      damageMarks.map((mark) => (
+                        <p key={mark.id}>
+                          {mark.zone} · {damageTypeLabels[mark.type] || 'A'} {mark.note ? `· ${mark.note}` : ''}
+                        </p>
+                      ))
+                    )}
+                    <p className="pt-2 text-xs text-[#64748b]">Légende: R=Rayure, C=Cassure, E=Éclat, B=Bosse, P=Peinture, A=Autre</p>
+                  </div>
                 </div>
               </section>
 
@@ -800,10 +984,10 @@ function InfoBlock({
   rows: [string, string][];
 }) {
   return (
-    <div className="rounded-xl border border-[#e8edf4] p-4">
+    <div className="rounded-xl border p-4" style={{ borderColor: contractBorder }}>
       <div className="mb-2 flex items-center gap-2">
         {icon}
-        <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#6b7280]">{title}</p>
+        <p className="text-[11px] font-bold uppercase tracking-[.12em]" style={{ color: contractBorder }}>{title}</p>
       </div>
       <div className="space-y-2">
         {rows.map(([label, value]) => (
