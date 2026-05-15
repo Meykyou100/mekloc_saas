@@ -95,6 +95,8 @@ export default function ClientsPage() {
   const [backFile, setBackFile] = useState<File | null>(null);
   const [frontPreview, setFrontPreview] = useState<string | null>(null);
   const [backPreview, setBackPreview] = useState<string | null>(null);
+  const [frontRemoved, setFrontRemoved] = useState(false);
+  const [backRemoved, setBackRemoved] = useState(false);
 
   const activeClientIds = useMemo(() => {
     return new Set(reservations.map((reservation) => reservation.clientId));
@@ -142,6 +144,8 @@ export default function ClientsPage() {
     setBackFile(null);
     setFrontPreview(null);
     setBackPreview(null);
+    setFrontRemoved(false);
+    setBackRemoved(false);
   }
 
   function openNewClient() {
@@ -160,6 +164,8 @@ export default function ClientsPage() {
     setBackFile(null);
     setFrontPreview(client.idCardFrontUrl || null);
     setBackPreview(client.idCardBackUrl || null);
+    setFrontRemoved(false);
+    setBackRemoved(false);
     setModalOpen(true);
   }
 
@@ -215,9 +221,11 @@ export default function ClientsPage() {
     if (side === 'front') {
       setFrontFile(file);
       setFrontPreview(localPreview);
+      setFrontRemoved(false);
     } else {
       setBackFile(file);
       setBackPreview(localPreview);
+      setBackRemoved(false);
     }
     event.target.value = '';
   }
@@ -248,8 +256,8 @@ export default function ClientsPage() {
 
       let saved = editingClient ? await updateClient(baseClient) : await createClient(baseClient);
 
-      let nextFrontUrl = saved.idCardFrontUrl || null;
-      let nextBackUrl = saved.idCardBackUrl || null;
+      let nextFrontUrl = frontRemoved ? null : (saved.idCardFrontUrl || null);
+      let nextBackUrl = backRemoved ? null : (saved.idCardBackUrl || null);
 
       if (frontFile) {
         const uploadedFront = await uploadClientDocument(saved.id, frontFile, 'front');
@@ -459,6 +467,7 @@ export default function ClientsPage() {
                 onRemove={() => {
                   setFrontFile(null);
                   setFrontPreview(null);
+                  setFrontRemoved(true);
                 }}
               />
               <DocumentUploadBox
@@ -468,6 +477,7 @@ export default function ClientsPage() {
                 onRemove={() => {
                   setBackFile(null);
                   setBackPreview(null);
+                  setBackRemoved(true);
                 }}
               />
             </div>
