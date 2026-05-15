@@ -138,6 +138,48 @@ function escapePdfWinAnsi(value: string) {
   return `(${out})`;
 }
 
+type PdfLogoAsset = {
+  bytes: Uint8Array;
+  width: number;
+  height: number;
+};
+
+async function loadLogoForPdf(logoUrl: string): Promise<PdfLogoAsset | null> {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = image.naturalWidth || image.width;
+        canvas.height = image.naturalHeight || image.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(null);
+          return;
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(image, 0, 0);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
+        const base64 = dataUrl.split(',')[1] || '';
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+        resolve({
+          bytes,
+          width: canvas.width,
+          height: canvas.height,
+        });
+      } catch {
+        resolve(null);
+      }
+    };
+    image.onerror = () => resolve(null);
+    image.src = logoUrl;
+  });
+}
+
 export default function ContractsPage() {
   const [searchParams] = useSearchParams();
   const { clients, vehicles, reservations, contracts, createContract } = useData();
@@ -349,8 +391,10 @@ export default function ContractsPage() {
     return true;
   }
 
-  function downloadContractPreview() {
+  async function downloadContractPreview() {
     if (!ensureRequiredData('preview')) return;
+
+    const logoAsset = logoPublicUrl ? await loadLogoForPdf(logoPublicUrl) : null;
 
     const termsList = terms.trim() ? terms.trim().split('\n').filter(Boolean) : defaultTerms;
     const pageWidth = 595;
@@ -423,6 +467,16 @@ export default function ContractsPage() {
 
     // Header
     ensureSpace(78);
+    const logoX = margin;
+    const logoY = y - 38;
+    const logoW = 36;
+    const logoH = 36;
+    addRaw('q 0.92 0.93 0.95 RG 0.8 w');
+    addRaw(`${logoX} ${logoY} ${logoW} ${logoH} re S`);
+    addRaw('Q');
+    if (!logoAsset) {
+      addText('M', logoX + 13, logoY + 12, 16, '0.55 0.58 0.64 rg', true);
+    }
     addText(profile?.agency?.name || 'MekLoc Agency', margin, y - 4, 12, dark, true);
     addText(`Adresse: ${agencyMeta.address || 'Non renseigné'}`, margin, y - 16, 8, muted);
     addText(`Tél: ${agencyMeta.phone || profile?.phone || 'Non renseigné'} · Email: ${agencyMeta.email || profile?.email || 'Non renseigné'}`, margin, y - 28, 8, muted);
@@ -596,6 +650,7 @@ export default function ContractsPage() {
     const FONT_BOLD_ID = 4;
 
     let nextId = 5;
+    const LOGO_IMAGE_ID = logoAsset ? nextId++ : null;
     const contentIds = pages.map(() => nextId++);
     const pageObjectIds = pages.map(() => nextId++);
     const maxId = nextId - 1;
@@ -605,13 +660,35 @@ export default function ContractsPage() {
     objects[PAGES_ID] = `${PAGES_ID} 0 obj\n<< /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pageObjectIds.length} >>\nendobj`;
     objects[FONT_REGULAR_ID] = `${FONT_REGULAR_ID} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj`;
     objects[FONT_BOLD_ID] = `${FONT_BOLD_ID} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj`;
+    if (logoAsset && LOGO_IMAGE_ID) {
+      objects[LOGO_IMAGE_ID] =
+        `${LOGO_IMAGE_ID} 0 obj\n` +
+        `<< /Type /XObject /Subtype /Image /Width ${logoAsset.width} /Height ${logoAsset.height} ` +
+        `/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${logoAsset.bytes.length} >>\n` +
+        `stream\n${Array.from(logoAsset.bytes, (b) => String.fromCharCode(b)).join('')}\nendstream\nendobj`;
+    }
 
     pages.forEach((commands, index) => {
+      if (index === 0 && logoAsset && LOGO_IMAGE_ID) {
+        const imgW = 36;
+        const imgH = 36;
+        const imgX = margin;
+        const imgY = pageHeight - margin - 38;
+        commands.unshift('Q');
+        commands.unshift('/ImLogo Do');
+        commands.unshift(`${imgW} 0 0 ${imgH} ${imgX} ${imgY} cm`);
+        commands.unshift('q');
+      }
       const stream = commands.join('\n');
       const contentId = contentIds[index];
       const pageId = pageObjectIds[index];
       objects[contentId] = `${contentId} 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}\nendstream\nendobj`;
-      objects[pageId] = `${pageId} 0 obj\n<< /Type /Page /Parent ${PAGES_ID} 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${FONT_REGULAR_ID} 0 R /F2 ${FONT_BOLD_ID} 0 R >> >> /Contents ${contentId} 0 R >>\nendobj`;
+      const xObjectRef = logoAsset && LOGO_IMAGE_ID ? ` /XObject << /ImLogo ${LOGO_IMAGE_ID} 0 R >>` : '';
+      objects[pageId] =
+        `${pageId} 0 obj\n` +
+        `<< /Type /Page /Parent ${PAGES_ID} 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] ` +
+        `/Resources << /Font << /F1 ${FONT_REGULAR_ID} 0 R /F2 ${FONT_BOLD_ID} 0 R >>${xObjectRef} >> ` +
+        `/Contents ${contentId} 0 R >>\nendobj`;
     });
 
     let pdfBody = '%PDF-1.7\n';
