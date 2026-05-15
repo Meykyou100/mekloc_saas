@@ -1,47 +1,78 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { CalendarDays, Car, CheckCircle2, Eye, FileSignature, Filter, LayoutGrid, ListFilter, MapPin, Pencil, Plus, Search, Trash2, UserRound, X } from 'lucide-react';
+import {
+  CalendarDays,
+  Car,
+  CheckCircle2,
+  CircleAlert,
+  Clock3,
+  Eye,
+  FileSignature,
+  LayoutGrid,
+  ListFilter,
+  MapPin,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+  UserRound,
+  Wallet,
+  X,
+} from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
-import PageHeader from '../components/ui/PageHeader';
 import Modal from '../components/ui/Modal';
-import {
-  formatMAD,
-  type Reservation,
-  type ReservationStatus,
-} from '../data/mockData';
+import PageHeader from '../components/ui/PageHeader';
+import StatCard from '../components/ui/StatCard';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
+import { formatMAD, type Reservation, type ReservationStatus } from '../data/mockData';
 
-type ViewMode = 'table' | 'calendar';
+type ViewMode = 'list' | 'grid';
+type ReservationFilterStatus = 'All' | ReservationStatus;
+const statuses: Array<ReservationFilterStatus> = ['All', 'Confirmed', 'Active', 'Completed', 'Cancelled'];
+const reservationSteps = ['Client', 'Véhicule', 'Dates & lieux', 'Tarif & caution', 'Confirmation'];
 
-const statuses: Array<'All' | ReservationStatus> = ['All', 'Confirmed', 'Active', 'Completed', 'Cancelled'];
-const reservationPanelMotion = {
-  initial: { opacity: 0 },
-  animate: { opacity: 1 },
-  exit: { opacity: 0 },
-  transition: { duration: 0.18 },
-};
+const inputClass = 'form-control focus-ring w-full text-sm';
 
-function getRentalDays(pickupDate: string, returnDate: string) {
-  const pickup = new Date(pickupDate);
-  const dropoff = new Date(returnDate);
-  const days = Math.ceil((dropoff.getTime() - pickup.getTime()) / 86_400_000);
-  return Number.isFinite(days) ? Math.max(1, days) : 1;
+function getRentalDays(start: string, end: string) {
+  const from = new Date(start).getTime();
+  const to = new Date(end).getTime();
+  if (Number.isNaN(from) || Number.isNaN(to)) return 1;
+  return Math.max(1, Math.ceil((to - from) / 86_400_000));
 }
 
-function ReservationField({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
+function isDateOverlap(startA: string, endA: string, startB: string, endB: string) {
+  return new Date(startA) <= new Date(endB) && new Date(endA) >= new Date(startB);
+}
+
+function statusFr(status: ReservationStatus) {
+  if (status === 'Confirmed') return 'Confirmée';
+  if (status === 'Active') return 'Active';
+  if (status === 'Completed') return 'Terminée';
+  return 'Annulée';
+}
+
+function urgencyBadge(reservation: Reservation, todayIso: string) {
+  if (reservation.returnDate < todayIso && reservation.status !== 'Completed' && reservation.status !== 'Cancelled') {
+    return { label: 'En retard', className: 'border-rose-300/40 bg-rose-500/15 text-rose-100' };
+  }
+  if (reservation.pickupDate === todayIso) {
+    return { label: "Départ aujourd'hui", className: 'border-amber-300/40 bg-amber-500/15 text-amber-100' };
+  }
+  if (reservation.returnDate === todayIso) {
+    return { label: "Retour aujourd'hui", className: 'border-sky-300/40 bg-sky-500/15 text-sky-100' };
+  }
+  if (reservation.pickupDate > todayIso) {
+    return { label: 'À venir', className: 'border-emerald-300/40 bg-emerald-500/15 text-emerald-100' };
+  }
+  return null;
+}
+
+function ReservationField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="grid gap-2">
       <span className="text-sm font-semibold text-carbon-100 light:text-carbon-800">{label}</span>
@@ -51,63 +82,59 @@ function ReservationField({
   );
 }
 
-const inputClass =
-  'form-control focus-ring w-full text-sm';
-
-const reservationSteps = ['Sélectionner client', 'Sélectionner véhicule', 'Choisir les dates', 'Tarif et caution', 'Confirmer'];
-
-function isDateOverlap(startA: string, endA: string, startB: string, endB: string) {
-  return new Date(startA) <= new Date(endB) && new Date(endA) >= new Date(startB);
-}
-
 export default function ReservationsPage() {
-  const { clients, vehicles, reservations, createReservation, updateReservation, deleteReservation } = useData();
+  const { clients, vehicles, reservations, payments, createReservation, updateReservation, deleteReservation } = useData();
+  const { notify } = useApp();
   const navigate = useNavigate();
+
   const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<'All' | ReservationStatus>('All');
-  const [view, setView] = useState<ViewMode>('calendar');
+  const [status, setStatus] = useState<ReservationFilterStatus>('All');
+  const [view, setView] = useState<ViewMode>('grid');
+
   const [modalOpen, setModalOpen] = useState(false);
+  const [reservationStep, setReservationStep] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Reservation | null>(null);
+  const [detailsTarget, setDetailsTarget] = useState<Reservation | null>(null);
+
   const [draftClientId, setDraftClientId] = useState('');
   const [draftVehicleId, setDraftVehicleId] = useState('');
-  const [draftPickupDate, setDraftPickupDate] = useState('2026-05-15');
-  const [draftReturnDate, setDraftReturnDate] = useState('2026-05-19');
-  const [draftDailyPrice, setDraftDailyPrice] = useState(850);
-  const [draftDeposit, setDraftDeposit] = useState(4000);
-  const [reservationStep, setReservationStep] = useState(0);
-  const [deleteTarget, setDeleteTarget] = useState<Reservation | null>(null);
-  const { notify } = useApp();
+  const [draftPickupDate, setDraftPickupDate] = useState('');
+  const [draftReturnDate, setDraftReturnDate] = useState('');
+  const [draftPickupLocation, setDraftPickupLocation] = useState('');
+  const [draftReturnLocation, setDraftReturnLocation] = useState('');
+  const [draftDailyPrice, setDraftDailyPrice] = useState(0);
+  const [draftDeposit, setDraftDeposit] = useState(0);
+  const [draftMileageOut, setDraftMileageOut] = useState(0);
+  const [draftFuelLevelOut, setDraftFuelLevelOut] = useState('');
+  const [draftNotes, setDraftNotes] = useState('');
+  const [draftStatus, setDraftStatus] = useState<ReservationStatus>('Confirmed');
 
-  const filteredReservations = useMemo(() => {
-    return reservations.filter((reservation) => {
-      const haystack = `${reservation.client} ${reservation.vehicle} ${reservation.city} ${reservation.id}`.toLowerCase();
-      return haystack.includes(query.toLowerCase()) && (status === 'All' || reservation.status === status);
-    });
-  }, [query, reservations, status]);
+  const todayIso = new Date().toISOString().slice(0, 10);
 
-  const selectedClient = clients.find((client) => client.id === draftClientId) || clients[0];
-  const selectedVehicle = vehicles.find((vehicle) => vehicle.id === draftVehicleId) || vehicles[0];
-  const rentalDays = getRentalDays(draftPickupDate, draftReturnDate);
-  const totalEstimate = rentalDays * Number(draftDailyPrice || selectedVehicle?.dailyPrice || 0);
-  const isMobileCards = view === 'calendar';
-  const today = new Date().toISOString().slice(0, 10);
+  const selectedClient = clients.find((client) => client.id === draftClientId) || null;
+  const selectedVehicle = vehicles.find((vehicle) => vehicle.id === draftVehicleId) || null;
+  const rentalDays = getRentalDays(draftPickupDate || todayIso, draftReturnDate || todayIso);
+  const totalEstimate = Math.max(0, Number(draftDailyPrice || 0) * rentalDays);
 
   const vehicleReservations = useMemo(
     () =>
       reservations.filter(
-        (reservation) =>
-          reservation.vehicleId === draftVehicleId &&
-          (reservation.status === 'Confirmed' || reservation.status === 'Active'),
+        (item) =>
+          item.vehicleId === draftVehicleId &&
+          item.id !== editingReservation?.id &&
+          (item.status === 'Confirmed' || item.status === 'Active'),
       ),
-    [draftVehicleId, reservations],
+    [draftVehicleId, editingReservation?.id, reservations],
   );
 
-  const overlapReservation = useMemo(
-    () =>
-      vehicleReservations.find((reservation) =>
-        isDateOverlap(draftPickupDate, draftReturnDate, reservation.pickupDate, reservation.returnDate),
-      ),
-    [draftPickupDate, draftReturnDate, vehicleReservations],
-  );
+  const overlapReservation = useMemo(() => {
+    if (!draftPickupDate || !draftReturnDate || !draftVehicleId) return null;
+    return vehicleReservations.find((reservation) =>
+      isDateOverlap(draftPickupDate, draftReturnDate, reservation.pickupDate, reservation.returnDate),
+    );
+  }, [draftPickupDate, draftReturnDate, draftVehicleId, vehicleReservations]);
 
   const nextAvailableDate = useMemo(() => {
     if (!overlapReservation) return null;
@@ -116,19 +143,24 @@ export default function ReservationsPage() {
     return next.toISOString().slice(0, 10);
   }, [overlapReservation]);
 
-  const canContinueFromDates = reservationStep !== 2 || !overlapReservation;
-  const timelineDays = useMemo(() => {
-    const start = new Date(draftPickupDate || today);
-    start.setDate(start.getDate() - 7);
-    return Array.from({ length: 35 }).map((_, index) => {
-      const d = new Date(start);
-      d.setDate(start.getDate() + index);
-      const iso = d.toISOString().slice(0, 10);
-      const isBlocked = vehicleReservations.some((reservation) => isDateOverlap(iso, iso, reservation.pickupDate, reservation.returnDate));
-      const isSelected = isDateOverlap(iso, iso, draftPickupDate, draftReturnDate);
-      return { iso, day: d.getDate(), isBlocked, isSelected, isToday: iso === today };
+  const filteredReservations = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return reservations.filter((reservation) => {
+      const haystack = `${reservation.client} ${reservation.vehicle} ${reservation.city} ${reservation.id}`.toLowerCase();
+      const statusMatch = status === 'All' || reservation.status === status;
+      return statusMatch && (!q || haystack.includes(q));
     });
-  }, [draftPickupDate, draftReturnDate, today, vehicleReservations]);
+  }, [query, reservations, status]);
+
+  const stats = useMemo(() => {
+    const total = reservations.length;
+    const confirmed = reservations.filter((r) => r.status === 'Confirmed').length;
+    const active = reservations.filter((r) => r.status === 'Active').length;
+    const completed = reservations.filter((r) => r.status === 'Completed').length;
+    const cancelled = reservations.filter((r) => r.status === 'Cancelled').length;
+    const revenue = reservations.reduce((sum, reservation) => sum + (reservation.totalAmount ?? reservation.dailyPrice), 0);
+    return { total, confirmed, active, completed, cancelled, revenue };
+  }, [reservations]);
 
   useEffect(() => {
     if (modalOpen) {
@@ -142,76 +174,144 @@ export default function ReservationsPage() {
     };
   }, [modalOpen]);
 
-  function openReservationPanel() {
-    const firstClient = clients[0];
-    const firstVehicle = vehicles[0];
+  function resetDraft() {
+    const firstClient = clients[0] || null;
+    const firstVehicle = vehicles[0] || null;
     setDraftClientId(firstClient?.id || '');
     setDraftVehicleId(firstVehicle?.id || '');
-    setDraftDailyPrice(firstVehicle?.dailyPrice || 850);
-    setDraftDeposit(4000);
-    setDraftPickupDate('2026-05-15');
-    setDraftReturnDate('2026-05-19');
+    setDraftPickupDate(todayIso);
+    const next = new Date(todayIso);
+    next.setDate(next.getDate() + 2);
+    setDraftReturnDate(next.toISOString().slice(0, 10));
+    setDraftDailyPrice(firstVehicle?.dailyPrice || 0);
+    setDraftDeposit(0);
+    setDraftPickupLocation('');
+    setDraftReturnLocation('');
+    setDraftMileageOut(0);
+    setDraftFuelLevelOut('');
+    setDraftNotes('');
+    setDraftStatus('Confirmed');
+    setReservationStep(0);
+  }
+
+  function openNewReservation() {
+    setEditingReservation(null);
+    resetDraft();
+    setModalOpen(true);
+  }
+
+  function openEditReservation(reservation: Reservation) {
+    setEditingReservation(reservation);
+    setDraftClientId(reservation.clientId);
+    setDraftVehicleId(reservation.vehicleId);
+    setDraftPickupDate(reservation.pickupDate);
+    setDraftReturnDate(reservation.returnDate);
+    setDraftDailyPrice(reservation.dailyPrice);
+    setDraftDeposit(reservation.deposit);
+    setDraftPickupLocation(reservation.pickupLocation || '');
+    setDraftReturnLocation(reservation.returnLocation || '');
+    setDraftMileageOut(reservation.mileageOut ?? 0);
+    setDraftFuelLevelOut(reservation.fuelLevelOut || '');
+    setDraftNotes(reservation.notes || '');
+    setDraftStatus(reservation.status);
     setReservationStep(0);
     setModalOpen(true);
   }
 
-  async function handleAddReservation(event: FormEvent<HTMLFormElement>) {
+  function validateCurrentStep() {
+    if (reservationStep === 0 && !draftClientId) {
+      notify({ title: 'Client requis', message: 'Veuillez sélectionner un client.', type: 'warning' });
+      return false;
+    }
+    if (reservationStep === 1 && !draftVehicleId) {
+      notify({ title: 'Véhicule requis', message: 'Veuillez sélectionner un véhicule.', type: 'warning' });
+      return false;
+    }
+    if (reservationStep === 2) {
+      if (!draftPickupDate || !draftReturnDate) {
+        notify({ title: 'Dates requises', message: 'Veuillez choisir la date de départ et de retour.', type: 'warning' });
+        return false;
+      }
+      if (new Date(draftReturnDate) <= new Date(draftPickupDate)) {
+        notify({ title: 'Dates invalides', message: 'La date de retour doit être après la date de départ.', type: 'warning' });
+        return false;
+      }
+      if (overlapReservation) {
+        notify({ title: 'Conflit véhicule', message: 'Ce véhicule est déjà réservé sur cette période.', type: 'warning' });
+        return false;
+      }
+    }
+    if (reservationStep === 3) {
+      if (Number(draftDailyPrice) <= 0) {
+        notify({ title: 'Tarif invalide', message: 'Le prix journalier doit être supérieur à 0.', type: 'warning' });
+        return false;
+      }
+      if (Number(draftDeposit) < 0) {
+        notify({ title: 'Caution invalide', message: 'La caution doit être positive ou égale à 0.', type: 'warning' });
+        return false;
+      }
+    }
+    return true;
+  }
+
+  async function handleSubmitReservation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const clientId = String(form.get('client'));
-    const vehicleId = String(form.get('vehicle'));
-    const client = clients.find((item) => item.id === clientId) || clients[0];
-    const vehicle = vehicles.find((item) => item.id === vehicleId) || vehicles[0];
-    if (!client || !vehicle) {
-      notify({
-        title: 'Données incomplètes',
-        message: 'Ajoutez au moins un client et un véhicule avant de créer une réservation.',
-        type: 'warning',
-      });
+    if (!selectedClient || !selectedVehicle) {
+      notify({ title: 'Données incomplètes', message: 'Veuillez sélectionner un client et un véhicule.', type: 'warning' });
       return;
     }
-    const nextReservation: Reservation = {
-      id: `RS-${1024 + reservations.length + 1}`,
-      client: client.fullName,
-      clientId,
-      vehicle: `${vehicle.brand} ${vehicle.model}`,
-      vehicleId,
-      pickupDate: String(form.get('pickupDate')),
-      returnDate: String(form.get('returnDate')),
-      dailyPrice: Number(form.get('dailyPrice') || vehicle.dailyPrice),
-      deposit: Number(form.get('deposit') || 0),
+    if (new Date(draftReturnDate) <= new Date(draftPickupDate)) {
+      notify({ title: 'Dates invalides', message: 'La date de retour doit être après la date de départ.', type: 'warning' });
+      return;
+    }
+    if (overlapReservation) {
+      notify({ title: 'Conflit véhicule', message: 'Ce véhicule est déjà réservé sur cette période.', type: 'warning' });
+      return;
+    }
+    if (Number(draftDailyPrice) <= 0 || Number(draftDeposit) < 0) {
+      notify({ title: 'Tarification invalide', message: 'Vérifiez prix journalier et caution.', type: 'warning' });
+      return;
+    }
+
+    const payload: Reservation = {
+      id: editingReservation?.id || `RS-${1024 + reservations.length + 1}`,
+      client: selectedClient.fullName,
+      clientId: selectedClient.id,
+      vehicle: `${selectedVehicle.brand} ${selectedVehicle.model}`,
+      vehicleId: selectedVehicle.id,
+      pickupDate: draftPickupDate,
+      returnDate: draftReturnDate,
+      dailyPrice: Number(draftDailyPrice),
+      deposit: Number(draftDeposit),
       totalAmount: totalEstimate,
-      pickupLocation: String(form.get('pickupLocation') || ''),
-      returnLocation: String(form.get('returnLocation') || ''),
-      mileageOut: Number(form.get('mileageOut') || 0),
-      fuelLevelOut: String(form.get('fuelLevelOut') || ''),
-      status: 'Confirmed',
-      notes: String(form.get('notes') || ''),
-      city: vehicle.city,
+      pickupLocation: draftPickupLocation,
+      returnLocation: draftReturnLocation,
+      mileageOut: Number(draftMileageOut || 0),
+      fuelLevelOut: draftFuelLevelOut,
+      status: draftStatus,
+      notes: draftNotes,
+      city: selectedVehicle.city,
     };
+
     try {
-      await createReservation(nextReservation);
+      setSaving(true);
+      if (editingReservation) {
+        await updateReservation(payload);
+        notify({ title: 'Réservation modifiée', message: `${payload.id} mise à jour avec succès.`, type: 'success' });
+      } else {
+        await createReservation(payload);
+        notify({ title: 'Réservation ajoutée', message: `${selectedClient.fullName} réservé(e) pour ${selectedVehicle.model}.`, type: 'success' });
+      }
       setModalOpen(false);
-      notify({ title: 'Réservation ajoutée', message: `${client.fullName} est réservé(e) pour ${vehicle.model}.`, type: 'success' });
+      setEditingReservation(null);
     } catch (error) {
       notify({
-        title: 'Réservation non enregistrée',
+        title: 'Enregistrement impossible',
         message: error instanceof Error ? error.message : 'Réessayez dans quelques instants.',
         type: 'warning',
       });
-    }
-  }
-
-  async function handleUpdateStatus(reservation: Reservation, nextStatus: ReservationStatus | 'Brouillon') {
-    if (nextStatus === 'Brouillon') {
-      notify({ title: 'Statut non appliqué', message: 'Le statut Brouillon n’est pas encore persisté côté base.', type: 'info' });
-      return;
-    }
-    try {
-      await updateReservation({ ...reservation, status: nextStatus });
-      notify({ title: 'Statut mis à jour', message: `Réservation ${reservation.id} mise à jour.`, type: 'success' });
-    } catch (error) {
-      notify({ title: 'Mise à jour impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -226,14 +326,40 @@ export default function ReservationsPage() {
     }
   }
 
+  async function handleUpdateStatus(reservation: Reservation, nextStatus: ReservationStatus) {
+    try {
+      await updateReservation({ ...reservation, status: nextStatus });
+      notify({ title: 'Statut mis à jour', message: `${reservation.id} est maintenant ${statusFr(nextStatus).toLowerCase()}.`, type: 'success' });
+    } catch (error) {
+      notify({ title: 'Mise à jour impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+    }
+  }
+
+  const stepChecklist = [
+    { label: 'Client sélectionné', ok: Boolean(draftClientId) },
+    { label: 'Véhicule sélectionné', ok: Boolean(draftVehicleId) },
+    { label: 'Dates valides', ok: Boolean(draftPickupDate && draftReturnDate && new Date(draftReturnDate) > new Date(draftPickupDate)) },
+    { label: 'Aucun chevauchement', ok: !overlapReservation },
+    { label: 'Prix calculé', ok: totalEstimate > 0 },
+  ];
+
   return (
     <div>
       <PageHeader
         eyebrow="Bookings"
         title="Réservations"
-        description="Gérez les réservations, les créneaux de départ/retour, les cautions et les statuts."
-        action={<Button icon={<Plus className="h-4 w-4" />} onClick={openReservationPanel}>Ajouter une réservation</Button>}
+        description="Pilotage complet des départs, retours, cautions et contrats de location."
+        action={<Button icon={<Plus className="h-4 w-4" />} onClick={openNewReservation}>Ajouter une réservation</Button>}
       />
+
+      <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+        <StatCard label="Total réservations" value={String(stats.total)} trend="Global" icon={CalendarDays} />
+        <StatCard label="Confirmées" value={String(stats.confirmed)} trend="Planifiées" icon={CheckCircle2} />
+        <StatCard label="Actives" value={String(stats.active)} trend="En cours" icon={Clock3} />
+        <StatCard label="Terminées" value={String(stats.completed)} trend="Historique" icon={CheckCircle2} />
+        <StatCard label="Annulées" value={String(stats.cancelled)} trend="À suivre" icon={X} />
+        <StatCard label="Revenus prévus" value={formatMAD(stats.revenue)} trend="Estimé" icon={Wallet} />
+      </div>
 
       <Card className="mb-5 p-4">
         <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
@@ -242,8 +368,8 @@ export default function ReservationsPage() {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Rechercher par client, véhicule, ville ou ID"
-            className="focus-ring h-10 w-full rounded-xl border border-white/[0.07] bg-[#0F1115] pl-10 pr-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,.025)] transition placeholder:text-carbon-500 hover:border-white/12 light:bg-white light:text-carbon-950"
+              placeholder="Rechercher client, véhicule, ville ou référence"
+              className="focus-ring h-10 w-full rounded-xl border border-white/[0.07] bg-[#0F1115] pl-10 pr-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,.025)] transition placeholder:text-carbon-500 hover:border-white/12 light:bg-white light:text-carbon-950"
             />
           </label>
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 no-scrollbar md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
@@ -251,27 +377,19 @@ export default function ReservationsPage() {
               <button
                 key={item}
                 className={`focus-ring shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition md:text-sm ${
-                  status === item ? 'bg-gold-400 text-carbon-950' : 'border border-white/10 bg-white/[0.04] text-carbon-300 hover:bg-white/10 light:text-carbon-700'
+                  status === item ? 'bg-gold-400 text-carbon-950' : 'border border-white/10 bg-white/[0.04] text-carbon-300 hover:bg-white/10'
                 }`}
                 onClick={() => setStatus(item)}
               >
-                {item === 'All' ? 'Tous' : item === 'Confirmed' ? 'Confirmée' : item === 'Active' ? 'Active' : item === 'Completed' ? 'Terminée' : 'Annulée'}
+                {item === 'All' ? 'Tous' : statusFr(item)}
               </button>
             ))}
           </div>
           <div className="hidden rounded-xl border border-white/10 bg-white/[0.04] p-1 md:flex">
-            <button
-              className={`focus-ring grid h-9 w-10 place-items-center rounded-lg ${view === 'table' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300'}`}
-              onClick={() => setView('table')}
-              aria-label="Table view"
-            >
+            <button className={`focus-ring grid h-9 w-10 place-items-center rounded-lg ${view === 'list' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300'}`} onClick={() => setView('list')} aria-label="Vue liste">
               <ListFilter className="h-4 w-4" />
             </button>
-            <button
-              className={`focus-ring grid h-9 w-10 place-items-center rounded-lg ${view === 'calendar' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300'}`}
-              onClick={() => setView('calendar')}
-              aria-label="Calendar view"
-            >
+            <button className={`focus-ring grid h-9 w-10 place-items-center rounded-lg ${view === 'grid' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300'}`} onClick={() => setView('grid')} aria-label="Vue cartes">
               <LayoutGrid className="h-4 w-4" />
             </button>
           </div>
@@ -280,58 +398,42 @@ export default function ReservationsPage() {
 
       {filteredReservations.length === 0 ? (
         <EmptyState
-          icon={Filter}
-          title="No reservations found"
-          message="Adjust the filters or add a new booking to keep the calendar moving."
-          action="Add reservation"
-          onAction={openReservationPanel}
+          icon={CalendarDays}
+          title="Aucune réservation trouvée"
+          message={reservations.length ? 'Aucun résultat avec ces filtres.' : 'Ajoutez votre première réservation.'}
+          action="Ajouter une réservation"
+          onAction={openNewReservation}
         />
-      ) : !isMobileCards ? (
+      ) : view === 'list' ? (
         <Card className="data-table hidden overflow-hidden md:block">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[920px] text-left text-sm">
+            <table className="w-full min-w-[980px] text-left text-sm">
               <thead className="border-b border-white/[0.06] text-xs uppercase tracking-wide text-carbon-400">
                 <tr>
-                  <th className="px-5 py-4">Reservation</th>
+                  <th className="px-5 py-4">Référence</th>
                   <th className="px-5 py-4">Client</th>
-                  <th className="px-5 py-4">Vehicle</th>
-                  <th className="px-5 py-4">Pickup</th>
-                  <th className="px-5 py-4">Return</th>
-                  <th className="px-5 py-4">Daily price</th>
-                  <th className="px-5 py-4">Deposit</th>
-                  <th className="px-5 py-4">Status</th>
+                  <th className="px-5 py-4">Véhicule</th>
+                  <th className="px-5 py-4">Dates</th>
+                  <th className="px-5 py-4">Statut</th>
+                  <th className="px-5 py-4">Total</th>
                   <th className="px-5 py-4">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.06]">
                 {filteredReservations.map((reservation) => (
                   <tr key={reservation.id} className="transition hover:bg-white/[0.03]">
-                    <td className="px-5 py-4 font-bold text-white light:text-carbon-950">{reservation.id}</td>
-                    <td className="px-5 py-4 text-carbon-300 light:text-carbon-700">{reservation.client}</td>
-                    <td className="px-5 py-4 text-carbon-300 light:text-carbon-700">{reservation.vehicle}</td>
-                    <td className="px-5 py-4 text-carbon-400">{reservation.pickupDate}</td>
-                    <td className="px-5 py-4 text-carbon-400">{reservation.returnDate}</td>
-                    <td className="px-5 py-4 text-white light:text-carbon-950">{formatMAD(reservation.dailyPrice)}</td>
-                    <td className="px-5 py-4 text-carbon-300 light:text-carbon-700">{formatMAD(reservation.deposit)}</td>
+                    <td className="px-5 py-4 font-bold text-white">{reservation.id}</td>
+                    <td className="px-5 py-4 text-carbon-300">{reservation.client}</td>
+                    <td className="px-5 py-4 text-carbon-300">{reservation.vehicle}</td>
+                    <td className="px-5 py-4 text-carbon-400">{reservation.pickupDate} → {reservation.returnDate}</td>
                     <td className="px-5 py-4"><Badge>{reservation.status}</Badge></td>
+                    <td className="px-5 py-4 text-white">{formatMAD(reservation.totalAmount ?? reservation.dailyPrice)}</td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap gap-2">
-                        <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => notify({ title: reservation.id, message: `${reservation.client} · ${reservation.vehicle}`, type: 'info' })}>Voir détails</Button>
-                        <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<Pencil className="h-3.5 w-3.5" />} onClick={openReservationPanel}>Modifier réservation</Button>
-                        <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<FileSignature className="h-3.5 w-3.5" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}`)}>Générer / voir contrat</Button>
-                        <Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}&download=1`)}>Télécharger contrat PDF</Button>
-                        <select
-                          className="form-control h-8 rounded-lg px-2 text-xs"
-                          value={reservation.status}
-                          onChange={(e) => handleUpdateStatus(reservation, e.target.value as ReservationStatus)}
-                        >
-                          <option>Brouillon</option>
-                          <option value="Confirmed">Confirmée</option>
-                          <option value="Active">Active</option>
-                          <option value="Completed">Terminée</option>
-                          <option value="Cancelled">Annulée</option>
-                        </select>
-                        <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setDeleteTarget(reservation)}>Supprimer réservation</Button>
+                        <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => openEditReservation(reservation)}>Modifier</Button>
+                        <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setDetailsTarget(reservation)}>Détails</Button>
+                        <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<FileSignature className="h-3.5 w-3.5" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}`)}>Générer contrat</Button>
+                        <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setDeleteTarget(reservation)}>Supprimer</Button>
                       </div>
                     </td>
                   </tr>
@@ -341,74 +443,90 @@ export default function ReservationsPage() {
           </div>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {filteredReservations.map((reservation) => (
-            <Card key={reservation.id} interactive className="p-5">
-              <div className="mb-5 flex items-start justify-between gap-3">
-                <div className="rounded-2xl border border-white/[0.07] bg-white/[0.035] p-3 text-gold-200">
-                  <CalendarDays className="h-5 w-5" />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {filteredReservations.map((reservation) => {
+            const days = getRentalDays(reservation.pickupDate, reservation.returnDate);
+            const urgency = urgencyBadge(reservation, todayIso);
+            const payment = payments.find((item) => item.reservationId === reservation.id);
+            return (
+              <Card key={reservation.id} interactive className="group overflow-hidden border-white/10 bg-gradient-to-br from-[#131821] to-[#0b0f15] p-5 shadow-[0_10px_30px_rgba(0,0,0,.28)] transition-all hover:border-[#D4A017]/35">
+                <div className="mb-3 flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-carbon-500">{reservation.id}</p>
+                    <h3 className="mt-1 text-base font-bold text-white">{reservation.vehicle}</h3>
+                    <p className="mt-1 text-sm text-carbon-400">{reservation.client}</p>
+                  </div>
+                  <Badge>{reservation.status}</Badge>
                 </div>
-                <Badge>{reservation.status}</Badge>
-              </div>
-              <p className="text-xs text-carbon-500">{reservation.id}</p>
-              <h3 className="font-black text-white light:text-carbon-950">{reservation.vehicle}</h3>
-              <p className="mt-1 text-sm text-carbon-400">{reservation.client}</p>
-              <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                <p className="text-xs uppercase tracking-wide text-carbon-500">Rental window</p>
-                <p className="mt-2 font-semibold text-carbon-100 light:text-carbon-800">
-                  {reservation.pickupDate} → {reservation.returnDate}
-                </p>
-              </div>
-              <p className="mt-4 font-semibold text-gold-200">{formatMAD(reservation.dailyPrice)}</p>
-              <p className="mt-4 text-sm leading-6 text-carbon-400">{reservation.notes}</p>
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <Button variant="secondary" className="h-9 text-xs" onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}`)}>Générer contrat</Button>
-                <Button variant="danger" className="h-9 text-xs" onClick={() => setDeleteTarget(reservation)}>Supprimer</Button>
-              </div>
-            </Card>
-          ))}
+
+                {urgency ? (
+                  <div className={`mb-3 inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${urgency.className}`}>
+                    {urgency.label}
+                  </div>
+                ) : null}
+
+                <div className="grid gap-2 text-sm text-carbon-300">
+                  <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-gold-200" /> {reservation.pickupDate} → {reservation.returnDate} ({days} jours)</p>
+                  <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-gold-200" /> {reservation.pickupLocation || 'Lieu départ non renseigné'}</p>
+                  <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-gold-200" /> {reservation.returnLocation || 'Lieu retour non renseigné'}</p>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                    <p className="text-xs text-carbon-500">Total</p>
+                    <p className="mt-1 font-semibold text-white">{formatMAD(reservation.totalAmount ?? reservation.dailyPrice)}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                    <p className="text-xs text-carbon-500">Caution</p>
+                    <p className="mt-1 font-semibold text-white">{formatMAD(reservation.deposit || 0)}</p>
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <span className="text-xs text-carbon-500">Paiement: </span>
+                  {payment ? <Badge>{payment.status}</Badge> : <span className="text-xs text-carbon-400">Non renseigné</span>}
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <Button variant="secondary" className="h-9 px-3 text-xs" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => openEditReservation(reservation)}>Modifier</Button>
+                  <Button variant="secondary" className="h-9 px-3 text-xs" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setDetailsTarget(reservation)}>Détails</Button>
+                  <Button variant="secondary" className="h-9 px-3 text-xs" icon={<FileSignature className="h-3.5 w-3.5" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}`)}>Générer contrat</Button>
+                  <Button variant="danger" className="h-9 px-3 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setDeleteTarget(reservation)}>Supprimer</Button>
+                </div>
+              </Card>
+            );
+          })}
         </div>
       )}
 
       <AnimatePresence>
         {modalOpen ? (
-          <motion.div
-            className="fixed inset-0 z-50 overflow-hidden bg-[#050505]/88 p-0 backdrop-blur-sm sm:p-4"
-            {...reservationPanelMotion}
-          >
-            <button
-              aria-label="Close reservation panel"
-              className="absolute inset-0 h-full w-full cursor-default"
-              onClick={() => setModalOpen(false)}
-            />
+          <motion.div className="fixed inset-0 z-50 overflow-hidden bg-[#050505]/88 p-0 backdrop-blur-sm sm:p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <button aria-label="Fermer" className="absolute inset-0 h-full w-full cursor-default" onClick={() => !saving && setModalOpen(false)} />
             <motion.aside
               initial={{ opacity: 0, x: 36, scale: 0.985 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 28, scale: 0.985 }}
               transition={{ duration: 0.24, ease: 'easeOut' }}
-              className="relative ml-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-6xl flex-col overflow-hidden rounded-none border border-white/[0.07] bg-[#0B0D10] shadow-[0_26px_80px_rgba(0,0,0,.55)] sm:h-full sm:max-h-none sm:rounded-[1.5rem] light:bg-white"
+              className="relative ml-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-6xl flex-col overflow-hidden rounded-none border border-white/[0.07] bg-[#0B0D10] shadow-[0_26px_80px_rgba(0,0,0,.55)] sm:h-full sm:max-h-none sm:rounded-[1.5rem]"
             >
-              <div className="flex items-start justify-between gap-3 border-b border-white/10 px-3 py-2.5 sm:gap-4 sm:px-7 sm:py-4">
+              <div className="flex items-start justify-between gap-4 border-b border-white/10 px-4 py-4 sm:px-7">
                 <div>
-                  <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.035] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-carbon-300 light:text-carbon-700">
+                  <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.035] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-carbon-300">
                     <CheckCircle2 className="h-3.5 w-3.5" />
-                    Nouvelle réservation
+                    {editingReservation ? 'Modifier réservation' : 'Nouvelle réservation'}
                   </div>
-                  <h2 className="text-base font-semibold tracking-tight text-white sm:text-2xl light:text-carbon-950">Ajouter une réservation</h2>
-                  <p className="mt-0.5 max-w-2xl text-xs leading-5 text-carbon-400 sm:text-sm sm:leading-6 light:text-carbon-600">Flux simple et rapide pour créer une réservation.</p>
+                  <h2 className="text-lg font-semibold tracking-tight text-white sm:text-2xl">{editingReservation ? 'Modifier une réservation' : 'Ajouter une réservation'}</h2>
+                  <p className="mt-1 text-sm text-carbon-400">Flux guidé pour créer rapidement une réservation fiable.</p>
                 </div>
-                <button
-                  className="focus-ring grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-carbon-300 transition hover:bg-white/10 hover:text-white"
-                  onClick={() => setModalOpen(false)}
-                  type="button"
-                >
+                <button className="focus-ring grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-carbon-300 transition hover:bg-white/10 hover:text-white" onClick={() => !saving && setModalOpen(false)} type="button">
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <form className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[1fr_360px]" onSubmit={handleAddReservation}>
+              <form className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[1fr_360px]" onSubmit={handleSubmitReservation}>
                 <div className="flex min-h-0 flex-col">
-                  <div className="border-b border-white/10 px-3 py-2 sm:px-7 sm:py-4">
+                  <div className="border-b border-white/10 px-4 py-4 sm:px-7">
                     <div className="sm:hidden">
                       <p className="text-xs font-semibold text-carbon-400">{reservationStep + 1}/5 • {reservationSteps[reservationStep]}</p>
                       <div className="mt-2 h-1.5 rounded-full bg-white/10">
@@ -427,272 +545,200 @@ export default function ReservationsPage() {
                               : 'border-white/10 bg-white/[0.025] text-carbon-500 hover:text-carbon-200'
                           }`}
                         >
-                          <span className="mr-2 text-carbon-500">0{index + 1}</span>{step.split(' ')[0]}
+                          <span className="mr-2 text-carbon-500">0{index + 1}</span>{step}
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 pb-28 sm:px-7 sm:py-6">
-                    <AnimatePresence mode="wait">
-                      {reservationStep === 0 ? (
-                        <motion.section
-                          key="client"
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -8 }}
-                          className="space-y-5"
-                        >
-                          <div>
-                            <h3 className="text-base font-semibold tracking-tight text-white sm:text-xl light:text-carbon-950">Sélectionner client</h3>
-                            <p className="mt-1 text-xs text-carbon-400 sm:text-sm">Choisissez le client lié à cette réservation.</p>
-                          </div>
-                          <ReservationField label="Client">
-                            <select
-                              className={inputClass}
-                              name="client"
-                              required
-                              value={draftClientId}
-                              onChange={(event) => setDraftClientId(event.target.value)}
-                            >
-                              {clients.map((client) => (
-                                <option key={client.id} value={client.id}>{client.fullName}</option>
-                              ))}
-                            </select>
-                          </ReservationField>
-                          {selectedClient ? (
-                            <div className="premium-surface rounded-2xl p-3 sm:rounded-3xl sm:p-5">
-                              <div className="flex items-start gap-3">
-                                <div className="premium-avatar grid h-11 w-11 shrink-0 place-items-center rounded-xl text-sm font-black text-carbon-950 sm:h-14 sm:w-14 sm:rounded-2xl sm:text-lg">
-                                  {selectedClient.fullName.split(' ').map((part) => part[0]).slice(0, 2).join('')}
-                                </div>
-                                <div>
-                                  <div className="mb-2"><Badge>{selectedClient.status}</Badge></div>
-                                  <p className="text-sm font-semibold text-white sm:text-lg light:text-carbon-950">{selectedClient.fullName}</p>
-                                  <p className="mt-1 text-xs text-carbon-400 sm:text-sm">{selectedClient.phone} · {selectedClient.cin}</p>
-                                  <p className="mt-1 text-xs text-carbon-500 sm:text-sm">Permis {selectedClient.license} · {selectedClient.totalRentals} locations</p>
-                                </div>
-                              </div>
-                            </div>
-                          ) : null}
-                        </motion.section>
-                      ) : null}
-
-                      {reservationStep === 1 ? (
-                        <motion.section
-                          key="vehicle"
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -8 }}
-                          className="space-y-5"
-                        >
-                          <div>
-                            <h3 className="text-base font-semibold tracking-tight text-white sm:text-xl light:text-carbon-950">Sélectionner véhicule</h3>
-                            <p className="mt-1 text-xs text-carbon-400 sm:text-sm">Assignez un véhicule et vérifiez sa disponibilité.</p>
-                          </div>
-                          <ReservationField label="Vehicle">
-                            <select
-                              className={inputClass}
-                              name="vehicle"
-                              required
-                              value={draftVehicleId}
-                              onChange={(event) => {
-                                const nextVehicle = vehicles.find((vehicle) => vehicle.id === event.target.value);
-                                setDraftVehicleId(event.target.value);
-                                if (nextVehicle) setDraftDailyPrice(nextVehicle.dailyPrice);
-                              }}
-                            >
-                              {vehicles.map((vehicle) => (
-                                <option key={vehicle.id} value={vehicle.id}>{vehicle.brand} {vehicle.model}</option>
-                              ))}
-                            </select>
-                          </ReservationField>
-                          {selectedVehicle ? (
-                            <div className="premium-surface grid gap-3 rounded-2xl p-3 sm:grid-cols-[180px_1fr] sm:rounded-3xl sm:p-5">
-                              <div className="vehicle-visual grid h-24 place-items-center rounded-2xl sm:h-36 sm:rounded-3xl">
-                                <Car className="h-16 w-16 text-white/70" strokeWidth={1.3} />
+                  <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-28 sm:px-7 sm:py-6">
+                    {reservationStep === 0 ? (
+                      <section className="space-y-5">
+                        <div>
+                          <h3 className="text-xl font-semibold text-white">Client</h3>
+                          <p className="mt-1 text-sm text-carbon-400">Sélectionnez le client associé à la réservation.</p>
+                        </div>
+                        <ReservationField label="Client">
+                          <select className={inputClass} value={draftClientId} onChange={(event) => setDraftClientId(event.target.value)} required>
+                            {clients.map((client) => <option key={client.id} value={client.id}>{client.fullName}</option>)}
+                          </select>
+                        </ReservationField>
+                        {selectedClient ? (
+                          <div className="premium-surface rounded-3xl p-5">
+                            <div className="flex gap-4">
+                              <div className="premium-avatar grid h-14 w-14 place-items-center rounded-2xl text-lg font-black text-carbon-950">
+                                {selectedClient.fullName.split(' ').map((part) => part[0]).slice(0, 2).join('')}
                               </div>
                               <div>
-                                <div className="flex flex-wrap items-center gap-3">
-                                  <p className="text-sm font-semibold text-white sm:text-lg light:text-carbon-950">{selectedVehicle.brand} {selectedVehicle.model}</p>
-                                  <Badge>{selectedVehicle.status}</Badge>
-                                </div>
-                                <p className="mt-1 text-xs text-carbon-400 sm:text-sm">{selectedVehicle.plate} · {selectedVehicle.city}</p>
-                                <p className="mt-2 text-xs text-carbon-500 sm:mt-4 sm:text-sm">{selectedVehicle.mileage.toLocaleString()} km · {formatMAD(selectedVehicle.dailyPrice)} / jour</p>
+                                <div className="mb-2"><Badge>{selectedClient.status}</Badge></div>
+                                <p className="font-semibold text-white">{selectedClient.fullName}</p>
+                                <p className="mt-1 text-sm text-carbon-400">{selectedClient.phone} · {selectedClient.cin}</p>
+                                <p className="mt-1 text-sm text-carbon-500">Permis {selectedClient.license} · {selectedClient.totalRentals} réservations passées</p>
+                                {selectedClient.idCardFrontUrl && selectedClient.idCardBackUrl ? (
+                                  <p className="mt-2 text-xs font-semibold text-emerald-200">Documents identité complets</p>
+                                ) : (
+                                  <p className="mt-2 text-xs font-semibold text-amber-200">Pièces d’identité manquantes</p>
+                                )}
                               </div>
                             </div>
-                          ) : null}
-                        </motion.section>
-                      ) : null}
+                          </div>
+                        ) : null}
+                      </section>
+                    ) : null}
 
-                      {reservationStep === 2 ? (
-                        <motion.section
-                          key="dates"
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -8 }}
-                          className="space-y-5"
-                        >
-                          <div>
-                            <h3 className="text-base font-semibold tracking-tight text-white sm:text-xl light:text-carbon-950">Choisir les dates</h3>
-                            <p className="mt-1 text-xs text-carbon-400 sm:text-sm">Définissez la période de location.</p>
-                          </div>
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <ReservationField label="Date de départ">
-                              <input
-                                className={inputClass}
-                                name="pickupDate"
-                                type="date"
-                                value={draftPickupDate}
-                                onChange={(event) => setDraftPickupDate(event.target.value)}
-                                required
-                              />
-                            </ReservationField>
-                            <ReservationField label="Date de retour">
-                              <input
-                                className={inputClass}
-                                name="returnDate"
-                                type="date"
-                                value={draftReturnDate}
-                                onChange={(event) => setDraftReturnDate(event.target.value)}
-                                required
-                              />
-                            </ReservationField>
-                          </div>
-                          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                            <div className="mb-3 flex flex-wrap items-center gap-3 text-xs">
-                              <span className="inline-flex items-center gap-2 text-carbon-400"><span className="h-2.5 w-2.5 rounded-full bg-white/25" /> Disponible</span>
-                              <span className="inline-flex items-center gap-2 text-carbon-400"><span className="h-2.5 w-2.5 rounded-full bg-rose-400/90" /> Réservé</span>
-                              <span className="inline-flex items-center gap-2 text-carbon-400"><span className="h-2.5 w-2.5 rounded-full bg-gold-400" /> Sélection</span>
+                    {reservationStep === 1 ? (
+                      <section className="space-y-5">
+                        <div>
+                          <h3 className="text-xl font-semibold text-white">Véhicule</h3>
+                          <p className="mt-1 text-sm text-carbon-400">Choisissez le véhicule disponible pour la période.</p>
+                        </div>
+                        <ReservationField label="Véhicule">
+                          <select
+                            className={inputClass}
+                            value={draftVehicleId}
+                            onChange={(event) => {
+                              const v = vehicles.find((item) => item.id === event.target.value);
+                              setDraftVehicleId(event.target.value);
+                              if (v) setDraftDailyPrice(v.dailyPrice);
+                            }}
+                            required
+                          >
+                            {vehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.brand} {vehicle.model}</option>)}
+                          </select>
+                        </ReservationField>
+                        {selectedVehicle ? (
+                          <div className="premium-surface grid gap-3 rounded-3xl p-5 sm:grid-cols-[180px_1fr]">
+                            <div className="vehicle-visual grid h-28 place-items-center rounded-3xl">
+                              <Car className="h-14 w-14 text-white/70" strokeWidth={1.3} />
                             </div>
-                            <div className="overflow-x-auto pb-1">
-                              <div className="grid min-w-[560px] grid-cols-[repeat(35,minmax(0,1fr))] gap-1.5">
-                                {timelineDays.map((item) => (
-                                  <div
-                                    key={item.iso}
-                                    className={`grid h-11 place-items-center rounded-lg border text-xs font-semibold ${
-                                      item.isSelected
-                                        ? 'border-gold-300/70 bg-gold-400/20 text-gold-100'
-                                        : item.isBlocked
-                                          ? 'border-rose-300/45 bg-rose-400/15 text-rose-100'
-                                          : 'border-white/10 bg-white/[0.02] text-carbon-300'
-                                    } ${item.isToday ? 'ring-1 ring-white/40' : ''}`}
-                                    title={item.iso}
-                                  >
-                                    {item.day}
-                                  </div>
-                                ))}
+                            <div>
+                              <div className="flex flex-wrap items-center gap-3">
+                                <p className="text-lg font-semibold text-white">{selectedVehicle.brand} {selectedVehicle.model}</p>
+                                <Badge>{selectedVehicle.status}</Badge>
                               </div>
+                              <p className="mt-1 text-sm text-carbon-400">{selectedVehicle.plate} · {selectedVehicle.city}</p>
+                              <p className="mt-3 text-sm text-carbon-300">{selectedVehicle.mileage.toLocaleString()} km · {formatMAD(selectedVehicle.dailyPrice)} / jour</p>
                             </div>
-                            {overlapReservation ? (
-                              <p className="mt-3 text-sm font-semibold text-rose-200">
-                                Ce véhicule est déjà réservé sur cette période.
-                                {nextAvailableDate ? ` Prochaine date disponible: ${nextAvailableDate}.` : ''}
-                              </p>
-                            ) : (
-                              <p className="mt-3 text-sm font-semibold text-emerald-200">Véhicule disponible pour cette période.</p>
-                            )}
                           </div>
-                        </motion.section>
-                      ) : null}
+                        ) : null}
+                      </section>
+                    ) : null}
 
-                      {reservationStep === 3 ? (
-                        <motion.section
-                          key="pricing"
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -8 }}
-                          className="space-y-5"
-                        >
-                          <div>
-                            <h3 className="text-base font-semibold tracking-tight text-white sm:text-xl light:text-carbon-950">Tarif et caution</h3>
-                            <p className="mt-1 text-xs text-carbon-400 sm:text-sm">Confirmez le prix journalier et la caution.</p>
-                          </div>
-                          <div className="grid gap-4 md:grid-cols-[1fr_1fr_1.15fr]">
-                            <ReservationField label="Daily price">
-                              <input
-                                className={inputClass}
-                                name="dailyPrice"
-                                type="number"
-                                value={draftDailyPrice}
-                                onChange={(event) => setDraftDailyPrice(Number(event.target.value))}
-                                required
-                              />
-                            </ReservationField>
-                            <ReservationField label="Deposit">
-                              <input
-                                className={inputClass}
-                                name="deposit"
-                                type="number"
-                                value={draftDeposit}
-                                onChange={(event) => setDraftDeposit(Number(event.target.value))}
-                                required
-                              />
-                            </ReservationField>
-                            <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
-                              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-carbon-500">Total estimate</p>
-                              <p className="mt-1 text-xl font-semibold text-white light:text-carbon-950">{formatMAD(totalEstimate)}</p>
-                            </div>
-                          </div>
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <ReservationField label="Lieu de prise en charge" hint="Obligatoire pour le contrat">
-                              <input className={inputClass} name="pickupLocation" required placeholder="Aéroport, hôtel, agence..." />
-                            </ReservationField>
-                            <ReservationField label="Lieu de retour" hint="Recommandé">
-                              <input className={inputClass} name="returnLocation" placeholder="Adresse de retour..." />
-                            </ReservationField>
-                          </div>
-                          <div className="grid gap-4 md:grid-cols-2">
-                            <ReservationField label="Kilométrage sortie">
-                              <input className={inputClass} name="mileageOut" type="number" placeholder="Ex: 45300" />
-                            </ReservationField>
-                            <ReservationField label="Niveau carburant sortie">
-                              <input className={inputClass} name="fuelLevelOut" placeholder="Ex: 3/4" />
-                            </ReservationField>
-                          </div>
-                          <ReservationField label="Custom notes">
-                            <textarea
-                              className={`${inputClass} min-h-24 resize-none py-3 leading-6`}
-                              name="notes"
-                              placeholder="Pickup location, client preferences, accessories..."
-                            />
+                    {reservationStep === 2 ? (
+                      <section className="space-y-5">
+                        <div>
+                          <h3 className="text-xl font-semibold text-white">Dates & lieux</h3>
+                          <p className="mt-1 text-sm text-carbon-400">Définissez les dates, lieux et validez la disponibilité.</p>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <ReservationField label="Date de départ">
+                            <input className={inputClass} type="date" value={draftPickupDate} onChange={(event) => setDraftPickupDate(event.target.value)} required />
                           </ReservationField>
-                        </motion.section>
-                      ) : null}
+                          <ReservationField label="Date de retour">
+                            <input className={inputClass} type="date" value={draftReturnDate} onChange={(event) => setDraftReturnDate(event.target.value)} required />
+                          </ReservationField>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <ReservationField label="Lieu de départ" hint="Obligatoire pour le contrat">
+                            <input className={inputClass} value={draftPickupLocation} onChange={(event) => setDraftPickupLocation(event.target.value)} placeholder="Aéroport, hôtel, agence..." required />
+                          </ReservationField>
+                          <ReservationField label="Lieu de retour">
+                            <input className={inputClass} value={draftReturnLocation} onChange={(event) => setDraftReturnLocation(event.target.value)} placeholder="Adresse de retour..." />
+                          </ReservationField>
+                        </div>
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                          <p className="text-sm font-semibold text-carbon-100">Durée calculée: {rentalDays} jour(s)</p>
+                          {overlapReservation ? (
+                            <p className="mt-2 text-sm font-semibold text-rose-200">
+                              Ce véhicule est déjà réservé sur cette période.
+                              {nextAvailableDate ? ` Prochaine date disponible: ${nextAvailableDate}.` : ''}
+                            </p>
+                          ) : (
+                            <p className="mt-2 text-sm font-semibold text-emerald-200">Véhicule disponible pour cette période.</p>
+                          )}
+                        </div>
+                      </section>
+                    ) : null}
 
-                      {reservationStep === 4 ? (
-                        <motion.section
-                          key="confirm"
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -8 }}
-                          className="space-y-5"
-                        >
-                          <div>
-                            <h3 className="text-base font-semibold tracking-tight text-white sm:text-xl light:text-carbon-950">Confirmer</h3>
-                            <p className="mt-1 text-xs text-carbon-400 sm:text-sm">Vérifiez les détails avant l’enregistrement.</p>
+                    {reservationStep === 3 ? (
+                      <section className="space-y-5">
+                        <div>
+                          <h3 className="text-xl font-semibold text-white">Tarif & caution</h3>
+                          <p className="mt-1 text-sm text-carbon-400">Ajustez le prix journalier, la caution et le statut.</p>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-[1fr_1fr_1.25fr]">
+                          <ReservationField label="Prix journalier">
+                            <input className={inputClass} type="number" value={draftDailyPrice} onChange={(event) => setDraftDailyPrice(Number(event.target.value))} min={1} required />
+                          </ReservationField>
+                          <ReservationField label="Caution">
+                            <input className={inputClass} type="number" value={draftDeposit} onChange={(event) => setDraftDeposit(Number(event.target.value))} min={0} required />
+                          </ReservationField>
+                          <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-carbon-500">Montant total</p>
+                            <p className="mt-1 text-xl font-semibold text-white">{formatMAD(totalEstimate)}</p>
+                            <p className="mt-1 text-xs text-carbon-500">{rentalDays} jours × {formatMAD(draftDailyPrice)}</p>
                           </div>
-                          <div className="premium-surface grid gap-3 rounded-3xl p-5">
-                            <p className="text-lg font-semibold text-white light:text-carbon-950">{selectedClient?.fullName} · {selectedVehicle?.brand} {selectedVehicle?.model}</p>
-                            <p className="text-sm text-carbon-400">{draftPickupDate} au {draftReturnDate} · {rentalDays} jour(s)</p>
-                            <p className="text-2xl font-semibold text-white light:text-carbon-950">{formatMAD(totalEstimate)}</p>
-                          </div>
-                        </motion.section>
-                      ) : null}
-                    </AnimatePresence>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <ReservationField label="Kilométrage sortie">
+                            <input className={inputClass} type="number" value={draftMileageOut} onChange={(event) => setDraftMileageOut(Number(event.target.value))} min={0} />
+                          </ReservationField>
+                          <ReservationField label="Niveau carburant sortie">
+                            <input className={inputClass} value={draftFuelLevelOut} onChange={(event) => setDraftFuelLevelOut(event.target.value)} placeholder="Ex: 3/4" />
+                          </ReservationField>
+                        </div>
+                        <ReservationField label="Statut">
+                          <select className={inputClass} value={draftStatus} onChange={(event) => setDraftStatus(event.target.value as ReservationStatus)}>
+                            <option value="Confirmed">Confirmée</option>
+                            <option value="Active">Active</option>
+                            <option value="Completed">Terminée</option>
+                            <option value="Cancelled">Annulée</option>
+                          </select>
+                        </ReservationField>
+                        <ReservationField label="Notes">
+                          <textarea className={`${inputClass} min-h-24 resize-none py-3 leading-6`} value={draftNotes} onChange={(event) => setDraftNotes(event.target.value)} placeholder="Préférences client, accessoires, remarques..." />
+                        </ReservationField>
+                      </section>
+                    ) : null}
 
-                    <input type="hidden" name="client" value={draftClientId} />
-                    <input type="hidden" name="vehicle" value={draftVehicleId} />
-                    <input type="hidden" name="pickupDate" value={draftPickupDate} />
-                    <input type="hidden" name="returnDate" value={draftReturnDate} />
-                    <input type="hidden" name="dailyPrice" value={draftDailyPrice} />
-                    <input type="hidden" name="deposit" value={draftDeposit} />
+                    {reservationStep === 4 ? (
+                      <section className="space-y-5">
+                        <div>
+                          <h3 className="text-xl font-semibold text-white">Confirmation</h3>
+                          <p className="mt-1 text-sm text-carbon-400">Vérifiez les informations avant enregistrement.</p>
+                        </div>
+                        <div className="premium-surface rounded-3xl p-5">
+                          <p className="text-lg font-semibold text-white">{selectedClient?.fullName || 'Client non sélectionné'}</p>
+                          <p className="mt-1 text-sm text-carbon-400">{selectedVehicle?.brand} {selectedVehicle?.model} · {selectedVehicle?.plate}</p>
+                          <p className="mt-2 text-sm text-carbon-300">{draftPickupDate} → {draftReturnDate} · {rentalDays} jours</p>
+                          <p className="mt-2 text-sm text-carbon-300">{draftPickupLocation || 'Lieu départ non renseigné'} → {draftReturnLocation || 'Lieu retour non renseigné'}</p>
+                          <p className="mt-4 text-2xl font-semibold text-white">{formatMAD(totalEstimate)}</p>
+                          <p className="text-sm text-carbon-400">Caution: {formatMAD(draftDeposit)}</p>
+                        </div>
+
+                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                          <p className="mb-3 text-xs font-black uppercase tracking-wide text-gold-200">Checklist</p>
+                          <div className="grid gap-2">
+                            {stepChecklist.map((item) => (
+                              <div key={item.label} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/15 px-3 py-2 text-sm">
+                                <span className="text-carbon-200">{item.label}</span>
+                                {item.ok ? (
+                                  <span className="inline-flex items-center gap-1 text-emerald-300"><CheckCircle2 className="h-4 w-4" /> OK</span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 text-amber-200"><CircleAlert className="h-4 w-4" /> À vérifier</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </section>
+                    ) : null}
                   </div>
 
-                  <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-white/10 bg-[#0B0D10]/95 px-3 py-2.5 pb-[calc(env(safe-area-inset-bottom)+10px)] backdrop-blur sm:px-7 sm:py-4 sm:pb-4">
+                  <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-white/10 bg-[#0B0D10]/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+10px)] backdrop-blur sm:px-7 sm:py-4 sm:pb-4">
                     <button
                       className="focus-ring h-10 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-carbon-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
-                      disabled={reservationStep === 0}
+                      disabled={reservationStep === 0 || saving}
                       type="button"
                       onClick={() => setReservationStep((step) => Math.max(0, step - 1))}
                     >
@@ -702,27 +748,31 @@ export default function ReservationsPage() {
                       <button
                         className="focus-ring h-10 rounded-xl bg-[#D4A017] px-4 text-sm font-bold text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.14)] transition hover:-translate-y-0.5 hover:bg-[#E8B923] disabled:cursor-not-allowed disabled:opacity-50"
                         type="button"
-                        disabled={!canContinueFromDates}
-                        onClick={() => setReservationStep((step) => Math.min(reservationSteps.length - 1, step + 1))}
+                        disabled={saving}
+                        onClick={() => {
+                          if (!validateCurrentStep()) return;
+                          setReservationStep((step) => Math.min(reservationSteps.length - 1, step + 1));
+                        }}
                       >
                         Continuer
                       </button>
                     ) : (
                       <button
-                        className="focus-ring h-10 rounded-xl bg-[#D4A017] px-4 text-sm font-bold text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.14)] transition hover:-translate-y-0.5 hover:bg-[#E8B923]"
+                        className="focus-ring h-10 rounded-xl bg-[#D4A017] px-4 text-sm font-bold text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.14)] transition hover:-translate-y-0.5 hover:bg-[#E8B923] disabled:cursor-not-allowed disabled:opacity-50"
                         type="submit"
+                        disabled={saving}
                       >
-                        Enregistrer
+                        {saving ? 'Enregistrement...' : editingReservation ? 'Enregistrer les modifications' : 'Créer la réservation'}
                       </button>
                     )}
                   </div>
                 </div>
 
-                <aside className="hidden border-t border-white/[0.07] bg-[#0F1115] p-5 light:bg-carbon-950/[0.03] lg:block lg:border-l lg:border-t-0 lg:p-6">
+                <aside className="hidden border-t border-white/[0.07] bg-[#0F1115] p-5 lg:block lg:border-l lg:border-t-0 lg:p-6">
                   <div className="sticky top-6 space-y-5">
                     <div>
-                      <h3 className="text-sm font-bold uppercase tracking-[0.18em] text-carbon-500">Reservation Summary</h3>
-                      <p className="mt-2 text-sm leading-6 text-carbon-400">A quick confirmation before saving this booking.</p>
+                      <h3 className="text-sm font-bold uppercase tracking-[0.18em] text-carbon-500">Résumé réservation</h3>
+                      <p className="mt-2 text-sm leading-6 text-carbon-400">Vérification rapide avant enregistrement.</p>
                     </div>
 
                     <div className="premium-surface rounded-3xl p-5">
@@ -732,13 +782,13 @@ export default function ReservationsPage() {
                             <Car className="h-7 w-7" />
                           </div>
                           <div>
-                            <p className="font-semibold text-white light:text-carbon-950">{selectedVehicle.brand} {selectedVehicle.model}</p>
+                            <p className="font-semibold text-white">{selectedVehicle.brand} {selectedVehicle.model}</p>
                             <p className="mt-1 text-sm text-carbon-400">{selectedVehicle.plate} · {selectedVehicle.city}</p>
                           </div>
                         </div>
                       ) : (
                         <div className="rounded-2xl border border-dashed border-white/15 p-5 text-sm text-carbon-400">
-                          Select a vehicle to preview pricing and branch details.
+                          Sélectionnez un véhicule pour afficher le résumé.
                         </div>
                       )}
                     </div>
@@ -746,28 +796,28 @@ export default function ReservationsPage() {
                     <div className="premium-surface grid gap-3 rounded-3xl p-5 text-sm">
                       <div className="flex items-center justify-between gap-3">
                         <span className="flex items-center gap-2 text-carbon-400"><UserRound className="h-4 w-4" /> Client</span>
-                        <strong className="text-right text-white light:text-carbon-950">{selectedClient?.fullName || 'Not selected'}</strong>
+                        <strong className="text-right text-white">{selectedClient?.fullName || 'Non sélectionné'}</strong>
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <span className="flex items-center gap-2 text-carbon-400"><CalendarDays className="h-4 w-4" /> Duration</span>
-                        <strong className="text-white light:text-carbon-950">{rentalDays} day(s)</strong>
+                        <span className="flex items-center gap-2 text-carbon-400"><CalendarDays className="h-4 w-4" /> Durée</span>
+                        <strong className="text-white">{rentalDays} jour(s)</strong>
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <span className="flex items-center gap-2 text-carbon-400"><MapPin className="h-4 w-4" /> Pickup</span>
-                        <strong className="text-white light:text-carbon-950">{draftPickupDate}</strong>
+                        <span className="flex items-center gap-2 text-carbon-400"><MapPin className="h-4 w-4" /> Départ</span>
+                        <strong className="text-white">{draftPickupDate || '—'}</strong>
                       </div>
                       <div className="h-px bg-white/10" />
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-carbon-400">Total price</span>
-                        <strong className="text-lg text-white light:text-carbon-950">{formatMAD(totalEstimate)}</strong>
+                        <span className="text-carbon-400">Montant total</span>
+                        <strong className="text-lg text-white">{formatMAD(totalEstimate)}</strong>
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-carbon-400">Deposit</span>
-                        <strong className="text-white light:text-carbon-950">{formatMAD(Number(draftDeposit || 0))}</strong>
+                        <span className="text-carbon-400">Caution</span>
+                        <strong className="text-white">{formatMAD(Number(draftDeposit || 0))}</strong>
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-carbon-400">Status</span>
-                        <Badge>Confirmed</Badge>
+                        <span className="text-carbon-400">Statut</span>
+                        <Badge>{draftStatus}</Badge>
                       </div>
                     </div>
                   </div>
@@ -786,6 +836,38 @@ export default function ReservationsPage() {
             <Button variant="danger" onClick={confirmDeleteReservation}>Supprimer</Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal open={Boolean(detailsTarget)} onClose={() => setDetailsTarget(null)} title={`Détails · ${detailsTarget?.id || ''}`}>
+        {detailsTarget ? (
+          <div className="space-y-4">
+            <div className="grid gap-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-carbon-300">
+              <p><strong className="text-white">Client:</strong> {detailsTarget.client}</p>
+              <p><strong className="text-white">Véhicule:</strong> {detailsTarget.vehicle}</p>
+              <p><strong className="text-white">Période:</strong> {detailsTarget.pickupDate} → {detailsTarget.returnDate}</p>
+              <p><strong className="text-white">Lieu départ:</strong> {detailsTarget.pickupLocation || 'Non renseigné'}</p>
+              <p><strong className="text-white">Lieu retour:</strong> {detailsTarget.returnLocation || 'Non renseigné'}</p>
+              <p><strong className="text-white">Total:</strong> {formatMAD(detailsTarget.totalAmount ?? detailsTarget.dailyPrice)}</p>
+              <p><strong className="text-white">Caution:</strong> {formatMAD(detailsTarget.deposit || 0)}</p>
+              <p><strong className="text-white">Statut:</strong> {statusFr(detailsTarget.status)}</p>
+              <p><strong className="text-white">Notes:</strong> {detailsTarget.notes || 'Aucune note'}</p>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              <Button variant="secondary" icon={<Pencil className="h-4 w-4" />} onClick={() => { setDetailsTarget(null); openEditReservation(detailsTarget); }}>
+                Modifier
+              </Button>
+              <Button variant="secondary" icon={<FileSignature className="h-4 w-4" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(detailsTarget.id)}`)}>
+                Générer contrat
+              </Button>
+              <Button variant="secondary" onClick={() => handleUpdateStatus(detailsTarget, 'Completed')}>
+                Marquer terminée
+              </Button>
+              <Button variant="danger" onClick={() => handleUpdateStatus(detailsTarget, 'Cancelled')}>
+                Annuler réservation
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </Modal>
     </div>
   );
