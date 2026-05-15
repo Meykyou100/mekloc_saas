@@ -198,8 +198,38 @@ export default function ContractsPage() {
     revenue: 0,
   };
 
-  const client = useMemo(() => clients.find((item) => item.id === clientId) || emptyClient, [clientId, clients]);
-  const vehicle = useMemo(() => vehicles.find((item) => item.id === vehicleId) || emptyVehicle, [vehicleId, vehicles]);
+  const matchedClientByReservation = useMemo(() => {
+    if (!selectedReservation?.client) return undefined;
+    const reservationClient = selectedReservation.client.trim().toLowerCase();
+    return clients.find((item) => item.fullName.trim().toLowerCase() === reservationClient);
+  }, [clients, selectedReservation?.client]);
+
+  const matchedVehicleByReservation = useMemo(() => {
+    if (!selectedReservation?.vehicle) return undefined;
+    const reservationVehicle = selectedReservation.vehicle.trim().toLowerCase();
+    return vehicles.find((item) => `${item.brand} ${item.model}`.trim().toLowerCase() === reservationVehicle);
+  }, [selectedReservation?.vehicle, vehicles]);
+
+  const client = useMemo(() => {
+    return (
+      clients.find((item) => item.id === clientId) ||
+      clients.find((item) => item.id === selectedReservation?.clientId) ||
+      matchedClientByReservation ||
+      emptyClient
+    );
+  }, [clientId, clients, matchedClientByReservation, selectedReservation?.clientId]);
+
+  const vehicle = useMemo(() => {
+    return (
+      vehicles.find((item) => item.id === vehicleId) ||
+      vehicles.find((item) => item.id === selectedReservation?.vehicleId) ||
+      matchedVehicleByReservation ||
+      emptyVehicle
+    );
+  }, [matchedVehicleByReservation, selectedReservation?.vehicleId, vehicleId, vehicles]);
+
+  const effectiveClientId = client.id || selectedReservation?.clientId || '';
+  const effectiveVehicleId = vehicle.id || selectedReservation?.vehicleId || '';
 
   const pickupDate = selectedReservation?.pickupDate || '';
   const returnDate = selectedReservation?.returnDate || '';
@@ -243,11 +273,11 @@ export default function ContractsPage() {
   const contractFileName = `contract-location-${sanitizeFileName(client.fullName || 'client')}-${sanitizeFileName(vehicle.plate || 'vehicule')}-${new Date().toISOString().slice(0, 10)}.pdf`;
 
   function ensureRequiredData(forGenerate = false) {
-    if (!client.id) {
+    if (!effectiveClientId) {
       notify({ title: 'Données manquantes', message: 'Veuillez sélectionner un client.', type: 'warning' });
       return false;
     }
-    if (!vehicle.id) {
+    if (!effectiveVehicleId) {
       notify({ title: 'Données manquantes', message: 'Veuillez sélectionner un véhicule.', type: 'warning' });
       return false;
     }
@@ -508,9 +538,9 @@ export default function ContractsPage() {
         id: `ctr-${Date.now()}`,
         contractNumber: `CTR-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`,
         client: client.fullName,
-        clientId: client.id,
+        clientId: effectiveClientId,
         vehicle: `${vehicle.brand} ${vehicle.model}`,
-        vehicleId: vehicle.id,
+        vehicleId: effectiveVehicleId,
         template,
         pickupDate,
         returnDate,
