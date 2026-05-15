@@ -24,6 +24,11 @@ export type AgencySubscription = {
   name: string;
   logoPath?: string | null;
   logoUrl?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  ice?: string | null;
+  rc?: string | null;
   plan: AgencyPlan;
   billingStatus: BillingStatus;
   subscriptionStartDate: string | null;
@@ -90,6 +95,12 @@ type AgencyRow = {
   id: string;
   name: string;
   logo_path: string | null;
+  logo_url?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  ice?: string | null;
+  rc?: string | null;
   plan: AgencyPlan | null;
   billing_status: BillingStatus | null;
   subscription_start_date: string | null;
@@ -154,7 +165,14 @@ function mapAgency(row: AgencyRow | AgencyRow[] | null): AgencySubscription | nu
     id: agency.id,
     name: agency.name,
     logoPath: agency.logo_path || null,
-    logoUrl: agency.logo_path && supabase ? supabase.storage.from('logos').getPublicUrl(agency.logo_path).data.publicUrl : null,
+    logoUrl:
+      agency.logo_url ||
+      (agency.logo_path && supabase ? supabase.storage.from('logos').getPublicUrl(agency.logo_path).data.publicUrl : null),
+    address: agency.address || null,
+    phone: agency.phone || null,
+    email: agency.email || null,
+    ice: agency.ice || null,
+    rc: agency.rc || null,
     plan: agency.plan || 'starter',
     billingStatus: agency.billing_status || 'trial',
     subscriptionStartDate: agency.subscription_start_date,

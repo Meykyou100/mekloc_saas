@@ -156,6 +156,7 @@ export default function ContractsPage() {
     phone?: string;
     email?: string;
     logo_path?: string;
+    logo_url?: string;
     ice?: string;
     rc?: string;
   }>({});
@@ -190,12 +191,14 @@ export default function ContractsPage() {
       if (!agencyId || !supabase) return;
       const { data } = await supabase
         .from('agencies')
-        .select('address,phone,email,logo_path,ice,rc')
+        .select('address,phone,email,logo_path,logo_url,ice,rc')
         .eq('id', agencyId)
         .maybeSingle();
       if (!data) return;
       setAgencyMeta(data);
-      if (data.logo_path) {
+      if ((data as { logo_url?: string | null }).logo_url) {
+        setLogoPublicUrl((data as { logo_url?: string | null }).logo_url || null);
+      } else if (data.logo_path) {
         const { data: logoData } = supabase.storage.from('logos').getPublicUrl(data.logo_path);
         setLogoPublicUrl(logoData.publicUrl || null);
       } else {
@@ -311,12 +314,19 @@ export default function ContractsPage() {
 
   const contractFileName = `contract-location-${sanitizeFileName(client.fullName || 'client')}-${sanitizeFileName(vehicle.plate || 'vehicule')}-${new Date().toISOString().slice(0, 10)}.pdf`;
 
-  function ensureRequiredData(forGenerate = false) {
-    if (!effectiveClientId) {
+  function ensureRequiredData(mode: 'preview' | 'generate' = 'preview') {
+    const hasClientData = Boolean(client.fullName?.trim() || selectedReservation?.client?.trim());
+    const hasVehicleData = Boolean(
+      vehicle.brand?.trim() ||
+      vehicle.model?.trim() ||
+      selectedReservation?.vehicle?.trim(),
+    );
+
+    if (mode === 'generate' ? !effectiveClientId : !hasClientData) {
       notify({ title: 'Données manquantes', message: 'Veuillez sélectionner un client.', type: 'warning' });
       return false;
     }
-    if (!effectiveVehicleId) {
+    if (mode === 'generate' ? !effectiveVehicleId : !hasVehicleData) {
       notify({ title: 'Données manquantes', message: 'Veuillez sélectionner un véhicule.', type: 'warning' });
       return false;
     }
@@ -332,7 +342,7 @@ export default function ContractsPage() {
       notify({ title: 'Données manquantes', message: 'Veuillez renseigner les conditions générales.', type: 'warning' });
       return false;
     }
-    if (forGenerate && !selectedReservation?.pickupLocation) {
+    if (mode === 'generate' && !selectedReservation?.pickupLocation) {
       notify({ title: 'Données manquantes', message: 'Veuillez indiquer le lieu de prise en charge.', type: 'warning' });
       return false;
     }
@@ -340,7 +350,7 @@ export default function ContractsPage() {
   }
 
   function downloadContractPreview() {
-    if (!ensureRequiredData()) return;
+    if (!ensureRequiredData('preview')) return;
 
     const termsList = terms.trim() ? terms.trim().split('\n').filter(Boolean) : defaultTerms;
     const pageWidth = 595;
@@ -636,7 +646,7 @@ export default function ContractsPage() {
   }, [searchParams, reservationId, client.id, vehicle.id]);
 
   async function handleGenerateContract() {
-    if (!ensureRequiredData(true)) return;
+    if (!ensureRequiredData('generate')) return;
 
     try {
       setGenerating(true);

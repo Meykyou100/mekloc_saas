@@ -40,12 +40,15 @@ export default function SettingsPage() {
   const [agencyAddress, setAgencyAddress] = useState('');
   const [logoFileName, setLogoFileName] = useState('');
   const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
   useEffect(() => {
     setAgencyName(profile?.agency?.name || '');
-    setAgencyEmail(profile?.email || '');
-    setAgencyPhone(profile?.phone || '');
+    setAgencyEmail(profile?.agency?.email || profile?.email || '');
+    setAgencyPhone(profile?.agency?.phone || profile?.phone || '');
+    setAgencyAddress(profile?.agency?.address || '');
     setLogoPreviewUrl(profile?.agency?.logoUrl || '');
-  }, [profile?.agency?.name, profile?.agency?.logoUrl, profile?.email, profile?.phone]);
+  }, [profile?.agency?.address, profile?.agency?.email, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.email, profile?.phone]);
   function downloadBillingReceipt() {
     const lines = [
       'Recu abonnement MekLoc',
@@ -89,22 +92,61 @@ startxref
 
   async function handleLogoUpload(file: File | undefined) {
     if (!file) return;
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
+    if (!allowedTypes.includes(file.type)) {
+      notify({ title: 'Format non supporté', message: 'Utilisez PNG, JPG, WEBP ou SVG.', type: 'warning' });
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      notify({ title: 'Fichier trop volumineux', message: 'Le logo doit faire moins de 5 MB.', type: 'warning' });
+      return;
+    }
     setLogoFileName(file.name);
+    const localPreview = URL.createObjectURL(file);
+    setLogoPreviewUrl(localPreview);
     if (!isSupabaseEnabled || !agencyId) {
       notify({ title: 'Logo sélectionné', message: 'Le logo sera enregistré après connexion Supabase.', type: 'info' });
       return;
     }
 
     try {
+      setLogoUploading(true);
       await uploadAgencyLogo(agencyId, file);
       await refreshProfile();
       notify({ title: 'Logo téléversé', message: 'Le logo agence a été enregistré.', type: 'success' });
     } catch (error) {
       notify({
-        title: 'Logo not uploaded',
-        message: error instanceof Error ? error.message : 'Try again later.',
+        title: 'Téléversement impossible',
+        message: error instanceof Error ? error.message : 'Réessayez dans quelques instants.',
         type: 'warning',
       });
+    } finally {
+      setLogoUploading(false);
+      URL.revokeObjectURL(localPreview);
+    }
+  }
+
+  async function handleRemoveLogo() {
+    setLogoFileName('');
+    setLogoPreviewUrl('');
+    if (!isSupabaseEnabled || !agencyId || !supabase) {
+      notify({ title: 'Logo supprimé', message: 'Suppression locale effectuée.', type: 'success' });
+      return;
+    }
+    try {
+      setLogoUploading(true);
+      const previousPath = profile?.agency?.logoPath;
+      if (previousPath) {
+        await supabase.storage.from('logos').remove([previousPath]);
+      }
+      const { error } = await supabase.from('agencies').update({ logo_path: null, logo_url: null }).eq('id', agencyId);
+      if (error) throw error;
+      await refreshProfile();
+      notify({ title: 'Logo supprimé', message: 'Le logo agence a été retiré.', type: 'success' });
+    } catch (error) {
+      notify({ title: 'Suppression impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+    } finally {
+      setLogoUploading(false);
     }
   }
 
@@ -114,11 +156,24 @@ startxref
       return;
     }
     try {
+      setSettingsSaving(true);
       if (!supabase) throw new Error('Supabase non configuré');
-      const { error: agencyErr } = await supabase
+      let { error: agencyErr } = await supabase
         .from('agencies')
-        .update({ name: agencyName })
+        .update({
+          name: agencyName,
+          address: agencyAddress || null,
+          phone: agencyPhone || null,
+          email: agencyEmail.trim().toLowerCase() || null,
+        })
         .eq('id', agencyId);
+      if (agencyErr && /column .* does not exist/i.test(agencyErr.message || '')) {
+        const fallback = await supabase
+          .from('agencies')
+          .update({ name: agencyName })
+          .eq('id', agencyId);
+        agencyErr = fallback.error;
+      }
       if (agencyErr) throw agencyErr;
 
       const { error: profileErr } = await supabase
@@ -131,6 +186,8 @@ startxref
       notify({ title: 'Paramètres enregistrés', message: 'Profil agence mis à jour.', type: 'success' });
     } catch (error) {
       notify({ title: 'Enregistrement impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+    } finally {
+      setSettingsSaving(false);
     }
   }
 
@@ -158,7 +215,7 @@ startxref
         eyebrow="Workspace"
         title="Paramètres"
         description="Configurez le profil agence, les contrats, la devise, la fiscalité, WhatsApp et les rôles."
-        action={<div className="flex gap-2"><Button icon={<Save className="h-4 w-4" />} onClick={handleSaveSettings}>Enregistrer</Button><Button variant="secondary" onClick={handleLogout}>Déconnexion</Button></div>}
+        action={<div className="flex gap-2"><Button icon={<Save className="h-4 w-4" />} onClick={handleSaveSettings} loading={settingsSaving}>{settingsSaving ? 'Enregistrement...' : 'Enregistrer'}</Button><Button variant="secondary" onClick={handleLogout}>Déconnexion</Button></div>}
       />
 
       <Card className="mb-6 p-2">
@@ -212,10 +269,19 @@ startxref
                 ref={logoInputRef}
                 className="hidden"
                 type="file"
-                accept="image/png,image/jpeg,image/svg+xml"
+                accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
                 onChange={(event) => handleLogoUpload(event.target.files?.[0])}
               />
-              <Button type="button" variant="secondary" onClick={() => logoInputRef.current?.click()}>Choisir le logo</Button>
+              <div className="flex gap-2">
+                <Button type="button" variant="secondary" onClick={() => logoInputRef.current?.click()} loading={logoUploading}>
+                  {logoPreviewUrl ? 'Modifier le logo' : 'Choisir le logo'}
+                </Button>
+                {logoPreviewUrl ? (
+                  <Button type="button" variant="danger" onClick={handleRemoveLogo} loading={logoUploading}>
+                    Supprimer le logo
+                  </Button>
+                ) : null}
+              </div>
             </div>
           </Card>
           <Card className="p-5">
