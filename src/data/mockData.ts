@@ -49,6 +49,9 @@ export type Client = {
   totalRentals: number;
   totalSpent: number;
   status: 'VIP' | 'Regular' | 'New';
+  idCardFrontUrl?: string;
+  idCardBackUrl?: string;
+  createdAt?: string;
 };
 
 export type Reservation = {

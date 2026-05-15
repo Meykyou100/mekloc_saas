@@ -16,9 +16,9 @@ export default function ClientProfilePage() {
       <div>
         <Link to="/clients" className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-carbon-300 hover:text-gold-200 light:text-carbon-700">
           <ArrowLeft className="h-4 w-4" />
-          Back to clients
+          Retour aux clients
         </Link>
-        <Card className="p-6 text-carbon-300 light:text-carbon-700">No client found.</Card>
+        <Card className="p-6 text-carbon-300 light:text-carbon-700">Aucun client trouvé.</Card>
       </div>
     );
   }
@@ -29,13 +29,13 @@ export default function ClientProfilePage() {
     <div>
       <Link to="/clients" className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-carbon-300 hover:text-gold-200 light:text-carbon-700">
         <ArrowLeft className="h-4 w-4" />
-        Back to clients
+        Retour aux clients
       </Link>
       <PageHeader
-        eyebrow="Client profile"
+        eyebrow="Profil client"
         title={client.fullName}
-        description={`${client.cin} · License ${client.license}`}
-        action={<Button variant="secondary" icon={<FileSignature className="h-4 w-4" />}>Create contract</Button>}
+        description={`${client.cin} · Permis ${client.license}`}
+        action={<Button variant="secondary" icon={<FileSignature className="h-4 w-4" />}>Créer un contrat</Button>}
       />
 
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
@@ -54,23 +54,52 @@ export default function ClientProfilePage() {
           </div>
           <div className="mt-8 grid grid-cols-2 gap-3">
             <div className="premium-surface rounded-2xl p-4">
-              <p className="text-xs text-carbon-500">Total rentals</p>
+              <p className="text-xs text-carbon-500">Total locations</p>
               <p className="mt-1 text-2xl font-black text-white light:text-carbon-950">{client.totalRentals}</p>
             </div>
             <div className="premium-surface rounded-2xl p-4">
-              <p className="text-xs text-carbon-500">Total spent</p>
+              <p className="text-xs text-carbon-500">Total dépensé</p>
               <p className="mt-1 text-2xl font-black text-white light:text-carbon-950">{formatMAD(client.totalSpent)}</p>
             </div>
           </div>
           <div className="premium-surface mt-6 rounded-2xl p-4">
             <div className="mb-3 flex items-center gap-2">
               <FileText className="h-4 w-4 text-gold-200" />
-              <p className="font-semibold text-white light:text-carbon-950">Uploaded documents</p>
+              <p className="font-semibold text-white light:text-carbon-950">Pièces d’identité</p>
             </div>
-            <div className="grid gap-2 text-sm text-carbon-400">
-              <p className="flex justify-between">CIN / Passport <span className="font-semibold text-carbon-200 light:text-carbon-800">Verified</span></p>
-              <p className="flex justify-between">Driving license <span className="font-semibold text-carbon-200 light:text-carbon-800">Verified</span></p>
-              <p className="flex justify-between">Deposit receipt <span className="font-semibold text-carbon-200 light:text-carbon-800">On file</span></p>
+            {client.idCardFrontUrl || client.idCardBackUrl ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <p className="text-xs text-carbon-500">Recto</p>
+                  {client.idCardFrontUrl ? (
+                    <>
+                      <img src={client.idCardFrontUrl} alt="Pièce identité recto" className="h-28 w-full rounded-xl border border-white/10 object-cover" />
+                      <a href={client.idCardFrontUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-gold-200 hover:text-gold-100">
+                        Ouvrir l’image
+                      </a>
+                    </>
+                  ) : <p className="text-sm text-amber-200">Document manquant</p>}
+                </div>
+                <div className="space-y-2">
+                  <p className="text-xs text-carbon-500">Verso</p>
+                  {client.idCardBackUrl ? (
+                    <>
+                      <img src={client.idCardBackUrl} alt="Pièce identité verso" className="h-28 w-full rounded-xl border border-white/10 object-cover" />
+                      <a href={client.idCardBackUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-gold-200 hover:text-gold-100">
+                        Ouvrir l’image
+                      </a>
+                    </>
+                  ) : <p className="text-sm text-amber-200">Document manquant</p>}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-amber-300/30 bg-amber-500/10 p-3 text-sm text-amber-100">
+                Documents manquants: ajoutez le recto et le verso dans la fiche client.
+              </div>
+            )}
+            <div className="mt-3 grid gap-2 text-sm text-carbon-400">
+              <p className="flex justify-between">CIN / Passeport <span className="font-semibold text-carbon-200 light:text-carbon-800">{client.cin || 'Non renseigné'}</span></p>
+              <p className="flex justify-between">Permis <span className="font-semibold text-carbon-200 light:text-carbon-800">{client.license || 'Non renseigné'}</span></p>
             </div>
           </div>
         </Card>
@@ -79,7 +108,7 @@ export default function ClientProfilePage() {
           <Card className="p-5">
             <div className="mb-4 flex items-center gap-2">
               <Car className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">Rental history</h2>
+              <h2 className="font-semibold text-white light:text-carbon-950">Historique des locations</h2>
             </div>
             <div className="grid gap-3">
               {clientReservations.length ? clientReservations.map((reservation) => (
@@ -92,13 +121,13 @@ export default function ClientProfilePage() {
                     <Badge>{reservation.status}</Badge>
                   </div>
                 </div>
-              )) : <p className="text-sm text-carbon-400">No rentals are attached to this profile yet.</p>}
+              )) : <p className="text-sm text-carbon-400">Aucune location liée à ce client pour le moment.</p>}
             </div>
           </Card>
           <Card className="p-5">
             <div className="mb-4 flex items-center gap-2">
               <CreditCard className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">Payment history</h2>
+              <h2 className="font-semibold text-white light:text-carbon-950">Historique des paiements</h2>
             </div>
             <div className="grid gap-3">
               {clientPayments.length ? clientPayments.map((payment) => (
@@ -112,7 +141,7 @@ export default function ClientProfilePage() {
                     <Badge>{payment.status}</Badge>
                   </div>
                 </div>
-              )) : <p className="text-sm text-carbon-400">No invoices are attached to this profile yet.</p>}
+              )) : <p className="text-sm text-carbon-400">Aucun paiement lié à ce client pour le moment.</p>}
             </div>
           </Card>
         </div>

@@ -34,4 +34,5 @@ export const storageBuckets = {
   logos: 'logos',
   contracts: 'contract-pdfs',
   vehicleImages: 'vehicle-images',
+  clientDocuments: 'client-documents',
 } as const;

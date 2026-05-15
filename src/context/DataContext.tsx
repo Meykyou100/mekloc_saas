@@ -83,6 +83,9 @@ type ClientRow = {
   total_rentals: number | null;
   total_spent: number | null;
   status: 'VIP' | 'Regular' | 'New';
+  id_card_front_url?: string | null;
+  id_card_back_url?: string | null;
+  created_at?: string | null;
 };
 
 type ReservationRow = {
@@ -209,11 +212,14 @@ function mapClient(row: ClientRow): Client {
     totalRentals: row.total_rentals ?? 0,
     totalSpent: row.total_spent ?? 0,
     status: row.status,
+    idCardFrontUrl: row.id_card_front_url || undefined,
+    idCardBackUrl: row.id_card_back_url || undefined,
+    createdAt: row.created_at || undefined,
   };
 }
 
-function toClientRow(client: Client, agencyId: string) {
-  return {
+function toClientRow(client: Client, agencyId: string, withIdentityImages = true) {
+  const base = {
     agency_id: agencyId,
     full_name: client.fullName,
     phone: client.phone,
@@ -224,6 +230,12 @@ function toClientRow(client: Client, agencyId: string) {
     total_rentals: client.totalRentals,
     total_spent: client.totalSpent,
     status: client.status,
+  };
+  if (!withIdentityImages) return base;
+  return {
+    ...base,
+    id_card_front_url: client.idCardFrontUrl || null,
+    id_card_back_url: client.idCardBackUrl || null,
   };
 }
 
@@ -605,11 +617,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setClients((current) => [client, ...current]);
           return client;
         }
-        const { data, error } = await supabase!
-          .from('clients')
-          .insert(toClientRow(client, agencyId!))
-          .select('*')
-          .single();
+        let data: unknown = null;
+        let error: Error | null = null;
+        {
+          const result = await supabase!
+            .from('clients')
+            .insert(toClientRow(client, agencyId!, true))
+            .select('*')
+            .single();
+          data = result.data;
+          error = result.error as Error | null;
+        }
+        if (error && /id_card_(front|back)_url/i.test(error.message || '')) {
+          const fallback = await supabase!
+            .from('clients')
+            .insert(toClientRow(client, agencyId!, false))
+            .select('*')
+            .single();
+          data = fallback.data;
+          error = fallback.error as Error | null;
+        }
         if (error) throw error;
         const nextClient = mapClient(data as ClientRow);
         setClients((current) => [nextClient, ...current]);
@@ -620,12 +647,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setClients((current) => current.map((item) => (item.id === client.id ? client : item)));
           return client;
         }
-        const { data, error } = await supabase!
-          .from('clients')
-          .update(toClientRow(client, agencyId!))
-          .eq('id', client.id)
-          .select('*')
-          .single();
+        let data: unknown = null;
+        let error: Error | null = null;
+        {
+          const result = await supabase!
+            .from('clients')
+            .update(toClientRow(client, agencyId!, true))
+            .eq('id', client.id)
+            .select('*')
+            .single();
+          data = result.data;
+          error = result.error as Error | null;
+        }
+        if (error && /id_card_(front|back)_url/i.test(error.message || '')) {
+          const fallback = await supabase!
+            .from('clients')
+            .update(toClientRow(client, agencyId!, false))
+            .eq('id', client.id)
+            .select('*')
+            .single();
+          data = fallback.data;
+          error = fallback.error as Error | null;
+        }
         if (error) throw error;
         const nextClient = mapClient(data as ClientRow);
         setClients((current) => current.map((item) => (item.id === client.id ? nextClient : item)));
