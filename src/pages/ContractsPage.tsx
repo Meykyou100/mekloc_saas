@@ -67,6 +67,26 @@ function sanitizeFileName(value: string) {
     .toLowerCase();
 }
 
+function extractAgencyCityFromAddress(address?: string) {
+  if (!address) return '';
+  const cleaned = address.trim();
+  if (!cleaned) return '';
+  const commaParts = cleaned.split(',').map((part) => part.trim()).filter(Boolean);
+  if (commaParts.length > 1) return commaParts[commaParts.length - 1];
+  const dashParts = cleaned.split('-').map((part) => part.trim()).filter(Boolean);
+  if (dashParts.length > 1) return dashParts[dashParts.length - 1];
+  return cleaned;
+}
+
+function escapePdfHexUtf16(value: string) {
+  const text = String(value ?? '');
+  let hex = 'FEFF';
+  for (let i = 0; i < text.length; i += 1) {
+    hex += text.charCodeAt(i).toString(16).padStart(4, '0').toUpperCase();
+  }
+  return `<${hex}>`;
+}
+
 export default function ContractsPage() {
   const [searchParams] = useSearchParams();
   const { clients, vehicles, reservations, contracts, createContract } = useData();
@@ -177,6 +197,10 @@ export default function ContractsPage() {
     return selectedReservation?.id || `CONTRAT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`;
   }, [selectedReservation?.id]);
 
+  const signatureCity = useMemo(() => {
+    return extractAgencyCityFromAddress(agencyMeta.address) || 'Non renseigné';
+  }, [agencyMeta.address]);
+
   const stats = useMemo(() => {
     const now = new Date();
     const month = now.getMonth();
@@ -202,7 +226,7 @@ export default function ContractsPage() {
     { label: 'Logo agence présent', ok: Boolean(logoPublicUrl) },
   ];
 
-  const contractFileName = `contrat-location-${sanitizeFileName(client.fullName || 'client')}-${sanitizeFileName(vehicle.plate || 'vehicule')}-${new Date().toISOString().slice(0, 10)}.pdf`;
+  const contractFileName = `contract-location-${sanitizeFileName(client.fullName || 'client')}-${sanitizeFileName(vehicle.plate || 'vehicule')}-${new Date().toISOString().slice(0, 10)}.pdf`;
 
   function ensureRequiredData(forGenerate = false) {
     if (!client.id) {
@@ -232,97 +256,227 @@ export default function ContractsPage() {
     return true;
   }
 
-  function buildPdfTextLines() {
-    const lines: string[] = [];
-    lines.push('CONTRAT DE LOCATION DE VÉHICULE');
-    lines.push(`Référence: ${contractReference}`);
-    lines.push(`Date: ${new Date().toLocaleDateString('fr-MA')}`);
-    lines.push('');
-    lines.push(`Agence: ${profile?.agency?.name || 'MekLoc Agency'}`);
-    lines.push(`Adresse: ${agencyMeta.address || 'Non renseigné'}`);
-    lines.push(`Téléphone: ${agencyMeta.phone || profile?.phone || 'Non renseigné'}`);
-    lines.push(`Email: ${agencyMeta.email || profile?.email || 'Non renseigné'}`);
-    lines.push(`ICE / RC: ${agencyMeta.ice || 'Non renseigné'} / ${agencyMeta.rc || 'Non renseigné'}`);
-    lines.push('');
-    lines.push('CLIENT');
-    lines.push(`Nom: ${client.fullName || 'Non renseigné'}`);
-    lines.push(`Téléphone: ${client.phone || 'Non renseigné'}`);
-    lines.push(`Email: ${client.email || 'Non renseigné'}`);
-    lines.push(`CIN/Passeport: ${client.cin || 'Non renseigné'}`);
-    lines.push(`Permis: ${client.license || 'Non renseigné'}`);
-    lines.push(`Adresse: ${client.address || 'Non renseigné'}`);
-    lines.push('');
-    lines.push('VÉHICULE');
-    lines.push(`Marque/Modèle: ${vehicle.brand || 'Non renseigné'} ${vehicle.model || ''}`.trim());
-    lines.push(`Immatriculation: ${vehicle.plate || 'Non renseigné'}`);
-    lines.push(`Année: ${vehicle.year || 'Non renseigné'}`);
-    lines.push(`Carburant: ${vehicle.fuel || 'Non renseigné'}`);
-    lines.push(`Transmission: ${vehicle.transmission || 'Non renseigné'}`);
-    lines.push(`Kilométrage départ: ${selectedReservation?.mileageOut ?? 'Non renseigné'}`);
-    lines.push(`Kilométrage retour: Non renseigné`);
-    lines.push('');
-    lines.push('LOCATION');
-    lines.push(`Date départ: ${formatDateFr(pickupDate)}`);
-    lines.push(`Date retour: ${formatDateFr(returnDate)}`);
-    lines.push(`Lieu départ: ${selectedReservation?.pickupLocation || 'Non renseigné'}`);
-    lines.push(`Lieu retour: ${selectedReservation?.returnLocation || 'Non renseigné'}`);
-    lines.push(`Nombre de jours: ${rentalDays}`);
-    lines.push(`Prix journalier: ${formatMAD(vehicle.dailyPrice || 0)}`);
-    lines.push(`Montant total: ${formatMAD(totalAmount || 0)}`);
-    lines.push(`Caution: ${formatMAD(deposit || 0)}`);
-    lines.push(`Statut paiement: ${selectedReservation?.status || 'Non renseigné'}`);
-    lines.push('');
-    lines.push('CONDITIONS GÉNÉRALES');
-    const termsList = terms.trim() ? terms.trim().split('\n').filter(Boolean) : defaultTerms;
-    termsList.forEach((item, index) => lines.push(`${index + 1}. ${item}`));
-    lines.push('');
-    lines.push('Signature agence: _______________________');
-    lines.push('Signature client: _______________________');
-    lines.push(`Fait à ${vehicle.city || 'Non renseigné'}, le ${new Date().toLocaleDateString('fr-MA')}`);
-    lines.push('');
-    lines.push(`Généré par MekLoc · ${contractReference}`);
-    return lines;
-  }
-
   function downloadContractPreview() {
     if (!ensureRequiredData()) return;
 
-    const escapePdf = (value: string) => value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-    const lines = buildPdfTextLines();
-    const content: string[] = [];
+    const termsList = terms.trim() ? terms.trim().split('\n').filter(Boolean) : defaultTerms;
+    const pageWidth = 595;
+    const pageHeight = 842;
+    const margin = 36;
+    const lineHeight = 14;
+    const sectionGap = 12;
+    const boxPad = 10;
+    const contentWidth = pageWidth - margin * 2;
+    const gold = '0.73 0.62 0.28 rg';
+    const muted = '0.35 0.40 0.47 rg';
+    const dark = '0.12 0.15 0.2 rg';
 
-    let y = 800;
-    const lineHeight = 15;
-    for (const line of lines) {
-      const safeLine = line.length > 112 ? `${line.slice(0, 109)}...` : line;
-      content.push(`BT /F1 11 Tf 48 ${y} Td (${escapePdf(safeLine)}) Tj ET`);
-      y -= lineHeight;
-      if (y < 44) break;
+    const pages: string[][] = [[]];
+    let pageIndex = 0;
+    let y = pageHeight - margin;
+
+    const addRaw = (command: string) => pages[pageIndex].push(command);
+    const newPage = () => {
+      pages.push([]);
+      pageIndex += 1;
+      y = pageHeight - margin;
+    };
+    const ensureSpace = (height: number) => {
+      if (y - height < margin) newPage();
+    };
+    const addText = (text: string, x: number, yPos: number, size = 11, color = dark, bold = false) => {
+      addRaw(`q ${color}`);
+      addRaw(`BT /${bold ? 'F2' : 'F1'} ${size} Tf 1 0 0 1 ${x.toFixed(2)} ${yPos.toFixed(2)} Tm ${escapePdfHexUtf16(text)} Tj ET`);
+      addRaw('Q');
+    };
+    const wrapText = (text: string, maxChars: number) => {
+      const words = text.split(/\s+/).filter(Boolean);
+      const lines: string[] = [];
+      let current = '';
+      words.forEach((word) => {
+        const next = current ? `${current} ${word}` : word;
+        if (next.length > maxChars) {
+          if (current) lines.push(current);
+          current = word;
+        } else {
+          current = next;
+        }
+      });
+      if (current) lines.push(current);
+      return lines.length ? lines : [''];
+    };
+    const addRule = () => {
+      addRaw('q 0.90 0.92 0.95 RG 0.8 w');
+      addRaw(`${margin} ${y} m ${pageWidth - margin} ${y} l S`);
+      addRaw('Q');
+    };
+    const addSection = (title: string, rows: [string, string][]) => {
+      const titleHeight = 16;
+      const rowHeight = 13;
+      const boxHeight = boxPad * 2 + titleHeight + rows.length * rowHeight + 8;
+      ensureSpace(boxHeight + sectionGap);
+      y -= boxHeight;
+      addRaw('q 0.93 0.94 0.97 RG 1 w');
+      addRaw(`${margin} ${y} ${contentWidth} ${boxHeight} re S`);
+      addRaw('Q');
+      addText(title, margin + boxPad, y + boxHeight - 18, 10, muted, true);
+      let rowY = y + boxHeight - 34;
+      rows.forEach(([label, value]) => {
+        addText(label, margin + boxPad, rowY, 9, muted, false);
+        addText(value || 'Non renseigné', margin + boxPad + 165, rowY, 9, dark, true);
+        rowY -= rowHeight;
+      });
+      y -= sectionGap;
+    };
+
+    // Header
+    ensureSpace(110);
+    addText(profile?.agency?.name || 'MekLoc Agency', margin, y - 6, 16, dark, true);
+    addText(`Adresse: ${agencyMeta.address || 'Non renseigné'}`, margin, y - 24, 9, muted);
+    addText(`Téléphone: ${agencyMeta.phone || profile?.phone || 'Non renseigné'} · Email: ${agencyMeta.email || profile?.email || 'Non renseigné'}`, margin, y - 38, 9, muted);
+    addText(`ICE/RC: ${agencyMeta.ice || 'Non renseigné'} / ${agencyMeta.rc || 'Non renseigné'}`, margin, y - 52, 9, muted);
+    addText('CONTRAT DE LOCATION DE VÉHICULE', margin, y - 78, 16, dark, true);
+    addText(`Référence: ${contractReference}`, margin, y - 96, 10, muted, true);
+    addText(`Date: ${new Date().toLocaleDateString('fr-MA')}`, pageWidth - margin - 120, y - 96, 10, muted, true);
+    y -= 112;
+    addRule();
+    y -= 14;
+
+    addSection('Informations de l’agence', [
+      ['Nom agence', profile?.agency?.name || 'Non renseigné'],
+      ['Adresse', agencyMeta.address || 'Non renseigné'],
+      ['Téléphone', agencyMeta.phone || profile?.phone || 'Non renseigné'],
+      ['Email', agencyMeta.email || profile?.email || 'Non renseigné'],
+      ['ICE / RC', `${agencyMeta.ice || 'Non renseigné'} / ${agencyMeta.rc || 'Non renseigné'}`],
+    ]);
+
+    addSection('Informations du client', [
+      ['Nom complet', client.fullName || 'Non renseigné'],
+      ['Téléphone', client.phone || 'Non renseigné'],
+      ['Email', client.email || 'Non renseigné'],
+      ['CIN/Passport', client.cin || 'Non renseigné'],
+      ['Numéro de permis', client.license || 'Non renseigné'],
+      ['Adresse', client.address || 'Non renseigné'],
+    ]);
+
+    addSection('Informations du véhicule', [
+      ['Marque + modèle', `${vehicle.brand || 'Non renseigné'} ${vehicle.model || ''}`.trim()],
+      ['Immatriculation', vehicle.plate || 'Non renseigné'],
+      ['Année', String(vehicle.year || 'Non renseigné')],
+      ['Carburant', vehicle.fuel || 'Non renseigné'],
+      ['Transmission', vehicle.transmission || 'Non renseigné'],
+      ['Kilométrage départ', String(selectedReservation?.mileageOut ?? 'Non renseigné')],
+      ['Kilométrage retour', 'Non renseigné'],
+    ]);
+
+    addSection('Location', [
+      ['Date de départ', formatDateFr(pickupDate)],
+      ['Date de retour', formatDateFr(returnDate)],
+      ['Lieu départ', selectedReservation?.pickupLocation || 'Non renseigné'],
+      ['Lieu retour', selectedReservation?.returnLocation || 'Non renseigné'],
+      ['Nombre de jours', String(rentalDays)],
+      ['Prix journalier', formatMAD(vehicle.dailyPrice || 0)],
+      ['Montant total', formatMAD(totalAmount || 0)],
+      ['Caution', formatMAD(deposit || 0)],
+      ['Statut paiement', selectedReservation?.status || 'Non renseigné'],
+    ]);
+
+    // Conditions
+    const conditionLines: string[] = [];
+    termsList.forEach((item, index) => {
+      wrapText(`${index + 1}. ${item}`, 95).forEach((line) => conditionLines.push(line));
+    });
+    const conditionsHeight = Math.max(90, boxPad * 2 + 16 + conditionLines.length * 12 + 6);
+    ensureSpace(conditionsHeight + sectionGap);
+    y -= conditionsHeight;
+    addRaw('q 0.93 0.94 0.97 RG 1 w');
+    addRaw(`${margin} ${y} ${contentWidth} ${conditionsHeight} re S`);
+    addRaw('Q');
+    addText('Conditions générales', margin + boxPad, y + conditionsHeight - 18, 10, muted, true);
+    let conditionY = y + conditionsHeight - 34;
+    conditionLines.forEach((line) => {
+      addText(line, margin + boxPad, conditionY, 9, dark);
+      conditionY -= 12;
+    });
+    y -= sectionGap;
+
+    // Signatures
+    const signHeight = 82;
+    ensureSpace(signHeight + 46);
+    y -= signHeight;
+    const signWidth = (contentWidth - 10) / 2;
+    addRaw('q 0.80 0.84 0.90 RG 1 w');
+    addRaw(`${margin} ${y} ${signWidth} ${signHeight} re S`);
+    addRaw(`${margin + signWidth + 10} ${y} ${signWidth} ${signHeight} re S`);
+    addRaw('Q');
+    addText('Signature agence', margin + 12, y + 16, 10, dark, true);
+    addText('Signature client', margin + signWidth + 22, y + 16, 10, dark, true);
+    y -= 34;
+    addText(`Fait à ${signatureCity}, le ${new Date().toLocaleDateString('fr-MA')}`, margin, y + 10, 10, muted);
+    y -= 16;
+    addRule();
+    y -= 16;
+
+    // Footer per-page
+    pages.forEach((commands, idx) => {
+      const footerY = 28;
+      commands.push(`q ${gold}`);
+      commands.push(`BT /F2 9 Tf 1 0 0 1 ${margin.toFixed(2)} ${footerY.toFixed(2)} Tm ${escapePdfHexUtf16('Document généré par MekLoc')} Tj ET`);
+      commands.push('Q');
+      commands.push(`q ${muted}`);
+      commands.push(`BT /F1 9 Tf 1 0 0 1 ${(pageWidth / 2 - 40).toFixed(2)} ${footerY.toFixed(2)} Tm ${escapePdfHexUtf16(contractReference)} Tj ET`);
+      commands.push(`BT /F1 9 Tf 1 0 0 1 ${(pageWidth - margin - 55).toFixed(2)} ${footerY.toFixed(2)} Tm ${escapePdfHexUtf16(`Page ${idx + 1}/${pages.length}`)} Tj ET`);
+      commands.push('Q');
+    });
+
+    // Assemble PDF
+    const CATALOG_ID = 1;
+    const PAGES_ID = 2;
+    const FONT_REGULAR_ID = 3;
+    const FONT_BOLD_ID = 4;
+    const DESC_REGULAR_ID = 5;
+    const TO_UNICODE_REGULAR_ID = 6;
+    const DESC_BOLD_ID = 7;
+    const TO_UNICODE_BOLD_ID = 8;
+
+    let nextId = 9;
+    const contentIds = pages.map(() => nextId++);
+    const pageObjectIds = pages.map(() => nextId++);
+    const maxId = nextId - 1;
+    const objects = new Array<string>(maxId + 1);
+
+    objects[CATALOG_ID] = `${CATALOG_ID} 0 obj\n<< /Type /Catalog /Pages ${PAGES_ID} 0 R >>\nendobj`;
+    objects[PAGES_ID] = `${PAGES_ID} 0 obj\n<< /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pageObjectIds.length} >>\nendobj`;
+    objects[FONT_REGULAR_ID] = `${FONT_REGULAR_ID} 0 obj\n<< /Type /Font /Subtype /Type0 /BaseFont /Helvetica /Encoding /Identity-H /DescendantFonts [${DESC_REGULAR_ID} 0 R] /ToUnicode ${TO_UNICODE_REGULAR_ID} 0 R >>\nendobj`;
+    objects[FONT_BOLD_ID] = `${FONT_BOLD_ID} 0 obj\n<< /Type /Font /Subtype /Type0 /BaseFont /Helvetica-Bold /Encoding /Identity-H /DescendantFonts [${DESC_BOLD_ID} 0 R] /ToUnicode ${TO_UNICODE_BOLD_ID} 0 R >>\nendobj`;
+    objects[DESC_REGULAR_ID] = `${DESC_REGULAR_ID} 0 obj\n<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Helvetica /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /DW 1000 >>\nendobj`;
+    objects[TO_UNICODE_REGULAR_ID] = `${TO_UNICODE_REGULAR_ID} 0 obj\n<< /Length 337 >> stream\n/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n1 beginbfrange\n<0000> <FFFF> <0000>\nendbfrange\nendcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\nendstream >>\nendobj`;
+    objects[DESC_BOLD_ID] = `${DESC_BOLD_ID} 0 obj\n<< /Type /Font /Subtype /CIDFontType2 /BaseFont /Helvetica-Bold /CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> /DW 1000 >>\nendobj`;
+    objects[TO_UNICODE_BOLD_ID] = `${TO_UNICODE_BOLD_ID} 0 obj\n<< /Length 337 >> stream\n/CIDInit /ProcSet findresource begin\n12 dict begin\nbegincmap\n/CIDSystemInfo << /Registry (Adobe) /Ordering (UCS) /Supplement 0 >> def\n/CMapName /Adobe-Identity-UCS def\n/CMapType 2 def\n1 begincodespacerange\n<0000> <FFFF>\nendcodespacerange\n1 beginbfrange\n<0000> <FFFF> <0000>\nendbfrange\nendcmap\nCMapName currentdict /CMap defineresource pop\nend\nend\nendstream >>\nendobj`;
+
+    pages.forEach((commands, index) => {
+      const stream = commands.join('\n');
+      const contentId = contentIds[index];
+      const pageId = pageObjectIds[index];
+      objects[contentId] = `${contentId} 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}\nendstream\nendobj`;
+      objects[pageId] = `${pageId} 0 obj\n<< /Type /Page /Parent ${PAGES_ID} 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /Font << /F1 ${FONT_REGULAR_ID} 0 R /F2 ${FONT_BOLD_ID} 0 R >> >> /Contents ${contentId} 0 R >>\nendobj`;
+    });
+
+    let pdfBody = '%PDF-1.7\n';
+    const offsets: number[] = new Array(maxId + 1).fill(0);
+    for (let id = 1; id <= maxId; id += 1) {
+      offsets[id] = pdfBody.length;
+      pdfBody += `${objects[id]}\n`;
     }
+    const xrefStart = pdfBody.length;
+    pdfBody += `xref\n0 ${maxId + 1}\n`;
+    pdfBody += '0000000000 65535 f \n';
+    for (let id = 1; id <= maxId; id += 1) {
+      pdfBody += `${String(offsets[id]).padStart(10, '0')} 00000 n \n`;
+    }
+    pdfBody += `trailer\n<< /Size ${maxId + 1} /Root ${CATALOG_ID} 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
 
-    const stream = content.join('\n');
-    const pdf = `%PDF-1.4
-1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
-2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
-3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj
-4 0 obj << /Length ${stream.length} >> stream
-${stream}
-endstream endobj
-5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
-xref
-0 6
-0000000000 65535 f
-0000000010 00000 n
-0000000060 00000 n
-0000000117 00000 n
-0000000243 00000 n
-000000${(260 + stream.length).toString().padStart(10, '0')} 00000 n
-trailer << /Root 1 0 R /Size 6 >>
-startxref
-0
-%%EOF`;
-
-    const blob = new Blob([pdf], { type: 'application/pdf' });
+    const blob = new Blob([pdfBody], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -582,7 +736,7 @@ startxref
               </section>
 
               <section className="mt-4 rounded-xl border border-[#e8edf4] p-4 text-sm text-[#3f4b5d]">
-                Fait à {vehicle.city || 'Non renseigné'}, le {new Date().toLocaleDateString('fr-MA')}
+                Fait à {signatureCity}, le {new Date().toLocaleDateString('fr-MA')}
               </section>
 
               <footer className="mt-6 border-t border-[#e8edf4] pt-3 text-xs text-[#778396]">
