@@ -19,6 +19,41 @@ export type VehicleStatus = 'Available' | 'Rented' | 'Maintenance' | 'Unavailabl
 export type ReservationStatus = 'Confirmed' | 'Active' | 'Completed' | 'Cancelled';
 export type PaymentStatus = 'Paid' | 'Partial' | 'Pending' | 'Late';
 
+export type DamageType = 'rayure' | 'cassure' | 'eclat' | 'bosse' | 'peinture' | 'autre';
+export type DamageZone =
+  | 'avant'
+  | 'arriere'
+  | 'porte_gauche'
+  | 'porte_droite'
+  | 'capot'
+  | 'coffre'
+  | 'aile_gauche'
+  | 'aile_droite'
+  | 'parechoc_avant'
+  | 'parechoc_arriere';
+
+export type VehicleDamageMark = {
+  id: string;
+  zone: DamageZone;
+  type: DamageType;
+  x?: number;
+  y?: number;
+  note?: string;
+};
+
+export type VehicleAccessories = {
+  roue_secours?: boolean;
+  cric?: boolean;
+  poste_radio?: boolean;
+  batterie?: boolean;
+  allume_cigare?: boolean;
+  siege_enfant?: boolean;
+  porte_bagage?: boolean;
+  triangle?: boolean;
+  gilet?: boolean;
+  documents_vehicule?: boolean;
+};
+
 export type Vehicle = {
   id: string;
   brand: string;
@@ -36,6 +71,9 @@ export type Vehicle = {
   revenue: number;
   imageUrl?: string;
   imagePath?: string;
+  vehicleColor?: string;
+  accessories?: VehicleAccessories;
+  damageMarks?: VehicleDamageMark[];
 };
 
 export type Client = {
