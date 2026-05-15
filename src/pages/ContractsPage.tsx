@@ -345,10 +345,9 @@ export default function ContractsPage() {
     const termsList = terms.trim() ? terms.trim().split('\n').filter(Boolean) : defaultTerms;
     const pageWidth = 595;
     const pageHeight = 842;
-    const margin = 36;
-    const lineHeight = 14;
-    const sectionGap = 12;
-    const boxPad = 10;
+    const margin = 24;
+    const sectionGap = 6;
+    const boxPad = 6;
     const contentWidth = pageWidth - margin * 2;
     const gold = '0.82 0.54 0.18 rg';
     const muted = '0.35 0.40 0.47 rg';
@@ -367,7 +366,7 @@ export default function ContractsPage() {
     const ensureSpace = (height: number) => {
       if (y - height < margin) newPage();
     };
-    const addText = (text: string, x: number, yPos: number, size = 11, color = dark, bold = false) => {
+    const addText = (text: string, x: number, yPos: number, size = 9.5, color = dark, bold = false) => {
       addRaw(`q ${color}`);
       addRaw(`BT /${bold ? 'F2' : 'F1'} ${size} Tf 1 0 0 1 ${x.toFixed(2)} ${yPos.toFixed(2)} Tm ${escapePdfWinAnsi(text)} Tj ET`);
       addRaw('Q');
@@ -394,36 +393,35 @@ export default function ContractsPage() {
       addRaw('Q');
     };
     const addSection = (title: string, rows: [string, string][]) => {
-      const titleHeight = 16;
-      const rowHeight = 13;
-      const boxHeight = boxPad * 2 + titleHeight + rows.length * rowHeight + 8;
+      const titleHeight = 12;
+      const rowHeight = 10;
+      const boxHeight = boxPad * 2 + titleHeight + rows.length * rowHeight + 4;
       ensureSpace(boxHeight + sectionGap);
       y -= boxHeight;
       addRaw('q 0.82 0.54 0.18 RG 1 w');
       addRaw(`${margin} ${y} ${contentWidth} ${boxHeight} re S`);
       addRaw('Q');
-      addText(title, margin + boxPad, y + boxHeight - 18, 10, gold, true);
-      let rowY = y + boxHeight - 34;
+      addText(title, margin + boxPad, y + boxHeight - 14, 8.5, gold, true);
+      let rowY = y + boxHeight - 24;
       rows.forEach(([label, value]) => {
-        addText(label, margin + boxPad, rowY, 9, muted, false);
-        addText(value || 'Non renseigné', margin + boxPad + 165, rowY, 9, dark, true);
+        addText(label, margin + boxPad, rowY, 8, muted, false);
+        addText(value || 'Non renseigné', margin + boxPad + 145, rowY, 8, dark, true);
         rowY -= rowHeight;
       });
       y -= sectionGap;
     };
 
     // Header
-    ensureSpace(110);
-    addText(profile?.agency?.name || 'MekLoc Agency', margin, y - 6, 16, dark, true);
-    addText(`Adresse: ${agencyMeta.address || 'Non renseigné'}`, margin, y - 24, 9, muted);
-    addText(`Téléphone: ${agencyMeta.phone || profile?.phone || 'Non renseigné'} · Email: ${agencyMeta.email || profile?.email || 'Non renseigné'}`, margin, y - 38, 9, muted);
-    addText(`ICE/RC: ${agencyMeta.ice || 'Non renseigné'} / ${agencyMeta.rc || 'Non renseigné'}`, margin, y - 52, 9, muted);
-    addText('CONTRAT DE LOCATION', margin, y - 78, 16, dark, true);
-    addText(`Référence: ${contractReference}`, margin, y - 96, 10, muted, true);
-    addText(`Date: ${new Date().toLocaleDateString('fr-MA')}`, pageWidth - margin - 120, y - 96, 10, muted, true);
-    y -= 112;
+    ensureSpace(78);
+    addText(profile?.agency?.name || 'MekLoc Agency', margin, y - 4, 12, dark, true);
+    addText(`Adresse: ${agencyMeta.address || 'Non renseigné'}`, margin, y - 16, 8, muted);
+    addText(`Tél: ${agencyMeta.phone || profile?.phone || 'Non renseigné'} · Email: ${agencyMeta.email || profile?.email || 'Non renseigné'}`, margin, y - 28, 8, muted);
+    addText('CONTRAT DE LOCATION', margin, y - 46, 13, dark, true);
+    addText(`Référence: ${contractReference}`, margin, y - 60, 8.5, muted, true);
+    addText(`Date: ${new Date().toLocaleDateString('fr-MA')}`, pageWidth - margin - 105, y - 60, 8.5, muted, true);
+    y -= 72;
     addRule();
-    y -= 14;
+    y -= 8;
 
     addSection('Informations de l’agence', [
       ['Nom agence', profile?.agency?.name || 'Non renseigné'],
@@ -445,11 +443,7 @@ export default function ContractsPage() {
     addSection('2ème conducteur', [
       ['Nom', '—'],
       ['Prénom', '—'],
-      ['Date de naissance', '—'],
-      ['Nationalité', '—'],
       ['CIN/Passport', '—'],
-      ['Permis N°', '—'],
-      ['Adresse', '—'],
       ['Téléphone', '—'],
     ]);
 
@@ -465,11 +459,18 @@ export default function ContractsPage() {
     ]);
 
     // Accessoires
-    const accessoryRows = Object.entries(accessoryLabels).map(([key, label]) => [
-      label,
-      accessories[key as keyof typeof accessories] ? '☑ Oui' : '☐ Non',
-    ] as [string, string]);
-    addSection('Accessoires véhicule', accessoryRows);
+    const accessoryPresent = Object.entries(accessoryLabels)
+      .filter(([key]) => accessories[key as keyof typeof accessories])
+      .map(([, label]) => label)
+      .join(', ');
+    const accessoryMissing = Object.entries(accessoryLabels)
+      .filter(([key]) => !accessories[key as keyof typeof accessories])
+      .map(([, label]) => label)
+      .join(', ');
+    addSection('Accessoires véhicule', [
+      ['Présents', accessoryPresent || 'Aucun'],
+      ['Manquants', accessoryMissing || 'Aucun'],
+    ]);
 
     addSection('Départ / Retour', [
       ['Date de départ', formatDateFr(pickupDate)],
@@ -497,37 +498,38 @@ export default function ContractsPage() {
     termsList.forEach((item, index) => {
       wrapText(`${index + 1}. ${item}`, 95).forEach((line) => conditionLines.push(line));
     });
-    const conditionsHeight = Math.max(90, boxPad * 2 + 16 + conditionLines.length * 12 + 6);
+    const trimmedConditionLines = conditionLines.slice(0, 7);
+    const conditionsHeight = Math.max(58, boxPad * 2 + 12 + trimmedConditionLines.length * 9 + 4);
     ensureSpace(conditionsHeight + sectionGap);
     y -= conditionsHeight;
     addRaw('q 0.82 0.54 0.18 RG 1 w');
     addRaw(`${margin} ${y} ${contentWidth} ${conditionsHeight} re S`);
     addRaw('Q');
-    addText('Conditions générales', margin + boxPad, y + conditionsHeight - 18, 10, gold, true);
-    let conditionY = y + conditionsHeight - 34;
-    conditionLines.forEach((line) => {
-      addText(line, margin + boxPad, conditionY, 9, dark);
-      conditionY -= 12;
+    addText('Conditions générales', margin + boxPad, y + conditionsHeight - 14, 8.5, gold, true);
+    let conditionY = y + conditionsHeight - 22;
+    trimmedConditionLines.forEach((line) => {
+      addText(line, margin + boxPad, conditionY, 7.7, dark);
+      conditionY -= 9;
     });
     y -= sectionGap;
 
     // Schéma dommages
-    const damageHeight = 150;
+    const damageHeight = 96;
     ensureSpace(damageHeight + sectionGap);
     y -= damageHeight;
     addRaw('q 0.93 0.94 0.97 RG 1 w');
     addRaw(`${margin} ${y} ${contentWidth} ${damageHeight} re S`);
     addRaw('Q');
-    addText('Schéma des dommages', margin + boxPad, y + damageHeight - 18, 10, muted, true);
+    addText('Schéma des dommages', margin + boxPad, y + damageHeight - 14, 8.5, gold, true);
     // top-view car
     addRaw('q 0.20 0.24 0.31 RG 1 w');
-    addRaw('286 150 20 78 re S');
-    addRaw('278 164 36 50 re S');
-    addRaw('286 188 20 1 re S');
-    addRaw('272 170 6 14 re S');
-    addRaw('314 170 6 14 re S');
-    addRaw('272 194 6 14 re S');
-    addRaw('314 194 6 14 re S');
+    addRaw('286 162 20 48 re S');
+    addRaw('278 170 36 34 re S');
+    addRaw('286 186 20 1 re S');
+    addRaw('272 172 6 10 re S');
+    addRaw('314 172 6 10 re S');
+    addRaw('272 192 6 10 re S');
+    addRaw('314 192 6 10 re S');
     addRaw('Q');
     if (damageMarks.length === 0) {
       addText('Aucun dommage signalé au départ.', 340, 188, 9, muted);
@@ -539,29 +541,29 @@ export default function ContractsPage() {
       const notes = damageMarks
         .map((mark) => `${mark.zone}: ${damageTypeLabels[mark.type] || 'A'}${mark.note ? ` (${mark.note})` : ''}`)
         .slice(0, 5);
-      let noteY = 206;
+      let noteY = 196;
       notes.forEach((note) => {
-        addText(note, 340, noteY, 8.5, muted);
-        noteY -= 11;
+        addText(note, 340, noteY, 7.5, muted);
+        noteY -= 8;
       });
     }
-    addText('Légende: R=Rayure C=Cassure E=Éclat B=Bosse P=Peinture A=Autre', margin + boxPad, y + 10, 8.5, muted);
+    addText('Légende: R Rayure | C Cassure | E Éclat | B Bosse | P Peinture | A Autre', margin + boxPad, y + 8, 7.2, muted);
     y -= sectionGap;
 
     // Signatures
-    const signHeight = 82;
-    ensureSpace(signHeight + 46);
+    const signHeight = 54;
+    ensureSpace(signHeight + 32);
     y -= signHeight;
     const signWidth = (contentWidth - 10) / 2;
     addRaw('q 0.82 0.54 0.18 RG 1 w');
     addRaw(`${margin} ${y} ${signWidth} ${signHeight} re S`);
     addRaw(`${margin + signWidth + 10} ${y} ${signWidth} ${signHeight} re S`);
     addRaw('Q');
-    addText('Signature agence', margin + 12, y + 16, 10, dark, true);
-    addText('Signature client', margin + signWidth + 22, y + 16, 10, dark, true);
-    y -= 34;
-    addText(`Fait à ${signatureCity}, le ${new Date().toLocaleDateString('fr-MA')}`, margin, y + 10, 10, muted);
-    y -= 16;
+    addText('Signature agence', margin + 12, y + 10, 8.5, dark, true);
+    addText('Signature client', margin + signWidth + 22, y + 10, 8.5, dark, true);
+    y -= 20;
+    addText(`Fait à ${signatureCity}, le ${new Date().toLocaleDateString('fr-MA')}`, margin, y + 8, 8.2, muted);
+    y -= 10;
     addRule();
     y -= 16;
 
