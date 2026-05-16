@@ -13,7 +13,9 @@ import {
   UserRound,
   Wand2,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -186,12 +188,14 @@ export default function ContractsPage() {
   const { agencyId, profile } = useAuth();
   const { notify } = useApp();
 
+  const previewRef = useRef<HTMLElement | null>(null);
   const [template, setTemplate] = useState(templates[0]);
   const [clientId, setClientId] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const [reservationId, setReservationId] = useState('');
   const [terms, setTerms] = useState(defaultTerms.join('\n'));
   const [generating, setGenerating] = useState(false);
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const [agencyMeta, setAgencyMeta] = useState<{
     address?: string;
@@ -396,328 +400,76 @@ export default function ContractsPage() {
     return true;
   }
 
+  async function waitForImagesToLoad(container: HTMLElement) {
+    const images = Array.from(container.querySelectorAll('img'));
+    if (!images.length) return;
+    await Promise.all(
+      images.map(
+        (image) =>
+          new Promise<void>((resolve) => {
+            if (image.complete && image.naturalWidth > 0) {
+              resolve();
+              return;
+            }
+            const done = () => resolve();
+            image.addEventListener('load', done, { once: true });
+            image.addEventListener('error', done, { once: true });
+            if ('decode' in image) {
+              image.decode().then(done).catch(done);
+            }
+          }),
+      ),
+    );
+  }
+
   async function downloadContractPreview() {
     if (!ensureRequiredData('preview')) return;
-
-    const logoAsset = logoPublicUrl ? await loadLogoForPdf(logoPublicUrl) : null;
-
-    const termsList = terms.trim() ? terms.trim().split('\n').filter(Boolean) : defaultTerms;
-    const pageWidth = 595;
-    const pageHeight = 842;
-    const margin = 24;
-    const sectionGap = 6;
-    const boxPad = 6;
-    const contentWidth = pageWidth - margin * 2;
-    const gold = '0.82 0.54 0.18 rg';
-    const muted = '0.35 0.40 0.47 rg';
-    const dark = '0.12 0.15 0.2 rg';
-
-    const pages: string[][] = [[]];
-    let pageIndex = 0;
-    let y = pageHeight - margin;
-
-    const addRaw = (command: string) => pages[pageIndex].push(command);
-    const newPage = () => {
-      pages.push([]);
-      pageIndex += 1;
-      y = pageHeight - margin;
-    };
-    const ensureSpace = (height: number) => {
-      if (y - height < margin) newPage();
-    };
-    const addText = (text: string, x: number, yPos: number, size = 9.5, color = dark, bold = false) => {
-      addRaw(`q ${color}`);
-      addRaw(`BT /${bold ? 'F2' : 'F1'} ${size} Tf 1 0 0 1 ${x.toFixed(2)} ${yPos.toFixed(2)} Tm ${escapePdfWinAnsi(text)} Tj ET`);
-      addRaw('Q');
-    };
-    const wrapText = (text: string, maxChars: number) => {
-      const words = text.split(/\s+/).filter(Boolean);
-      const lines: string[] = [];
-      let current = '';
-      words.forEach((word) => {
-        const next = current ? `${current} ${word}` : word;
-        if (next.length > maxChars) {
-          if (current) lines.push(current);
-          current = word;
-        } else {
-          current = next;
-        }
-      });
-      if (current) lines.push(current);
-      return lines.length ? lines : [''];
-    };
-    const addRule = () => {
-      addRaw('q 0.90 0.92 0.95 RG 0.8 w');
-      addRaw(`${margin} ${y} m ${pageWidth - margin} ${y} l S`);
-      addRaw('Q');
-    };
-    const addSection = (title: string, rows: [string, string][]) => {
-      const titleHeight = 12;
-      const rowHeight = 10;
-      const boxHeight = boxPad * 2 + titleHeight + rows.length * rowHeight + 4;
-      ensureSpace(boxHeight + sectionGap);
-      y -= boxHeight;
-      addRaw('q 0.82 0.54 0.18 RG 1 w');
-      addRaw(`${margin} ${y} ${contentWidth} ${boxHeight} re S`);
-      addRaw('Q');
-      addText(title, margin + boxPad, y + boxHeight - 14, 8.5, gold, true);
-      let rowY = y + boxHeight - 24;
-      rows.forEach(([label, value]) => {
-        addText(label, margin + boxPad, rowY, 8, muted, false);
-        addText(value || 'Non renseigné', margin + boxPad + 145, rowY, 8, dark, true);
-        rowY -= rowHeight;
-      });
-      y -= sectionGap;
-    };
-
-    // Header
-    ensureSpace(78);
-    const logoX = margin;
-    const logoY = y - 38;
-    const logoW = 36;
-    const logoH = 36;
-    addRaw('q 0.92 0.93 0.95 RG 0.8 w');
-    addRaw(`${logoX} ${logoY} ${logoW} ${logoH} re S`);
-    addRaw('Q');
-    if (!logoAsset) {
-      addText('M', logoX + 13, logoY + 12, 16, '0.55 0.58 0.64 rg', true);
+    if (!previewRef.current) {
+      notify({ title: 'Téléchargement impossible', message: 'Aperçu du contrat introuvable.', type: 'warning' });
+      return;
     }
-    addText(profile?.agency?.name || 'MekLoc Agency', margin, y - 4, 12, dark, true);
-    addText(`Adresse: ${agencyMeta.address || 'Non renseigné'}`, margin, y - 16, 8, muted);
-    addText(`Tél: ${agencyMeta.phone || profile?.phone || 'Non renseigné'} · Email: ${agencyMeta.email || profile?.email || 'Non renseigné'}`, margin, y - 28, 8, muted);
-    addText('CONTRAT DE LOCATION', margin, y - 46, 13, dark, true);
-    addText(`Référence: ${contractReference}`, margin, y - 60, 8.5, muted, true);
-    addText(`Date: ${new Date().toLocaleDateString('fr-MA')}`, pageWidth - margin - 105, y - 60, 8.5, muted, true);
-    y -= 72;
-    addRule();
-    y -= 8;
+    try {
+      setDownloadingPdf(true);
+      await waitForImagesToLoad(previewRef.current);
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
-    addSection('Informations de l’agence', [
-      ['Nom agence', profile?.agency?.name || 'Non renseigné'],
-      ['Adresse', agencyMeta.address || 'Non renseigné'],
-      ['Téléphone', agencyMeta.phone || profile?.phone || 'Non renseigné'],
-      ['Email', agencyMeta.email || profile?.email || 'Non renseigné'],
-      ['ICE / RC', `${agencyMeta.ice || 'Non renseigné'} / ${agencyMeta.rc || 'Non renseigné'}`],
-    ]);
-
-    addSection('Informations du client', [
-      ['Nom complet', client.fullName || 'Non renseigné'],
-      ['Téléphone', client.phone || 'Non renseigné'],
-      ['Email', client.email || 'Non renseigné'],
-      ['CIN/Passport', client.cin || 'Non renseigné'],
-      ['Numéro de permis', client.license || 'Non renseigné'],
-      ['Adresse', client.address || 'Non renseigné'],
-    ]);
-
-    addSection('2ème conducteur', [
-      ['Nom', '—'],
-      ['Prénom', '—'],
-      ['CIN/Passport', '—'],
-      ['Téléphone', '—'],
-    ]);
-
-    addSection('Informations du véhicule', [
-      ['Marque + modèle', `${vehicle.brand || 'Non renseigné'} ${vehicle.model || ''}`.trim()],
-      ['Immatriculation', vehicle.plate || 'Non renseigné'],
-      ['Couleur', vehicle.vehicleColor || 'Non renseigné'],
-      ['Année', String(vehicle.year || 'Non renseigné')],
-      ['Carburant', vehicle.fuel || 'Non renseigné'],
-      ['Transmission', vehicle.transmission || 'Non renseigné'],
-      ['Kilométrage départ', String(selectedReservation?.mileageOut ?? 'Non renseigné')],
-      ['Kilométrage retour', 'Non renseigné'],
-    ]);
-
-    // Accessoires
-    const accessoryPresent = Object.entries(accessoryLabels)
-      .filter(([key]) => accessories[key as keyof typeof accessories])
-      .map(([, label]) => label)
-      .join(', ');
-    const accessoryMissing = Object.entries(accessoryLabels)
-      .filter(([key]) => !accessories[key as keyof typeof accessories])
-      .map(([, label]) => label)
-      .join(', ');
-    addSection('Accessoires véhicule', [
-      ['Présents', accessoryPresent || 'Aucun'],
-      ['Manquants', accessoryMissing || 'Aucun'],
-    ]);
-
-    addSection('Départ / Retour', [
-      ['Date de départ', formatDateFr(pickupDate)],
-      ['Date de retour', formatDateFr(returnDate)],
-      ['Retour réel', '—'],
-      ['Heure départ', '—'],
-      ['Heure retour', '—'],
-      ['Lieu départ', selectedReservation?.pickupLocation || 'Non renseigné'],
-      ['Lieu retour', selectedReservation?.returnLocation || 'Non renseigné'],
-    ]);
-
-    addSection('Montants', [
-      ['Nombre de jours', String(rentalDays)],
-      ['Prix journalier', formatMAD(vehicle.dailyPrice || 0)],
-      ['Montant total', formatMAD(totalAmount || 0)],
-      ['Caution', formatMAD(deposit || 0)],
-      ['Franchise assurance', '—'],
-      ['Mode de règlement', '—'],
-      ['Payé par', client.fullName || 'Non renseigné'],
-      ['Statut paiement', selectedReservation?.status || 'Non renseigné'],
-    ]);
-
-    // Conditions
-    const conditionLines: string[] = [];
-    termsList.forEach((item, index) => {
-      wrapText(`${index + 1}. ${item}`, 95).forEach((line) => conditionLines.push(line));
-    });
-    const trimmedConditionLines = conditionLines.slice(0, 7);
-    const conditionsHeight = Math.max(58, boxPad * 2 + 12 + trimmedConditionLines.length * 9 + 4);
-    ensureSpace(conditionsHeight + sectionGap);
-    y -= conditionsHeight;
-    addRaw('q 0.82 0.54 0.18 RG 1 w');
-    addRaw(`${margin} ${y} ${contentWidth} ${conditionsHeight} re S`);
-    addRaw('Q');
-    addText('Conditions générales', margin + boxPad, y + conditionsHeight - 14, 8.5, gold, true);
-    let conditionY = y + conditionsHeight - 22;
-    trimmedConditionLines.forEach((line) => {
-      addText(line, margin + boxPad, conditionY, 7.7, dark);
-      conditionY -= 9;
-    });
-    y -= sectionGap;
-
-    // Schéma dommages
-    const damageHeight = 96;
-    ensureSpace(damageHeight + sectionGap);
-    y -= damageHeight;
-    addRaw('q 0.93 0.94 0.97 RG 1 w');
-    addRaw(`${margin} ${y} ${contentWidth} ${damageHeight} re S`);
-    addRaw('Q');
-    addText('Schéma des dommages', margin + boxPad, y + damageHeight - 14, 8.5, gold, true);
-    // top-view car
-    addRaw('q 0.20 0.24 0.31 RG 1 w');
-    addRaw('286 162 20 48 re S');
-    addRaw('278 170 36 34 re S');
-    addRaw('286 186 20 1 re S');
-    addRaw('272 172 6 10 re S');
-    addRaw('314 172 6 10 re S');
-    addRaw('272 192 6 10 re S');
-    addRaw('314 192 6 10 re S');
-    addRaw('Q');
-    if (damageMarks.length === 0) {
-      addText('Aucun dommage signalé au départ.', 340, 188, 9, muted);
-    } else {
-      damageMarks.forEach((mark) => {
-        const pos = zoneCoords[mark.zone] || { x: 296, y: 188 };
-        addText(damageTypeLabels[mark.type] || 'A', pos.x, pos.y, 10, '0.86 0.18 0.18 rg', true);
+      const canvas = await html2canvas(previewRef.current, {
+        scale: Math.min(window.devicePixelRatio || 2, 2),
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
       });
-      const notes = damageMarks
-        .map((mark) => `${mark.zone}: ${damageTypeLabels[mark.type] || 'A'}${mark.note ? ` (${mark.note})` : ''}`)
-        .slice(0, 5);
-      let noteY = 196;
-      notes.forEach((note) => {
-        addText(note, 340, noteY, 7.5, muted);
-        noteY -= 8;
-      });
-    }
-    addText('Légende: R Rayure | C Cassure | E Éclat | B Bosse | P Peinture | A Autre', margin + boxPad, y + 8, 7.2, muted);
-    y -= sectionGap;
 
-    // Signatures
-    const signHeight = 54;
-    ensureSpace(signHeight + 32);
-    y -= signHeight;
-    const signWidth = (contentWidth - 10) / 2;
-    addRaw('q 0.82 0.54 0.18 RG 1 w');
-    addRaw(`${margin} ${y} ${signWidth} ${signHeight} re S`);
-    addRaw(`${margin + signWidth + 10} ${y} ${signWidth} ${signHeight} re S`);
-    addRaw('Q');
-    addText('Signature agence', margin + 12, y + 10, 8.5, dark, true);
-    addText('Signature client', margin + signWidth + 22, y + 10, 8.5, dark, true);
-    y -= 20;
-    addText(`Fait à ${signatureCity}, le ${new Date().toLocaleDateString('fr-MA')}`, margin, y + 8, 8.2, muted);
-    y -= 10;
-    addRule();
-    y -= 16;
+      const imageData = canvas.toDataURL('image/jpeg', 0.98);
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = pdf.internal.pageSize.getHeight();
+      const imageWidth = pdfWidth;
+      const imageHeight = (canvas.height * imageWidth) / canvas.width;
 
-    // Footer per-page
-    pages.forEach((commands, idx) => {
-      const footerY = 28;
-      commands.push(`q ${gold}`);
-      commands.push(`BT /F2 9 Tf 1 0 0 1 ${margin.toFixed(2)} ${footerY.toFixed(2)} Tm ${escapePdfWinAnsi('Document généré par MekLoc')} Tj ET`);
-      commands.push('Q');
-      commands.push(`q ${muted}`);
-      commands.push(`BT /F1 9 Tf 1 0 0 1 ${(pageWidth / 2 - 40).toFixed(2)} ${footerY.toFixed(2)} Tm ${escapePdfWinAnsi(contractReference)} Tj ET`);
-      commands.push(`BT /F1 9 Tf 1 0 0 1 ${(pageWidth - margin - 55).toFixed(2)} ${footerY.toFixed(2)} Tm ${escapePdfWinAnsi(`Page ${idx + 1}/${pages.length}`)} Tj ET`);
-      commands.push('Q');
-    });
+      let heightLeft = imageHeight;
+      let position = 0;
+      pdf.addImage(imageData, 'JPEG', 0, position, imageWidth, imageHeight, undefined, 'FAST');
+      heightLeft -= pdfHeight;
 
-    // Assemble PDF
-    const CATALOG_ID = 1;
-    const PAGES_ID = 2;
-    const FONT_REGULAR_ID = 3;
-    const FONT_BOLD_ID = 4;
-
-    let nextId = 5;
-    const LOGO_IMAGE_ID = logoAsset ? nextId++ : null;
-    const contentIds = pages.map(() => nextId++);
-    const pageObjectIds = pages.map(() => nextId++);
-    const maxId = nextId - 1;
-    const objects = new Array<string>(maxId + 1);
-
-    objects[CATALOG_ID] = `${CATALOG_ID} 0 obj\n<< /Type /Catalog /Pages ${PAGES_ID} 0 R >>\nendobj`;
-    objects[PAGES_ID] = `${PAGES_ID} 0 obj\n<< /Type /Pages /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(' ')}] /Count ${pageObjectIds.length} >>\nendobj`;
-    objects[FONT_REGULAR_ID] = `${FONT_REGULAR_ID} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj`;
-    objects[FONT_BOLD_ID] = `${FONT_BOLD_ID} 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>\nendobj`;
-    if (logoAsset && LOGO_IMAGE_ID) {
-      objects[LOGO_IMAGE_ID] =
-        `${LOGO_IMAGE_ID} 0 obj\n` +
-        `<< /Type /XObject /Subtype /Image /Width ${logoAsset.width} /Height ${logoAsset.height} ` +
-        `/ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${logoAsset.bytes.length} >>\n` +
-        `stream\n${Array.from(logoAsset.bytes, (b) => String.fromCharCode(b)).join('')}\nendstream\nendobj`;
-    }
-
-    pages.forEach((commands, index) => {
-      if (index === 0 && logoAsset && LOGO_IMAGE_ID) {
-        const imgW = 36;
-        const imgH = 36;
-        const imgX = margin;
-        const imgY = pageHeight - margin - 38;
-        commands.unshift('Q');
-        commands.unshift('/ImLogo Do');
-        commands.unshift(`${imgW} 0 0 ${imgH} ${imgX} ${imgY} cm`);
-        commands.unshift('q');
+      while (heightLeft > 0) {
+        position = heightLeft - imageHeight;
+        pdf.addPage();
+        pdf.addImage(imageData, 'JPEG', 0, position, imageWidth, imageHeight, undefined, 'FAST');
+        heightLeft -= pdfHeight;
       }
-      const stream = commands.join('\n');
-      const contentId = contentIds[index];
-      const pageId = pageObjectIds[index];
-      objects[contentId] = `${contentId} 0 obj\n<< /Length ${stream.length} >>\nstream\n${stream}\nendstream\nendobj`;
-      const xObjectRef = logoAsset && LOGO_IMAGE_ID ? ` /XObject << /ImLogo ${LOGO_IMAGE_ID} 0 R >>` : '';
-      objects[pageId] =
-        `${pageId} 0 obj\n` +
-        `<< /Type /Page /Parent ${PAGES_ID} 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] ` +
-        `/Resources << /Font << /F1 ${FONT_REGULAR_ID} 0 R /F2 ${FONT_BOLD_ID} 0 R >>${xObjectRef} >> ` +
-        `/Contents ${contentId} 0 R >>\nendobj`;
-    });
 
-    let pdfBody = '%PDF-1.7\n';
-    const offsets: number[] = new Array(maxId + 1).fill(0);
-    for (let id = 1; id <= maxId; id += 1) {
-      offsets[id] = pdfBody.length;
-      pdfBody += `${objects[id]}\n`;
+      pdf.save(contractFileName);
+      notify({ title: 'Téléchargement lancé', message: 'Le contrat PDF a été généré.', type: 'success' });
+    } catch (error) {
+      notify({
+        title: 'Téléchargement impossible',
+        message: error instanceof Error ? error.message : 'Réessayez.',
+        type: 'warning',
+      });
+    } finally {
+      setDownloadingPdf(false);
     }
-    const xrefStart = pdfBody.length;
-    pdfBody += `xref\n0 ${maxId + 1}\n`;
-    pdfBody += '0000000000 65535 f \n';
-    for (let id = 1; id <= maxId; id += 1) {
-      pdfBody += `${String(offsets[id]).padStart(10, '0')} 00000 n \n`;
-    }
-    pdfBody += `trailer\n<< /Size ${maxId + 1} /Root ${CATALOG_ID} 0 R >>\nstartxref\n${xrefStart}\n%%EOF`;
-
-    const blob = new Blob([pdfBody], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = contractFileName;
-    a.click();
-    URL.revokeObjectURL(url);
-    notify({ title: 'Téléchargement lancé', message: 'Le contrat PDF a été généré.', type: 'success' });
   }
 
   useEffect(() => {
@@ -766,7 +518,7 @@ export default function ContractsPage() {
         eyebrow="Documents"
         title="Contrats"
         description="Créez des contrats de location professionnels avec vos données agence, client et véhicule."
-        action={<Button icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview}>Télécharger PDF</Button>}
+        action={<Button icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf}>{downloadingPdf ? 'Préparation...' : 'Télécharger PDF'}</Button>}
       />
 
       <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -872,12 +624,12 @@ export default function ContractsPage() {
           </div>
 
           <div className="max-h-[78vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6">
-            <article className="mx-auto w-full max-w-[794px] min-h-[1123px] rounded-xl border border-[#e8e8e8] bg-white p-6 text-[#1c2330] shadow-[0_16px_40px_rgba(15,23,42,.12)] sm:p-8">
+            <article ref={previewRef} className="mx-auto w-full max-w-[794px] min-h-[1123px] rounded-xl border border-[#e8e8e8] bg-white p-6 text-[#1c2330] shadow-[0_16px_40px_rgba(15,23,42,.12)] sm:p-8">
               <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[#e8edf4] pb-5">
                 <div className="flex items-start gap-3">
                   <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-xl border border-[#e6ebf2] bg-[#f8fafc]">
                     {logoPublicUrl ? (
-                      <img src={logoPublicUrl} alt="Logo agence" className="h-full w-full object-contain" />
+                      <img src={logoPublicUrl} alt="Logo agence" crossOrigin="anonymous" className="h-full w-full object-contain" />
                     ) : (
                       <Building2 className="h-7 w-7 text-[#9aa3b2]" />
                     )}
