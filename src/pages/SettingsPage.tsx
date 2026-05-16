@@ -1,5 +1,5 @@
-import { BellRing, Building2, Camera, FileSignature, Globe2, MessageCircle, Percent, Save, ShieldCheck, UsersRound } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { BellRing, Building2, Camera, FileSignature, Globe2, Loader2, MessageCircle, Percent, Save, ShieldCheck, UsersRound } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -40,15 +40,52 @@ export default function SettingsPage() {
   const [agencyAddress, setAgencyAddress] = useState('');
   const [logoFileName, setLogoFileName] = useState('');
   const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
+  const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
+  const [cropOpen, setCropOpen] = useState(false);
+  const [rawLogoUrl, setRawLogoUrl] = useState('');
+  const [cropScale, setCropScale] = useState(1);
+  const [cropX, setCropX] = useState(0);
+  const [cropY, setCropY] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const [cropApplying, setCropApplying] = useState(false);
+  const cropFrameRef = useRef<HTMLDivElement | null>(null);
+  const dragStartRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
+  const [saveState, setSaveState] = useState<'idle' | 'dirty' | 'saving' | 'saved'>('idle');
+  const hasChanges = useMemo(() => {
+    const baseName = profile?.agency?.name || '';
+    const baseEmail = profile?.agency?.email || profile?.email || '';
+    const basePhone = profile?.agency?.phone || profile?.phone || '';
+    const baseAddress = profile?.agency?.address || '';
+    const baseLogo = profile?.agency?.logoUrl || '';
+    return (
+      agencyName !== baseName ||
+      agencyEmail !== baseEmail ||
+      agencyPhone !== basePhone ||
+      agencyAddress !== baseAddress ||
+      logoPreviewUrl !== baseLogo ||
+      Boolean(pendingLogoFile)
+    );
+  }, [agencyAddress, agencyEmail, agencyName, agencyPhone, logoPreviewUrl, pendingLogoFile, profile?.agency?.address, profile?.agency?.email, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.email, profile?.phone]);
   useEffect(() => {
     setAgencyName(profile?.agency?.name || '');
     setAgencyEmail(profile?.agency?.email || profile?.email || '');
     setAgencyPhone(profile?.agency?.phone || profile?.phone || '');
     setAgencyAddress(profile?.agency?.address || '');
     setLogoPreviewUrl(profile?.agency?.logoUrl || '');
+    setPendingLogoFile(null);
+    setLogoFileName('');
+    setSaveState('idle');
   }, [profile?.agency?.address, profile?.agency?.email, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.email, profile?.phone]);
+
+  useEffect(() => {
+    if (!hasChanges) {
+      if (saveState !== 'saving') setSaveState('idle');
+      return;
+    }
+    if (saveState !== 'saving') setSaveState('dirty');
+  }, [hasChanges, saveState]);
   function downloadBillingReceipt() {
     const lines = [
       'Recu abonnement MekLoc',
@@ -103,34 +140,21 @@ startxref
     }
     setLogoFileName(file.name);
     const localPreview = URL.createObjectURL(file);
-    setLogoPreviewUrl(localPreview);
-    if (!isSupabaseEnabled || !agencyId) {
-      notify({ title: 'Logo sélectionné', message: 'Le logo sera enregistré après connexion Supabase.', type: 'info' });
-      return;
-    }
-
-    try {
-      setLogoUploading(true);
-      await uploadAgencyLogo(agencyId, file);
-      await refreshProfile();
-      notify({ title: 'Logo téléversé', message: 'Le logo agence a été enregistré.', type: 'success' });
-    } catch (error) {
-      notify({
-        title: 'Téléversement impossible',
-        message: error instanceof Error ? error.message : 'Réessayez dans quelques instants.',
-        type: 'warning',
-      });
-    } finally {
-      setLogoUploading(false);
-      URL.revokeObjectURL(localPreview);
-    }
+    setRawLogoUrl(localPreview);
+    setPendingLogoFile(file);
+    setCropScale(1);
+    setCropX(0);
+    setCropY(0);
+    setCropOpen(true);
   }
 
   async function handleRemoveLogo() {
     setLogoFileName('');
     setLogoPreviewUrl('');
+    setPendingLogoFile(null);
     if (!isSupabaseEnabled || !agencyId || !supabase) {
       notify({ title: 'Logo supprimé', message: 'Suppression locale effectuée.', type: 'success' });
+      setSaveState('dirty');
       return;
     }
     try {
@@ -143,11 +167,92 @@ startxref
       if (error) throw error;
       await refreshProfile();
       notify({ title: 'Logo supprimé', message: 'Le logo agence a été retiré.', type: 'success' });
+      setSaveState('saved');
     } catch (error) {
       notify({ title: 'Suppression impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
     } finally {
       setLogoUploading(false);
     }
+  }
+
+  function handleCropPointerDown(event: React.PointerEvent<HTMLDivElement>) {
+    if (!cropFrameRef.current) return;
+    const rect = cropFrameRef.current.getBoundingClientRect();
+    dragStartRef.current = {
+      x: event.clientX,
+      y: event.clientY,
+      offsetX: cropX,
+      offsetY: cropY,
+    };
+    setDragging(true);
+    (event.target as HTMLElement).setPointerCapture?.(event.pointerId);
+    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+      setDragging(false);
+      dragStartRef.current = null;
+    }
+  }
+
+  function handleCropPointerMove(event: React.PointerEvent<HTMLDivElement>) {
+    if (!dragging || !dragStartRef.current) return;
+    const dx = event.clientX - dragStartRef.current.x;
+    const dy = event.clientY - dragStartRef.current.y;
+    setCropX(dragStartRef.current.offsetX + dx);
+    setCropY(dragStartRef.current.offsetY + dy);
+  }
+
+  function handleCropPointerUp(event: React.PointerEvent<HTMLDivElement>) {
+    (event.target as HTMLElement).releasePointerCapture?.(event.pointerId);
+    setDragging(false);
+    dragStartRef.current = null;
+  }
+
+  async function applyLogoCrop() {
+    if (!pendingLogoFile || !rawLogoUrl || !cropFrameRef.current) return;
+    setCropApplying(true);
+    try {
+      const image = new Image();
+      image.crossOrigin = 'anonymous';
+      image.src = rawLogoUrl;
+      await new Promise<void>((resolve, reject) => {
+        image.onload = () => resolve();
+        image.onerror = () => reject(new Error('Image invalide.'));
+      });
+      const size = 600;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Canvas indisponible');
+      context.fillStyle = '#111315';
+      context.fillRect(0, 0, size, size);
+      const frameRect = cropFrameRef.current.getBoundingClientRect();
+      const baseScale = Math.min(frameRect.width / image.width, frameRect.height / image.height);
+      const finalScale = baseScale * cropScale;
+      const drawWidth = image.width * finalScale * (size / frameRect.width);
+      const drawHeight = image.height * finalScale * (size / frameRect.height);
+      const drawX = (size - drawWidth) / 2 + (cropX * size) / frameRect.width;
+      const drawY = (size - drawHeight) / 2 + (cropY * size) / frameRect.height;
+      context.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((out) => resolve(out), 'image/png', 0.95));
+      if (!blob) throw new Error('Impossible de traiter le logo.');
+      const file = new File([blob], `logo-cropped-${Date.now()}.png`, { type: 'image/png' });
+      setPendingLogoFile(file);
+      setLogoPreviewUrl(URL.createObjectURL(blob));
+      setCropOpen(false);
+      if (rawLogoUrl) URL.revokeObjectURL(rawLogoUrl);
+      setRawLogoUrl('');
+      notify({ title: 'Logo ajusté', message: 'Cliquez sur Enregistrer pour confirmer.', type: 'info' });
+    } catch (error) {
+      notify({ title: 'Ajustement impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+    } finally {
+      setCropApplying(false);
+    }
+  }
+
+  function resetCropView() {
+    setCropScale(1);
+    setCropX(0);
+    setCropY(0);
   }
 
   async function handleSaveSettings() {
@@ -157,7 +262,11 @@ startxref
     }
     try {
       setSettingsSaving(true);
+      setSaveState('saving');
       if (!supabase) throw new Error('Supabase non configuré');
+      if (pendingLogoFile && agencyId) {
+        await uploadAgencyLogo(agencyId, pendingLogoFile);
+      }
       let { error: agencyErr } = await supabase
         .from('agencies')
         .update({
@@ -176,16 +285,26 @@ startxref
       }
       if (agencyErr) throw agencyErr;
 
-      const { error: profileErr } = await supabase
+      let profileErr: { message?: string } | null = null;
+      const profileUpdate = await supabase
         .from('users_profiles')
         .update({ email: agencyEmail.trim().toLowerCase(), phone: agencyPhone, full_name: profile.fullName })
         .eq('id', profile.id);
-      if (profileErr) throw profileErr;
+      profileErr = profileUpdate.error;
+      if (profileErr && /column .* does not exist/i.test(profileErr.message || '')) {
+        const fallbackProfile = await supabase.from('users_profiles').update({ full_name: profile.fullName }).eq('id', profile.id);
+        profileErr = fallbackProfile.error;
+      }
+      if (profileErr && !/permission denied|row-level security/i.test(profileErr.message || '')) throw profileErr;
       await refreshProfile();
+      setPendingLogoFile(null);
+      setLogoFileName('');
 
       notify({ title: 'Paramètres enregistrés', message: 'Profil agence mis à jour.', type: 'success' });
+      setSaveState('saved');
     } catch (error) {
       notify({ title: 'Enregistrement impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+      setSaveState('dirty');
     } finally {
       setSettingsSaving(false);
     }
@@ -215,8 +334,12 @@ startxref
         eyebrow="Workspace"
         title="Paramètres"
         description="Configurez le profil agence, les contrats, la devise, la fiscalité, WhatsApp et les rôles."
-        action={<div className="flex gap-2"><Button icon={<Save className="h-4 w-4" />} onClick={handleSaveSettings} loading={settingsSaving}>{settingsSaving ? 'Enregistrement...' : 'Enregistrer'}</Button><Button variant="secondary" onClick={handleLogout}>Déconnexion</Button></div>}
+        action={<div className="flex gap-2"><Button icon={settingsSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} onClick={handleSaveSettings} loading={settingsSaving} disabled={!hasChanges && !settingsSaving}>{settingsSaving ? 'Enregistrement...' : 'Enregistrer'}</Button><Button variant="secondary" onClick={handleLogout}>Déconnexion</Button></div>}
       />
+      <div className="mb-3">
+        {saveState === 'dirty' ? <p className="text-sm text-gold-200">Modifications non enregistrées</p> : null}
+        {saveState === 'saved' ? <p className="text-sm text-emerald-300">Enregistré</p> : null}
+      </div>
 
       <Card className="mb-6 p-2">
         <div className="flex flex-wrap gap-2">
@@ -461,6 +584,52 @@ startxref
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setDeleteOpen(false)}>Annuler</Button>
             <Button type="button" variant="danger" onClick={handleDeleteAccount}>Confirmer la suppression</Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={cropOpen} onClose={() => { setCropOpen(false); if (rawLogoUrl) URL.revokeObjectURL(rawLogoUrl); setRawLogoUrl(''); }} title="Ajuster le logo">
+        <div className="space-y-4">
+          <p className="text-sm text-carbon-300">Ajustez votre logo pour qu’il apparaisse correctement dans MekLoc, les contrats et les factures.</p>
+          <div
+            ref={cropFrameRef}
+            onPointerDown={handleCropPointerDown}
+            onPointerMove={handleCropPointerMove}
+            onPointerUp={handleCropPointerUp}
+            onPointerCancel={handleCropPointerUp}
+            className="relative mx-auto grid h-72 w-full max-w-md touch-none place-items-center overflow-hidden rounded-3xl border border-white/10 bg-[#0e1218]"
+          >
+            {rawLogoUrl ? (
+              <img
+                src={rawLogoUrl}
+                alt="Prévisualisation logo"
+                className="pointer-events-none max-h-none max-w-none select-none"
+                style={{
+                  transform: `translate(${cropX}px, ${cropY}px) scale(${cropScale})`,
+                  width: '86%',
+                  height: '86%',
+                  objectFit: 'contain',
+                }}
+              />
+            ) : null}
+            <div className="pointer-events-none absolute inset-5 rounded-3xl border-2 border-gold-300/70 shadow-[0_0_0_9999px_rgba(0,0,0,.35)]" />
+          </div>
+          <label className="grid gap-2 text-sm text-carbon-300">
+            Zoom
+            <input
+              type="range"
+              min={1}
+              max={2.5}
+              step={0.01}
+              value={cropScale}
+              onChange={(event) => setCropScale(Number(event.target.value))}
+              className="w-full accent-[#D4A017]"
+            />
+          </label>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="secondary" onClick={() => setCropOpen(false)}>Annuler</Button>
+            <Button type="button" variant="secondary" onClick={resetCropView}>Réinitialiser</Button>
+            <Button type="button" onClick={applyLogoCrop} loading={cropApplying}>Valider le logo</Button>
           </div>
         </div>
       </Modal>

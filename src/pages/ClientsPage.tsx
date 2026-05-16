@@ -2,6 +2,7 @@ import {
   AlertTriangle,
   BadgeCheck,
   CalendarClock,
+  Camera,
   CreditCard,
   Edit3,
   Eye,
@@ -19,7 +20,7 @@ import {
   Wallet,
   X,
 } from 'lucide-react';
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -97,6 +98,14 @@ export default function ClientsPage() {
   const [backPreview, setBackPreview] = useState<string | null>(null);
   const [frontRemoved, setFrontRemoved] = useState(false);
   const [backRemoved, setBackRemoved] = useState(false);
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [cameraSide, setCameraSide] = useState<'front' | 'back'>('front');
+  const [cameraError, setCameraError] = useState('');
+  const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
+  const [cameraLoading, setCameraLoading] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const activeClientIds = useMemo(() => {
     return new Set(reservations.map((reservation) => reservation.clientId));
@@ -138,6 +147,15 @@ export default function ClientsPage() {
       document.body.style.overflow = '';
     };
   }, [modalOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach((track) => track.stop());
+        streamRef.current = null;
+      }
+    };
+  }, []);
 
   function resetUploadState() {
     setFrontFile(null);
@@ -228,6 +246,84 @@ export default function ClientsPage() {
       setBackRemoved(false);
     }
     event.target.value = '';
+  }
+
+  async function openCamera(side: 'front' | 'back') {
+    setCameraSide(side);
+    setCapturedPreview(null);
+    setCameraError('');
+    if (!navigator.mediaDevices?.getUserMedia) {
+      notify({ title: 'Caméra indisponible', message: 'Ce navigateur ne supporte pas la caméra.', type: 'warning' });
+      return;
+    }
+    try {
+      setCameraLoading(true);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setCameraOpen(true);
+      requestAnimationFrame(() => {
+        if (!videoRef.current) return;
+        videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(() => {
+          setCameraError('Autorisez l’accès à la caméra pour prendre une photo.');
+        });
+      });
+    } catch {
+      notify({ title: 'Caméra indisponible', message: 'Autorisez l’accès à la caméra pour prendre une photo.', type: 'warning' });
+    } finally {
+      setCameraLoading(false);
+    }
+  }
+
+  function closeCamera() {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setCameraOpen(false);
+    setCapturedPreview(null);
+    setCameraError('');
+  }
+
+  function captureFromCamera() {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+    const width = video.videoWidth || 1280;
+    const height = video.videoHeight || 720;
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(video, 0, 0, width, height);
+    setCapturedPreview(canvas.toDataURL('image/jpeg', 0.92));
+  }
+
+  async function validateCapturedPhoto() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((value) => resolve(value), 'image/jpeg', 0.92));
+    if (!blob) return;
+    const file = new File([blob], `${cameraSide}-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    const validationError = validateImage(file);
+    if (validationError) {
+      notify({ title: 'Fichier invalide', message: validationError, type: 'warning' });
+      return;
+    }
+    const localPreview = URL.createObjectURL(file);
+    if (cameraSide === 'front') {
+      setFrontFile(file);
+      setFrontPreview(localPreview);
+      setFrontRemoved(false);
+    } else {
+      setBackFile(file);
+      setBackPreview(localPreview);
+      setBackRemoved(false);
+    }
+    closeCamera();
   }
 
   async function handleSaveClient(event: FormEvent<HTMLFormElement>) {
@@ -464,6 +560,7 @@ export default function ClientsPage() {
                 title="Pièce d’identité recto"
                 previewUrl={frontPreview}
                 onPick={(event) => onPickDocument(event, 'front')}
+                onCapture={() => openCamera('front')}
                 onRemove={() => {
                   setFrontFile(null);
                   setFrontPreview(null);
@@ -474,6 +571,7 @@ export default function ClientsPage() {
                 title="Pièce d’identité verso"
                 previewUrl={backPreview}
                 onPick={(event) => onPickDocument(event, 'back')}
+                onCapture={() => openCamera('back')}
                 onRemove={() => {
                   setBackFile(null);
                   setBackPreview(null);
@@ -495,6 +593,39 @@ export default function ClientsPage() {
             </div>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={cameraOpen} onClose={closeCamera} title="Prendre une photo">
+        <div className="space-y-4">
+          <div className="overflow-hidden rounded-2xl border border-white/10 bg-black">
+            {capturedPreview ? (
+              <img src={capturedPreview} alt="Capture caméra" className="h-64 w-full object-cover sm:h-72" />
+            ) : (
+              <video ref={videoRef} className="h-64 w-full object-cover sm:h-72" playsInline muted />
+            )}
+            <canvas ref={canvasRef} className="hidden" />
+          </div>
+          {cameraError ? <p className="text-xs text-amber-200">{cameraError}</p> : null}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="secondary" onClick={closeCamera}>
+              Annuler
+            </Button>
+            {capturedPreview ? (
+              <>
+                <Button type="button" variant="secondary" onClick={() => setCapturedPreview(null)}>
+                  Reprendre
+                </Button>
+                <Button type="button" onClick={validateCapturedPhoto}>
+                  Valider
+                </Button>
+              </>
+            ) : (
+              <Button type="button" onClick={captureFromCamera} loading={cameraLoading}>
+                Capturer
+              </Button>
+            )}
+          </div>
+        </div>
       </Modal>
     </div>
   );
@@ -528,10 +659,11 @@ type DocumentUploadBoxProps = {
   title: string;
   previewUrl: string | null;
   onPick: (event: ChangeEvent<HTMLInputElement>) => void;
+  onCapture: () => void;
   onRemove: () => void;
 };
 
-function DocumentUploadBox({ title, previewUrl, onPick, onRemove }: DocumentUploadBoxProps) {
+function DocumentUploadBox({ title, previewUrl, onPick, onCapture, onRemove }: DocumentUploadBoxProps) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
       <p className="mb-2 text-sm font-semibold text-white">{title}</p>
@@ -541,21 +673,39 @@ function DocumentUploadBox({ title, previewUrl, onPick, onRemove }: DocumentUplo
           <div className="flex flex-wrap gap-2">
             <label className="focus-ring inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/15">
               <Upload className="h-3.5 w-3.5" />
-              Changer l’image
+              Importer une image
               <input type="file" className="hidden" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={onPick} />
             </label>
+            <button
+              type="button"
+              onClick={onCapture}
+              className="focus-ring inline-flex items-center gap-2 rounded-xl border border-gold-300/45 bg-gold-400/15 px-3 py-2 text-xs font-semibold text-gold-100 transition hover:bg-gold-400/25"
+            >
+              <Camera className="h-3.5 w-3.5" />
+              Prendre une photo
+            </button>
             <Button type="button" variant="danger" className="h-8 px-3 text-xs" icon={<X className="h-3.5 w-3.5" />} onClick={onRemove}>
               Retirer
             </Button>
           </div>
         </div>
       ) : (
-        <label className="focus-ring flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 bg-black/15 px-4 py-6 text-center transition hover:border-[#D4A017]/60 hover:bg-[#D4A017]/8">
-          <FileImage className="h-6 w-6 text-gold-200" />
-          <span className="text-sm font-semibold text-white">Ajouter une image</span>
-          <span className="text-xs text-carbon-400">PNG, JPG ou WEBP · Max 5MB</span>
-          <input type="file" className="hidden" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={onPick} />
-        </label>
+        <div className="space-y-2">
+          <label className="focus-ring flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 bg-black/15 px-4 py-6 text-center transition hover:border-[#D4A017]/60 hover:bg-[#D4A017]/8">
+            <FileImage className="h-6 w-6 text-gold-200" />
+            <span className="text-sm font-semibold text-white">Importer une image</span>
+            <span className="text-xs text-carbon-400">PNG, JPG ou WEBP · Max 5MB</span>
+            <input type="file" className="hidden" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={onPick} />
+          </label>
+          <button
+            type="button"
+            onClick={onCapture}
+            className="focus-ring flex w-full items-center justify-center gap-2 rounded-xl border border-gold-300/45 bg-gold-400/12 px-3 py-2 text-xs font-semibold text-gold-100 transition hover:bg-gold-400/22"
+          >
+            <Camera className="h-3.5 w-3.5" />
+            Prendre une photo
+          </button>
+        </div>
       )}
       <div className="mt-2 flex items-center gap-2 text-xs text-carbon-500">
         <ShieldCheck className="h-3.5 w-3.5" />

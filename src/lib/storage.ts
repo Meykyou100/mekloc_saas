@@ -10,10 +10,20 @@ export async function uploadAgencyLogo(agencyId: string, file: File) {
     upsert: true,
   });
 
-  if (error) throw error;
+  if (error) {
+    const message = error.message || '';
+    if (/bucket not found/i.test(message)) {
+      throw new Error('Bucket logos introuvable. Créez le bucket "logos" dans Supabase Storage.');
+    }
+    if (/row-level security|policy/i.test(message)) {
+      throw new Error('Permission refusée pour le bucket logos. Vérifiez les policies Storage.');
+    }
+    throw error;
+  }
 
   const { data: publicData } = supabase.storage.from(storageBuckets.logos).getPublicUrl(data.path);
-  await supabase.from('agencies').update({ logo_path: data.path, logo_url: publicData.publicUrl }).eq('id', agencyId);
+  const { error: saveError } = await supabase.from('agencies').update({ logo_path: data.path, logo_url: publicData.publicUrl }).eq('id', agencyId);
+  if (saveError) throw saveError;
   return data.path;
 }
 

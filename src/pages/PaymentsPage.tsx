@@ -12,6 +12,7 @@ import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
 
 type FilterKey = 'tous' | 'paye' | 'partiel' | 'attente' | 'retard' | 'mois';
+type MethodFilter = 'toutes' | 'Cash' | 'Bank transfer' | 'Card';
 const filters: Array<{ key: FilterKey; label: string }> = [
   { key: 'tous', label: 'Tous' },
   { key: 'paye', label: 'Payé' },
@@ -26,6 +27,7 @@ export default function PaymentsPage() {
   const { notify } = useApp();
   const [filter, setFilter] = useState<FilterKey>('tous');
   const [query, setQuery] = useState('');
+  const [methodFilter, setMethodFilter] = useState<MethodFilter>('toutes');
   const [modalOpen, setModalOpen] = useState(false);
   const [paidOverrides, setPaidOverrides] = useState<Record<string, number>>({});
   const supportPhone = '212762971653';
@@ -66,7 +68,8 @@ export default function PaymentsPage() {
       (filter === 'retard' && item.statusFr === 'En retard') ||
       (filter === 'mois' && inMonth);
     const haystack = `${item.invoice} ${item.client} ${item.vehicleLabel} ${item.reservationCode}`.toLowerCase();
-    return matchesFilter && haystack.includes(query.toLowerCase());
+    const methodHit = methodFilter === 'toutes' || item.method === methodFilter;
+    return matchesFilter && methodHit && haystack.includes(query.toLowerCase());
   });
 
   const totalFacture = enriched.reduce((s, i) => s + i.total, 0);
@@ -152,11 +155,17 @@ startxref
       </div>
 
       <Card className="mt-6 p-4">
-        <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+        <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
           <label className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
             <input className="form-control h-10 w-full pl-10 pr-4 text-sm" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher facture, client, véhicule, réservation..." />
           </label>
+          <select className="form-control h-10 min-w-[170px] text-sm" value={methodFilter} onChange={(event) => setMethodFilter(event.target.value as MethodFilter)}>
+            <option value="toutes">Méthodes: Toutes</option>
+            <option value="Cash">Espèces</option>
+            <option value="Bank transfer">Virement</option>
+            <option value="Card">Carte</option>
+          </select>
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 no-scrollbar md:mx-0 md:px-0">
             {filters.map((f) => (
               <button key={f.key} className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold ${filter === f.key ? 'bg-gold-400 text-carbon-950' : 'border border-white/10 bg-white/[0.04] text-carbon-300'}`} onClick={() => setFilter(f.key)}>{f.label}</button>
@@ -165,7 +174,14 @@ startxref
         </div>
       </Card>
 
-      <Card className="mt-6 hidden overflow-hidden md:block">
+      {filtered.length === 0 ? (
+        <Card className="mt-6 p-10 text-center">
+          <p className="text-base font-semibold text-white">Aucun paiement trouvé</p>
+          <p className="mt-2 text-sm text-carbon-400">Ajustez vos filtres ou ajoutez un nouveau paiement.</p>
+        </Card>
+      ) : null}
+
+      <Card className={`mt-6 hidden overflow-hidden md:block ${filtered.length === 0 ? 'hidden' : ''}`}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1120px] text-left text-sm">
             <thead className="border-b border-white/[0.06] text-xs uppercase tracking-wide text-carbon-400">
@@ -185,7 +201,7 @@ startxref
         </div>
       </Card>
 
-      <div className="mt-6 grid gap-4 md:hidden">
+      <div className={`mt-6 grid gap-4 md:hidden ${filtered.length === 0 ? 'hidden' : ''}`}>
         {filtered.map((item) => (
           <Card key={item.id} className="p-4">
             <div className="flex items-center justify-between"><p className="font-semibold">{item.invoice}</p><Badge>{item.statusFr}</Badge></div>
