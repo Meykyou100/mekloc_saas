@@ -1,5 +1,5 @@
 import { Bell, CheckCircle2, LogOut, Menu, Search, UserRound } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
@@ -9,6 +9,11 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
   const { signOut, profile, isSupabaseEnabled } = useAuth();
   const navigate = useNavigate();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [mobileLogoBroken, setMobileLogoBroken] = useState(false);
+
+  useEffect(() => {
+    setMobileLogoBroken(false);
+  }, [profile?.agency?.logoUrl]);
 
   async function handleLogout() {
     await signOut();
@@ -40,7 +45,14 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
         </div>
         <div className="mr-auto md:hidden">
           <span className="flex items-center gap-2 text-lg font-black tracking-wide">
-            {profile?.agency?.logoUrl ? <img src={profile.agency.logoUrl} alt="Logo agence" className="h-7 w-7 rounded-lg object-contain" /> : null}
+            {profile?.agency?.logoUrl && !mobileLogoBroken ? (
+              <img
+                src={profile.agency.logoUrl}
+                alt="Logo agence"
+                className="h-7 w-7 rounded-lg object-contain"
+                onError={() => setMobileLogoBroken(true)}
+              />
+            ) : null}
             MekLoc
           </span>
         </div>

@@ -220,7 +220,21 @@ async function fetchProfile(userId: string): Promise<UserProfile | null> {
     .maybeSingle();
 
   if (error) throw error;
-  return data ? mapProfile(data as ProfileRow) : null;
+  if (!data) return null;
+
+  const row = data as ProfileRow;
+  const agency = Array.isArray(row.agencies) ? row.agencies[0] : row.agencies;
+  if (agency?.logo_path && !agency.logo_url) {
+    const signed = await supabase.storage.from('logos').createSignedUrl(agency.logo_path, 60 * 60);
+    if (!signed.error && signed.data?.signedUrl) {
+      agency.logo_url = signed.data.signedUrl;
+    } else {
+      const publicData = supabase.storage.from('logos').getPublicUrl(agency.logo_path).data.publicUrl;
+      agency.logo_url = publicData || null;
+    }
+  }
+
+  return mapProfile(row);
 }
 
 async function hasApprovedAccessRequest(email: string | null | undefined): Promise<boolean> {

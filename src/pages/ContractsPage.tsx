@@ -241,8 +241,13 @@ export default function ContractsPage() {
       if ((data as { logo_url?: string | null }).logo_url) {
         setLogoPublicUrl((data as { logo_url?: string | null }).logo_url || null);
       } else if (data.logo_path) {
-        const { data: logoData } = supabase.storage.from('logos').getPublicUrl(data.logo_path);
-        setLogoPublicUrl(logoData.publicUrl || null);
+        const signed = await supabase.storage.from('logos').createSignedUrl(data.logo_path, 60 * 60);
+        if (!signed.error && signed.data?.signedUrl) {
+          setLogoPublicUrl(signed.data.signedUrl);
+        } else {
+          const { data: logoData } = supabase.storage.from('logos').getPublicUrl(data.logo_path);
+          setLogoPublicUrl(logoData.publicUrl || null);
+        }
       } else {
         setLogoPublicUrl(null);
       }

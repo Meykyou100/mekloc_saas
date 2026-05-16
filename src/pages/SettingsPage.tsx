@@ -40,6 +40,7 @@ export default function SettingsPage() {
   const [agencyAddress, setAgencyAddress] = useState('');
   const [logoFileName, setLogoFileName] = useState('');
   const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
+  const [logoPreviewBroken, setLogoPreviewBroken] = useState(false);
   const [pendingLogoFile, setPendingLogoFile] = useState<File | null>(null);
   const [cropOpen, setCropOpen] = useState(false);
   const [rawLogoUrl, setRawLogoUrl] = useState('');
@@ -77,7 +78,12 @@ export default function SettingsPage() {
     setPendingLogoFile(null);
     setLogoFileName('');
     setSaveState('idle');
+    setLogoPreviewBroken(false);
   }, [profile?.agency?.address, profile?.agency?.email, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.email, profile?.phone]);
+
+  useEffect(() => {
+    setLogoPreviewBroken(false);
+  }, [logoPreviewUrl]);
 
   useEffect(() => {
     if (!hasChanges) {
@@ -381,8 +387,13 @@ startxref
               </div>
               <div className="flex items-center gap-3">
                 <div className="h-14 w-14 overflow-hidden rounded-xl border border-white/10 bg-carbon-900">
-                  {logoPreviewUrl ? (
-                    <img src={logoPreviewUrl} alt="Logo agence" className="h-full w-full object-contain" />
+                  {logoPreviewUrl && !logoPreviewBroken ? (
+                    <img
+                      src={logoPreviewUrl}
+                      alt="Logo agence"
+                      className="h-full w-full object-contain"
+                      onError={() => setLogoPreviewBroken(true)}
+                    />
                   ) : (
                     <div className="grid h-full w-full place-items-center text-sm font-black text-gold-200">M</div>
                   )}
