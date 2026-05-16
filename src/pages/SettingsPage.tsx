@@ -11,6 +11,20 @@ import { useAuth } from '../context/AuthContext';
 import { uploadAgencyLogo } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 
+function extractErrorMessage(error: unknown) {
+  if (!error) return 'Réessayez.';
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  if (typeof error === 'object') {
+    const maybe = error as { message?: unknown; details?: unknown; hint?: unknown };
+    const msg = typeof maybe.message === 'string' ? maybe.message : '';
+    const details = typeof maybe.details === 'string' ? maybe.details : '';
+    const hint = typeof maybe.hint === 'string' ? maybe.hint : '';
+    return [msg, details, hint].filter(Boolean).join(' · ') || 'Réessayez.';
+  }
+  return 'Réessayez.';
+}
+
 export default function SettingsPage() {
   const { notify } = useApp();
   const { agencyId, isSupabaseEnabled, profile, signOut, deleteAccountWithPassword, refreshProfile } = useAuth();
@@ -175,7 +189,7 @@ startxref
       notify({ title: 'Logo supprimé', message: 'Le logo agence a été retiré.', type: 'success' });
       setSaveState('saved');
     } catch (error) {
-      notify({ title: 'Suppression impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+      notify({ title: 'Suppression impossible', message: extractErrorMessage(error), type: 'warning' });
     } finally {
       setLogoUploading(false);
     }
@@ -249,7 +263,7 @@ startxref
       setRawLogoUrl('');
       notify({ title: 'Logo ajusté', message: 'Cliquez sur Enregistrer pour confirmer.', type: 'info' });
     } catch (error) {
-      notify({ title: 'Ajustement impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+      notify({ title: 'Ajustement impossible', message: extractErrorMessage(error), type: 'warning' });
     } finally {
       setCropApplying(false);
     }
@@ -309,7 +323,7 @@ startxref
       notify({ title: 'Paramètres enregistrés', message: 'Profil agence mis à jour.', type: 'success' });
       setSaveState('saved');
     } catch (error) {
-      notify({ title: 'Enregistrement impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+      notify({ title: 'Enregistrement impossible', message: extractErrorMessage(error), type: 'warning' });
       setSaveState('dirty');
     } finally {
       setSettingsSaving(false);
@@ -330,7 +344,7 @@ startxref
       setDeletePassword('');
       navigate('/auth');
     } catch (error) {
-      notify({ title: 'Suppression impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+      notify({ title: 'Suppression impossible', message: extractErrorMessage(error), type: 'warning' });
     }
   }
 

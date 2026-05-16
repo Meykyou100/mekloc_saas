@@ -165,9 +165,7 @@ function mapAgency(row: AgencyRow | AgencyRow[] | null): AgencySubscription | nu
     id: agency.id,
     name: agency.name,
     logoPath: agency.logo_path || null,
-    logoUrl:
-      agency.logo_url ||
-      (agency.logo_path && supabase ? supabase.storage.from('logos').getPublicUrl(agency.logo_path).data.publicUrl : null),
+    logoUrl: agency.logo_url || null,
     address: agency.address || null,
     phone: agency.phone || null,
     email: agency.email || null,
@@ -225,12 +223,17 @@ async function fetchProfile(userId: string): Promise<UserProfile | null> {
   const row = data as ProfileRow;
   const agency = Array.isArray(row.agencies) ? row.agencies[0] : row.agencies;
   if (agency?.logo_path && !agency.logo_url) {
-    const signed = await supabase.storage.from('logos').createSignedUrl(agency.logo_path, 60 * 60);
-    if (!signed.error && signed.data?.signedUrl) {
-      agency.logo_url = signed.data.signedUrl;
-    } else {
-      const publicData = supabase.storage.from('logos').getPublicUrl(agency.logo_path).data.publicUrl;
-      agency.logo_url = publicData || null;
+    const candidateBuckets = ['logos', 'agency-assets'];
+    for (const bucket of candidateBuckets) {
+      const signed = await supabase.storage.from(bucket).createSignedUrl(agency.logo_path, 60 * 60);
+      if (!signed.error && signed.data?.signedUrl) {
+        agency.logo_url = signed.data.signedUrl;
+        break;
+      }
+      const publicData = supabase.storage.from(bucket).getPublicUrl(agency.logo_path).data.publicUrl;
+      if (publicData) {
+        agency.logo_url = publicData;
+      }
     }
   }
 
