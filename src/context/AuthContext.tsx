@@ -222,19 +222,21 @@ async function fetchProfile(userId: string): Promise<UserProfile | null> {
 
   const row = data as ProfileRow;
   const agency = Array.isArray(row.agencies) ? row.agencies[0] : row.agencies;
-  if (agency?.logo_path && !agency.logo_url) {
+  if (agency?.logo_path) {
     const candidateBuckets = ['logos', 'agency-assets'];
+    let resolvedLogoUrl: string | null = null;
     for (const bucket of candidateBuckets) {
       const signed = await supabase.storage.from(bucket).createSignedUrl(agency.logo_path, 60 * 60);
       if (!signed.error && signed.data?.signedUrl) {
-        agency.logo_url = signed.data.signedUrl;
+        resolvedLogoUrl = signed.data.signedUrl;
         break;
       }
-      const publicData = supabase.storage.from(bucket).getPublicUrl(agency.logo_path).data.publicUrl;
-      if (publicData) {
-        agency.logo_url = publicData;
+      const publicData = supabase.storage.from(bucket).getPublicUrl(agency.logo_path).data.publicUrl || null;
+      if (!resolvedLogoUrl && publicData) {
+        resolvedLogoUrl = publicData;
       }
     }
+    agency.logo_url = resolvedLogoUrl || agency.logo_url || null;
   }
 
   return mapProfile(row);
