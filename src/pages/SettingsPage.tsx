@@ -25,6 +25,14 @@ function extractErrorMessage(error: unknown) {
   return 'Réessayez.';
 }
 
+function extractMissingColumnName(message: string) {
+  const schemaCacheMatch = message.match(/Could not find the '([^']+)' column/i);
+  if (schemaCacheMatch?.[1]) return schemaCacheMatch[1];
+  const postgresMatch = message.match(/column ["']?([a-zA-Z0-9_]+)["']? does not exist/i);
+  if (postgresMatch?.[1]) return postgresMatch[1];
+  return null;
+}
+
 export default function SettingsPage() {
   const { notify } = useApp();
   const { agencyId, isSupabaseEnabled, profile, signOut, deleteAccountWithPassword, refreshProfile } = useAuth();
@@ -287,33 +295,35 @@ startxref
       if (pendingLogoFile && agencyId) {
         await uploadAgencyLogo(agencyId, pendingLogoFile);
       }
-      let { error: agencyErr } = await supabase
-        .from('agencies')
-        .update({
-          name: agencyName,
-          address: agencyAddress || null,
-          phone: agencyPhone || null,
-          email: agencyEmail.trim().toLowerCase() || null,
-        })
-        .eq('id', agencyId);
-      if (agencyErr && /column .* does not exist/i.test(agencyErr.message || '')) {
-        const fallback = await supabase
-          .from('agencies')
-          .update({ name: agencyName })
-          .eq('id', agencyId);
-        agencyErr = fallback.error;
+      const agencyPayload: Record<string, unknown> = {
+        name: agencyName,
+        address: agencyAddress || null,
+        phone: agencyPhone || null,
+        email: agencyEmail.trim().toLowerCase() || null,
+      };
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        const { error: agencyErr } = await supabase.from('agencies').update(agencyPayload).eq('id', agencyId);
+        if (!agencyErr) break;
+        const missingColumn = extractMissingColumnName(agencyErr.message || '');
+        if (!missingColumn || !(missingColumn in agencyPayload)) throw agencyErr;
+        delete agencyPayload[missingColumn];
+        if (Object.keys(agencyPayload).length === 0) throw agencyErr;
       }
-      if (agencyErr) throw agencyErr;
 
       let profileErr: { message?: string } | null = null;
-      const profileUpdate = await supabase
-        .from('users_profiles')
-        .update({ email: agencyEmail.trim().toLowerCase(), phone: agencyPhone, full_name: profile.fullName })
-        .eq('id', profile.id);
-      profileErr = profileUpdate.error;
-      if (profileErr && /column .* does not exist/i.test(profileErr.message || '')) {
-        const fallbackProfile = await supabase.from('users_profiles').update({ full_name: profile.fullName }).eq('id', profile.id);
-        profileErr = fallbackProfile.error;
+      const profilePayload: Record<string, unknown> = {
+        email: agencyEmail.trim().toLowerCase(),
+        phone: agencyPhone,
+        full_name: profile.fullName,
+      };
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        const profileUpdate = await supabase.from('users_profiles').update(profilePayload).eq('id', profile.id);
+        profileErr = profileUpdate.error;
+        if (!profileErr) break;
+        const missingColumn = extractMissingColumnName(profileErr.message || '');
+        if (!missingColumn || !(missingColumn in profilePayload)) break;
+        delete profilePayload[missingColumn];
+        if (Object.keys(profilePayload).length === 0) break;
       }
       if (profileErr && !/permission denied|row-level security/i.test(profileErr.message || '')) throw profileErr;
       await refreshProfile();
