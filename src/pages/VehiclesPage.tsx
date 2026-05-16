@@ -340,21 +340,28 @@ export default function VehiclesPage() {
             const inspectionSoon = !inspectionExpired && isDateSoon(vehicle.inspectionDate, 30);
             return (
               <Card key={vehicle.id} interactive className="flex h-full flex-col overflow-hidden border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-                <div className="vehicle-visual relative h-48 p-5">
-                  <div className="absolute inset-0 bg-[linear-gradient(145deg,rgba(255,255,255,.06),transparent_45%,rgba(0,0,0,.38))]" />
-                  <div className="relative flex h-full flex-col justify-between">
-                    <div className="flex items-center justify-between gap-2">
-                      <Badge>{vehicle.status}</Badge>
-                      <span className="rounded-full border border-gold-300/30 bg-carbon-950/80 px-3 py-1 text-xs font-bold text-gold-200">{vehicle.plate}</span>
-                    </div>
-                    {vehicle.imageUrl ? (
-                      <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} className="ml-auto h-24 w-36 rounded-2xl border border-white/10 object-cover shadow-xl" />
-                    ) : (
-                      <div className="ml-auto grid h-24 w-36 place-items-center rounded-2xl border border-white/10 bg-carbon-950/40">
-                        <Car className="h-14 w-14 text-white/70" strokeWidth={1.3} />
-                      </div>
-                    )}
+                <div className="vehicle-visual relative h-52 overflow-hidden bg-gradient-to-br from-zinc-800 via-zinc-900 to-zinc-950">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(255,255,255,0.1),transparent_58%)]" />
+                  <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/35 to-transparent" />
+                  <div className="absolute left-4 top-4 z-10">
+                    <Badge>{vehicle.status}</Badge>
                   </div>
+                  <span className="absolute right-4 top-4 z-10 rounded-full border border-gold-300/30 bg-carbon-950/85 px-3 py-1 text-xs font-bold text-gold-200">
+                    {vehicle.plate}
+                  </span>
+                  {vehicle.imageUrl ? (
+                    <img
+                      src={vehicle.imageUrl}
+                      alt={`${vehicle.brand} ${vehicle.model}`}
+                      className="absolute inset-0 m-auto h-[74%] w-[88%] object-contain drop-shadow-[0_22px_28px_rgba(0,0,0,0.45)]"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 grid place-items-center">
+                      <div className="grid h-28 w-40 place-items-center rounded-2xl border border-white/15 bg-carbon-950/30">
+                        <Car className="h-16 w-16 text-white/75" strokeWidth={1.4} />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-1 flex-col p-5">
@@ -426,7 +433,9 @@ export default function VehiclesPage() {
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         {vehicle.imageUrl ? (
-                          <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} className="h-10 w-12 rounded-lg object-cover" />
+                          <div className="grid h-10 w-12 place-items-center rounded-lg bg-gradient-to-br from-zinc-800 to-zinc-950">
+                            <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} className="h-8 w-11 object-contain" />
+                          </div>
                         ) : (
                           <div className="grid h-10 w-12 place-items-center rounded-lg bg-white/5"><Car className="h-4 w-4 text-carbon-400" /></div>
                         )}
