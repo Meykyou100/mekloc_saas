@@ -1,5 +1,5 @@
 import { Download, MessageCircle, Plus, Search } from 'lucide-react';
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -7,7 +7,7 @@ import { Field, SelectField, TextAreaField } from '../components/ui/Form';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import StatCard from '../components/ui/StatCard';
-import { formatMAD, type PaymentStatus } from '../data/mockData';
+import { formatMAD, type Payment, type PaymentStatus } from '../data/mockData';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
 import { sanitizeText, validatePositiveNumber } from '../lib/security';
@@ -31,16 +31,25 @@ export default function PaymentsPage() {
   const [methodFilter, setMethodFilter] = useState<MethodFilter>('toutes');
   const [modalOpen, setModalOpen] = useState(false);
   const [paidOverrides, setPaidOverrides] = useState<Record<string, number>>({});
+  const [manualPayments, setManualPayments] = useState<Payment[]>([]);
+  const [selectedReservationId, setSelectedReservationId] = useState('');
+  const [amountPaid, setAmountPaid] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Bank transfer' | 'Card' | 'Other'>('Cash');
+  const [paymentDate, setPaymentDate] = useState('');
+  const [paymentNotes, setPaymentNotes] = useState('');
+  const [savingPayment, setSavingPayment] = useState(false);
   const supportPhone = '212762971653';
+  const paymentRows = useMemo(() => [...manualPayments, ...payments], [manualPayments, payments]);
 
   const enriched = useMemo(() => {
     const now = new Date().toISOString().slice(0, 10);
-    return payments.map((payment) => {
+    return paymentRows.map((payment) => {
       const reservation = reservations.find((item) => item.id === payment.reservationId);
       const vehicle = reservation ? vehicles.find((item) => item.id === reservation.vehicleId) : undefined;
       const total = payment.amount;
       const basePaid = payment.status === 'Paid' ? total : payment.status === 'Partial' ? Math.round(total * 0.55) : 0;
-      const paid = Math.min(total, paidOverrides[payment.id] ?? basePaid);
+      const paidBoost = payment.reservationId ? paidOverrides[payment.reservationId] || 0 : 0;
+      const paid = Math.min(total, basePaid + paidBoost);
       const remaining = Math.max(0, total - paid);
       let statusFr: 'Payé' | 'Partiel' | 'En attente' | 'En retard' = payment.status === 'Paid' ? 'Payé' : payment.status === 'Partial' ? 'Partiel' : payment.status === 'Late' ? 'En retard' : 'En attente';
       if (remaining === 0) statusFr = 'Payé';
@@ -57,7 +66,55 @@ export default function PaymentsPage() {
         progress: total > 0 ? Math.round((paid / total) * 100) : 0,
       };
     });
-  }, [paidOverrides, payments, reservations, vehicles]);
+  }, [paidOverrides, paymentRows, reservations, vehicles]);
+
+  const reservationChoices = useMemo(
+    () =>
+      reservations.map((reservation) => {
+        const vehicle = vehicles.find((item) => item.id === reservation.vehicleId);
+        const total = reservation.totalAmount || reservation.dailyPrice;
+        const vehicleName = vehicle ? `${vehicle.brand} ${vehicle.model}` : reservation.vehicle || 'Véhicule';
+        return {
+          reservation,
+          vehicleName,
+          total,
+          label: `${reservation.id} • ${reservation.client || 'Client'} • ${vehicleName} • ${reservation.pickupDate} → ${reservation.returnDate} • ${formatMAD(total)}`,
+        };
+      }),
+    [reservations, vehicles],
+  );
+
+  const selectedReservationChoice = useMemo(
+    () => reservationChoices.find((item) => item.reservation.id === selectedReservationId),
+    [reservationChoices, selectedReservationId],
+  );
+
+  const reservationSummary = useMemo(() => {
+    if (!selectedReservationChoice) return null;
+    const reservationId = selectedReservationChoice.reservation.id;
+    const total = selectedReservationChoice.total;
+    const alreadyPaidFromRows = paymentRows
+      .filter((item) => item.reservationId === reservationId && item.status !== 'Pending' && item.status !== 'Late')
+      .reduce((sum, item) => sum + item.amount, 0);
+    const alreadyPaid = Math.max(0, alreadyPaidFromRows + (paidOverrides[reservationId] || 0));
+    const remaining = Math.max(0, total - alreadyPaid);
+    const statusFr = remaining <= 0 ? 'Payé' : alreadyPaid > 0 ? 'Partiel' : 'En attente';
+    return { total, alreadyPaid, remaining, statusFr };
+  }, [paidOverrides, paymentRows, selectedReservationChoice]);
+
+  useEffect(() => {
+    if (!modalOpen) return;
+    const fallback = reservationChoices[0]?.reservation.id || '';
+    const nextId = selectedReservationId || fallback;
+    setSelectedReservationId(nextId);
+    setPaymentDate(new Date().toISOString().slice(0, 10));
+    setPaymentMethod('Cash');
+  }, [modalOpen, reservationChoices, selectedReservationId]);
+
+  useEffect(() => {
+    if (!selectedReservationChoice || !reservationSummary) return;
+    setAmountPaid(String(reservationSummary.remaining > 0 ? reservationSummary.remaining : selectedReservationChoice.total));
+  }, [reservationSummary, selectedReservationChoice]);
 
   const filtered = enriched.filter((item) => {
     const inMonth = item.dueDate.slice(0, 7) === new Date().toISOString().slice(0, 7);
@@ -80,14 +137,56 @@ export default function PaymentsPage() {
 
   function handleAddPayment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
-    const id = String(form.get('paymentId'));
-    const amount = Number(form.get('amountPaid') || 0);
-    if (!validatePositiveNumber(amount)) {
-      notify({ title: 'Montant invalide', message: 'Le montant payé doit être supérieur à 0.', type: 'warning' });
+    if (!selectedReservationId) {
+      notify({ title: 'Validation', message: 'Veuillez sélectionner une réservation', type: 'warning' });
       return;
     }
-    setPaidOverrides((current) => ({ ...current, [id]: Math.max(0, (current[id] || 0) + amount) }));
+    const amount = Number(amountPaid || 0);
+    if (!validatePositiveNumber(amount)) {
+      notify({ title: 'Montant invalide', message: 'Montant invalide', type: 'warning' });
+      return;
+    }
+    if (!paymentDate) {
+      notify({ title: 'Validation', message: 'Date invalide', type: 'warning' });
+      return;
+    }
+    if (!selectedReservationChoice || !reservationSummary) {
+      notify({ title: 'Validation', message: 'Veuillez sélectionner une réservation', type: 'warning' });
+      return;
+    }
+    if (amount > reservationSummary.remaining + 0.01) {
+      notify({ title: 'Montant invalide', message: 'Le montant dépasse le reste à payer', type: 'warning' });
+      return;
+    }
+
+    setSavingPayment(true);
+    const reservation = selectedReservationChoice.reservation;
+    const linkedPayment = paymentRows.find((item) => item.reservationId === reservation.id);
+    if (linkedPayment) {
+      setPaidOverrides((current) => ({
+        ...current,
+        [reservation.id]: Math.max(0, (current[reservation.id] || 0) + amount),
+      }));
+    } else {
+      const generatedPayment: Payment = {
+        id: `pay-${Date.now()}`,
+        invoice: `INV-${reservation.id}`,
+        client: reservation.client,
+        clientId: reservation.clientId,
+        reservationId: reservation.id,
+        amount: reservation.totalAmount || reservation.dailyPrice,
+        method: paymentMethod === 'Other' ? 'Cash' : paymentMethod,
+        status: amount >= (reservation.totalAmount || reservation.dailyPrice) ? 'Paid' : amount > 0 ? 'Partial' : 'Pending',
+        dueDate: paymentDate,
+      };
+      setManualPayments((current) => [generatedPayment, ...current]);
+      setPaidOverrides((current) => ({ ...current, [reservation.id]: amount }));
+    }
+
+    setSavingPayment(false);
+    setSelectedReservationId('');
+    setAmountPaid('');
+    setPaymentNotes('');
     notify({ title: 'Paiement enregistré', message: 'Le paiement a été ajouté avec succès.', type: 'success' });
     setModalOpen(false);
   }
@@ -223,15 +322,47 @@ startxref
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Ajouter un paiement">
         <form className="grid gap-4" onSubmit={handleAddPayment}>
-          <SelectField label="Facture / réservation" name="paymentId" required>{enriched.map((item) => <option key={item.id} value={item.id}>{item.invoice} · {item.client}</option>)}</SelectField>
-          <Field label="Montant payé" name="amountPaid" type="number" required />
-          <SelectField label="Mode de paiement" name="method" defaultValue="Espèces">
-            <option>Espèces</option><option>Virement bancaire</option><option>Carte</option><option>Chèque</option><option>Autre</option>
+          <SelectField
+            label="Réservation / facture"
+            name="reservationId"
+            required
+            value={selectedReservationId}
+            onChange={(event) => setSelectedReservationId(event.target.value)}
+          >
+            {reservationChoices.length === 0 ? <option value="">Aucune réservation disponible</option> : null}
+            {reservationChoices.map((item) => (
+              <option key={item.reservation.id} value={item.reservation.id}>
+                {item.label}
+              </option>
+            ))}
           </SelectField>
-          <Field label="Date de paiement" name="paymentDate" type="date" required />
-          <TextAreaField label="Notes" name="notes" placeholder="Détails complémentaires..." />
+          <p className="-mt-2 text-xs text-carbon-500">Sélectionnez une réservation pour remplir automatiquement le paiement.</p>
+
+          {selectedReservationChoice && reservationSummary ? (
+            <Card className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gold-200">Résumé de paiement</p>
+              <div className="grid grid-cols-2 gap-2 text-xs sm:text-sm">
+                <p className="text-carbon-400">Client</p><p className="text-right font-medium">{selectedReservationChoice.reservation.client || '—'}</p>
+                <p className="text-carbon-400">Véhicule</p><p className="text-right font-medium">{selectedReservationChoice.vehicleName}</p>
+                <p className="text-carbon-400">Dates</p><p className="text-right font-medium">{selectedReservationChoice.reservation.pickupDate} → {selectedReservationChoice.reservation.returnDate}</p>
+                <p className="text-carbon-400">Prix total</p><p className="text-right font-medium">{formatMAD(reservationSummary.total)}</p>
+                <p className="text-carbon-400">Déjà payé</p><p className="text-right font-medium">{formatMAD(reservationSummary.alreadyPaid)}</p>
+                <p className="text-carbon-400">Reste à payer</p><p className="text-right font-semibold text-gold-200">{formatMAD(reservationSummary.remaining)}</p>
+                <p className="text-carbon-400">Caution</p><p className="text-right font-medium">{formatMAD(selectedReservationChoice.reservation.deposit || 0)}</p>
+                <p className="text-carbon-400">Statut réservation</p><p className="text-right font-medium">{selectedReservationChoice.reservation.status}</p>
+                <p className="text-carbon-400">Statut paiement</p><p className="text-right font-medium">{reservationSummary.statusFr}</p>
+              </div>
+            </Card>
+          ) : null}
+
+          <Field label="Montant payé" name="amountPaid" type="number" required value={amountPaid} onChange={(event) => setAmountPaid(event.target.value)} />
+          <SelectField label="Mode de paiement" name="method" value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value as 'Cash' | 'Bank transfer' | 'Card' | 'Other')}>
+            <option value="Cash">Espèces</option><option value="Bank transfer">Virement bancaire</option><option value="Card">Carte</option><option value="Other">Autre</option>
+          </SelectField>
+          <Field label="Date de paiement" name="paymentDate" type="date" required value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} />
+          <TextAreaField label="Notes" name="notes" placeholder="Détails complémentaires..." value={paymentNotes} onChange={(event) => setPaymentNotes(sanitizeText(event.target.value, 260))} />
           <Field label="Justificatif (placeholder)" name="receipt" placeholder="URL ou nom du fichier reçu" />
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Annuler</Button><Button type="submit">Enregistrer</Button></div>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Annuler</Button><Button type="submit" loading={savingPayment}>{savingPayment ? 'Enregistrement...' : 'Enregistrer'}</Button></div>
         </form>
       </Modal>
     </div>
