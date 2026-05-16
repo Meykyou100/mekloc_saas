@@ -32,10 +32,10 @@ import ConditionsPage from './pages/ConditionsPage';
 import CancellationRefundPage from './pages/CancellationRefundPage';
 
 const pageMotion = {
-  initial: { opacity: 0, y: 12 },
+  initial: { opacity: 0, y: 6 },
   animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
-  transition: { duration: 0.25, ease: 'easeOut' as const },
+  exit: { opacity: 0, y: -4 },
+  transition: { duration: 0.12, ease: 'easeOut' as const },
 };
 
 function AnimatedPage({ children }: { children: React.ReactNode }) {
@@ -47,12 +47,20 @@ export default function App() {
 
   useEffect(() => {
     (window as Window & { __MEKLOC_APP_READY__?: boolean }).__MEKLOC_APP_READY__ = true;
+    // Warm frequently used private pages to make route switching feel instant.
+    void Promise.all([
+      import('./pages/ClientsPage'),
+      import('./pages/ContractsPage'),
+      import('./pages/ReservationsPage'),
+      import('./pages/VehiclesPage'),
+      import('./pages/SettingsPage'),
+    ]);
   }, []);
 
   return (
     <>
       <Suspense fallback={<div className="min-h-screen bg-[#050505]" />}>
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="sync">
           <Routes location={location} key={location.pathname}>
           <Route
             path="/"
