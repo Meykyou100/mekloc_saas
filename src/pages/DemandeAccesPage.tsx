@@ -5,6 +5,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { Field, SelectField } from '../components/ui/Form';
 import { useApp } from '../context/AppContext';
+import { normalizeText, sanitizeText, validateEmail, validatePhone, validatePositiveNumber } from '../lib/security';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
 const countries = ['Maroc', 'France', 'Espagne', 'Belgique', 'Allemagne', 'Italie', 'Pays-Bas', 'Émirats Arabes Unis', 'Arabie Saoudite', 'Autre'];
@@ -68,7 +69,7 @@ export default function DemandeAccesPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { notify } = useApp();
-  const normalizeEmail = (email: string) => email.trim().toLowerCase();
+  const normalizeEmail = (email: string) => normalizeText(email, 254).toLowerCase();
   const [country, setCountry] = useState('Maroc');
   const [phoneCountryCode, setPhoneCountryCode] = useState(countryDialCode.Maroc);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,32 +92,41 @@ export default function DemandeAccesPage() {
     }
     const form = new FormData(event.currentTarget);
     const payload = {
-      agency_name: String(form.get('agency_name') || ''),
-      owner_name: String(form.get('owner_name') || ''),
-      address: String(form.get('address') || ''),
-      country: String(form.get('country') || 'Maroc'),
-      city: String(form.get('city') || ''),
-      website_url: String(form.get('website_url') || ''),
+      agency_name: sanitizeText(String(form.get('agency_name') || ''), 120),
+      owner_name: sanitizeText(String(form.get('owner_name') || ''), 120),
+      address: sanitizeText(String(form.get('address') || ''), 220),
+      country: sanitizeText(String(form.get('country') || 'Maroc'), 80),
+      city: sanitizeText(String(form.get('city') || ''), 80),
+      website_url: sanitizeText(String(form.get('website_url') || ''), 220),
       email: normalizeEmail(String(form.get('email') || '')),
-      phone_country_code: String(form.get('phone_country_code') || '+212'),
-      phone_number: String(form.get('phone_number') || ''),
+      phone_country_code: normalizeText(String(form.get('phone_country_code') || '+212'), 8),
+      phone_number: normalizeText(String(form.get('phone_number') || ''), 16).replace(/\D/g, ''),
       vehicle_count: Number(form.get('vehicle_count') || 0),
       selected_plan: selectedPlan,
       billing_type: billingType,
       monthly_price: plans.find((p) => p.id === selectedPlan)?.monthly || 0,
       annual_price: plans.find((p) => p.id === selectedPlan)?.annual || 0,
-      promo_code: String(form.get('promo_code') || ''),
+      promo_code: sanitizeText(String(form.get('promo_code') || ''), 60),
       status: 'pending',
     };
     const selectedPlanDb = selectedPlan === 'pro' ? 'starter' : selectedPlan;
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-    if (!emailRegex.test(payload.email)) {
+    if (!payload.agency_name || !payload.owner_name || !payload.address || !payload.city) {
+      notify({ title: 'Champ obligatoire', message: 'Veuillez remplir les champs obligatoires.', type: 'warning' });
+      setIsSubmitting(false);
+      return;
+    }
+    if (!validateEmail(payload.email)) {
       notify({ title: 'Email invalide', message: 'Veuillez saisir une adresse email valide.', type: 'warning' });
       setIsSubmitting(false);
       return;
     }
-    if (!/^\d{6,15}$/.test(payload.phone_number)) {
+    if (!validatePhone(`${payload.phone_country_code}${payload.phone_number}`)) {
       notify({ title: 'Numéro invalide', message: 'Le numéro de téléphone doit contenir uniquement des chiffres.', type: 'warning' });
+      setIsSubmitting(false);
+      return;
+    }
+    if (!validatePositiveNumber(payload.vehicle_count)) {
+      notify({ title: 'Nombre invalide', message: 'Le nombre de véhicules doit être supérieur à 0.', type: 'warning' });
       setIsSubmitting(false);
       return;
     }

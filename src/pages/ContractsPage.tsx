@@ -117,6 +117,16 @@ function extractAgencyCityFromAddress(address?: string) {
   return cleaned;
 }
 
+function normalizeLoose(value?: string) {
+  return (value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 function escapePdfWinAnsi(value: string) {
   const text = String(value ?? '')
     .replace(/[’‘]/g, "'")
@@ -189,6 +199,7 @@ export default function ContractsPage() {
   const { notify } = useApp();
 
   const previewRef = useRef<HTMLElement | null>(null);
+  const previewViewportRef = useRef<HTMLDivElement | null>(null);
   const [template, setTemplate] = useState(templates[0]);
   const [clientId, setClientId] = useState('');
   const [vehicleId, setVehicleId] = useState('');
@@ -196,6 +207,9 @@ export default function ContractsPage() {
   const [terms, setTerms] = useState(defaultTerms.join('\n'));
   const [generating, setGenerating] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [isMobilePreview, setIsMobilePreview] = useState(false);
+  const [previewScale, setPreviewScale] = useState(1);
+  const [previewMaxHeight, setPreviewMaxHeight] = useState(560);
 
   const [agencyMeta, setAgencyMeta] = useState<{
     address?: string;
@@ -221,6 +235,26 @@ export default function ContractsPage() {
     }
   }, [reservations, searchParams]);
 
+  useEffect(() => {
+    const updatePreviewScale = () => {
+      const viewport = previewViewportRef.current;
+      if (!viewport) return;
+      const isMobile = window.innerWidth < 768;
+      setIsMobilePreview(isMobile);
+      setPreviewMaxHeight(Math.max(460, window.innerHeight - 260));
+      if (!isMobile) {
+        setPreviewScale(1);
+        return;
+      }
+      const availableWidth = Math.max(220, viewport.clientWidth - 12);
+      setPreviewScale(Math.max(0.38, Math.min(1, availableWidth / 794)));
+    };
+
+    updatePreviewScale();
+    window.addEventListener('resize', updatePreviewScale);
+    return () => window.removeEventListener('resize', updatePreviewScale);
+  }, []);
+
   const selectedReservation = useMemo(
     () => reservations.find((item) => item.id === reservationId),
     [reservationId, reservations],
@@ -242,16 +276,19 @@ export default function ContractsPage() {
         .maybeSingle();
       if (!data) return;
       setAgencyMeta(data);
-      if ((data as { logo_url?: string | null }).logo_url) {
-        setLogoPublicUrl((data as { logo_url?: string | null }).logo_url || null);
-      } else if (data.logo_path) {
-        const signed = await supabase.storage.from('logos').createSignedUrl(data.logo_path, 60 * 60);
-        if (!signed.error && signed.data?.signedUrl) {
-          setLogoPublicUrl(signed.data.signedUrl);
-        } else {
-          const { data: logoData } = supabase.storage.from('logos').getPublicUrl(data.logo_path);
-          setLogoPublicUrl(logoData.publicUrl || null);
+      if (data.logo_path) {
+        const candidateBuckets = ['logos', 'agency-assets'];
+        let resolvedLogo: string | null = null;
+        for (const bucket of candidateBuckets) {
+          const signed = await supabase.storage.from(bucket).createSignedUrl(data.logo_path, 60 * 60);
+          if (!signed.error && signed.data?.signedUrl) {
+            resolvedLogo = signed.data.signedUrl;
+            break;
+          }
         }
+        setLogoPublicUrl(resolvedLogo);
+      } else if ((data as { logo_url?: string | null }).logo_url) {
+        setLogoPublicUrl((data as { logo_url?: string | null }).logo_url || null);
       } else {
         setLogoPublicUrl(null);
       }
@@ -291,8 +328,11 @@ export default function ContractsPage() {
 
   const matchedClientByReservation = useMemo(() => {
     if (!selectedReservation?.client) return undefined;
-    const reservationClient = selectedReservation.client.trim().toLowerCase();
-    return clients.find((item) => item.fullName.trim().toLowerCase() === reservationClient);
+    const reservationClient = normalizeLoose(selectedReservation.client);
+    return clients.find((item) => {
+      const fullName = normalizeLoose(item.fullName);
+      return fullName === reservationClient || fullName.includes(reservationClient) || reservationClient.includes(fullName);
+    });
   }, [clients, selectedReservation?.client]);
 
   const matchedVehicleByReservation = useMemo(() => {
@@ -302,13 +342,38 @@ export default function ContractsPage() {
   }, [selectedReservation?.vehicle, vehicles]);
 
   const client = useMemo(() => {
-    return (
+    const resolved =
       clients.find((item) => item.id === clientId) ||
       clients.find((item) => item.id === selectedReservation?.clientId) ||
       matchedClientByReservation ||
-      emptyClient
-    );
+      null;
+
+    if (resolved) return resolved;
+
+    if (selectedReservation?.client?.trim()) {
+      return {
+        ...emptyClient,
+        fullName: selectedReservation.client.trim(),
+      };
+    }
+
+    return emptyClient;
   }, [clientId, clients, matchedClientByReservation, selectedReservation?.clientId]);
+
+  useEffect(() => {
+    if (!selectedReservation || clientId) return;
+    if (selectedReservation.clientId && clients.some((item) => item.id === selectedReservation.clientId)) {
+      setClientId(selectedReservation.clientId);
+      return;
+    }
+    if (!selectedReservation.client?.trim()) return;
+    const reservationClient = normalizeLoose(selectedReservation.client);
+    const matched = clients.find((item) => {
+      const fullName = normalizeLoose(item.fullName);
+      return fullName === reservationClient || fullName.includes(reservationClient) || reservationClient.includes(fullName);
+    });
+    if (matched) setClientId(matched.id);
+  }, [clientId, clients, selectedReservation]);
 
   const vehicle = useMemo(() => {
     return (
@@ -433,12 +498,22 @@ export default function ContractsPage() {
       await waitForImagesToLoad(previewRef.current);
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const canvas = await html2canvas(previewRef.current, {
-        scale: Math.min(window.devicePixelRatio || 2, 2),
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-      });
+      const originalTransform = previewRef.current.style.transform;
+      const originalTransformOrigin = previewRef.current.style.transformOrigin;
+      previewRef.current.style.transform = 'none';
+      previewRef.current.style.transformOrigin = 'top left';
+      let canvas: HTMLCanvasElement;
+      try {
+        canvas = await html2canvas(previewRef.current, {
+          scale: Math.min(window.devicePixelRatio || 2, 2),
+          useCORS: true,
+          backgroundColor: '#ffffff',
+          logging: false,
+        });
+      } finally {
+        previewRef.current.style.transform = originalTransform;
+        previewRef.current.style.transformOrigin = originalTransformOrigin;
+      }
 
       const imageData = canvas.toDataURL('image/jpeg', 0.98);
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
@@ -447,16 +522,20 @@ export default function ContractsPage() {
       const imageWidth = pdfWidth;
       const imageHeight = (canvas.height * imageWidth) / canvas.width;
 
-      let heightLeft = imageHeight;
-      let position = 0;
-      pdf.addImage(imageData, 'JPEG', 0, position, imageWidth, imageHeight, undefined, 'FAST');
-      heightLeft -= pdfHeight;
-
-      while (heightLeft > 0) {
-        position = heightLeft - imageHeight;
-        pdf.addPage();
+      if (imageHeight <= pdfHeight + 0.5) {
+        pdf.addImage(imageData, 'JPEG', 0, 0, imageWidth, imageHeight, undefined, 'FAST');
+      } else {
+        let heightLeft = imageHeight;
+        let position = 0;
         pdf.addImage(imageData, 'JPEG', 0, position, imageWidth, imageHeight, undefined, 'FAST');
         heightLeft -= pdfHeight;
+
+        while (heightLeft > 0) {
+          position = heightLeft - imageHeight;
+          pdf.addPage();
+          pdf.addImage(imageData, 'JPEG', 0, position, imageWidth, imageHeight, undefined, 'FAST');
+          heightLeft -= pdfHeight;
+        }
       }
 
       pdf.save(contractFileName);
@@ -518,8 +597,20 @@ export default function ContractsPage() {
         eyebrow="Documents"
         title="Contrats"
         description="Créez des contrats de location professionnels avec vos données agence, client et véhicule."
-        action={<Button icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf}>{downloadingPdf ? 'Préparation...' : 'Télécharger PDF'}</Button>}
+        action={(
+          <div className="hidden md:block">
+            <Button icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf}>
+              {downloadingPdf ? 'Préparation...' : 'Télécharger PDF'}
+            </Button>
+          </div>
+        )}
       />
+
+      <div className="mb-3 md:hidden">
+        <Button className="w-full" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf}>
+          {downloadingPdf ? 'Préparation du PDF...' : 'Télécharger PDF'}
+        </Button>
+      </div>
 
       <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Contrats générés" value={String(stats.total)} trend="Historique total" icon={FileSignature} />
@@ -614,7 +705,7 @@ export default function ContractsPage() {
           </div>
         </Card>
 
-        <div className="rounded-3xl border border-white/10 bg-[#090d13] p-4 shadow-[0_24px_80px_rgba(0,0,0,.45)]">
+        <div className="rounded-3xl border border-white/10 bg-[#090d13] p-3 shadow-[0_24px_80px_rgba(0,0,0,.45)] sm:p-4">
           <div className="mb-3 flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
             <div className="flex items-center gap-2 text-sm text-carbon-300">
               <FileText className="h-4 w-4 text-gold-200" />
@@ -623,8 +714,16 @@ export default function ContractsPage() {
             <Badge>{statusLabel(previewStatus)}</Badge>
           </div>
 
-          <div className="max-h-[78vh] overflow-y-auto rounded-2xl bg-white p-4 sm:p-6">
-            <article ref={previewRef} className="mx-auto w-full max-w-[794px] min-h-[1123px] rounded-xl border border-[#e8e8e8] bg-white p-6 text-[#1c2330] shadow-[0_16px_40px_rgba(15,23,42,.12)] sm:p-8">
+          <div
+            ref={previewViewportRef}
+            className="overflow-auto rounded-2xl bg-white p-2 sm:max-h-[78vh] sm:p-6"
+            style={isMobilePreview ? { maxHeight: `${previewMaxHeight}px` } : undefined}
+          >
+            <div
+              className="mx-auto origin-top"
+              style={isMobilePreview ? { width: 794, transform: `scale(${previewScale})`, height: 1123 * previewScale } : undefined}
+            >
+              <article ref={previewRef} className="mx-auto w-[794px] min-h-[1123px] rounded-xl border border-[#e8e8e8] bg-white p-6 text-[#1c2330] shadow-[0_16px_40px_rgba(15,23,42,.12)] sm:p-8">
               <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[#e8edf4] pb-5">
                 <div className="flex items-start gap-3">
                   <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-xl border border-[#e6ebf2] bg-[#f8fafc]">
@@ -812,7 +911,8 @@ export default function ContractsPage() {
                   <span>Page 1/1</span>
                 </div>
               </footer>
-            </article>
+              </article>
+            </div>
           </div>
         </div>
       </div>

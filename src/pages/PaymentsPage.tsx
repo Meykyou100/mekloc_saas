@@ -10,6 +10,7 @@ import StatCard from '../components/ui/StatCard';
 import { formatMAD, type PaymentStatus } from '../data/mockData';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
+import { sanitizeText, validatePositiveNumber } from '../lib/security';
 
 type FilterKey = 'tous' | 'paye' | 'partiel' | 'attente' | 'retard' | 'mois';
 type MethodFilter = 'toutes' | 'Cash' | 'Bank transfer' | 'Card';
@@ -82,6 +83,10 @@ export default function PaymentsPage() {
     const form = new FormData(event.currentTarget);
     const id = String(form.get('paymentId'));
     const amount = Number(form.get('amountPaid') || 0);
+    if (!validatePositiveNumber(amount)) {
+      notify({ title: 'Montant invalide', message: 'Le montant payé doit être supérieur à 0.', type: 'warning' });
+      return;
+    }
     setPaidOverrides((current) => ({ ...current, [id]: Math.max(0, (current[id] || 0) + amount) }));
     notify({ title: 'Paiement enregistré', message: 'Le paiement a été ajouté avec succès.', type: 'success' });
     setModalOpen(false);
@@ -158,7 +163,7 @@ startxref
         <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
           <label className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
-            <input className="form-control h-10 w-full pl-10 pr-4 text-sm" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Rechercher facture, client, véhicule, réservation..." />
+            <input className="form-control h-10 w-full pl-10 pr-4 text-sm" value={query} onChange={(e) => setQuery(sanitizeText(e.target.value, 120))} placeholder="Rechercher facture, client, véhicule, réservation..." />
           </label>
           <select className="form-control h-10 min-w-[170px] text-sm" value={methodFilter} onChange={(event) => setMethodFilter(event.target.value as MethodFilter)}>
             <option value="toutes">Méthodes: Toutes</option>

@@ -231,12 +231,10 @@ async function fetchProfile(userId: string): Promise<UserProfile | null> {
         resolvedLogoUrl = signed.data.signedUrl;
         break;
       }
-      const publicData = supabase.storage.from(bucket).getPublicUrl(agency.logo_path).data.publicUrl || null;
-      if (!resolvedLogoUrl && publicData) {
-        resolvedLogoUrl = publicData;
-      }
     }
-    agency.logo_url = resolvedLogoUrl || agency.logo_url || null;
+    if (resolvedLogoUrl) {
+      agency.logo_url = resolvedLogoUrl;
+    }
   }
 
   return mapProfile(row);

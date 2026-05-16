@@ -33,6 +33,7 @@ import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { formatMAD, type Client } from '../data/mockData';
+import { normalizeText, safeStoragePath, sanitizeText, validateEmail, validateFileUpload, validatePhone } from '../lib/security';
 import { storageBuckets, supabase } from '../lib/supabase';
 
 type ClientFilter = 'all' | 'with-docs' | 'missing-docs' | 'active';
@@ -47,9 +48,6 @@ type ClientFormState = {
 };
 
 type ClientFormErrors = Partial<Record<keyof ClientFormState, string>>;
-
-const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
-const ACCEPTED_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
 
 function buildInitialForm(client?: Client | null): ClientFormState {
   return {
@@ -67,11 +65,6 @@ function formatClientSince(value?: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Date non disponible';
   return date.toLocaleDateString('fr-MA', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
-function isEmailValid(email: string) {
-  if (!email.trim()) return true;
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
 function hasDocs(client: Client) {
@@ -194,16 +187,16 @@ export default function ClientsPage() {
 
   function validateClientForm(values: ClientFormState): ClientFormErrors {
     const nextErrors: ClientFormErrors = {};
-    if (!values.fullName.trim()) nextErrors.fullName = 'Le nom complet est obligatoire.';
-    if (!values.phone.trim()) nextErrors.phone = 'Le téléphone est obligatoire.';
-    if (values.email.trim() && !isEmailValid(values.email)) nextErrors.email = 'Adresse email invalide.';
+    if (!sanitizeText(values.fullName, 120)) nextErrors.fullName = 'Le nom complet est obligatoire.';
+    if (!normalizeText(values.phone, 24)) nextErrors.phone = 'Le téléphone est obligatoire.';
+    if (values.email.trim() && !validateEmail(values.email)) nextErrors.email = 'Adresse email invalide.';
+    if (values.phone.trim() && !validatePhone(values.phone)) nextErrors.phone = 'Numéro invalide.';
     return nextErrors;
   }
 
   async function uploadClientDocument(clientId: string, file: File, side: 'front' | 'back') {
     if (!supabase || !profile?.agencyId) return null;
-    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.\-_]/g, '-').toLowerCase();
-    const filePath = `${profile.agencyId}/${clientId}/${side}-${Date.now()}-${sanitizedName}`;
+    const filePath = safeStoragePath(profile.agencyId, `clients-${clientId}-${side}`, file.name || 'document.jpg');
     const { error: uploadError } = await supabase.storage.from(storageBuckets.clientDocuments).upload(filePath, file, {
       upsert: true,
       contentType: file.type,
@@ -214,13 +207,10 @@ export default function ClientsPage() {
   }
 
   function validateImage(file: File) {
-    if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
-      return 'Format non supporté. Utilisez PNG, JPG ou WEBP.';
-    }
-    if (file.size > MAX_IMAGE_SIZE) {
-      return 'Image trop volumineuse. Maximum 5MB.';
-    }
-    return null;
+    return validateFileUpload(file, {
+      maxSizeMb: 5,
+      allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'],
+    });
   }
 
   function onPickDocument(
@@ -336,12 +326,12 @@ export default function ClientsPage() {
     try {
       const baseClient: Client = {
         id: editingClient?.id || `cli-${Date.now()}`,
-        fullName: formState.fullName.trim(),
-        phone: formState.phone.trim(),
-        email: formState.email.trim(),
-        cin: formState.cin.trim(),
-        license: formState.license.trim(),
-        address: formState.address.trim(),
+        fullName: sanitizeText(formState.fullName, 120),
+        phone: normalizeText(formState.phone, 24),
+        email: normalizeText(formState.email, 254).toLowerCase(),
+        cin: sanitizeText(formState.cin, 80),
+        license: sanitizeText(formState.license, 80),
+        address: sanitizeText(formState.address, 220),
         totalRentals: editingClient?.totalRentals || 0,
         totalSpent: editingClient?.totalSpent || 0,
         status: editingClient?.status || 'New',
@@ -427,7 +417,7 @@ export default function ClientsPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
             <input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => setQuery(event.target.value.slice(0, 120))}
               placeholder="Rechercher nom, téléphone, email, CIN, permis..."
               className="form-control focus-ring h-10 w-full rounded-xl pl-10 pr-4 text-sm light:bg-white light:text-carbon-950"
             />

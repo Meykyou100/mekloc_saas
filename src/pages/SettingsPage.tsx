@@ -8,6 +8,7 @@ import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { normalizeText, sanitizeText, validateEmail, validateFileUpload, validatePhone } from '../lib/security';
 import { uploadAgencyLogo } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 
@@ -157,13 +158,12 @@ startxref
 
   async function handleLogoUpload(file: File | undefined) {
     if (!file) return;
-    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
-    if (!allowedTypes.includes(file.type)) {
-      notify({ title: 'Format non supporté', message: 'Utilisez PNG, JPG, WEBP ou SVG.', type: 'warning' });
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      notify({ title: 'Fichier trop volumineux', message: 'Le logo doit faire moins de 5 MB.', type: 'warning' });
+    const validation = validateFileUpload(file, {
+      maxSizeMb: 3,
+      allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'],
+    });
+    if (validation) {
+      notify({ title: 'Fichier non autorisé', message: validation, type: 'warning' });
       return;
     }
     setLogoFileName(file.name);
@@ -289,6 +289,24 @@ startxref
       return;
     }
     try {
+      const safeAgencyName = sanitizeText(agencyName, 100);
+      const safeAgencyAddress = sanitizeText(agencyAddress, 220);
+      const safeAgencyPhone = normalizeText(agencyPhone, 20);
+      const safeAgencyEmail = normalizeText(agencyEmail, 254).toLowerCase();
+
+      if (!safeAgencyName) {
+        notify({ title: 'Champ obligatoire', message: "Le nom de l’agence est obligatoire.", type: 'warning' });
+        return;
+      }
+      if (safeAgencyEmail && !validateEmail(safeAgencyEmail)) {
+        notify({ title: 'Email invalide', message: 'Veuillez vérifier votre adresse email.', type: 'warning' });
+        return;
+      }
+      if (safeAgencyPhone && !validatePhone(safeAgencyPhone)) {
+        notify({ title: 'Numéro invalide', message: 'Veuillez vérifier votre numéro WhatsApp.', type: 'warning' });
+        return;
+      }
+
       setSettingsSaving(true);
       setSaveState('saving');
       if (!supabase) throw new Error('Supabase non configuré');
@@ -296,10 +314,10 @@ startxref
         await uploadAgencyLogo(agencyId, pendingLogoFile);
       }
       const agencyPayload: Record<string, unknown> = {
-        name: agencyName,
-        address: agencyAddress || null,
-        phone: agencyPhone || null,
-        email: agencyEmail.trim().toLowerCase() || null,
+        name: safeAgencyName,
+        address: safeAgencyAddress || null,
+        phone: safeAgencyPhone || null,
+        email: safeAgencyEmail || null,
       };
       for (let attempt = 0; attempt < 6; attempt += 1) {
         const { error: agencyErr } = await supabase.from('agencies').update(agencyPayload).eq('id', agencyId);
@@ -312,8 +330,8 @@ startxref
 
       let profileErr: { message?: string } | null = null;
       const profilePayload: Record<string, unknown> = {
-        email: agencyEmail.trim().toLowerCase(),
-        phone: agencyPhone,
+        email: safeAgencyEmail,
+        phone: safeAgencyPhone,
         full_name: profile.fullName,
       };
       for (let attempt = 0; attempt < 6; attempt += 1) {

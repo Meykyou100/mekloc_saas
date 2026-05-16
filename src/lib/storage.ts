@@ -1,4 +1,5 @@
 import { storageBuckets, supabase } from './supabase';
+import { safeStoragePath, validateFileUpload } from './security';
 
 function toErrorMessage(error: unknown) {
   if (!error) return 'Erreur inconnue';
@@ -12,9 +13,13 @@ function toErrorMessage(error: unknown) {
 
 export async function uploadAgencyLogo(agencyId: string, file: File) {
   if (!supabase) return null;
+  const validation = validateFileUpload(file, {
+    maxSizeMb: 3,
+    allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'],
+  });
+  if (validation) throw new Error(validation);
 
-  const extension = file.name.split('.').pop() || 'png';
-  const path = `${agencyId}/logo-${Date.now()}.${extension}`;
+  const path = safeStoragePath(agencyId, 'logos', file.name || 'logo.png');
   const uploadBuckets: string[] = [storageBuckets.logos, 'agency-assets'];
   let uploadData: { path: string } | null = null;
   let usedBucket = storageBuckets.logos as string;
@@ -44,10 +49,11 @@ export async function uploadAgencyLogo(agencyId: string, file: File) {
     throw new Error(`Upload logo impossible: ${message || 'Erreur inconnue'}`);
   }
 
-  const { data: publicData } = supabase.storage.from(usedBucket).getPublicUrl(uploadData.path);
+  const signed = await supabase.storage.from(usedBucket).createSignedUrl(uploadData.path, 60 * 60);
+  const resolvedLogoUrl = signed.data?.signedUrl || null;
   const { error: saveError } = await supabase
     .from('agencies')
-    .update({ logo_path: uploadData.path, logo_url: publicData.publicUrl })
+    .update({ logo_path: uploadData.path, logo_url: resolvedLogoUrl })
     .eq('id', agencyId);
   if (saveError) {
     throw new Error(`Sauvegarde logo impossible: ${toErrorMessage(saveError)}`);
@@ -58,7 +64,7 @@ export async function uploadAgencyLogo(agencyId: string, file: File) {
 export async function uploadContractPdf(agencyId: string, contractId: string, file: File) {
   if (!supabase) return null;
 
-  const path = `${agencyId}/${contractId}-${Date.now()}.pdf`;
+  const path = safeStoragePath(agencyId, `contracts-${contractId}`, 'contrat.pdf');
   const { data, error } = await supabase.storage.from(storageBuckets.contracts).upload(path, file, {
     cacheControl: '3600',
     upsert: true,

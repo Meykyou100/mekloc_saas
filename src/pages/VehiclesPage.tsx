@@ -12,6 +12,7 @@ import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { formatMAD, type DamageType, type Vehicle, type VehicleAccessories, type VehicleDamageMark, type VehicleStatus } from '../data/mockData';
+import { safeStoragePath, validateFileUpload } from '../lib/security';
 import { storageBuckets, supabase } from '../lib/supabase';
 
 const vehicleStatuses: Array<'All' | VehicleStatus> = ['All', 'Available', 'Rented', 'Maintenance', 'Unavailable'];
@@ -193,8 +194,12 @@ export default function VehiclesPage() {
 
   async function uploadVehicleImage(vehicleId: string, file: File) {
     if (!supabase || !agencyId) return null;
-    const extension = (file.name.split('.').pop() || 'jpg').toLowerCase();
-    const filePath = `${agencyId}/${vehicleId}-${Date.now()}.${extension}`;
+    const validation = validateFileUpload(file, {
+      maxSizeMb: 5,
+      allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'],
+    });
+    if (validation) throw new Error(validation);
+    const filePath = safeStoragePath(agencyId, `vehicles-${vehicleId}`, file.name || 'photo.jpg');
     const { error: uploadError } = await supabase.storage.from(storageBuckets.vehicleImages).upload(filePath, file, {
       upsert: true,
       contentType: file.type,
@@ -298,7 +303,7 @@ export default function VehiclesPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
             <input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => setQuery(event.target.value.slice(0, 120))}
               placeholder="Rechercher marque, modèle, immatriculation, ville"
               className="form-control h-10 w-full rounded-xl pl-10 pr-4 text-sm"
             />

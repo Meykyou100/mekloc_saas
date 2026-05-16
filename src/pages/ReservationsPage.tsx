@@ -30,6 +30,7 @@ import StatCard from '../components/ui/StatCard';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
 import { formatMAD, type Reservation, type ReservationStatus } from '../data/mockData';
+import { sanitizeText } from '../lib/security';
 
 type ViewMode = 'list' | 'grid';
 type ReservationFilterStatus = 'All' | ReservationStatus;
@@ -367,7 +368,7 @@ export default function ReservationsPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
             <input
               value={query}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => setQuery(sanitizeText(event.target.value, 120))}
               placeholder="Rechercher client, véhicule, ville ou référence"
               className="focus-ring h-10 w-full rounded-xl border border-white/[0.07] bg-[#0F1115] pl-10 pr-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,.025)] transition placeholder:text-carbon-500 hover:border-white/12 light:bg-white light:text-carbon-950"
             />

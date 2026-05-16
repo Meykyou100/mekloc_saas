@@ -18,6 +18,14 @@ import {
   type Vehicle,
   type VehicleStatus,
 } from '../data/mockData';
+import {
+  normalizeText,
+  sanitizeText,
+  validateDateRange,
+  validateEmail,
+  validatePhone,
+  validatePositiveNumber,
+} from '../lib/security';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import { isSubscriptionAllowed } from '../lib/subscription';
 
@@ -182,24 +190,33 @@ function mapVehicle(row: VehicleRow): Vehicle {
 }
 
 function toVehicleRow(vehicle: Vehicle, agencyId: string, withImage = true) {
+  if (!sanitizeText(vehicle.brand, 80) || !sanitizeText(vehicle.model, 80) || !sanitizeText(vehicle.plate, 24)) {
+    throw new Error('Champ obligatoire');
+  }
+  if (!validatePositiveNumber(vehicle.dailyPrice) || !validatePositiveNumber(vehicle.mileage, true)) {
+    throw new Error('Montant invalide');
+  }
   const base = {
     agency_id: agencyId,
-    brand: vehicle.brand,
-    model: vehicle.model,
-    plate_number: vehicle.plate,
+    brand: sanitizeText(vehicle.brand, 80),
+    model: sanitizeText(vehicle.model, 80),
+    plate_number: sanitizeText(vehicle.plate, 24).toUpperCase(),
     year: vehicle.year,
     mileage: vehicle.mileage,
-    fuel_type: vehicle.fuel,
-    transmission: vehicle.transmission,
+    fuel_type: sanitizeText(vehicle.fuel, 40),
+    transmission: sanitizeText(vehicle.transmission, 40),
     daily_price: vehicle.dailyPrice,
     status: vehicle.status,
     insurance_expiry: vehicle.insuranceExpiry,
     technical_inspection_date: vehicle.inspectionDate,
-    city: vehicle.city,
+    city: sanitizeText(vehicle.city, 80),
     revenue: vehicle.revenue,
-    vehicle_color: vehicle.vehicleColor || null,
+    vehicle_color: sanitizeText(vehicle.vehicleColor || '', 30) || null,
     accessories: vehicle.accessories || {},
-    damage_marks: vehicle.damageMarks || [],
+    damage_marks: (vehicle.damageMarks || []).map((mark) => ({
+      ...mark,
+      note: sanitizeText(mark.note || '', 200) || undefined,
+    })),
   };
   if (!withImage) return base;
   return {
@@ -228,14 +245,21 @@ function mapClient(row: ClientRow): Client {
 }
 
 function toClientRow(client: Client, agencyId: string, withIdentityImages = true) {
+  const fullName = sanitizeText(client.fullName, 120);
+  const phone = normalizeText(client.phone, 24);
+  const email = normalizeText(client.email, 254).toLowerCase();
+  if (!fullName) throw new Error('Champ obligatoire');
+  if (!phone || !validatePhone(phone)) throw new Error('Numéro invalide');
+  if (email && !validateEmail(email)) throw new Error('Email invalide');
+
   const base = {
     agency_id: agencyId,
-    full_name: client.fullName,
-    phone: client.phone,
-    email: client.email,
-    cin_passport: client.cin,
-    driving_license_number: client.license,
-    address: client.address,
+    full_name: fullName,
+    phone,
+    email,
+    cin_passport: sanitizeText(client.cin, 80),
+    driving_license_number: sanitizeText(client.license, 80),
+    address: sanitizeText(client.address, 220),
     total_rentals: client.totalRentals,
     total_spent: client.totalSpent,
     status: client.status,
@@ -271,9 +295,17 @@ function mapReservation(row: ReservationRow, client?: Client, vehicle?: Vehicle)
 }
 
 function toReservationRow(reservation: Reservation, agencyId: string) {
+  if (!reservation.clientId || !reservation.vehicleId) throw new Error('Champ obligatoire');
+  if (!validateDateRange(reservation.pickupDate, reservation.returnDate)) {
+    throw new Error('Date de retour invalide');
+  }
+  if (!validatePositiveNumber(reservation.dailyPrice) || !validatePositiveNumber(reservation.deposit, true)) {
+    throw new Error('Montant invalide');
+  }
+
   return {
     agency_id: agencyId,
-    reservation_number: reservation.id,
+    reservation_number: sanitizeText(reservation.id, 40),
     client_id: reservation.clientId,
     vehicle_id: reservation.vehicleId,
     pickup_date: reservation.pickupDate,
@@ -281,13 +313,13 @@ function toReservationRow(reservation: Reservation, agencyId: string) {
     daily_price: reservation.dailyPrice,
     deposit: reservation.deposit,
     total_amount: reservation.totalAmount ?? reservation.dailyPrice,
-    pickup_location: reservation.pickupLocation || null,
-    return_location: reservation.returnLocation || null,
+    pickup_location: sanitizeText(reservation.pickupLocation || '', 140) || null,
+    return_location: sanitizeText(reservation.returnLocation || '', 140) || null,
     mileage_out: reservation.mileageOut ?? null,
-    fuel_level_out: reservation.fuelLevelOut || null,
+    fuel_level_out: sanitizeText(reservation.fuelLevelOut || '', 40) || null,
     status: reservation.status,
-    notes: reservation.notes,
-    city: reservation.city,
+    notes: sanitizeText(reservation.notes || '', 800),
+    city: sanitizeText(reservation.city || '', 80),
   };
 }
 
@@ -336,16 +368,19 @@ function mapContract(row: ContractRow, client?: Client, vehicle?: Vehicle): Cont
 }
 
 function toContractRow(contract: Contract, agencyId: string) {
+  if (!contract.clientId || !contract.vehicleId) throw new Error('Champ obligatoire');
+  if (!validateDateRange(contract.pickupDate, contract.returnDate)) throw new Error('Date de retour invalide');
+  if (!validatePositiveNumber(contract.totalAmount)) throw new Error('Montant invalide');
   return {
     agency_id: agencyId,
-    contract_number: contract.contractNumber,
+    contract_number: sanitizeText(contract.contractNumber, 60),
     client_id: contract.clientId,
     vehicle_id: contract.vehicleId,
-    template: contract.template,
+    template: sanitizeText(contract.template, 60),
     pickup_date: contract.pickupDate,
     return_date: contract.returnDate,
     total_amount: contract.totalAmount,
-    terms: contract.terms,
+    terms: sanitizeText(contract.terms, 4000),
     status: contract.status,
     pdf_path: contract.pdfPath || null,
   };
@@ -366,9 +401,11 @@ function mapPayment(row: PaymentRow, client?: Client): Payment {
 }
 
 function toPaymentRow(payment: Payment, agencyId: string) {
+  if (!payment.clientId) throw new Error('Champ obligatoire');
+  if (!validatePositiveNumber(payment.amount, true)) throw new Error('Montant invalide');
   return {
     agency_id: agencyId,
-    invoice: payment.invoice,
+    invoice: sanitizeText(payment.invoice, 60),
     client_id: payment.clientId,
     reservation_id: payment.reservationId || null,
     amount: payment.amount,
@@ -404,6 +441,8 @@ function mapMaintenance(row: MaintenanceRow, vehicle?: Vehicle): MaintenanceItem
 }
 
 function toMaintenanceRow(item: MaintenanceItem, agencyId: string) {
+  if (!item.vehicleId) throw new Error('Champ obligatoire');
+  if (!validatePositiveNumber(item.cost, true)) throw new Error('Montant invalide');
   return {
     agency_id: agencyId,
     vehicle_id: item.vehicleId,
@@ -416,10 +455,10 @@ function toMaintenanceRow(item: MaintenanceItem, agencyId: string) {
     mileage_at_service: item.mileageAtService,
     next_service_mileage: item.nextServiceMileage,
     cost: item.cost,
-    provider_name: item.providerName,
+    provider_name: sanitizeText(item.providerName || '', 140),
     status: item.status,
-    notes: item.notes,
-    invoice_url: item.invoiceUrl || null,
+    notes: sanitizeText(item.notes || '', 800),
+    invoice_url: sanitizeText(item.invoiceUrl || '', 1000) || null,
   };
 }
 
