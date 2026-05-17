@@ -1,6 +1,7 @@
 import type { Session, User } from '@supabase/supabase-js';
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
+import { getRoleLabel } from '../lib/permissions';
 
 export type UserProfile = {
   id: string;
@@ -8,7 +9,7 @@ export type UserProfile = {
   fullName: string;
   email: string;
   phone: string;
-  role: 'Admin' | 'Manager' | 'Staff';
+  role: 'owner' | 'manager' | 'agent' | 'accountant';
   accountStatus: AccountStatus;
   isSuperAdmin: boolean;
   agency: AgencySubscription | null;
@@ -87,7 +88,7 @@ type ProfileRow = {
   full_name: string | null;
   email: string | null;
   phone: string | null;
-  role: 'Admin' | 'Manager' | 'Staff';
+  role: string;
   account_status: AccountStatus;
   is_super_admin: boolean;
   agencies: AgencyRow | AgencyRow[] | null;
@@ -136,7 +137,7 @@ const demoProfile: UserProfile = {
   fullName: 'MekLoc Demo Owner',
   email: demoEmail,
   phone: '+212 6 00 00 00 00',
-  role: 'Admin',
+  role: 'owner',
   accountStatus: 'active',
   isSuperAdmin: false,
   agency: demoAgency,
@@ -193,7 +194,7 @@ function mapProfile(row: ProfileRow): UserProfile {
     fullName: row.full_name || 'MekLoc User',
     email: row.email || '',
     phone: row.phone || '',
-    role: row.role,
+    role: getRoleLabel(row.role),
     accountStatus: row.account_status || 'pending',
     isSuperAdmin: Boolean(row.is_super_admin),
     agency: mapAgency(row.agencies),
@@ -375,7 +376,7 @@ async function createAgencyAndProfile(
       full_name: fullName || user.user_metadata?.full_name || agencyName,
       email: user.email || '',
       phone: phone || '',
-      role: 'Admin',
+      role: 'owner',
       account_status: 'pending',
       is_super_admin: false,
     })

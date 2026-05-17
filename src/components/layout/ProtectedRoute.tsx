@@ -1,5 +1,6 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { canAccess, type AppPermission } from '../../lib/permissions';
 import { isSubscriptionAllowed } from '../../lib/subscription';
 import Card from '../ui/Card';
 import Skeleton from '../ui/Skeleton';
@@ -7,9 +8,11 @@ import Skeleton from '../ui/Skeleton';
 export default function ProtectedRoute({
   requireAgency = true,
   requireSuperAdmin = false,
+  requiredPermission,
 }: {
   requireAgency?: boolean;
   requireSuperAdmin?: boolean;
+  requiredPermission?: AppPermission;
 }) {
   const { isSupabaseEnabled, loading, session, agencyId, profile, user } = useAuth();
   const location = useLocation();
@@ -52,6 +55,10 @@ export default function ProtectedRoute({
 
   if (requireAgency && !isSubscriptionAllowed(profile?.agency)) {
     return <Navigate to="/payment-required" replace />;
+  }
+
+  if (requiredPermission && !canAccess(profile?.role, requiredPermission)) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return <Outlet />;

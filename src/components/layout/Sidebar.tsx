@@ -14,17 +14,18 @@ import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import { canAccess, type AppPermission } from '../../lib/permissions';
 
 const navItems = [
-  { label: 'dashboard', to: '/dashboard', icon: LayoutDashboard },
-  { label: 'reservations', to: '/reservations', icon: CalendarDays },
-  { label: 'vehicles', to: '/vehicles', icon: Car },
-  { label: 'clients', to: '/clients', icon: Users },
-  { label: 'contracts', to: '/contracts', icon: FileSignature },
-  { label: 'payments', to: '/payments', icon: CreditCard },
-  { label: 'maintenance', to: '/maintenance', icon: Wrench },
-  { label: 'reports', to: '/reports', icon: BarChart3 },
-  { label: 'settings', to: '/settings', icon: Settings },
+  { label: 'dashboard', to: '/dashboard', icon: LayoutDashboard, permission: 'dashboard' as AppPermission },
+  { label: 'reservations', to: '/reservations', icon: CalendarDays, permission: 'reservations' as AppPermission },
+  { label: 'vehicles', to: '/vehicles', icon: Car, permission: 'vehicles' as AppPermission },
+  { label: 'clients', to: '/clients', icon: Users, permission: 'clients' as AppPermission },
+  { label: 'contracts', to: '/contracts', icon: FileSignature, permission: 'contracts' as AppPermission },
+  { label: 'payments', to: '/payments', icon: CreditCard, permission: 'payments' as AppPermission },
+  { label: 'maintenance', to: '/maintenance', icon: Wrench, permission: 'maintenance' as AppPermission },
+  { label: 'reports', to: '/reports', icon: BarChart3, permission: 'reports' as AppPermission },
+  { label: 'settings', to: '/settings', icon: Settings, permission: 'settings' as AppPermission },
 ];
 
 function SidebarContent({ onClose }: { onClose?: () => void }) {
@@ -71,7 +72,9 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
         </button>
       </div>
       <nav className="grid gap-1.5 px-3 py-3">
-        {navItems.map(({ label, to, icon: Icon }) => (
+        {navItems
+          .filter((item) => canAccess(profile?.role, item.permission))
+          .map(({ label, to, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}

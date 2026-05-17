@@ -20,6 +20,7 @@ import {
   validatePhone,
   validatePositiveNumber,
 } from '../lib/security';
+import { canAccess, type AppPermission } from '../lib/permissions';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import { isSubscriptionAllowed } from '../lib/subscription';
 import {
@@ -314,6 +315,7 @@ function toClientRow(client: Client, agencyId: string, withIdentityImages = true
 function mapReservation(row: ReservationRow, client?: Client, vehicle?: Vehicle): Reservation {
   return {
     id: row.reservation_number || row.id,
+    recordId: row.id,
     client: client?.fullName || 'Unknown client',
     clientId: row.client_id,
     vehicle: vehicleName(vehicle),
@@ -528,6 +530,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
     setLoading(true);
     try {
+      const canReadAll = Boolean(profile?.isSuperAdmin);
+      const canReadVehicles = canReadAll || canAccess(profile?.role, 'vehicles');
+      const canReadClients = canReadAll || canAccess(profile?.role, 'clients');
+      const canReadReservations = canReadAll || canAccess(profile?.role, 'reservations');
+      const canReadContracts = canReadAll || canAccess(profile?.role, 'contracts');
+      const canReadPayments = canReadAll || canAccess(profile?.role, 'payments');
+      const canReadMaintenance = canReadAll || canAccess(profile?.role, 'maintenance');
+
       const [
         vehiclesResult,
         clientsResult,
@@ -536,12 +546,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         paymentsResult,
         maintenanceResult,
       ] = await Promise.all([
-        supabase.from('vehicles').select('*').order('created_at', { ascending: false }),
-        supabase.from('clients').select('*').order('created_at', { ascending: false }),
-        supabase.from('reservations').select('*').order('created_at', { ascending: false }),
-        supabase.from('contracts').select('*').order('created_at', { ascending: false }),
-        supabase.from('payments').select('*').order('created_at', { ascending: false }),
-        supabase.from('maintenance').select('*').order('service_date', { ascending: true }),
+        canReadVehicles
+          ? supabase.from('vehicles').select('*').order('created_at', { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
+        canReadClients
+          ? supabase.from('clients').select('*').order('created_at', { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
+        canReadReservations
+          ? supabase.from('reservations').select('*').order('created_at', { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
+        canReadContracts
+          ? supabase.from('contracts').select('*').order('created_at', { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
+        canReadPayments
+          ? supabase.from('payments').select('*').order('created_at', { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
+        canReadMaintenance
+          ? supabase.from('maintenance').select('*').order('service_date', { ascending: true })
+          : Promise.resolve({ data: [], error: null }),
       ]);
 
       const firstError = [
@@ -582,7 +604,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setLoading(false);
     }
-  }, [agencyId, isSupabaseEnabled]);
+  }, [agencyId, isSupabaseEnabled, profile?.isSuperAdmin, profile?.role]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -628,6 +650,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<DataContextValue>(() => {
     const hasBackend = Boolean(isSupabaseEnabled && supabase && agencyId);
+    const assertPermission = (permission: AppPermission) => {
+      if (profile?.isSuperAdmin) return;
+      if (!canAccess(profile?.role, permission)) {
+        throw new Error('Accès non autorisé');
+      }
+    };
 
     return {
       loading,
@@ -639,6 +667,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       maintenance,
       refreshData,
       createVehicle: async (vehicle) => {
+        assertPermission('vehicles');
         if (!hasBackend) {
           setVehicles((current) => [vehicle, ...current]);
           return vehicle;
@@ -669,6 +698,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         return nextVehicle;
       },
       updateVehicle: async (vehicle) => {
+        assertPermission('vehicles');
         if (!hasBackend) {
           setVehicles((current) => current.map((item) => (item.id === vehicle.id ? vehicle : item)));
           return vehicle;
@@ -701,6 +731,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         return nextVehicle;
       },
       deleteVehicle: async (id) => {
+        assertPermission('vehicles');
         if (hasBackend) {
           const { error } = await supabase!.from('vehicles').delete().eq('id', id);
           if (error) throw error;
@@ -708,6 +739,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setVehicles((current) => current.filter((item) => item.id !== id));
       },
       createClient: async (client) => {
+        assertPermission('clients');
         if (!hasBackend) {
           setClients((current) => [client, ...current]);
           return client;
@@ -738,6 +770,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         return nextClient;
       },
       updateClient: async (client) => {
+        assertPermission('clients');
         if (!hasBackend) {
           setClients((current) => current.map((item) => (item.id === client.id ? client : item)));
           return client;
@@ -770,6 +803,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         return nextClient;
       },
       deleteClient: async (id) => {
+        assertPermission('clients');
         if (hasBackend) {
           const { error } = await supabase!.from('clients').delete().eq('id', id);
           if (error) throw error;
@@ -777,6 +811,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setClients((current) => current.filter((item) => item.id !== id));
       },
       createReservation: async (reservation) => {
+        assertPermission('reservations');
         if (!hasBackend) {
           setReservations((current) => [reservation, ...current]);
           return reservation;
@@ -802,6 +837,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         return nextReservation;
       },
       updateReservation: async (reservation) => {
+        assertPermission('reservations');
         if (!hasBackend) {
           setReservations((current) => current.map((item) => (item.id === reservation.id ? reservation : item)));
           return reservation;
@@ -828,6 +864,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         return nextReservation;
       },
       deleteReservation: async (id) => {
+        assertPermission('reservations');
         if (hasBackend) {
           const { error } = await supabase!.from('reservations').delete().eq('reservation_number', id);
           if (error) throw error;
@@ -835,6 +872,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setReservations((current) => current.filter((item) => item.id !== id));
       },
       createContract: async (contract) => {
+        assertPermission('contracts');
         if (!hasBackend) {
           setContracts((current) => [contract, ...current]);
           return contract;
@@ -854,6 +892,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         return nextContract;
       },
       updateContract: async (contract) => {
+        assertPermission('contracts');
         if (!hasBackend) {
           setContracts((current) => current.map((item) => (item.id === contract.id ? contract : item)));
           return contract;
@@ -874,6 +913,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         return nextContract;
       },
       deleteContract: async (id) => {
+        assertPermission('contracts');
         if (hasBackend) {
           const { error } = await supabase!.from('contracts').delete().eq('id', id);
           if (error) throw error;
@@ -881,6 +921,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setContracts((current) => current.filter((item) => item.id !== id));
       },
       createPayment: async (payment) => {
+        assertPermission('payments');
         if (!hasBackend) {
           setPayments((current) => [payment, ...current]);
           return payment;
@@ -896,6 +937,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         return nextPayment;
       },
       updatePayment: async (payment) => {
+        assertPermission('payments');
         if (!hasBackend) {
           setPayments((current) => current.map((item) => (item.id === payment.id ? payment : item)));
           return payment;
@@ -912,6 +954,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         return nextPayment;
       },
       updatePaymentStatus: async (id, status) => {
+        assertPermission('payments');
         const payment = payments.find((item) => item.id === id);
         if (!payment) throw new Error('Payment not found');
         const nextPaymentInput = { ...payment, status };
@@ -931,6 +974,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         return nextPayment;
       },
       deletePayment: async (id) => {
+        assertPermission('payments');
         if (hasBackend) {
           const { error } = await supabase!.from('payments').delete().eq('id', id);
           if (error) throw error;
@@ -938,6 +982,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setPayments((current) => current.filter((item) => item.id !== id));
       },
       createMaintenance: async (item) => {
+        assertPermission('maintenance');
         if (!hasBackend) {
           setMaintenance((current) => [item, ...current]);
           return item;
@@ -953,6 +998,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         return nextItem;
       },
       updateMaintenance: async (item) => {
+        assertPermission('maintenance');
         if (!hasBackend) {
           setMaintenance((current) => current.map((existing) => (existing.id === item.id ? item : existing)));
           return item;
@@ -969,6 +1015,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         return nextItem;
       },
       deleteMaintenance: async (id) => {
+        assertPermission('maintenance');
         if (hasBackend) {
           const { error } = await supabase!.from('maintenance').delete().eq('id', id);
           if (error) throw error;
@@ -984,6 +1031,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     loading,
     maintenance,
     payments,
+    profile?.isSuperAdmin,
+    profile?.role,
     refreshData,
     reservations,
     vehicles,

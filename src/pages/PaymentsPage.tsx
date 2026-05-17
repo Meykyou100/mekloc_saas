@@ -44,7 +44,9 @@ export default function PaymentsPage() {
   const enriched = useMemo(() => {
     const now = new Date().toISOString().slice(0, 10);
     return paymentRows.map((payment) => {
-      const reservation = reservations.find((item) => item.id === payment.reservationId);
+      const reservation = reservations.find(
+        (item) => item.recordId === payment.reservationId || item.id === payment.reservationId,
+      );
       const vehicle = reservation ? vehicles.find((item) => item.id === reservation.vehicleId) : undefined;
       const total = reservation?.totalAmount || reservation?.dailyPrice || payment.amount;
       const paid = payment.status === 'Pending' || payment.status === 'Late' ? 0 : payment.amount;
@@ -55,7 +57,7 @@ export default function PaymentsPage() {
       else if (paid > 0) statusFr = 'Partiel';
       return {
         ...payment,
-        reservationCode: reservation?.id || '—',
+        reservationCode: reservation?.id || payment.invoice?.replace(/^INV-/, '') || '—',
         vehicleLabel: vehicle ? `${vehicle.brand} ${vehicle.model}` : '—',
         total,
         paid,
@@ -89,13 +91,14 @@ export default function PaymentsPage() {
 
   const reservationSummary = useMemo(() => {
     if (!selectedReservationChoice) return null;
-    const reservationId = selectedReservationChoice.reservation.id;
+    const reservationCode = selectedReservationChoice.reservation.id;
+    const reservationRecordId = selectedReservationChoice.reservation.recordId;
     const total = selectedReservationChoice.total;
-    const invoiceRef = `INV-${reservationId}`;
+    const invoiceRef = `INV-${reservationCode}`;
     const alreadyPaidFromRows = paymentRows
       .filter(
         (item) =>
-          (item.reservationId === reservationId || item.invoice === invoiceRef) &&
+          (item.reservationId === reservationRecordId || item.invoice === invoiceRef) &&
           item.status !== 'Pending' &&
           item.status !== 'Late',
       )
@@ -176,9 +179,9 @@ export default function PaymentsPage() {
     try {
       setSavingPayment(true);
       const linkedPayment = paymentRows.find(
-        (item) => item.reservationId === reservation.id || item.invoice === `INV-${reservation.id}`,
+        (item) => item.reservationId === reservation.recordId || item.invoice === `INV-${reservation.id}`,
       );
-      const reservationIdForDb = UUID_RE.test(reservation.id) ? reservation.id : undefined;
+      const reservationIdForDb = reservation.recordId && UUID_RE.test(reservation.recordId) ? reservation.recordId : undefined;
       if (linkedPayment) {
         const nextAmount = Math.max(0, linkedPayment.amount + amount);
         const nextStatus: PaymentStatus =

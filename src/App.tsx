@@ -162,17 +162,35 @@ export default function App() {
           </Route>
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/reservations" element={<ReservationsPage />} />
-              <Route path="/vehicles" element={<VehiclesPage />} />
-              <Route path="/vehicles/:id" element={<VehicleDetailsPage />} />
-              <Route path="/clients" element={<ClientsPage />} />
-              <Route path="/clients/:id" element={<ClientProfilePage />} />
-              <Route path="/contracts" element={<ContractsPage />} />
-              <Route path="/payments" element={<PaymentsPage />} />
-              <Route path="/maintenance" element={<MaintenancePage />} />
-              <Route path="/reports" element={<ReportsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
+              <Route element={<ProtectedRoute requiredPermission="dashboard" />}>
+                <Route path="/dashboard" element={<DashboardPage />} />
+              </Route>
+              <Route element={<ProtectedRoute requiredPermission="reservations" />}>
+                <Route path="/reservations" element={<ReservationsPage />} />
+              </Route>
+              <Route element={<ProtectedRoute requiredPermission="vehicles" />}>
+                <Route path="/vehicles" element={<VehiclesPage />} />
+                <Route path="/vehicles/:id" element={<VehicleDetailsPage />} />
+              </Route>
+              <Route element={<ProtectedRoute requiredPermission="clients" />}>
+                <Route path="/clients" element={<ClientsPage />} />
+                <Route path="/clients/:id" element={<ClientProfilePage />} />
+              </Route>
+              <Route element={<ProtectedRoute requiredPermission="contracts" />}>
+                <Route path="/contracts" element={<ContractsPage />} />
+              </Route>
+              <Route element={<ProtectedRoute requiredPermission="payments" />}>
+                <Route path="/payments" element={<PaymentsPage />} />
+              </Route>
+              <Route element={<ProtectedRoute requiredPermission="maintenance" />}>
+                <Route path="/maintenance" element={<MaintenancePage />} />
+              </Route>
+              <Route element={<ProtectedRoute requiredPermission="reports" />}>
+                <Route path="/reports" element={<ReportsPage />} />
+              </Route>
+              <Route element={<ProtectedRoute requiredPermission="settings" />}>
+                <Route path="/settings" element={<SettingsPage />} />
+              </Route>
             </Route>
           </Route>
           <Route path="/login" element={<Navigate to="/auth" replace />} />
