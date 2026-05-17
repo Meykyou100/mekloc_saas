@@ -66,7 +66,9 @@ Deno.serve(async (req) => {
     if (!projectUrl || !serviceRole || !anonKey) throw new Error('Configuration Supabase manquante.');
     if (internalKey !== anonKey) return json({ error: 'Unauthorized' }, 401);
 
-    const body = await req.json() as { email?: string; fullName?: string; role?: string; redirectTo?: string };
+    const body = await req.json() as { action?: 'invite' | 'generate_link'; email?: string; fullName?: string; role?: string; redirectTo?: string };
+    const action = body.action || 'invite';
+    const linkOnly = action === 'generate_link';
     const email = String(body.email || '').trim().toLowerCase();
     const fullName = String(body.fullName || '').trim().slice(0, 100);
     const role = normalizeRole(body.role);
@@ -130,6 +132,16 @@ Deno.serve(async (req) => {
       };
     };
 
+    const generateUsableActivationLink = async () => {
+      const recovery = await generateLink('recovery');
+      if (recovery.activationLink) return recovery;
+
+      const invite = await generateLink('invite');
+      if (invite.activationLink) return invite;
+
+      throw new Error(recovery.text || invite.text || 'Lien activation non généré.');
+    };
+
     const sendRecoveryEmail = async () => {
       const res = await fetch(`${projectUrl}/auth/v1/recover`, {
         method: 'POST',
@@ -146,7 +158,26 @@ Deno.serve(async (req) => {
     let inviteSent = false;
     let activationLink = '';
 
-    if (!authUserId) {
+    if (linkOnly) {
+      if (!authUserId) {
+        const createRes = await fetch(`${projectUrl}/auth/v1/admin/users`, {
+          method: 'POST',
+          headers: serviceHeaders,
+          body: JSON.stringify({
+            email,
+            email_confirm: true,
+            user_metadata: { agency_id: caller.agency_id, full_name: fullName, role, source: 'mekloc-team-link' },
+          }),
+        });
+        const createText = await createRes.text();
+        if (!createRes.ok && !/already|exist|registered/i.test(createText)) throw new Error(createText);
+        authUserId = createRes.ok ? extractUserId(JSON.parse(createText)) : '';
+      }
+      const link = await generateUsableActivationLink();
+      activationLink = link.activationLink;
+      authUserId = authUserId || link.userId;
+      inviteSent = false;
+    } else if (!authUserId) {
       const inviteRes = await fetch(`${projectUrl}/auth/v1/invite`, {
         method: 'POST',
         headers: serviceHeaders,
@@ -160,8 +191,15 @@ Deno.serve(async (req) => {
       if (inviteRes.ok) {
         inviteSent = true;
         authUserId = extractUserId(JSON.parse(inviteText));
+        try {
+          const link = await generateUsableActivationLink();
+          activationLink = link.activationLink;
+          authUserId = authUserId || link.userId;
+        } catch {
+          // Supabase already accepted the invite and should send its own email.
+        }
       } else if (/already|exist|registered/i.test(inviteText)) {
-        const link = await generateLink('recovery');
+        const link = await generateUsableActivationLink();
         activationLink = link.activationLink;
         authUserId = link.userId;
         inviteSent = await sendRecoveryEmail();
@@ -178,17 +216,21 @@ Deno.serve(async (req) => {
         const createText = await createRes.text();
         if (!createRes.ok && !/already|exist|registered/i.test(createText)) throw new Error(inviteText || createText);
         authUserId = createRes.ok ? extractUserId(JSON.parse(createText)) : '';
-        const link = await generateLink('recovery');
+        const link = await generateUsableActivationLink();
         activationLink = link.activationLink;
         authUserId = authUserId || link.userId;
       }
     } else {
-      const link = await generateLink('recovery');
+      const link = await generateUsableActivationLink();
       activationLink = link.activationLink;
+      authUserId = authUserId || link.userId;
       inviteSent = await sendRecoveryEmail();
     }
 
     if (!authUserId) throw new Error('Utilisateur Auth introuvable pour cette invitation.');
+    if (!inviteSent && !activationLink) {
+      throw new Error('Email non envoyé et lien activation absent. Vérifiez les réglages Auth email Supabase.');
+    }
 
     const nextStatus = existingProfile?.account_status === 'suspended' ? 'suspended' : 'active';
     const profilePayload: Record<string, unknown> = {

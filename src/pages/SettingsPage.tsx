@@ -1,4 +1,4 @@
-import { BellRing, Building2, Camera, FileSignature, Globe2, Loader2, Mail, MessageCircle, Percent, RefreshCw, Save, ShieldAlert, ShieldCheck, UserPlus, UsersRound } from 'lucide-react';
+import { BellRing, Building2, Camera, FileSignature, Globe2, Link2, Loader2, Mail, MessageCircle, Percent, RefreshCw, Save, ShieldAlert, ShieldCheck, Trash2, UserPlus, UsersRound } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
@@ -133,6 +133,7 @@ export default function SettingsPage() {
   const [inviteFullName, setInviteFullName] = useState('');
   const [inviteRole, setInviteRole] = useState<TeamRole>('agent');
   const [inviteLink, setInviteLink] = useState('');
+  const [generatedMemberLink, setGeneratedMemberLink] = useState<{ email: string; link: string } | null>(null);
   const [inviteSending, setInviteSending] = useState(false);
   const canManageTeam = profile?.role === 'owner' || profile?.role === 'manager' || Boolean(profile?.isSuperAdmin);
   const hasChanges = useMemo(() => {
@@ -226,13 +227,12 @@ export default function SettingsPage() {
     return sessionData.session?.access_token ?? null;
   }
 
-  async function postTeamWebhook(body: unknown) {
+  async function postTeamEndpoint(functionName: string, body: unknown, configuredWebhook?: string) {
     if (!supabase) throw new Error('Supabase indisponible.');
     const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-    const configuredWebhook = import.meta.env.VITE_INVITE_AGENCY_MEMBER_WEBHOOK as string | undefined;
-    const webhook = configuredWebhook || (supabaseUrl ? `${supabaseUrl.replace(/\/$/, '')}/functions/v1/invite-agency-member` : '');
-    if (!webhook || !anonKey) throw new Error('Configuration invitation manquante.');
+    const webhook = configuredWebhook || (supabaseUrl ? `${supabaseUrl.replace(/\/$/, '')}/functions/v1/${functionName}` : '');
+    if (!webhook || !anonKey) throw new Error('Configuration Supabase manquante.');
     let token = await getFreshAccessToken();
     if (!token) throw new Error('Session introuvable. Reconnectez-vous puis réessayez.');
 
@@ -255,6 +255,14 @@ export default function SettingsPage() {
       response = await doFetch(token);
     }
     return response;
+  }
+
+  async function postTeamWebhook(body: unknown) {
+    return postTeamEndpoint('invite-agency-member', body, import.meta.env.VITE_INVITE_AGENCY_MEMBER_WEBHOOK as string | undefined);
+  }
+
+  async function postDeleteTeamMemberWebhook(body: unknown) {
+    return postTeamEndpoint('delete-agency-member', body, import.meta.env.VITE_DELETE_AGENCY_MEMBER_WEBHOOK as string | undefined);
   }
 
   async function handleChangeMemberRole(member: TeamMember, nextRole: TeamRole) {
@@ -320,6 +328,49 @@ export default function SettingsPage() {
     });
   }
 
+  async function handleGenerateMemberLink(member: TeamMember) {
+    if (!member.email) {
+      notify({ title: 'Email manquant', message: 'Impossible de générer un lien sans email.', type: 'warning' });
+      return;
+    }
+    await runTeamAction(`link-${member.id}`, async () => {
+      const response = await postTeamWebhook({
+        action: 'generate_link',
+        email: member.email,
+        fullName: member.full_name || '',
+        role: normalizeTeamRole(member.role),
+        redirectTo: `${window.location.origin}/set-password`,
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error || 'Génération du lien impossible');
+      const link = typeof payload?.activationLink === 'string' ? payload.activationLink : '';
+      if (!link) throw new Error('Lien activation absent.');
+      setGeneratedMemberLink({ email: member.email || '', link });
+      try {
+        await navigator.clipboard.writeText(link);
+        notify({ title: 'Lien copié', message: 'Lien activation généré et copié.', type: 'success' });
+      } catch {
+        notify({ title: 'Lien généré', message: 'Copiez le lien affiché.', type: 'success' });
+      }
+    });
+  }
+
+  async function handleDeleteMember(member: TeamMember) {
+    if (member.id === profile?.id) {
+      notify({ title: 'Action bloquée', message: 'Vous ne pouvez pas supprimer votre propre accès.', type: 'warning' });
+      return;
+    }
+    if (!window.confirm(`Supprimer ${member.full_name || member.email || 'cet utilisateur'} de cette agence ?`)) return;
+    await runTeamAction(`delete-${member.id}`, async () => {
+      const response = await postDeleteTeamMemberWebhook({ memberId: member.id });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error || 'Suppression impossible');
+      if (generatedMemberLink?.email === member.email) setGeneratedMemberLink(null);
+      notify({ title: 'Utilisateur supprimé', message: member.full_name || member.email || 'Membre supprimé', type: 'success' });
+      await loadTeamMembers();
+    });
+  }
+
   async function handleInviteMember(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const safeEmail = normalizeText(inviteEmail, 254).toLowerCase();
@@ -345,13 +396,17 @@ export default function SettingsPage() {
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.error || 'Invitation impossible');
 
-      if (payload?.activationLink) setInviteLink(payload.activationLink);
+      const nextInviteLink = typeof payload?.activationLink === 'string' ? payload.activationLink : '';
+      if (payload?.inviteSent === false && !nextInviteLink) {
+        throw new Error('Email non envoyé et lien activation absent. Réessayez après redéploiement de la fonction invitation.');
+      }
+      if (nextInviteLink) setInviteLink(nextInviteLink);
       notify({
-        title: payload?.inviteSent === false ? 'Lien généré' : 'Invitation envoyée',
-        message: payload?.inviteSent === false ? 'Email non envoyé automatiquement. Copiez le lien affiché.' : 'Le membre a reçu un email d’activation.',
+        title: payload?.inviteSent === false || nextInviteLink ? 'Lien activation prêt' : 'Invitation envoyée',
+        message: payload?.inviteSent === false ? 'Email non envoyé automatiquement. Copiez le lien affiché.' : nextInviteLink ? 'Email envoyé, et le lien reste disponible à copier.' : 'Le membre a reçu un email d’activation.',
         type: payload?.inviteSent === false ? 'warning' : 'success',
       });
-      if (payload?.inviteSent !== false) {
+      if (payload?.inviteSent !== false && !nextInviteLink) {
         setInviteOpen(false);
         setInviteEmail('');
         setInviteFullName('');
@@ -849,10 +904,30 @@ startxref
                     {teamMembers.length} membre{teamMembers.length > 1 ? 's' : ''} dans votre agence
                   </p>
                 </div>
+                {generatedMemberLink ? (
+                  <div className="rounded-2xl border border-gold-300/25 bg-gold-400/10 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold-200">Lien activation</p>
+                    <p className="mt-1 text-sm text-carbon-300">{generatedMemberLink.email}</p>
+                    <p className="mt-2 break-all text-sm text-carbon-100">{generatedMemberLink.link}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        icon={<Mail className="h-4 w-4" />}
+                        onClick={() => navigator.clipboard.writeText(generatedMemberLink.link)}
+                      >
+                        Copier le lien
+                      </Button>
+                      <Button type="button" variant="ghost" onClick={() => setGeneratedMemberLink(null)}>
+                        Fermer
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
                 {teamMembers.map((member) => (
                   <div
                     key={member.id}
-                    className="premium-surface grid gap-4 rounded-2xl p-4 lg:grid-cols-[minmax(0,1fr)_auto]"
+                    className="premium-surface grid gap-4 rounded-2xl p-4 xl:grid-cols-[minmax(0,1fr)_auto]"
                   >
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -865,7 +940,7 @@ startxref
                       </div>
                       <p className="truncate text-sm text-carbon-400">{member.email || 'Email non renseigné'}</p>
                     </div>
-                    <div className="grid gap-3 sm:grid-cols-[180px_auto_auto] sm:items-center">
+                    <div className="grid gap-3 lg:grid-cols-[170px_auto] xl:grid-cols-[170px_auto_auto] xl:items-center">
                       <select
                         aria-label={`Changer le rôle de ${member.full_name || member.email || 'ce membre'}`}
                         className="form-control focus-ring w-full"
@@ -880,16 +955,38 @@ startxref
                       <span className={`inline-flex min-h-10 items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold ${teamStatusClass(member.account_status)}`}>
                         {accountStatusFr(member.account_status)}
                       </span>
-                      <Button
-                        type="button"
-                        variant={member.account_status === 'suspended' || member.account_status === 'rejected' ? 'secondary' : 'danger'}
-                        icon={member.account_status === 'suspended' || member.account_status === 'rejected' ? <RefreshCw className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
-                        loading={Boolean(teamActionLoading[`status-${member.id}`])}
-                        disabled={!canManageTeam || member.id === profile?.id}
-                        onClick={() => handleToggleMemberStatus(member)}
-                      >
-                        {member.account_status === 'suspended' || member.account_status === 'rejected' ? 'Réactiver' : 'Suspendre'}
-                      </Button>
+                      <div className="flex flex-wrap gap-2 lg:col-span-2 xl:col-span-1 xl:justify-end">
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          icon={<Link2 className="h-4 w-4" />}
+                          loading={Boolean(teamActionLoading[`link-${member.id}`])}
+                          disabled={!canManageTeam || !member.email}
+                          onClick={() => handleGenerateMemberLink(member)}
+                        >
+                          Générer lien
+                        </Button>
+                        <Button
+                          type="button"
+                          variant={member.account_status === 'suspended' || member.account_status === 'rejected' ? 'secondary' : 'danger'}
+                          icon={member.account_status === 'suspended' || member.account_status === 'rejected' ? <RefreshCw className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
+                          loading={Boolean(teamActionLoading[`status-${member.id}`])}
+                          disabled={!canManageTeam || member.id === profile?.id}
+                          onClick={() => handleToggleMemberStatus(member)}
+                        >
+                          {member.account_status === 'suspended' || member.account_status === 'rejected' ? 'Réactiver' : 'Suspendre'}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="danger"
+                          icon={<Trash2 className="h-4 w-4" />}
+                          loading={Boolean(teamActionLoading[`delete-${member.id}`])}
+                          disabled={!canManageTeam || member.id === profile?.id}
+                          onClick={() => handleDeleteMember(member)}
+                        >
+                          Supprimer
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
