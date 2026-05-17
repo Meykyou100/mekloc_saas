@@ -19,7 +19,7 @@ import {
   X,
 } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -44,6 +44,13 @@ function getRentalDays(start: string, end: string) {
   const to = new Date(end).getTime();
   if (Number.isNaN(from) || Number.isNaN(to)) return 1;
   return Math.max(1, Math.ceil((to - from) / 86_400_000));
+}
+
+function isoPlusOne(dateIso: string) {
+  const value = new Date(dateIso);
+  if (Number.isNaN(value.getTime())) return new Date().toISOString().slice(0, 10);
+  value.setDate(value.getDate() + 1);
+  return value.toISOString().slice(0, 10);
 }
 
 function isDateOverlap(startA: string, endA: string, startB: string, endB: string) {
@@ -87,6 +94,7 @@ export default function ReservationsPage() {
   const { clients, vehicles, reservations, payments, createReservation, updateReservation, deleteReservation } = useData();
   const { notify } = useApp();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<ReservationFilterStatus>('All');
@@ -200,6 +208,36 @@ export default function ReservationsPage() {
     resetDraft();
     setModalOpen(true);
   }
+
+  useEffect(() => {
+    if (!clients.length || !vehicles.length) return;
+    if (searchParams.get('create') !== '1') return;
+
+    const vehicleId = searchParams.get('vehicleId') || '';
+    const pickup = searchParams.get('pickup') || todayIso;
+    const returnDate = searchParams.get('return') || isoPlusOne(pickup);
+
+    openNewReservation();
+
+    const nextVehicle = vehicles.find((item) => item.id === vehicleId) || vehicles[0] || null;
+    if (nextVehicle) {
+      setDraftVehicleId(nextVehicle.id);
+      setDraftDailyPrice(nextVehicle.dailyPrice || 0);
+    }
+    setDraftPickupDate(pickup);
+    setDraftReturnDate(returnDate);
+    setDraftPickupLocation(nextVehicle?.city || '');
+    setReservationStep(2);
+
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete('create');
+      next.delete('vehicleId');
+      next.delete('pickup');
+      next.delete('return');
+      return next;
+    }, { replace: true });
+  }, [clients.length, searchParams, setSearchParams, todayIso, vehicles]);
 
   function openEditReservation(reservation: Reservation) {
     setEditingReservation(reservation);

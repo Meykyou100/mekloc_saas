@@ -18,6 +18,7 @@ import { canAccess, type AppPermission } from '../../lib/permissions';
 
 const navItems = [
   { label: 'dashboard', to: '/dashboard', icon: LayoutDashboard, permission: 'dashboard' as AppPermission },
+  { label: 'calendar', to: '/calendar', icon: CalendarDays, permission: 'reservations' as AppPermission },
   { label: 'reservations', to: '/reservations', icon: CalendarDays, permission: 'reservations' as AppPermission },
   { label: 'vehicles', to: '/vehicles', icon: Car, permission: 'vehicles' as AppPermission },
   { label: 'clients', to: '/clients', icon: Users, permission: 'clients' as AppPermission },

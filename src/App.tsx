@@ -8,6 +8,7 @@ import ToastViewport from './components/ui/ToastViewport';
 import AccountStatusPage from './pages/AccountStatusPage';
 import AuthPage from './pages/AuthPage';
 const ClientProfilePage = lazyWithRetry(() => import('./pages/ClientProfilePage'));
+const CalendarPage = lazyWithRetry(() => import('./pages/CalendarPage'));
 const ClientsPage = lazyWithRetry(() => import('./pages/ClientsPage'));
 const ContractsPage = lazyWithRetry(() => import('./pages/ContractsPage'));
 const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage'));
@@ -95,6 +96,7 @@ export default function App() {
     // Warm frequently used private pages to make route switching feel instant.
     void Promise.all([
       import('./pages/ClientsPage'),
+      import('./pages/CalendarPage'),
       import('./pages/ContractsPage'),
       import('./pages/ReservationsPage'),
       import('./pages/VehiclesPage'),
@@ -166,6 +168,7 @@ export default function App() {
                 <Route path="/dashboard" element={<DashboardPage />} />
               </Route>
               <Route element={<ProtectedRoute requiredPermission="reservations" />}>
+                <Route path="/calendar" element={<CalendarPage />} />
                 <Route path="/reservations" element={<ReservationsPage />} />
               </Route>
               <Route element={<ProtectedRoute requiredPermission="vehicles" />}>

@@ -24,6 +24,7 @@ type AppContextValue = {
 const translations: Record<Language, Record<string, string>> = {
   fr: {
     dashboard: 'Tableau',
+    calendar: 'Calendrier',
     reservations: 'Réservations',
     vehicles: 'Véhicules',
     clients: 'Clients',
