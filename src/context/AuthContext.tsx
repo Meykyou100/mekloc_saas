@@ -79,7 +79,7 @@ const sessionStorageKey = 'mekloc_session_id';
 const sessionStartedAtKey = 'mekloc_session_started_at';
 const demoEmail = 'demo@mekloc.ma';
 const demoPassword = 'demo123456';
-const allowDemoMode = import.meta.env.VITE_ENABLE_DEMO_MODE === 'true';
+const allowDemoMode = import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_MODE === 'true';
 
 type ProfileRow = {
   id: string;
@@ -400,7 +400,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isDemoSession, setIsDemoSession] = useState(() => localStorage.getItem(demoAuthKey) === 'true');
+  const [isDemoSession, setIsDemoSession] = useState(() => allowDemoMode && localStorage.getItem(demoAuthKey) === 'true');
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const lastSeenUpdateRef = useRef<number>(0);
   const lastRevocationCheckRef = useRef<number>(0);
@@ -493,6 +493,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   useEffect(() => {
+    if (!allowDemoMode && localStorage.getItem(demoAuthKey)) {
+      localStorage.removeItem(demoAuthKey);
+    }
     if (isDemoSession) {
       setSession(demoSession);
       setUser(demoUser);

@@ -2,10 +2,18 @@ import { ArrowLeft, Car, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
-import { formatMAD, vehicles } from '../data/mockData';
+import { formatMAD } from '../data/mockData';
 
 export default function PublicBookingPreviewPage() {
-  const availableCars = vehicles.filter((vehicle) => vehicle.status === 'Available');
+  const availableCars: Array<{
+    id: string;
+    brand: string;
+    model: string;
+    city: string;
+    transmission: string;
+    status: string;
+    dailyPrice: number;
+  }> = [];
 
   return (
     <div className="min-h-screen bg-carbon-950 px-4 py-6 text-white light:bg-carbon-50 light:text-carbon-950 sm:px-6 lg:px-8">
@@ -38,7 +46,7 @@ export default function PublicBookingPreviewPage() {
             <div className="grid gap-3 sm:grid-cols-3">
               {[
                 ['Available cars', String(availableCars.length)],
-                ['Starting from', formatMAD(Math.min(...availableCars.map((car) => car.dailyPrice)))],
+                ['Starting from', availableCars.length ? formatMAD(Math.min(...availableCars.map((car) => car.dailyPrice))) : '—'],
                 ['Response time', '< 10 min'],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
@@ -73,6 +81,16 @@ export default function PublicBookingPreviewPage() {
               </div>
             </Card>
           ))}
+          {availableCars.length === 0 && (
+            <Card className="md:col-span-2 xl:col-span-3">
+              <div className="grid min-h-48 place-items-center p-6 text-center">
+                <div>
+                  <p className="text-lg font-semibold text-white light:text-carbon-950">Aucune voiture disponible pour le moment</p>
+                  <p className="mt-2 text-sm text-carbon-400">Contactez l’agence pour publier les disponibilités clients.</p>
+                </div>
+              </div>
+            </Card>
+          )}
         </section>
       </div>
     </div>

@@ -1,12 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from './AuthContext';
 import {
-  clients as mockClients,
-  contracts as mockContracts,
-  maintenanceItems as mockMaintenance,
-  payments as mockPayments,
-  reservations as mockReservations,
-  vehicles as mockVehicles,
   type Client,
   type Contract,
   type ContractStatus,
@@ -28,6 +22,14 @@ import {
 } from '../lib/security';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import { isSubscriptionAllowed } from '../lib/subscription';
+import {
+  clients as mockClients,
+  contracts as mockContracts,
+  maintenanceItems as mockMaintenance,
+  payments as mockPayments,
+  reservations as mockReservations,
+  vehicles as mockVehicles,
+} from '../data/mockData';
 
 type DataContextValue = {
   loading: boolean;
@@ -60,6 +62,43 @@ type DataContextValue = {
 };
 
 const DataContext = createContext<DataContextValue | null>(null);
+const allowMockData = import.meta.env.DEV && import.meta.env.VITE_USE_MOCK_DATA === 'true';
+
+function setEmptyDataState(
+  setters: {
+    setVehicles: (value: Vehicle[]) => void;
+    setClients: (value: Client[]) => void;
+    setReservations: (value: Reservation[]) => void;
+    setContracts: (value: Contract[]) => void;
+    setPayments: (value: Payment[]) => void;
+    setMaintenance: (value: MaintenanceItem[]) => void;
+  },
+) {
+  setters.setVehicles([]);
+  setters.setClients([]);
+  setters.setReservations([]);
+  setters.setContracts([]);
+  setters.setPayments([]);
+  setters.setMaintenance([]);
+}
+
+function setMockDataState(
+  setters: {
+    setVehicles: (value: Vehicle[]) => void;
+    setClients: (value: Client[]) => void;
+    setReservations: (value: Reservation[]) => void;
+    setContracts: (value: Contract[]) => void;
+    setPayments: (value: Payment[]) => void;
+    setMaintenance: (value: MaintenanceItem[]) => void;
+  },
+) {
+  setters.setVehicles(mockVehicles);
+  setters.setClients(mockClients);
+  setters.setReservations(mockReservations);
+  setters.setContracts(mockContracts);
+  setters.setPayments(mockPayments);
+  setters.setMaintenance(mockMaintenance);
+}
 
 type VehicleRow = {
   id: string;
@@ -469,21 +508,21 @@ function byId<T extends { id: string }>(items: T[]) {
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const { agencyId, isSupabaseEnabled, loading: authLoading, profile } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [vehicles, setVehicles] = useState<Vehicle[]>(mockVehicles);
-  const [clients, setClients] = useState<Client[]>(mockClients);
-  const [reservations, setReservations] = useState<Reservation[]>(mockReservations);
-  const [contracts, setContracts] = useState<Contract[]>(mockContracts);
-  const [payments, setPayments] = useState<Payment[]>(mockPayments);
-  const [maintenance, setMaintenance] = useState<MaintenanceItem[]>(mockMaintenance);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
+  const [reservations, setReservations] = useState<Reservation[]>([]);
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [maintenance, setMaintenance] = useState<MaintenanceItem[]>([]);
 
   const refreshData = useCallback(async () => {
     if (!isSupabaseEnabled || !supabase || !isSupabaseConfigured || !agencyId) {
-      setVehicles(mockVehicles);
-      setClients(mockClients);
-      setReservations(mockReservations);
-      setContracts(mockContracts);
-      setPayments(mockPayments);
-      setMaintenance(mockMaintenance);
+      const setters = { setVehicles, setClients, setReservations, setContracts, setPayments, setMaintenance };
+      if (allowMockData) {
+        setMockDataState(setters);
+      } else {
+        setEmptyDataState(setters);
+      }
       return;
     }
 
@@ -547,13 +586,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (authLoading) return;
+    const setters = { setVehicles, setClients, setReservations, setContracts, setPayments, setMaintenance };
     if (isSupabaseEnabled && !agencyId) {
-      setVehicles([]);
-      setClients([]);
-      setReservations([]);
-      setContracts([]);
-      setPayments([]);
-      setMaintenance([]);
+      setEmptyDataState(setters);
       return;
     }
     if (
@@ -561,23 +596,35 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       !profile?.isSuperAdmin &&
       (profile?.accountStatus !== 'active' || !isSubscriptionAllowed(profile?.agency))
     ) {
-      setVehicles([]);
-      setClients([]);
-      setReservations([]);
-      setContracts([]);
-      setPayments([]);
-      setMaintenance([]);
+      setEmptyDataState(setters);
       return;
     }
     refreshData().catch(() => {
-      setVehicles(mockVehicles);
-      setClients(mockClients);
-      setReservations(mockReservations);
-      setContracts(mockContracts);
-      setPayments(mockPayments);
-      setMaintenance(mockMaintenance);
+      if (allowMockData) {
+        setMockDataState(setters);
+      } else {
+        setEmptyDataState(setters);
+      }
     });
   }, [agencyId, authLoading, isSupabaseEnabled, profile, refreshData]);
+
+  useEffect(() => {
+    if (!isSupabaseEnabled) return;
+    const staleKeys = [
+      'vehicles',
+      'clients',
+      'reservations',
+      'payments',
+      'contracts',
+      'maintenance',
+      'agency',
+      'reports',
+      'mekloc-mock-data',
+      'mekloc-demo-data',
+      'mekloc-demo-auth',
+    ];
+    staleKeys.forEach((key) => localStorage.removeItem(key));
+  }, [isSupabaseEnabled]);
 
   const value = useMemo<DataContextValue>(() => {
     const hasBackend = Boolean(isSupabaseEnabled && supabase && agencyId);

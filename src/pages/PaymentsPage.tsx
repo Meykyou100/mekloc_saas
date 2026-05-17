@@ -23,6 +23,8 @@ const filters: Array<{ key: FilterKey; label: string }> = [
   { key: 'mois', label: 'Ce mois' },
 ];
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 export default function PaymentsPage() {
   const { payments, reservations, vehicles, clients, createPayment, updatePayment } = useData();
   const { notify } = useApp();
@@ -89,8 +91,14 @@ export default function PaymentsPage() {
     if (!selectedReservationChoice) return null;
     const reservationId = selectedReservationChoice.reservation.id;
     const total = selectedReservationChoice.total;
+    const invoiceRef = `INV-${reservationId}`;
     const alreadyPaidFromRows = paymentRows
-      .filter((item) => item.reservationId === reservationId && item.status !== 'Pending' && item.status !== 'Late')
+      .filter(
+        (item) =>
+          (item.reservationId === reservationId || item.invoice === invoiceRef) &&
+          item.status !== 'Pending' &&
+          item.status !== 'Late',
+      )
       .reduce((sum, item) => sum + item.amount, 0);
     const alreadyPaid = Math.max(0, alreadyPaidFromRows);
     const remaining = Math.max(0, total - alreadyPaid);
@@ -167,7 +175,10 @@ export default function PaymentsPage() {
 
     try {
       setSavingPayment(true);
-      const linkedPayment = paymentRows.find((item) => item.reservationId === reservation.id);
+      const linkedPayment = paymentRows.find(
+        (item) => item.reservationId === reservation.id || item.invoice === `INV-${reservation.id}`,
+      );
+      const reservationIdForDb = UUID_RE.test(reservation.id) ? reservation.id : undefined;
       if (linkedPayment) {
         const nextAmount = Math.max(0, linkedPayment.amount + amount);
         const nextStatus: PaymentStatus =
@@ -176,7 +187,7 @@ export default function PaymentsPage() {
           ...linkedPayment,
           client: reservation.client,
           clientId: resolvedClientId,
-          reservationId: reservation.id,
+          reservationId: reservationIdForDb,
           amount: nextAmount,
           method: paymentMethod === 'Other' ? 'Cash' : paymentMethod,
           status: nextStatus,
@@ -188,7 +199,7 @@ export default function PaymentsPage() {
           invoice: `INV-${reservation.id}`,
           client: reservation.client,
           clientId: resolvedClientId,
-          reservationId: reservation.id,
+          reservationId: reservationIdForDb,
           amount,
           method: paymentMethod === 'Other' ? 'Cash' : paymentMethod,
           status: amount >= reservationSummary.remaining ? 'Paid' : amount > 0 ? 'Partial' : 'Pending',
