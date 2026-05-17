@@ -265,6 +265,10 @@ export default function SettingsPage() {
     return postTeamEndpoint('delete-agency-member', body, import.meta.env.VITE_DELETE_AGENCY_MEMBER_WEBHOOK as string | undefined);
   }
 
+  async function postGenerateTeamMemberLinkWebhook(body: unknown) {
+    return postTeamEndpoint('generate-agency-member-link', body, import.meta.env.VITE_GENERATE_AGENCY_MEMBER_LINK_WEBHOOK as string | undefined);
+  }
+
   async function handleChangeMemberRole(member: TeamMember, nextRole: TeamRole) {
     const client = supabase;
     if (!client || !agencyId || !canManageTeam) return;
@@ -334,11 +338,9 @@ export default function SettingsPage() {
       return;
     }
     await runTeamAction(`link-${member.id}`, async () => {
-      const response = await postTeamWebhook({
-        action: 'generate_link',
+      const response = await postGenerateTeamMemberLinkWebhook({
+        memberId: member.id,
         email: member.email,
-        fullName: member.full_name || '',
-        role: normalizeTeamRole(member.role),
         redirectTo: `${window.location.origin}/set-password`,
       });
       const payload = await response.json();
