@@ -52,6 +52,7 @@ type AdminUserRow = {
   account_status: AccountStatus;
   last_login_at?: string | null;
   last_seen_at?: string | null;
+  force_logout_at?: string | null;
 };
 
 type UserSessionRow = {
@@ -400,13 +401,24 @@ export default function SuperAdminPage() {
 
   async function revokeUserSessions(agencyId: string, userId: string) {
     if (!supabase) return;
+    const nowIso = new Date().toISOString();
     const { error } = await supabase
       .from('user_sessions')
-      .update({ revoked_at: new Date().toISOString() })
+      .update({ revoked_at: nowIso })
       .eq('agency_id', agencyId)
       .eq('user_id', userId)
       .is('revoked_at', null);
-    if (error) throw error;
+    if (error && !/relation .*user_sessions.* does not exist/i.test(error.message)) throw error;
+    const profileUpdate = await supabase
+      .from('users_profiles')
+      .update({ force_logout_at: nowIso })
+      .eq('id', userId);
+    if (profileUpdate.error) {
+      if (/force_logout_at|schema cache/i.test(profileUpdate.error.message)) {
+        throw new Error('Session management non prêt: appliquez la migration user_sessions_management_safe.sql dans Supabase.');
+      }
+      throw profileUpdate.error;
+    }
     notify({ title: 'Utilisateur déconnecté', message: 'Toutes ses sessions actives ont été fermées.', type: 'success' });
     await loadAll();
   }
@@ -414,12 +426,23 @@ export default function SuperAdminPage() {
   async function revokeAgencySessions(agency: AdminAgency) {
     if (!supabase) return;
     if (!window.confirm('Voulez-vous vraiment déconnecter tous les utilisateurs de cette agence ?')) return;
+    const nowIso = new Date().toISOString();
     const { error } = await supabase
       .from('user_sessions')
-      .update({ revoked_at: new Date().toISOString() })
+      .update({ revoked_at: nowIso })
       .eq('agency_id', agency.id)
       .is('revoked_at', null);
-    if (error) throw error;
+    if (error && !/relation .*user_sessions.* does not exist/i.test(error.message)) throw error;
+    const profileUpdate = await supabase
+      .from('users_profiles')
+      .update({ force_logout_at: nowIso })
+      .eq('agency_id', agency.id);
+    if (profileUpdate.error) {
+      if (/force_logout_at|schema cache/i.test(profileUpdate.error.message)) {
+        throw new Error('Session management non prêt: appliquez la migration user_sessions_management_safe.sql dans Supabase.');
+      }
+      throw profileUpdate.error;
+    }
     notify({ title: 'Agence déconnectée', message: 'Tous les appareils actifs ont été déconnectés.', type: 'success' });
     await loadAll();
   }
@@ -578,6 +601,10 @@ export default function SuperAdminPage() {
                                 {users.map((u) => {
                                   const userSessions = sessions.filter((s) => s.user_id === u.id);
                                   const activeCount = userSessions.filter((s) => !s.revoked_at).length;
+                                  const sessionLastSeen = userSessions.find((s) => !!s.last_seen_at)?.last_seen_at || null;
+                                  const sessionFirstSeen = userSessions.find((s) => !!s.first_seen_at)?.first_seen_at || null;
+                                  const lastLogin = u.last_login_at || sessionFirstSeen || null;
+                                  const lastSeen = u.last_seen_at || sessionLastSeen || null;
                                   return (
                                     <div key={u.id} className="rounded-lg border border-white/10 bg-carbon-950/50 p-3">
                                       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -598,8 +625,8 @@ export default function SuperAdminPage() {
                                         </div>
                                       </div>
                                       <div className="mt-2 grid gap-1 text-xs text-carbon-300 sm:grid-cols-2">
-                                        <p><strong>Dernière connexion:</strong> {formatSince(u.last_login_at || null)}</p>
-                                        <p><strong>Dernière activité:</strong> {formatSince(u.last_seen_at || null)}</p>
+                                        <p><strong>Dernière connexion:</strong> {formatSince(lastLogin)}</p>
+                                        <p><strong>Dernière activité:</strong> {formatSince(lastSeen)}</p>
                                       </div>
 
                                       <div className="mt-2 space-y-1.5">

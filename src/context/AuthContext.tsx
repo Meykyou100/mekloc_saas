@@ -76,6 +76,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 const demoAuthKey = 'mekloc-demo-auth';
 const sessionStorageKey = 'mekloc_session_id';
+const sessionStartedAtKey = 'mekloc_session_started_at';
 const demoEmail = 'demo@mekloc.ma';
 const demoPassword = 'demo123456';
 const allowDemoMode = import.meta.env.VITE_ENABLE_DEMO_MODE === 'true';
@@ -275,6 +276,14 @@ function getOrCreateSessionKey() {
   return next;
 }
 
+function getOrCreateSessionStartedAt() {
+  const existing = localStorage.getItem(sessionStartedAtKey);
+  if (existing) return existing;
+  const nowIso = new Date().toISOString();
+  localStorage.setItem(sessionStartedAtKey, nowIso);
+  return nowIso;
+}
+
 function parseDevice(userAgent: string) {
   const ua = userAgent || '';
   const browser = /edg\//i.test(ua)
@@ -461,6 +470,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data?.revoked_at) {
         await supabase.auth.signOut();
         localStorage.removeItem(sessionStorageKey);
+        localStorage.removeItem(sessionStartedAtKey);
+        window.location.href = '/auth?revoked=1';
+        return;
+      }
+
+      const startedAt = getOrCreateSessionStartedAt();
+      const { data: profileRow, error: profileErr } = await supabase
+        .from('users_profiles')
+        .select('force_logout_at')
+        .eq('id', currentUser.id)
+        .maybeSingle();
+      if (!profileErr && profileRow?.force_logout_at && new Date(profileRow.force_logout_at).getTime() > new Date(startedAt).getTime()) {
+        await supabase.auth.signOut();
+        localStorage.removeItem(sessionStorageKey);
+        localStorage.removeItem(sessionStartedAtKey);
         window.location.href = '/auth?revoked=1';
       }
     } catch {
@@ -586,6 +610,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           setSession(data.session);
           setUser(data.user);
+          localStorage.setItem(sessionStartedAtKey, new Date().toISOString());
           const deleted = await isDeletedByEmail(data.user?.email);
           if (deleted) {
             await supabase.auth.signOut();
@@ -703,10 +728,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(null);
           setUser(null);
           setProfile(null);
+          localStorage.removeItem(sessionStartedAtKey);
           return;
         }
         if (!supabase) return;
         localStorage.removeItem(sessionStorageKey);
+        localStorage.removeItem(sessionStartedAtKey);
         await supabase.auth.signOut();
         setSession(null);
         setUser(null);

@@ -12,6 +12,9 @@ alter table public.users_profiles
 alter table public.users_profiles
   add column if not exists disabled_at timestamptz;
 
+alter table public.users_profiles
+  add column if not exists force_logout_at timestamptz;
+
 create table if not exists public.user_sessions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
