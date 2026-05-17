@@ -24,14 +24,12 @@ const filters: Array<{ key: FilterKey; label: string }> = [
 ];
 
 export default function PaymentsPage() {
-  const { payments, reservations, vehicles } = useData();
+  const { payments, reservations, vehicles, createPayment } = useData();
   const { notify } = useApp();
   const [filter, setFilter] = useState<FilterKey>('tous');
   const [query, setQuery] = useState('');
   const [methodFilter, setMethodFilter] = useState<MethodFilter>('toutes');
   const [modalOpen, setModalOpen] = useState(false);
-  const [paidOverrides, setPaidOverrides] = useState<Record<string, number>>({});
-  const [manualPayments, setManualPayments] = useState<Payment[]>([]);
   const [selectedReservationId, setSelectedReservationId] = useState('');
   const [amountPaid, setAmountPaid] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'Cash' | 'Bank transfer' | 'Card' | 'Other'>('Cash');
@@ -39,17 +37,15 @@ export default function PaymentsPage() {
   const [paymentNotes, setPaymentNotes] = useState('');
   const [savingPayment, setSavingPayment] = useState(false);
   const supportPhone = '212762971653';
-  const paymentRows = useMemo(() => [...manualPayments, ...payments], [manualPayments, payments]);
+  const paymentRows = payments;
 
   const enriched = useMemo(() => {
     const now = new Date().toISOString().slice(0, 10);
     return paymentRows.map((payment) => {
       const reservation = reservations.find((item) => item.id === payment.reservationId);
       const vehicle = reservation ? vehicles.find((item) => item.id === reservation.vehicleId) : undefined;
-      const total = payment.amount;
-      const basePaid = payment.status === 'Paid' ? total : payment.status === 'Partial' ? Math.round(total * 0.55) : 0;
-      const paidBoost = payment.reservationId ? paidOverrides[payment.reservationId] || 0 : 0;
-      const paid = Math.min(total, basePaid + paidBoost);
+      const total = reservation?.totalAmount || reservation?.dailyPrice || payment.amount;
+      const paid = payment.status === 'Pending' || payment.status === 'Late' ? 0 : payment.amount;
       const remaining = Math.max(0, total - paid);
       let statusFr: 'Payé' | 'Partiel' | 'En attente' | 'En retard' = payment.status === 'Paid' ? 'Payé' : payment.status === 'Partial' ? 'Partiel' : payment.status === 'Late' ? 'En retard' : 'En attente';
       if (remaining === 0) statusFr = 'Payé';
@@ -66,7 +62,7 @@ export default function PaymentsPage() {
         progress: total > 0 ? Math.round((paid / total) * 100) : 0,
       };
     });
-  }, [paidOverrides, paymentRows, reservations, vehicles]);
+  }, [paymentRows, reservations, vehicles]);
 
   const reservationChoices = useMemo(
     () =>
@@ -96,11 +92,11 @@ export default function PaymentsPage() {
     const alreadyPaidFromRows = paymentRows
       .filter((item) => item.reservationId === reservationId && item.status !== 'Pending' && item.status !== 'Late')
       .reduce((sum, item) => sum + item.amount, 0);
-    const alreadyPaid = Math.max(0, alreadyPaidFromRows + (paidOverrides[reservationId] || 0));
+    const alreadyPaid = Math.max(0, alreadyPaidFromRows);
     const remaining = Math.max(0, total - alreadyPaid);
     const statusFr = remaining <= 0 ? 'Payé' : alreadyPaid > 0 ? 'Partiel' : 'En attente';
     return { total, alreadyPaid, remaining, statusFr };
-  }, [paidOverrides, paymentRows, selectedReservationChoice]);
+  }, [paymentRows, selectedReservationChoice]);
 
   useEffect(() => {
     if (!modalOpen) return;
@@ -135,7 +131,7 @@ export default function PaymentsPage() {
   const soldeOuvert = Math.max(0, totalFacture - totalEncaisse);
   const enRetard = enriched.filter((i) => i.statusFr === 'En retard').length;
 
-  function handleAddPayment(event: FormEvent<HTMLFormElement>) {
+  async function handleAddPayment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selectedReservationId) {
       notify({ title: 'Validation', message: 'Veuillez sélectionner une réservation', type: 'warning' });
@@ -159,36 +155,39 @@ export default function PaymentsPage() {
       return;
     }
 
-    setSavingPayment(true);
     const reservation = selectedReservationChoice.reservation;
-    const linkedPayment = paymentRows.find((item) => item.reservationId === reservation.id);
-    if (linkedPayment) {
-      setPaidOverrides((current) => ({
-        ...current,
-        [reservation.id]: Math.max(0, (current[reservation.id] || 0) + amount),
-      }));
-    } else {
-      const generatedPayment: Payment = {
+    if (!reservation.clientId) {
+      notify({ title: 'Validation', message: 'Client invalide pour cette réservation', type: 'warning' });
+      return;
+    }
+
+    try {
+      setSavingPayment(true);
+      const nextPayment: Payment = {
         id: `pay-${Date.now()}`,
         invoice: `INV-${reservation.id}`,
         client: reservation.client,
         clientId: reservation.clientId,
         reservationId: reservation.id,
-        amount: reservation.totalAmount || reservation.dailyPrice,
+        amount,
         method: paymentMethod === 'Other' ? 'Cash' : paymentMethod,
-        status: amount >= (reservation.totalAmount || reservation.dailyPrice) ? 'Paid' : amount > 0 ? 'Partial' : 'Pending',
+        status: amount >= reservationSummary.remaining ? 'Paid' : amount > 0 ? 'Partial' : 'Pending',
         dueDate: paymentDate,
       };
-      setManualPayments((current) => [generatedPayment, ...current]);
-      setPaidOverrides((current) => ({ ...current, [reservation.id]: amount }));
-    }
 
-    setSavingPayment(false);
-    setSelectedReservationId('');
-    setAmountPaid('');
-    setPaymentNotes('');
-    notify({ title: 'Paiement enregistré', message: 'Le paiement a été ajouté avec succès.', type: 'success' });
-    setModalOpen(false);
+      await createPayment(nextPayment);
+
+      setSelectedReservationId('');
+      setAmountPaid('');
+      setPaymentNotes('');
+      notify({ title: 'Paiement enregistré', message: 'Le paiement a été ajouté avec succès.', type: 'success' });
+      setModalOpen(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Réessayez.';
+      notify({ title: 'Enregistrement impossible', message, type: 'warning' });
+    } finally {
+      setSavingPayment(false);
+    }
   }
 
   function downloadReceipt(invoice: string, total: number, paid: number, remaining: number) {
