@@ -1,5 +1,5 @@
 import type { Session, User } from '@supabase/supabase-js';
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
 export type UserProfile = {
@@ -75,6 +75,7 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 const demoAuthKey = 'mekloc-demo-auth';
+const sessionStorageKey = 'mekloc_session_id';
 const demoEmail = 'demo@mekloc.ma';
 const demoPassword = 'demo123456';
 const allowDemoMode = import.meta.env.VITE_ENABLE_DEMO_MODE === 'true';
@@ -266,6 +267,53 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+function getOrCreateSessionKey() {
+  const existing = localStorage.getItem(sessionStorageKey);
+  if (existing) return existing;
+  const next = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+  localStorage.setItem(sessionStorageKey, next);
+  return next;
+}
+
+function parseDevice(userAgent: string) {
+  const ua = userAgent || '';
+  const browser = /edg\//i.test(ua)
+    ? 'Edge'
+    : /chrome\//i.test(ua) && !/edg\//i.test(ua)
+      ? 'Chrome'
+      : /safari/i.test(ua) && !/chrome/i.test(ua)
+        ? 'Safari'
+        : /firefox/i.test(ua)
+          ? 'Firefox'
+          : 'Navigateur';
+
+  const os = /iphone|ipad|ios/i.test(ua)
+    ? 'iOS'
+    : /android/i.test(ua)
+      ? 'Android'
+      : /mac os x|macintosh/i.test(ua)
+        ? 'macOS'
+        : /windows/i.test(ua)
+          ? 'Windows'
+          : /linux/i.test(ua)
+            ? 'Linux'
+            : 'Système';
+
+  const deviceName = /iphone/i.test(ua)
+    ? `iPhone • ${browser}`
+    : /ipad/i.test(ua)
+      ? `iPad • ${browser}`
+      : /android/i.test(ua)
+        ? `Android • ${browser}`
+        : /macintosh|mac os x/i.test(ua)
+          ? `MacBook • ${browser}`
+          : /windows/i.test(ua)
+            ? `PC Windows • ${browser}`
+            : `${os} • ${browser}`;
+
+  return { browser, os, deviceName };
+}
+
 function createSlug(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
@@ -345,6 +393,80 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isDemoSession, setIsDemoSession] = useState(() => localStorage.getItem(demoAuthKey) === 'true');
   const [loading, setLoading] = useState(isSupabaseConfigured);
+  const lastSeenUpdateRef = useRef<number>(0);
+  const lastRevocationCheckRef = useRef<number>(0);
+
+  async function syncSessionActivity(currentUser: User, currentProfile: UserProfile | null, options?: { isLogin?: boolean }) {
+    if (!supabase || !currentProfile?.agencyId) return;
+    const nowIso = new Date().toISOString();
+    const nowMs = Date.now();
+    const minGapMs = 5 * 60 * 1000;
+    const shouldSkipSeenUpdate = !options?.isLogin && nowMs - lastSeenUpdateRef.current < minGapMs;
+
+    try {
+      if (!shouldSkipSeenUpdate) {
+        const profilePatch: Record<string, string> = { last_seen_at: nowIso };
+        if (options?.isLogin) profilePatch.last_login_at = nowIso;
+        await supabase.from('users_profiles').update(profilePatch).eq('id', currentUser.id);
+        lastSeenUpdateRef.current = nowMs;
+      }
+
+      const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
+      const { browser, os, deviceName } = parseDevice(ua);
+      const sessionKey = getOrCreateSessionKey();
+      const upsertPayload = {
+        user_id: currentUser.id,
+        agency_id: currentProfile.agencyId,
+        session_key: sessionKey,
+        device_name: deviceName,
+        browser,
+        os,
+        user_agent: ua,
+        last_seen_at: nowIso,
+      };
+
+      const { data: existing, error: existingError } = await supabase
+        .from('user_sessions')
+        .select('id')
+        .eq('session_key', sessionKey)
+        .maybeSingle();
+
+      if (!existingError && existing?.id) {
+        await supabase.from('user_sessions').update(upsertPayload).eq('id', existing.id);
+      } else {
+        await supabase.from('user_sessions').insert({
+          ...upsertPayload,
+          first_seen_at: nowIso,
+        });
+      }
+    } catch {
+      // Keep login/session flow resilient even if activity tracking table is not applied yet.
+    }
+  }
+
+  async function checkRevokedSession(currentUser: User) {
+    if (!supabase) return;
+    const sessionKey = localStorage.getItem(sessionStorageKey);
+    if (!sessionKey) return;
+    const nowMs = Date.now();
+    if (nowMs - lastRevocationCheckRef.current < 2 * 60 * 1000) return;
+    lastRevocationCheckRef.current = nowMs;
+    try {
+      const { data } = await supabase
+        .from('user_sessions')
+        .select('revoked_at')
+        .eq('user_id', currentUser.id)
+        .eq('session_key', sessionKey)
+        .maybeSingle();
+      if (data?.revoked_at) {
+        await supabase.auth.signOut();
+        localStorage.removeItem(sessionStorageKey);
+        window.location.href = '/auth?revoked=1';
+      }
+    } catch {
+      // silent check; if table/policy unavailable we keep app usable.
+    }
+  }
 
   useEffect(() => {
     if (isDemoSession) {
@@ -374,7 +496,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(data.session?.user ?? null);
       if (data.session?.user) {
         try {
-          setProfile(await fetchProfile(data.session.user.id));
+          const nextProfile = await fetchProfile(data.session.user.id);
+          setProfile(nextProfile);
+          if (nextProfile) {
+            await syncSessionActivity(data.session.user, nextProfile);
+            await checkRevokedSession(data.session.user);
+          }
         } catch {
           setProfile(null);
         } finally {
@@ -390,7 +517,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
 
@@ -398,7 +525,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(true);
         fetchProfile(nextSession.user.id)
           .then((nextProfile) => {
-            if (mounted) setProfile(nextProfile);
+            if (mounted) {
+              setProfile(nextProfile);
+              syncSessionActivity(nextSession.user, nextProfile, { isLogin: event === 'SIGNED_IN' }).catch(() => undefined);
+            }
           })
           .catch(() => {
             if (mounted) setProfile(null);
@@ -417,6 +547,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       subscription.unsubscribe();
     };
   }, [isDemoSession]);
+
+  useEffect(() => {
+    if (!supabase || !session?.user || !profile) return;
+    syncSessionActivity(session.user, profile).catch(() => undefined);
+    const interval = window.setInterval(() => {
+      syncSessionActivity(session.user, profile).catch(() => undefined);
+      checkRevokedSession(session.user).catch(() => undefined);
+    }, 2 * 60 * 1000);
+    return () => window.clearInterval(interval);
+  }, [session?.user, profile?.agencyId]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -472,6 +612,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
 
           setProfile(nextProfile);
+          if (data.user && nextProfile) {
+            await syncSessionActivity(data.user, nextProfile, { isLogin: true });
+          }
           return { profile: nextProfile };
         } finally {
           setLoading(false);
@@ -563,6 +706,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         if (!supabase) return;
+        localStorage.removeItem(sessionStorageKey);
         await supabase.auth.signOut();
         setSession(null);
         setUser(null);

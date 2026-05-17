@@ -1,4 +1,4 @@
-import { Banknote, CalendarClock, CheckCircle2, Crown, FileText, RefreshCw, ShieldAlert, Trash2, UserPlus, XCircle } from 'lucide-react';
+import { Banknote, CalendarClock, CheckCircle2, ChevronDown, Crown, FileText, Laptop2, RefreshCw, ShieldAlert, Smartphone, Trash2, UserPlus, Users, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
@@ -43,6 +43,29 @@ type AdminAgency = {
   monthlyPrice: number;
 };
 
+type AdminUserRow = {
+  id: string;
+  agency_id: string | null;
+  full_name: string | null;
+  email: string | null;
+  role: string | null;
+  account_status: AccountStatus;
+  last_login_at?: string | null;
+  last_seen_at?: string | null;
+};
+
+type UserSessionRow = {
+  id: string;
+  user_id: string;
+  agency_id: string;
+  device_name: string | null;
+  browser: string | null;
+  os: string | null;
+  last_seen_at: string | null;
+  first_seen_at: string | null;
+  revoked_at: string | null;
+};
+
 const monthlyPriceByPlan: Record<AgencyPlan, number> = { starter: 99, pro: 250, business: 499 };
 
 function addDays(baseDate: string | null, days: number) {
@@ -64,6 +87,9 @@ export default function SuperAdminPage() {
   const [agencyToDelete, setAgencyToDelete] = useState<AdminAgency | null>(null);
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [activationLinkToCopy, setActivationLinkToCopy] = useState<{ email: string; link: string } | null>(null);
+  const [agencyUsers, setAgencyUsers] = useState<Record<string, AdminUserRow[]>>({});
+  const [agencySessions, setAgencySessions] = useState<Record<string, UserSessionRow[]>>({});
+  const [expandedSessionAgencyId, setExpandedSessionAgencyId] = useState<string | null>(null);
 
   const loadAll = useCallback(async () => {
     if (!supabase || !isSupabaseConfigured) return;
@@ -72,7 +98,7 @@ export default function SuperAdminPage() {
       const [reqRes, agencyRes, usersRes, vehicleRes] = await Promise.all([
         supabase.from('access_requests').select('*').order('created_at', { ascending: false }),
         supabase.from('agencies').select('id,name,plan,billing_status,next_payment_due_date,monthly_price'),
-        supabase.from('users_profiles').select('agency_id,account_status,email'),
+        supabase.from('users_profiles').select('id,agency_id,account_status,email,full_name,role,last_login_at,last_seen_at'),
         supabase.from('vehicles').select('agency_id'),
       ]);
       if (reqRes.error || agencyRes.error || usersRes.error || vehicleRes.error) throw reqRes.error || agencyRes.error || usersRes.error || vehicleRes.error;
@@ -97,6 +123,34 @@ export default function SuperAdminPage() {
           monthlyPrice: Number(a.monthly_price || monthlyPriceByPlan[a.plan || 'starter']),
         }));
       setAgencies(mapped);
+
+      const byAgencyUsers: Record<string, AdminUserRow[]> = {};
+      ((usersRes.data || []) as AdminUserRow[]).forEach((u) => {
+        const agencyId = u.agency_id || '';
+        if (!agencyId) return;
+        if (!byAgencyUsers[agencyId]) byAgencyUsers[agencyId] = [];
+        byAgencyUsers[agencyId].push(u);
+      });
+      setAgencyUsers(byAgencyUsers);
+
+      try {
+        const sessionRes = await supabase
+          .from('user_sessions')
+          .select('id,user_id,agency_id,device_name,browser,os,last_seen_at,first_seen_at,revoked_at')
+          .order('last_seen_at', { ascending: false });
+        if (!sessionRes.error) {
+          const byAgencySessions: Record<string, UserSessionRow[]> = {};
+          ((sessionRes.data || []) as UserSessionRow[]).forEach((s) => {
+            if (!byAgencySessions[s.agency_id]) byAgencySessions[s.agency_id] = [];
+            byAgencySessions[s.agency_id].push(s);
+          });
+          setAgencySessions(byAgencySessions);
+        } else {
+          setAgencySessions({});
+        }
+      } catch {
+        setAgencySessions({});
+      }
     } catch (error) {
       notify({ title: 'Erreur chargement', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
     } finally {
@@ -309,6 +363,67 @@ export default function SuperAdminPage() {
     notify({ title: 'Action effectuée', message: 'Activation traitée avec succès.', type: 'success' });
   }
 
+  function formatSince(value: string | null | undefined) {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleString('fr-MA', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    });
+  }
+
+  function activityLabel(lastSeenAt: string | null, revokedAt: string | null) {
+    if (revokedAt) return 'Déconnecté';
+    if (!lastSeenAt) return 'Inactif';
+    const diffMs = Date.now() - new Date(lastSeenAt).getTime();
+    if (diffMs <= 2 * 60 * 1000) return 'Actif maintenant';
+    const diffMin = Math.max(1, Math.floor(diffMs / (60 * 1000)));
+    return `Vu il y a ${diffMin} min`;
+  }
+
+  async function revokeSingleSession(sessionId: string) {
+    if (!supabase) return;
+    const { error } = await supabase
+      .from('user_sessions')
+      .update({ revoked_at: new Date().toISOString() })
+      .eq('id', sessionId)
+      .is('revoked_at', null);
+    if (error) throw error;
+    notify({ title: 'Appareil déconnecté', type: 'success' });
+    await loadAll();
+  }
+
+  async function revokeUserSessions(agencyId: string, userId: string) {
+    if (!supabase) return;
+    const { error } = await supabase
+      .from('user_sessions')
+      .update({ revoked_at: new Date().toISOString() })
+      .eq('agency_id', agencyId)
+      .eq('user_id', userId)
+      .is('revoked_at', null);
+    if (error) throw error;
+    notify({ title: 'Utilisateur déconnecté', message: 'Toutes ses sessions actives ont été fermées.', type: 'success' });
+    await loadAll();
+  }
+
+  async function revokeAgencySessions(agency: AdminAgency) {
+    if (!supabase) return;
+    if (!window.confirm('Voulez-vous vraiment déconnecter tous les utilisateurs de cette agence ?')) return;
+    const { error } = await supabase
+      .from('user_sessions')
+      .update({ revoked_at: new Date().toISOString() })
+      .eq('agency_id', agency.id)
+      .is('revoked_at', null);
+    if (error) throw error;
+    notify({ title: 'Agence déconnectée', message: 'Tous les appareils actifs ont été déconnectés.', type: 'success' });
+    await loadAll();
+  }
+
   if (!isSupabaseEnabled || !profile?.isSuperAdmin) return <Navigate to="/dashboard" replace />;
 
   return (
@@ -414,6 +529,122 @@ export default function SuperAdminPage() {
                   <Button variant="secondary" icon={<UserPlus className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-link-${agency.id}`])} onClick={() => runAction(`agency-link-${agency.id}`, async () => generateActivationLinkForEmail(agency.email))}>Générer lien d’activation</Button>
                   <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-suspend-${agency.id}`])} onClick={() => runAction(`agency-suspend-${agency.id}`, async () => suspendAgency(agency))}>Suspendre compte</Button>
                   <Button variant="danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => setAgencyToDelete(agency)}>Supprimer le compte</Button>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-white/10 bg-carbon-900/60 p-3">
+                  <button
+                    type="button"
+                    className="flex w-full items-center justify-between gap-3 text-left"
+                    onClick={() => setExpandedSessionAgencyId((current) => (current === agency.id ? null : agency.id))}
+                  >
+                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-white">
+                      <Users className="h-4 w-4 text-gold-200" />
+                      Utilisateurs & sessions
+                    </span>
+                    <ChevronDown className={`h-4 w-4 text-carbon-300 transition ${expandedSessionAgencyId === agency.id ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {expandedSessionAgencyId === agency.id ? (
+                    <div className="mt-3 space-y-3">
+                      {(() => {
+                        const users = agencyUsers[agency.id] || [];
+                        const sessions = agencySessions[agency.id] || [];
+                        const activeSessions = sessions.filter((s) => !s.revoked_at);
+                        const lastAgencyActivity = activeSessions[0]?.last_seen_at || null;
+                        return (
+                          <>
+                            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                              <div className="rounded-lg border border-white/10 bg-carbon-950/60 px-3 py-2 text-xs text-carbon-300">Total utilisateurs <span className="ml-1 font-semibold text-white">{users.length}</span></div>
+                              <div className="rounded-lg border border-white/10 bg-carbon-950/60 px-3 py-2 text-xs text-carbon-300">Utilisateurs actifs <span className="ml-1 font-semibold text-white">{users.filter((u) => u.account_status === 'active').length}</span></div>
+                              <div className="rounded-lg border border-white/10 bg-carbon-950/60 px-3 py-2 text-xs text-carbon-300">Appareils connectés <span className="ml-1 font-semibold text-white">{activeSessions.length}</span></div>
+                              <div className="rounded-lg border border-white/10 bg-carbon-950/60 px-3 py-2 text-xs text-carbon-300">Dernière activité agence <span className="ml-1 font-semibold text-white">{formatSince(lastAgencyActivity)}</span></div>
+                            </div>
+
+                            <div className="flex flex-wrap gap-2">
+                              <Button
+                                variant="secondary"
+                                className="h-8 px-3 text-xs"
+                                loading={Boolean(actionLoading[`agency-revoke-all-${agency.id}`])}
+                                onClick={() => runAction(`agency-revoke-all-${agency.id}`, async () => revokeAgencySessions(agency))}
+                              >
+                                Déconnecter toute l’agence
+                              </Button>
+                            </div>
+
+                            {users.length === 0 ? (
+                              <p className="text-xs text-carbon-400">Aucun utilisateur lié à cette agence.</p>
+                            ) : (
+                              <div className="space-y-2">
+                                {users.map((u) => {
+                                  const userSessions = sessions.filter((s) => s.user_id === u.id);
+                                  const activeCount = userSessions.filter((s) => !s.revoked_at).length;
+                                  return (
+                                    <div key={u.id} className="rounded-lg border border-white/10 bg-carbon-950/50 p-3">
+                                      <div className="flex flex-wrap items-center justify-between gap-2">
+                                        <div>
+                                          <p className="text-sm font-semibold text-white">{u.full_name || 'Utilisateur'}</p>
+                                          <p className="text-xs text-carbon-300">{u.email || '—'} · {u.role || '—'} · {u.account_status}</p>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                          <Badge>{activeCount} appareil(s)</Badge>
+                                          <Button
+                                            variant="secondary"
+                                            className="h-7 px-2.5 text-xs"
+                                            loading={Boolean(actionLoading[`user-revoke-${u.id}`])}
+                                            onClick={() => runAction(`user-revoke-${u.id}`, async () => revokeUserSessions(agency.id, u.id))}
+                                          >
+                                            Déconnecter utilisateur
+                                          </Button>
+                                        </div>
+                                      </div>
+                                      <div className="mt-2 grid gap-1 text-xs text-carbon-300 sm:grid-cols-2">
+                                        <p><strong>Dernière connexion:</strong> {formatSince(u.last_login_at || null)}</p>
+                                        <p><strong>Dernière activité:</strong> {formatSince(u.last_seen_at || null)}</p>
+                                      </div>
+
+                                      <div className="mt-2 space-y-1.5">
+                                        {userSessions.length === 0 ? (
+                                          <p className="text-xs text-carbon-500">Aucune session enregistrée</p>
+                                        ) : userSessions.map((s) => (
+                                          <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-white/10 bg-carbon-900/60 px-2.5 py-2">
+                                            <div className="flex items-center gap-2 text-xs text-carbon-200">
+                                              {/iphone|android|ipad/i.test(`${s.os || ''} ${s.device_name || ''}`) ? (
+                                                <Smartphone className="h-3.5 w-3.5 text-gold-200" />
+                                              ) : (
+                                                <Laptop2 className="h-3.5 w-3.5 text-gold-200" />
+                                              )}
+                                              <span>{s.device_name || 'Appareil'}</span>
+                                              <span className="text-carbon-400">•</span>
+                                              <span>{s.browser || 'Navigateur'}</span>
+                                              <span className="text-carbon-400">•</span>
+                                              <span>{s.os || 'OS'}</span>
+                                            </div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                              <Badge>{activityLabel(s.last_seen_at, s.revoked_at)}</Badge>
+                                              {!s.revoked_at ? (
+                                                <Button
+                                                  variant="secondary"
+                                                  className="h-7 px-2 text-[11px]"
+                                                  loading={Boolean(actionLoading[`session-revoke-${s.id}`])}
+                                                  onClick={() => runAction(`session-revoke-${s.id}`, async () => revokeSingleSession(s.id))}
+                                                >
+                                                  Déconnecter cet appareil
+                                                </Button>
+                                              ) : null}
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ))}

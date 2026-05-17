@@ -47,6 +47,14 @@ export default function AuthPage() {
         type: 'success',
       });
     }
+    if (searchParams.get('revoked') === '1') {
+      notify({
+        title: 'Session déconnectée',
+        message: 'Votre session a été déconnectée par l’administrateur.',
+        type: 'warning',
+      });
+      window.history.replaceState(null, '', '/auth');
+    }
   }, [notify, searchParams]);
 
   async function handleEmailStep(event: FormEvent<HTMLFormElement>) {
