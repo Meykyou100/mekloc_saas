@@ -1,5 +1,5 @@
-import { BellRing, Building2, Camera, FileSignature, Globe2, Loader2, MessageCircle, Percent, Save, ShieldCheck, UsersRound } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { BellRing, Building2, Camera, FileSignature, Globe2, Loader2, Mail, MessageCircle, Percent, RefreshCw, Save, ShieldAlert, ShieldCheck, UserPlus, UsersRound } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -20,12 +20,29 @@ type TeamMember = {
   account_status: string | null;
 };
 
+type TeamRole = 'owner' | 'manager' | 'agent' | 'accountant';
+
+const teamRoleOptions: Array<{ value: TeamRole; label: string }> = [
+  { value: 'owner', label: 'Propriétaire' },
+  { value: 'manager', label: 'Manager' },
+  { value: 'agent', label: 'Agent' },
+  { value: 'accountant', label: 'Comptable' },
+];
+
+function normalizeTeamRole(role: string | null | undefined): TeamRole {
+  const value = String(role || '').trim().toLowerCase();
+  if (value === 'owner' || value === 'admin') return 'owner';
+  if (value === 'manager') return 'manager';
+  if (value === 'accountant') return 'accountant';
+  return 'agent';
+}
+
 function roleFr(role: string | null | undefined) {
-  if (role === 'owner') return 'Propriétaire';
-  if (role === 'manager') return 'Manager';
-  if (role === 'agent') return 'Agent';
-  if (role === 'accountant') return 'Comptable';
-  return 'Utilisateur';
+  const normalized = normalizeTeamRole(role);
+  if (normalized === 'owner') return 'Propriétaire';
+  if (normalized === 'manager') return 'Manager';
+  if (normalized === 'accountant') return 'Comptable';
+  return 'Agent';
 }
 
 function accountStatusFr(status: string | null | undefined) {
@@ -34,6 +51,13 @@ function accountStatusFr(status: string | null | undefined) {
   if (status === 'suspended') return 'Suspendu';
   if (status === 'rejected') return 'Refusé';
   return '—';
+}
+
+function teamStatusClass(status: string | null | undefined) {
+  if (status === 'active') return 'bg-emerald-400/15 text-emerald-200';
+  if (status === 'pending') return 'bg-sky-400/15 text-sky-200';
+  if (status === 'suspended') return 'bg-rose-400/15 text-rose-200';
+  return 'bg-slate-400/15 text-slate-200';
 }
 
 function extractErrorMessage(error: unknown) {
@@ -103,6 +127,14 @@ export default function SettingsPage() {
   const [saveState, setSaveState] = useState<'idle' | 'dirty' | 'saving' | 'saved'>('idle');
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [teamLoading, setTeamLoading] = useState(false);
+  const [teamActionLoading, setTeamActionLoading] = useState<Record<string, boolean>>({});
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteFullName, setInviteFullName] = useState('');
+  const [inviteRole, setInviteRole] = useState<TeamRole>('agent');
+  const [inviteLink, setInviteLink] = useState('');
+  const [inviteSending, setInviteSending] = useState(false);
+  const canManageTeam = profile?.role === 'owner' || profile?.role === 'manager' || Boolean(profile?.isSuperAdmin);
   const hasChanges = useMemo(() => {
     const baseName = profile?.agency?.name || '';
     const baseEmail = profile?.agency?.email || profile?.email || '';
@@ -142,42 +174,196 @@ export default function SettingsPage() {
     if (saveState !== 'saving') setSaveState('dirty');
   }, [hasChanges, saveState]);
 
-  useEffect(() => {
-    if (tab !== 'Équipe') return;
+  const loadTeamMembers = useCallback(async () => {
     if (!isSupabaseEnabled || !supabase || !agencyId) {
       setTeamMembers([]);
       return;
     }
 
-    let cancelled = false;
     setTeamLoading(true);
-    (async () => {
-      try {
-        const { data, error } = await supabase
-          .from('users_profiles')
-          .select('id, full_name, email, role, account_status')
-          .eq('agency_id', agencyId)
-          .order('full_name', { ascending: true });
-        if (cancelled) return;
-        if (error) {
-          notify({
-            title: 'Chargement équipe impossible',
-            message: extractErrorMessage(error),
-            type: 'warning',
-          });
-          setTeamMembers([]);
-          return;
-        }
-        setTeamMembers((data || []) as TeamMember[]);
-      } finally {
-        if (!cancelled) setTeamLoading(false);
+    try {
+      const { data, error } = await supabase
+        .from('users_profiles')
+        .select('id, full_name, email, role, account_status')
+        .eq('agency_id', agencyId)
+        .order('full_name', { ascending: true });
+      if (error) {
+        notify({
+          title: 'Chargement équipe impossible',
+          message: extractErrorMessage(error),
+          type: 'warning',
+        });
+        setTeamMembers([]);
+        return;
       }
-    })();
+      setTeamMembers((data || []) as TeamMember[]);
+    } finally {
+      setTeamLoading(false);
+    }
+  }, [agencyId, isSupabaseEnabled, notify]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [agencyId, isSupabaseEnabled, notify, tab]);
+  useEffect(() => {
+    if (tab !== 'Équipe') return;
+    void loadTeamMembers();
+  }, [loadTeamMembers, tab]);
+
+  async function runTeamAction(key: string, action: () => Promise<void>) {
+    setTeamActionLoading((curr) => ({ ...curr, [key]: true }));
+    try {
+      await action();
+    } catch (error) {
+      notify({ title: 'Action équipe impossible', message: extractErrorMessage(error), type: 'warning' });
+    } finally {
+      setTeamActionLoading((curr) => ({ ...curr, [key]: false }));
+    }
+  }
+
+  async function getFreshAccessToken() {
+    if (!supabase) return null;
+    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+    if (!refreshError && refreshed.session?.access_token) return refreshed.session.access_token;
+    const { data: sessionData } = await supabase.auth.getSession();
+    return sessionData.session?.access_token ?? null;
+  }
+
+  async function postTeamWebhook(body: unknown) {
+    if (!supabase) throw new Error('Supabase indisponible.');
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+    const configuredWebhook = import.meta.env.VITE_INVITE_AGENCY_MEMBER_WEBHOOK as string | undefined;
+    const webhook = configuredWebhook || (supabaseUrl ? `${supabaseUrl.replace(/\/$/, '')}/functions/v1/invite-agency-member` : '');
+    if (!webhook || !anonKey) throw new Error('Configuration invitation manquante.');
+    let token = await getFreshAccessToken();
+    if (!token) throw new Error('Session introuvable. Reconnectez-vous puis réessayez.');
+
+    const doFetch = (accessToken: string) =>
+      fetch(webhook, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+          apikey: anonKey,
+          'x-internal-key': anonKey,
+        },
+        body: JSON.stringify(body),
+      });
+
+    let response = await doFetch(token);
+    if (response.status === 401 || response.status === 403) {
+      token = await getFreshAccessToken();
+      if (!token) throw new Error('Session expirée. Reconnectez-vous puis réessayez.');
+      response = await doFetch(token);
+    }
+    return response;
+  }
+
+  async function handleChangeMemberRole(member: TeamMember, nextRole: TeamRole) {
+    const client = supabase;
+    if (!client || !agencyId || !canManageTeam) return;
+    if (member.id === profile?.id) {
+      notify({ title: 'Action bloquée', message: 'Votre propre rôle doit être modifié par un autre propriétaire.', type: 'warning' });
+      return;
+    }
+    if (normalizeTeamRole(member.role) === nextRole) return;
+    if (nextRole === 'owner' && !window.confirm('Confirmer le passage de ce membre en propriétaire ?')) return;
+
+    await runTeamAction(`role-${member.id}`, async () => {
+      const { error } = await client.from('users_profiles').update({ role: nextRole }).eq('id', member.id).eq('agency_id', agencyId);
+      if (error) throw error;
+      notify({ title: 'Rôle mis à jour', message: `${member.full_name || member.email || 'Membre'} est maintenant ${roleFr(nextRole)}.`, type: 'success' });
+      await loadTeamMembers();
+    });
+  }
+
+  async function handleToggleMemberStatus(member: TeamMember) {
+    const client = supabase;
+    if (!client || !agencyId || !canManageTeam) return;
+    if (member.id === profile?.id) {
+      notify({ title: 'Action bloquée', message: 'Vous ne pouvez pas suspendre votre propre accès.', type: 'warning' });
+      return;
+    }
+    const nextStatus = member.account_status === 'suspended' || member.account_status === 'rejected' ? 'active' : 'suspended';
+    const nowIso = new Date().toISOString();
+
+    await runTeamAction(`status-${member.id}`, async () => {
+      const patch: Record<string, string> = { account_status: nextStatus };
+      if (nextStatus === 'suspended') patch.force_logout_at = nowIso;
+      const update = await client.from('users_profiles').update(patch).eq('id', member.id).eq('agency_id', agencyId);
+      if (update.error) {
+        if (patch.force_logout_at && /force_logout_at|schema cache/i.test(update.error.message || '')) {
+          const retry = await client.from('users_profiles').update({ account_status: nextStatus }).eq('id', member.id).eq('agency_id', agencyId);
+          if (retry.error) throw retry.error;
+        } else {
+          throw update.error;
+        }
+      }
+
+      if (nextStatus === 'suspended') {
+        try {
+          await client
+            .from('user_sessions')
+            .update({ revoked_at: nowIso })
+            .eq('agency_id', agencyId)
+            .eq('user_id', member.id)
+            .is('revoked_at', null);
+        } catch {
+          // Session revocation is best-effort if the migration is not deployed yet.
+        }
+      }
+
+      notify({
+        title: nextStatus === 'active' ? 'Utilisateur réactivé' : 'Utilisateur suspendu',
+        message: member.full_name || member.email || 'Membre mis à jour',
+        type: 'success',
+      });
+      await loadTeamMembers();
+    });
+  }
+
+  async function handleInviteMember(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const safeEmail = normalizeText(inviteEmail, 254).toLowerCase();
+    const safeName = sanitizeText(inviteFullName, 100);
+    if (!safeEmail || !validateEmail(safeEmail)) {
+      notify({ title: 'Email invalide', message: 'Veuillez vérifier l’adresse email.', type: 'warning' });
+      return;
+    }
+    if (!agencyId) {
+      notify({ title: 'Agence introuvable', message: 'Reconnectez-vous puis réessayez.', type: 'warning' });
+      return;
+    }
+
+    setInviteSending(true);
+    setInviteLink('');
+    try {
+      const response = await postTeamWebhook({
+        email: safeEmail,
+        fullName: safeName,
+        role: inviteRole,
+        redirectTo: `${window.location.origin}/set-password`,
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error || 'Invitation impossible');
+
+      if (payload?.activationLink) setInviteLink(payload.activationLink);
+      notify({
+        title: payload?.inviteSent === false ? 'Lien généré' : 'Invitation envoyée',
+        message: payload?.inviteSent === false ? 'Email non envoyé automatiquement. Copiez le lien affiché.' : 'Le membre a reçu un email d’activation.',
+        type: payload?.inviteSent === false ? 'warning' : 'success',
+      });
+      if (payload?.inviteSent !== false) {
+        setInviteOpen(false);
+        setInviteEmail('');
+        setInviteFullName('');
+        setInviteRole('agent');
+      }
+      await loadTeamMembers();
+    } catch (error) {
+      notify({ title: 'Invitation impossible', message: extractErrorMessage(error), type: 'warning' });
+    } finally {
+      setInviteSending(false);
+    }
+  }
   function downloadBillingReceipt() {
     const lines = [
       'Recu abonnement MekLoc',
@@ -637,9 +823,19 @@ startxref
 
       {tab === 'Équipe' ? (
           <Card className="p-5">
-            <div className="mb-5 flex items-center gap-3">
-              <UsersRound className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">Gestion équipe</h2>
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <UsersRound className="h-5 w-5 text-gold-300" />
+                <h2 className="font-semibold text-white light:text-carbon-950">Gestion équipe</h2>
+              </div>
+              <Button
+                type="button"
+                icon={<UserPlus className="h-4 w-4" />}
+                onClick={() => setInviteOpen(true)}
+                disabled={!canManageTeam}
+              >
+                Inviter un membre
+              </Button>
             </div>
             {teamLoading ? (
               <div className="grid gap-2">
@@ -652,38 +848,48 @@ startxref
                   <p className="font-semibold text-white light:text-carbon-900">
                     {teamMembers.length} membre{teamMembers.length > 1 ? 's' : ''} dans votre agence
                   </p>
-                  <p className="mt-1 text-carbon-400">
-                    Rôles disponibles: Propriétaire, Manager, Agent, Comptable.
-                  </p>
                 </div>
                 {teamMembers.map((member) => (
                   <div
                     key={member.id}
-                    className="premium-surface flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4"
+                    className="premium-surface grid gap-4 rounded-2xl p-4 lg:grid-cols-[minmax(0,1fr)_auto]"
                   >
                     <div className="min-w-0">
-                      <p className="truncate font-semibold text-white light:text-carbon-900">
-                        {member.full_name || 'Utilisateur'}
-                      </p>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate font-semibold text-white light:text-carbon-900">
+                          {member.full_name || 'Utilisateur'}
+                        </p>
+                        {member.id === profile?.id ? (
+                          <span className="rounded-full bg-gold-400/15 px-2 py-0.5 text-[11px] font-bold text-gold-100">Vous</span>
+                        ) : null}
+                      </div>
                       <p className="truncate text-sm text-carbon-400">{member.email || 'Email non renseigné'}</p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs font-semibold text-carbon-200">
-                        {roleFr(member.role)}
-                      </span>
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          member.account_status === 'active'
-                            ? 'bg-emerald-400/15 text-emerald-200'
-                            : member.account_status === 'pending'
-                              ? 'bg-sky-400/15 text-sky-200'
-                              : member.account_status === 'suspended'
-                                ? 'bg-rose-400/15 text-rose-200'
-                                : 'bg-slate-400/15 text-slate-200'
-                        }`}
+                    <div className="grid gap-3 sm:grid-cols-[180px_auto_auto] sm:items-center">
+                      <select
+                        aria-label={`Changer le rôle de ${member.full_name || member.email || 'ce membre'}`}
+                        className="form-control focus-ring w-full"
+                        value={normalizeTeamRole(member.role)}
+                        disabled={!canManageTeam || member.id === profile?.id || Boolean(teamActionLoading[`role-${member.id}`])}
+                        onChange={(event) => handleChangeMemberRole(member, event.target.value as TeamRole)}
                       >
+                        {teamRoleOptions.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                      <span className={`inline-flex min-h-10 items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold ${teamStatusClass(member.account_status)}`}>
                         {accountStatusFr(member.account_status)}
                       </span>
+                      <Button
+                        type="button"
+                        variant={member.account_status === 'suspended' || member.account_status === 'rejected' ? 'secondary' : 'danger'}
+                        icon={member.account_status === 'suspended' || member.account_status === 'rejected' ? <RefreshCw className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
+                        loading={Boolean(teamActionLoading[`status-${member.id}`])}
+                        disabled={!canManageTeam || member.id === profile?.id}
+                        onClick={() => handleToggleMemberStatus(member)}
+                      >
+                        {member.account_status === 'suspended' || member.account_status === 'rejected' ? 'Réactiver' : 'Suspendre'}
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -751,6 +957,53 @@ startxref
             <Button type="button" variant="danger" onClick={handleDeleteAccount}>Confirmer la suppression</Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal open={inviteOpen} onClose={() => { if (!inviteSending) setInviteOpen(false); }} title="Inviter un membre">
+        <form className="space-y-4" onSubmit={handleInviteMember}>
+          <Field
+            label="Email"
+            name="inviteEmail"
+            type="email"
+            value={inviteEmail}
+            onChange={(event) => setInviteEmail(event.target.value)}
+            required
+          />
+          <Field
+            label="Nom complet"
+            name="inviteFullName"
+            value={inviteFullName}
+            onChange={(event) => setInviteFullName(event.target.value)}
+          />
+          <SelectField
+            label="Rôle"
+            value={inviteRole}
+            onChange={(event) => setInviteRole(event.target.value as TeamRole)}
+          >
+            {teamRoleOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </SelectField>
+          {inviteLink ? (
+            <div className="rounded-2xl border border-gold-300/25 bg-gold-400/10 p-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold-200">Lien activation</p>
+              <p className="mt-2 break-all text-sm text-carbon-100">{inviteLink}</p>
+              <Button
+                type="button"
+                variant="secondary"
+                className="mt-3"
+                icon={<Mail className="h-4 w-4" />}
+                onClick={() => navigator.clipboard.writeText(inviteLink)}
+              >
+                Copier le lien
+              </Button>
+            </div>
+          ) : null}
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="secondary" onClick={() => setInviteOpen(false)} disabled={inviteSending}>Annuler</Button>
+            <Button type="submit" icon={<UserPlus className="h-4 w-4" />} loading={inviteSending}>Envoyer l’invitation</Button>
+          </div>
+        </form>
       </Modal>
 
       <Modal open={cropOpen} onClose={() => { setCropOpen(false); if (rawLogoUrl) URL.revokeObjectURL(rawLogoUrl); setRawLogoUrl(''); }} title="Ajuster le logo">
