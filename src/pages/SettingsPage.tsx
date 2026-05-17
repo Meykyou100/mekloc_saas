@@ -12,6 +12,30 @@ import { normalizeText, sanitizeText, validateEmail, validateFileUpload, validat
 import { uploadAgencyLogo } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 
+type TeamMember = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+  role: string | null;
+  account_status: string | null;
+};
+
+function roleFr(role: string | null | undefined) {
+  if (role === 'owner') return 'Propriétaire';
+  if (role === 'manager') return 'Manager';
+  if (role === 'agent') return 'Agent';
+  if (role === 'accountant') return 'Comptable';
+  return 'Utilisateur';
+}
+
+function accountStatusFr(status: string | null | undefined) {
+  if (status === 'active') return 'Actif';
+  if (status === 'pending') return 'En attente';
+  if (status === 'suspended') return 'Suspendu';
+  if (status === 'rejected') return 'Refusé';
+  return '—';
+}
+
 function extractErrorMessage(error: unknown) {
   if (!error) return 'Réessayez.';
   if (error instanceof Error) return error.message;
@@ -77,6 +101,8 @@ export default function SettingsPage() {
   const [logoUploading, setLogoUploading] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'dirty' | 'saving' | 'saved'>('idle');
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [teamLoading, setTeamLoading] = useState(false);
   const hasChanges = useMemo(() => {
     const baseName = profile?.agency?.name || '';
     const baseEmail = profile?.agency?.email || profile?.email || '';
@@ -115,6 +141,43 @@ export default function SettingsPage() {
     }
     if (saveState !== 'saving') setSaveState('dirty');
   }, [hasChanges, saveState]);
+
+  useEffect(() => {
+    if (tab !== 'Équipe') return;
+    if (!isSupabaseEnabled || !supabase || !agencyId) {
+      setTeamMembers([]);
+      return;
+    }
+
+    let cancelled = false;
+    setTeamLoading(true);
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('users_profiles')
+          .select('id, full_name, email, role, account_status')
+          .eq('agency_id', agencyId)
+          .order('full_name', { ascending: true });
+        if (cancelled) return;
+        if (error) {
+          notify({
+            title: 'Chargement équipe impossible',
+            message: extractErrorMessage(error),
+            type: 'warning',
+          });
+          setTeamMembers([]);
+          return;
+        }
+        setTeamMembers((data || []) as TeamMember[]);
+      } finally {
+        if (!cancelled) setTeamLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [agencyId, isSupabaseEnabled, notify, tab]);
   function downloadBillingReceipt() {
     const lines = [
       'Recu abonnement MekLoc',
@@ -578,9 +641,58 @@ startxref
               <UsersRound className="h-5 w-5 text-gold-300" />
               <h2 className="font-semibold text-white light:text-carbon-950">Gestion équipe</h2>
             </div>
-            <div className="premium-surface rounded-2xl p-4 text-sm text-carbon-300">
-              Gestion d’équipe avancée bientôt disponible.
-            </div>
+            {teamLoading ? (
+              <div className="grid gap-2">
+                <div className="h-14 animate-pulse rounded-xl border border-white/10 bg-white/[0.04]" />
+                <div className="h-14 animate-pulse rounded-xl border border-white/10 bg-white/[0.04]" />
+              </div>
+            ) : teamMembers.length ? (
+              <div className="space-y-3">
+                <div className="premium-surface rounded-2xl p-4 text-sm text-carbon-300">
+                  <p className="font-semibold text-white light:text-carbon-900">
+                    {teamMembers.length} membre{teamMembers.length > 1 ? 's' : ''} dans votre agence
+                  </p>
+                  <p className="mt-1 text-carbon-400">
+                    Rôles disponibles: Propriétaire, Manager, Agent, Comptable.
+                  </p>
+                </div>
+                {teamMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className="premium-surface flex flex-wrap items-center justify-between gap-3 rounded-2xl p-4"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-white light:text-carbon-900">
+                        {member.full_name || 'Utilisateur'}
+                      </p>
+                      <p className="truncate text-sm text-carbon-400">{member.email || 'Email non renseigné'}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="rounded-full border border-white/10 bg-white/[0.05] px-2.5 py-1 text-xs font-semibold text-carbon-200">
+                        {roleFr(member.role)}
+                      </span>
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          member.account_status === 'active'
+                            ? 'bg-emerald-400/15 text-emerald-200'
+                            : member.account_status === 'pending'
+                              ? 'bg-sky-400/15 text-sky-200'
+                              : member.account_status === 'suspended'
+                                ? 'bg-rose-400/15 text-rose-200'
+                                : 'bg-slate-400/15 text-slate-200'
+                        }`}
+                      >
+                        {accountStatusFr(member.account_status)}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="premium-surface rounded-2xl p-4 text-sm text-carbon-300">
+                Aucun membre trouvé pour cette agence.
+              </div>
+            )}
           </Card>
       ) : null}
 
