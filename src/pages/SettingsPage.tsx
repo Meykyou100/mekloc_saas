@@ -134,6 +134,7 @@ export default function SettingsPage() {
   const [inviteRole, setInviteRole] = useState<TeamRole>('agent');
   const [inviteLink, setInviteLink] = useState('');
   const [generatedMemberLink, setGeneratedMemberLink] = useState<{ email: string; link: string } | null>(null);
+  const [memberLinkOpen, setMemberLinkOpen] = useState(false);
   const [inviteSending, setInviteSending] = useState(false);
   const canManageTeam = profile?.role === 'owner' || profile?.role === 'manager' || Boolean(profile?.isSuperAdmin);
   const hasChanges = useMemo(() => {
@@ -269,6 +270,39 @@ export default function SettingsPage() {
     return postTeamEndpoint('generate-agency-member-link', body, import.meta.env.VITE_GENERATE_AGENCY_MEMBER_LINK_WEBHOOK as string | undefined);
   }
 
+  async function writeTextToClipboard(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.setAttribute('readonly', 'true');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        textarea.style.top = '0';
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        const copied = document.execCommand('copy');
+        document.body.removeChild(textarea);
+        return copied;
+      } catch {
+        return false;
+      }
+    }
+  }
+
+  async function copyActivationLink(link: string) {
+    const copied = await writeTextToClipboard(link);
+    notify({
+      title: copied ? 'Lien copié' : 'Copie manuelle',
+      message: copied ? 'Le lien activation est dans le presse-papiers.' : 'Sélectionnez le lien affiché puis copiez-le.',
+      type: copied ? 'success' : 'warning',
+    });
+  }
+
   async function handleChangeMemberRole(member: TeamMember, nextRole: TeamRole) {
     const client = supabase;
     if (!client || !agencyId || !canManageTeam) return;
@@ -348,12 +382,13 @@ export default function SettingsPage() {
       const link = typeof payload?.activationLink === 'string' ? payload.activationLink : '';
       if (!link) throw new Error('Lien activation absent.');
       setGeneratedMemberLink({ email: member.email || '', link });
-      try {
-        await navigator.clipboard.writeText(link);
-        notify({ title: 'Lien copié', message: 'Lien activation généré et copié.', type: 'success' });
-      } catch {
-        notify({ title: 'Lien généré', message: 'Copiez le lien affiché.', type: 'success' });
-      }
+      setMemberLinkOpen(true);
+      const copied = await writeTextToClipboard(link);
+      notify({
+        title: copied ? 'Lien copié' : 'Lien affiché',
+        message: copied ? 'Lien activation généré et copié.' : 'Le lien activation est affiché dans la fenêtre.',
+        type: copied ? 'success' : 'warning',
+      });
     });
   }
 
@@ -367,7 +402,10 @@ export default function SettingsPage() {
       const response = await postDeleteTeamMemberWebhook({ memberId: member.id });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.error || 'Suppression impossible');
-      if (generatedMemberLink?.email === member.email) setGeneratedMemberLink(null);
+      if (generatedMemberLink?.email === member.email) {
+        setGeneratedMemberLink(null);
+        setMemberLinkOpen(false);
+      }
       notify({ title: 'Utilisateur supprimé', message: member.full_name || member.email || 'Membre supprimé', type: 'success' });
       await loadTeamMembers();
     });
@@ -402,10 +440,14 @@ export default function SettingsPage() {
       if (payload?.inviteSent === false && !nextInviteLink) {
         throw new Error('Email non envoyé et lien activation absent. Réessayez après redéploiement de la fonction invitation.');
       }
-      if (nextInviteLink) setInviteLink(nextInviteLink);
+      if (nextInviteLink) {
+        setInviteLink(nextInviteLink);
+        setGeneratedMemberLink({ email: safeEmail, link: nextInviteLink });
+        setMemberLinkOpen(true);
+      }
       notify({
         title: payload?.inviteSent === false || nextInviteLink ? 'Lien activation prêt' : 'Invitation envoyée',
-        message: payload?.inviteSent === false ? 'Email non envoyé automatiquement. Copiez le lien affiché.' : nextInviteLink ? 'Email envoyé, et le lien reste disponible à copier.' : 'Le membre a reçu un email d’activation.',
+        message: payload?.inviteSent === false ? 'Email non envoyé automatiquement. Le lien est affiché dans une fenêtre.' : nextInviteLink ? 'Email envoyé, et le lien reste disponible à copier.' : 'Le membre a reçu un email d’activation.',
         type: payload?.inviteSent === false ? 'warning' : 'success',
       });
       if (payload?.inviteSent !== false && !nextInviteLink) {
@@ -916,11 +958,14 @@ startxref
                         type="button"
                         variant="secondary"
                         icon={<Mail className="h-4 w-4" />}
-                        onClick={() => navigator.clipboard.writeText(generatedMemberLink.link)}
+                        onClick={() => copyActivationLink(generatedMemberLink.link)}
                       >
                         Copier le lien
                       </Button>
-                      <Button type="button" variant="ghost" onClick={() => setGeneratedMemberLink(null)}>
+                      <Button type="button" variant="secondary" onClick={() => setMemberLinkOpen(true)}>
+                        Afficher
+                      </Button>
+                      <Button type="button" variant="ghost" onClick={() => { setGeneratedMemberLink(null); setMemberLinkOpen(false); }}>
                         Fermer
                       </Button>
                     </div>
@@ -1092,7 +1137,7 @@ startxref
                 variant="secondary"
                 className="mt-3"
                 icon={<Mail className="h-4 w-4" />}
-                onClick={() => navigator.clipboard.writeText(inviteLink)}
+                onClick={() => copyActivationLink(inviteLink)}
               >
                 Copier le lien
               </Button>
@@ -1103,6 +1148,34 @@ startxref
             <Button type="submit" icon={<UserPlus className="h-4 w-4" />} loading={inviteSending}>Envoyer l’invitation</Button>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={memberLinkOpen && Boolean(generatedMemberLink)} onClose={() => setMemberLinkOpen(false)} title="Lien activation">
+        {generatedMemberLink ? (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-gold-300/25 bg-gold-400/10 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold-200">Membre</p>
+              <p className="mt-1 text-sm text-carbon-200">{generatedMemberLink.email}</p>
+            </div>
+            <label className="block">
+              <span className="mb-2 block text-sm font-semibold text-carbon-200 light:text-carbon-700">Lien à envoyer</span>
+              <textarea
+                className="form-control min-h-[120px] resize-none break-all"
+                value={generatedMemberLink.link}
+                readOnly
+                onFocus={(event) => event.currentTarget.select()}
+              />
+            </label>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="secondary" onClick={() => setMemberLinkOpen(false)}>
+                Fermer
+              </Button>
+              <Button type="button" icon={<Mail className="h-4 w-4" />} onClick={() => copyActivationLink(generatedMemberLink.link)}>
+                Copier le lien
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </Modal>
 
       <Modal open={cropOpen} onClose={() => { setCropOpen(false); if (rawLogoUrl) URL.revokeObjectURL(rawLogoUrl); setRawLogoUrl(''); }} title="Ajuster le logo">
