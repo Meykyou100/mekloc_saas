@@ -1,4 +1,4 @@
-import { ArrowLeft, Chrome, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-react';
+import { ArrowLeft, Chrome, Eye, EyeOff, LockKeyhole, Mail, MessageCircle } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Button from '../components/ui/Button';
@@ -23,6 +23,31 @@ function hasPasswordFlowInUrl() {
   );
 }
 
+type LoginMemberLookup = {
+  found: boolean;
+  email: string;
+  accountStatus: string;
+  agencyName: string;
+  agencyPhone: string;
+  agencyEmail: string;
+};
+
+function normalizeWhatsAppPhone(phone: string | null | undefined) {
+  const compact = String(phone || '').replace(/[^\d+]/g, '');
+  if (!compact) return '';
+  if (compact.startsWith('+')) return compact.slice(1);
+  if (compact.startsWith('00')) return compact.slice(2);
+  if (compact.startsWith('0')) return `212${compact.slice(1)}`;
+  return compact;
+}
+
+function buildAgencyWhatsAppUrl(member: LoginMemberLookup | null) {
+  const phone = normalizeWhatsAppPhone(member?.agencyPhone);
+  if (!phone || !member) return '';
+  const text = encodeURIComponent(`Bonjour ${member.agencyName}, je n'arrive pas à activer mon compte MekLoc avec ${member.email}. Pouvez-vous m'envoyer le lien d'activation ?`);
+  return `https://wa.me/${phone}?text=${text}`;
+}
+
 export default function AuthPage() {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -34,6 +59,7 @@ export default function AuthPage() {
   const [loginEmail, setLoginEmail] = useState(searchParams.get('email') || '');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
+  const [memberLoginHint, setMemberLoginHint] = useState<LoginMemberLookup | null>(null);
   const navigate = useNavigate();
   const { notify } = useApp();
   const {
@@ -76,6 +102,50 @@ export default function AuthPage() {
     }
   }, [notify, searchParams]);
 
+  async function lookupAgencyMemberForLogin(email: string): Promise<LoginMemberLookup | null> {
+    const normalized = email.trim().toLowerCase();
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+    const configuredWebhook = import.meta.env.VITE_LOOKUP_LOGIN_EMAIL_WEBHOOK as string | undefined;
+    const endpoint = configuredWebhook || (supabaseUrl ? `${supabaseUrl.replace(/\/$/, '')}/functions/v1/lookup-login-email` : '');
+    if (!endpoint || !anonKey || !normalized) return null;
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${anonKey}`,
+          apikey: anonKey,
+          'x-internal-key': anonKey,
+        },
+        body: JSON.stringify({ email: normalized }),
+      });
+      const payload = await response.json().catch(() => null) as Partial<LoginMemberLookup> | null;
+      if (!response.ok || !payload?.found) return null;
+      return {
+        found: true,
+        email: String(payload.email || normalized),
+        accountStatus: String(payload.accountStatus || 'pending'),
+        agencyName: String(payload.agencyName || 'votre agence'),
+        agencyPhone: String(payload.agencyPhone || ''),
+        agencyEmail: String(payload.agencyEmail || ''),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  function notifyMemberNeedsActivation(member: LoginMemberLookup) {
+    notify({
+      title: 'Activation requise',
+      message: member.agencyPhone
+        ? `Ce compte est lié à ${member.agencyName}. Demandez le lien d’activation au ${member.agencyPhone}.`
+        : `Ce compte est lié à ${member.agencyName}. Demandez à votre agence de générer le lien d’activation.`,
+      type: 'warning',
+    });
+  }
+
   async function handleEmailStep(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const email = loginEmail.trim().toLowerCase();
@@ -104,6 +174,17 @@ export default function AuthPage() {
           return navigate(`/verification-en-cours?email=${encodeURIComponent(email)}&agency=${encodeURIComponent(request.agencyName)}&plan=${encodeURIComponent(request.plan)}&created_at=${encodeURIComponent(request.createdAt)}${request.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`, { replace: true });
         }
       }
+      const memberLookup = await lookupAgencyMemberForLogin(email);
+      if (memberLookup) {
+        setMemberLoginHint(memberLookup);
+        setLoginStep('password');
+        notify({
+          title: 'Compte membre trouvé',
+          message: `Saisissez votre mot de passe. Si vous ne l’avez pas encore défini, contactez ${memberLookup.agencyName}.`,
+          type: 'info',
+        });
+        return;
+      }
       if (supabase) {
         const { data: profileRow } = await supabase
           .from('users_profiles')
@@ -111,16 +192,9 @@ export default function AuthPage() {
           .eq('email', email)
           .limit(1)
           .maybeSingle();
-        if (!profileRow) {
-          notify({
-            title: 'Email introuvable',
-            message: 'Cet email n’existe pas encore. Faites une nouvelle demande d’accès.',
-            type: 'warning',
-          });
-          navigate(`/demande-acces?email=${encodeURIComponent(email)}&from=login`, { replace: true });
-          return;
-        }
+        if (profileRow) setMemberLoginHint(null);
       }
+      setMemberLoginHint(null);
       setLoginStep('password');
     } finally {
       setLoading(false);
@@ -195,11 +269,17 @@ export default function AuthPage() {
           if (profileRow) {
             notify({
               title: 'Activation requise',
-              message: "Votre compte existe mais n’est pas encore activé côté connexion. Utilisez votre lien d’activation ou contactez MekLoc.",
+              message: "Votre compte existe mais n’est pas encore activé côté connexion. Utilisez votre lien d’activation ou contactez votre agence.",
               type: 'warning',
             });
             return;
           }
+        }
+        const memberLookup = await lookupAgencyMemberForLogin(email);
+        if (memberLookup) {
+          setMemberLoginHint(memberLookup);
+          notifyMemberNeedsActivation(memberLookup);
+          return;
         }
         navigate(`/demande-acces?email=${encodeURIComponent(email)}&from=login`, { replace: true });
         return;
@@ -267,6 +347,8 @@ export default function AuthPage() {
     }
   }
 
+  const memberAgencyWhatsAppUrl = buildAgencyWhatsAppUrl(memberLoginHint);
+
   return (
     <div className="grid min-h-screen bg-carbon-950 text-white light:bg-carbon-50 light:text-carbon-950 lg:grid-cols-[1fr_0.85fr]">
       <section className="hidden border-r border-white/10 bg-surface-grid bg-[length:34px_34px] px-10 py-8 lg:flex lg:flex-col">
@@ -315,12 +397,34 @@ export default function AuthPage() {
                 <p className="mt-2 text-sm text-carbon-400 light:text-carbon-600">Accédez à votre espace MekLoc.</p>
                 {loginStep === 'email' ? (
                   <form className="mt-7 grid gap-4" onSubmit={handleEmailStep}>
-                    <Field label="Email" name="email" type="email" placeholder="admin@agency.ma" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
+                    <Field
+                      label="Email"
+                      name="email"
+                      type="email"
+                      placeholder="admin@agency.ma"
+                      value={loginEmail}
+                      onChange={(e) => {
+                        setLoginEmail(e.target.value);
+                        setMemberLoginHint(null);
+                      }}
+                      required
+                    />
                     <Button type="submit" loading={loading} icon={<Mail className="h-4 w-4" />}>Suivant</Button>
                   </form>
                 ) : (
                   <form className="mt-7 grid gap-4" onSubmit={handleSubmit}>
-                  <Field label="Email" name="email" type="email" placeholder="admin@agency.ma" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
+                  <Field
+                    label="Email"
+                    name="email"
+                    type="email"
+                    placeholder="admin@agency.ma"
+                    value={loginEmail}
+                    onChange={(e) => {
+                      setLoginEmail(e.target.value);
+                      setMemberLoginHint(null);
+                    }}
+                    required
+                  />
                   <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
                     <span>Mot de passe</span>
                     <div className="relative">
@@ -330,8 +434,33 @@ export default function AuthPage() {
                       </button>
                     </div>
                   </label>
+                  {memberLoginHint ? (
+                    <div className="rounded-2xl border border-gold-300/25 bg-gold-400/10 p-4 text-sm text-carbon-200">
+                      <p className="font-semibold text-white light:text-carbon-950">Compte membre chez {memberLoginHint.agencyName}</p>
+                      <p className="mt-1 text-carbon-300 light:text-carbon-700">
+                        Si vous n’avez pas encore reçu le lien d’activation ou défini votre mot de passe, contactez votre agence.
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {memberAgencyWhatsAppUrl ? (
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            icon={<MessageCircle className="h-4 w-4" />}
+                            onClick={() => window.open(memberAgencyWhatsAppUrl, '_blank', 'noopener,noreferrer')}
+                          >
+                            Contacter l’agence
+                          </Button>
+                        ) : null}
+                        {memberLoginHint.agencyPhone ? (
+                          <span className="inline-flex min-h-10 items-center rounded-xl border border-white/10 px-3 py-2 font-semibold text-gold-100">
+                            {memberLoginHint.agencyPhone}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : null}
                   <div className="flex gap-2">
-                    <Button type="button" variant="secondary" onClick={() => setLoginStep('email')}>Retour</Button>
+                    <Button type="button" variant="secondary" onClick={() => { setLoginStep('email'); setMemberLoginHint(null); }}>Retour</Button>
                     <Button type="submit" loading={loading} icon={<Mail className="h-4 w-4" />}>Se connecter</Button>
                   </div>
                 </form>
