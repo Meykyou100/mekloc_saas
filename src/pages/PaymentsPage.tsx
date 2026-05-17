@@ -24,7 +24,7 @@ const filters: Array<{ key: FilterKey; label: string }> = [
 ];
 
 export default function PaymentsPage() {
-  const { payments, reservations, vehicles, createPayment } = useData();
+  const { payments, reservations, vehicles, clients, createPayment, updatePayment } = useData();
   const { notify } = useApp();
   const [filter, setFilter] = useState<FilterKey>('tous');
   const [query, setQuery] = useState('');
@@ -156,26 +156,46 @@ export default function PaymentsPage() {
     }
 
     const reservation = selectedReservationChoice.reservation;
-    if (!reservation.clientId) {
+    const fallbackClient = clients.find(
+      (item) => item.fullName.trim().toLowerCase() === (reservation.client || '').trim().toLowerCase(),
+    );
+    const resolvedClientId = reservation.clientId || fallbackClient?.id;
+    if (!resolvedClientId) {
       notify({ title: 'Validation', message: 'Client invalide pour cette réservation', type: 'warning' });
       return;
     }
 
     try {
       setSavingPayment(true);
-      const nextPayment: Payment = {
-        id: `pay-${Date.now()}`,
-        invoice: `INV-${reservation.id}`,
-        client: reservation.client,
-        clientId: reservation.clientId,
-        reservationId: reservation.id,
-        amount,
-        method: paymentMethod === 'Other' ? 'Cash' : paymentMethod,
-        status: amount >= reservationSummary.remaining ? 'Paid' : amount > 0 ? 'Partial' : 'Pending',
-        dueDate: paymentDate,
-      };
-
-      await createPayment(nextPayment);
+      const linkedPayment = paymentRows.find((item) => item.reservationId === reservation.id);
+      if (linkedPayment) {
+        const nextAmount = Math.max(0, linkedPayment.amount + amount);
+        const nextStatus: PaymentStatus =
+          nextAmount >= reservationSummary.total ? 'Paid' : nextAmount > 0 ? 'Partial' : 'Pending';
+        await updatePayment({
+          ...linkedPayment,
+          client: reservation.client,
+          clientId: resolvedClientId,
+          reservationId: reservation.id,
+          amount: nextAmount,
+          method: paymentMethod === 'Other' ? 'Cash' : paymentMethod,
+          status: nextStatus,
+          dueDate: paymentDate,
+        });
+      } else {
+        const nextPayment: Payment = {
+          id: `pay-${Date.now()}`,
+          invoice: `INV-${reservation.id}`,
+          client: reservation.client,
+          clientId: resolvedClientId,
+          reservationId: reservation.id,
+          amount,
+          method: paymentMethod === 'Other' ? 'Cash' : paymentMethod,
+          status: amount >= reservationSummary.remaining ? 'Paid' : amount > 0 ? 'Partial' : 'Pending',
+          dueDate: paymentDate,
+        };
+        await createPayment(nextPayment);
+      }
 
       setSelectedReservationId('');
       setAmountPaid('');
@@ -183,7 +203,13 @@ export default function PaymentsPage() {
       notify({ title: 'Paiement enregistré', message: 'Le paiement a été ajouté avec succès.', type: 'success' });
       setModalOpen(false);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Réessayez.';
+      let message = 'Réessayez.';
+      if (error instanceof Error && error.message) {
+        message = error.message;
+      } else if (error && typeof error === 'object' && 'message' in error) {
+        const raw = String((error as { message?: unknown }).message || '').trim();
+        if (raw) message = raw;
+      }
       notify({ title: 'Enregistrement impossible', message, type: 'warning' });
     } finally {
       setSavingPayment(false);
