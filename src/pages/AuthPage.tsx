@@ -10,12 +10,25 @@ import { useAuth } from '../context/AuthContext';
 import { getPostLoginRedirect } from '../lib/authRedirect';
 import { supabase } from '../lib/supabase';
 
+function hasPasswordFlowInUrl() {
+  if (typeof window === 'undefined') return false;
+  const hash = window.location.hash || '';
+  const search = window.location.search || '';
+  return (
+    hash.includes('type=recovery') ||
+    hash.includes('type=invite') ||
+    search.includes('type=recovery') ||
+    search.includes('type=invite') ||
+    search.includes('mode=set-password')
+  );
+}
+
 export default function AuthPage() {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
-  const [resetMode, setResetMode] = useState(false);
+  const [resetMode, setResetMode] = useState(() => hasPasswordFlowInUrl());
   const [newPassword, setNewPassword] = useState('');
   const [loginStep, setLoginStep] = useState<'email' | 'password'>('email');
   const [loginEmail, setLoginEmail] = useState(searchParams.get('email') || '');
@@ -23,21 +36,27 @@ export default function AuthPage() {
   const [showResetPassword, setShowResetPassword] = useState(false);
   const navigate = useNavigate();
   const { notify } = useApp();
-  const { signIn, signInWithGoogle, refreshProfile, isSupabaseEnabled, requestPasswordReset, updatePassword, getAccessRequestStatusByEmail } = useAuth();
+  const {
+    signIn,
+    signInWithGoogle,
+    refreshProfile,
+    isSupabaseEnabled,
+    requestPasswordReset,
+    updatePassword,
+    getAccessRequestStatusByEmail,
+    loading: authLoading,
+    profile,
+    session,
+  } = useAuth();
 
   useEffect(() => {
-    const hash = window.location.hash || '';
-    const search = window.location.search || '';
-    if (
-      hash.includes('type=recovery') ||
-      hash.includes('type=invite') ||
-      search.includes('type=recovery') ||
-      search.includes('type=invite') ||
-      search.includes('mode=set-password')
-    ) {
-      setResetMode(true);
-    }
+    if (hasPasswordFlowInUrl()) setResetMode(true);
   }, []);
+
+  useEffect(() => {
+    if (resetMode || authLoading || !session) return;
+    navigate(getPostLoginRedirect(profile, isSupabaseEnabled), { replace: true });
+  }, [authLoading, isSupabaseEnabled, navigate, profile, resetMode, session]);
 
   useEffect(() => {
     if (searchParams.get('approved') === '1') {

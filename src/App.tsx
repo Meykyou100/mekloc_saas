@@ -107,7 +107,7 @@ export default function App() {
   return (
     <>
       <Suspense fallback={<AppLoadingFallback />}>
-        <AnimatePresence mode="sync">
+        <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
           <Route
             path="/"

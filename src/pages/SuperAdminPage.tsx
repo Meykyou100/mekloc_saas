@@ -75,6 +75,24 @@ function addDays(baseDate: string | null, days: number) {
   return d.toISOString().slice(0, 10);
 }
 
+function normalizeAdminAgencyRole(role: string | null | undefined) {
+  const value = String(role || '').trim().toLowerCase();
+  if (value === 'owner' || value === 'admin') return 'owner';
+  if (value === 'manager') return 'manager';
+  if (value === 'accountant') return 'accountant';
+  return 'agent';
+}
+
+function pickAgencyOwnerProfile<T extends { agency_id: string | null; role?: string | null; email?: string | null }>(profiles: T[], agencyId: string) {
+  const agencyProfiles = profiles.filter((p) => p.agency_id === agencyId);
+  return (
+    agencyProfiles.find((p) => normalizeAdminAgencyRole(p.role) === 'owner' && p.email) ||
+    agencyProfiles.find((p) => p.email) ||
+    agencyProfiles[0] ||
+    null
+  );
+}
+
 
 export default function SuperAdminPage() {
   const { profile, isSupabaseEnabled, signOut } = useAuth();
@@ -108,21 +126,24 @@ export default function SuperAdminPage() {
       setAccessRequests(reqs);
       setRequestNotes(Object.fromEntries(reqs.map((r) => [r.id, r.admin_notes || ''])));
 
-      const profiles = (usersRes.data || []) as Array<{ agency_id: string | null; account_status: AccountStatus; email: string | null }>;
+      const profiles = (usersRes.data || []) as Array<{ agency_id: string | null; account_status: AccountStatus; email: string | null; role: string | null }>;
       const vehicles = (vehicleRes.data || []) as Array<{ agency_id: string | null }>;
       const mapped = ((agencyRes.data || []) as Array<{ id: string; name: string; plan: AgencyPlan; billing_status: BillingStatus; next_payment_due_date: string | null; monthly_price: number | null }>)
-        .map((a) => ({
-          id: a.id,
-          agencyName: a.name,
-          email: profiles.find((p) => p.agency_id === a.id)?.email || approvedReqs.find((r) => r.agency_name === a.name)?.email || '—',
-          plan: a.plan || 'starter',
-          billingStatus: a.billing_status || 'trial',
-          nextPaymentDueDate: a.next_payment_due_date,
-          vehiclesCount: vehicles.filter((v) => v.agency_id === a.id).length,
-          usersCount: profiles.filter((p) => p.agency_id === a.id).length,
-          accountStatus: profiles.find((p) => p.agency_id === a.id)?.account_status || 'pending',
-          monthlyPrice: Number(a.monthly_price || monthlyPriceByPlan[a.plan || 'starter']),
-        }));
+        .map((a) => {
+          const ownerProfile = pickAgencyOwnerProfile(profiles, a.id);
+          return {
+            id: a.id,
+            agencyName: a.name,
+            email: ownerProfile?.email || approvedReqs.find((r) => r.agency_name === a.name)?.email || '—',
+            plan: a.plan || 'starter',
+            billingStatus: a.billing_status || 'trial',
+            nextPaymentDueDate: a.next_payment_due_date,
+            vehiclesCount: vehicles.filter((v) => v.agency_id === a.id).length,
+            usersCount: profiles.filter((p) => p.agency_id === a.id).length,
+            accountStatus: ownerProfile?.account_status || 'pending',
+            monthlyPrice: Number(a.monthly_price || monthlyPriceByPlan[a.plan || 'starter']),
+          };
+        });
       setAgencies(mapped);
 
       const byAgencyUsers: Record<string, AdminUserRow[]> = {};
@@ -131,6 +152,12 @@ export default function SuperAdminPage() {
         if (!agencyId) return;
         if (!byAgencyUsers[agencyId]) byAgencyUsers[agencyId] = [];
         byAgencyUsers[agencyId].push(u);
+      });
+      Object.values(byAgencyUsers).forEach((list) => {
+        list.sort((a, b) => {
+          const rank = (role: string | null) => (normalizeAdminAgencyRole(role) === 'owner' ? 0 : normalizeAdminAgencyRole(role) === 'manager' ? 1 : 2);
+          return rank(a.role) - rank(b.role) || String(a.full_name || a.email || '').localeCompare(String(b.full_name || b.email || ''));
+        });
       });
       setAgencyUsers(byAgencyUsers);
 
@@ -310,13 +337,14 @@ export default function SuperAdminPage() {
     if (!webhook) {
       throw new Error('Webhook suppression manquant. Configurez VITE_DELETE_AGENCY_ACCOUNT_WEBHOOK.');
     }
-    const { data: linkedProfiles } = await supabase.from('users_profiles').select('id,email').eq('agency_id', agency.id);
-    const ownerEmail = linkedProfiles?.[0]?.email || agency.email || null;
+    const { data: linkedProfiles } = await supabase.from('users_profiles').select('id,email,role,agency_id').eq('agency_id', agency.id);
+    const ownerProfile = pickAgencyOwnerProfile((linkedProfiles || []) as Array<{ id: string; email: string | null; role: string | null; agency_id: string | null }>, agency.id);
+    const ownerEmail = ownerProfile?.email || agency.email || null;
     await supabase.from('deleted_access_accounts').insert({
       agency_id: agency.id,
       agency_name: agency.agencyName,
       owner_email: ownerEmail,
-      owner_profile_id: linkedProfiles?.[0]?.id ?? null,
+      owner_profile_id: ownerProfile?.id ?? null,
       plan: agency.plan,
       billing_status: agency.billingStatus,
       deleted_by: profile?.id ?? null,
