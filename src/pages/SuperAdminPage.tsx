@@ -224,7 +224,6 @@ export default function SuperAdminPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${accessToken}`,
           apikey: anonKey,
-          'x-internal-key': anonKey,
         },
         body: JSON.stringify(body),
       });

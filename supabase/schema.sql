@@ -180,6 +180,7 @@ create table if not exists public.payments (
   invoice text not null,
   client_id uuid not null references public.clients(id) on delete restrict,
   reservation_id uuid references public.reservations(id) on delete set null,
+  vehicle_id uuid references public.vehicles(id) on delete set null,
   amount numeric(12, 2) not null default 0,
   method text not null default 'Cash' check (method in ('Cash', 'Card', 'Bank transfer')),
   status text not null default 'Pending' check (status in ('Paid', 'Partial', 'Pending', 'Late')),
@@ -228,6 +229,8 @@ create index if not exists clients_agency_id_idx on public.clients(agency_id);
 create index if not exists reservations_agency_id_idx on public.reservations(agency_id);
 create index if not exists contracts_agency_id_idx on public.contracts(agency_id);
 create index if not exists payments_agency_id_idx on public.payments(agency_id);
+create index if not exists payments_reservation_id_idx on public.payments(reservation_id);
+create index if not exists payments_vehicle_id_idx on public.payments(vehicle_id);
 create index if not exists maintenance_agency_id_idx on public.maintenance(agency_id);
 
 drop trigger if exists set_agencies_updated_at on public.agencies;

@@ -117,7 +117,6 @@ export default function AuthPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${anonKey}`,
           apikey: anonKey,
-          'x-internal-key': anonKey,
         },
         body: JSON.stringify({ email: normalized }),
       });

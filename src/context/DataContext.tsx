@@ -177,6 +177,7 @@ type PaymentRow = {
   invoice: string;
   client_id: string;
   reservation_id: string | null;
+  vehicle_id?: string | null;
   amount: number;
   method: 'Cash' | 'Card' | 'Bank transfer';
   status: PaymentStatus;
@@ -434,6 +435,7 @@ function mapPayment(row: PaymentRow, client?: Client): Payment {
     client: client?.fullName || 'Unknown client',
     clientId: row.client_id,
     reservationId: row.reservation_id || undefined,
+    vehicleId: row.vehicle_id || undefined,
     amount: row.amount,
     method: row.method,
     status: row.status,
@@ -441,10 +443,14 @@ function mapPayment(row: PaymentRow, client?: Client): Payment {
   };
 }
 
-function toPaymentRow(payment: Payment, agencyId: string) {
+function isMissingPaymentVehicleColumn(error: Error | null) {
+  return /vehicle_id|schema cache/i.test(error?.message || '');
+}
+
+function toPaymentRow(payment: Payment, agencyId: string, withVehicle = true) {
   if (!payment.clientId) throw new Error('Champ obligatoire');
   if (!validatePositiveNumber(payment.amount, true)) throw new Error('Montant invalide');
-  return {
+  const base = {
     agency_id: agencyId,
     invoice: sanitizeText(payment.invoice, 60),
     client_id: payment.clientId,
@@ -453,6 +459,11 @@ function toPaymentRow(payment: Payment, agencyId: string) {
     method: payment.method,
     status: payment.status,
     due_date: payment.dueDate,
+  };
+  if (!withVehicle) return base;
+  return {
+    ...base,
+    vehicle_id: payment.vehicleId || null,
   };
 }
 
@@ -926,11 +937,26 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setPayments((current) => [payment, ...current]);
           return payment;
         }
-        const { data, error } = await supabase!
-          .from('payments')
-          .insert(toPaymentRow(payment, agencyId!))
-          .select('*')
-          .single();
+        let data: unknown = null;
+        let error: Error | null = null;
+        {
+          const result = await supabase!
+            .from('payments')
+            .insert(toPaymentRow(payment, agencyId!, true))
+            .select('*')
+            .single();
+          data = result.data;
+          error = result.error as Error | null;
+        }
+        if (isMissingPaymentVehicleColumn(error)) {
+          const fallback = await supabase!
+            .from('payments')
+            .insert(toPaymentRow(payment, agencyId!, false))
+            .select('*')
+            .single();
+          data = fallback.data;
+          error = fallback.error as Error | null;
+        }
         if (error) throw error;
         const nextPayment = mapPayment(data as PaymentRow, clients.find((item) => item.id === payment.clientId));
         setPayments((current) => [nextPayment, ...current]);
@@ -942,12 +968,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setPayments((current) => current.map((item) => (item.id === payment.id ? payment : item)));
           return payment;
         }
-        const { data, error } = await supabase!
-          .from('payments')
-          .update(toPaymentRow(payment, agencyId!))
-          .eq('id', payment.id)
-          .select('*')
-          .single();
+        let data: unknown = null;
+        let error: Error | null = null;
+        {
+          const result = await supabase!
+            .from('payments')
+            .update(toPaymentRow(payment, agencyId!, true))
+            .eq('id', payment.id)
+            .select('*')
+            .single();
+          data = result.data;
+          error = result.error as Error | null;
+        }
+        if (isMissingPaymentVehicleColumn(error)) {
+          const fallback = await supabase!
+            .from('payments')
+            .update(toPaymentRow(payment, agencyId!, false))
+            .eq('id', payment.id)
+            .select('*')
+            .single();
+          data = fallback.data;
+          error = fallback.error as Error | null;
+        }
         if (error) throw error;
         const nextPayment = mapPayment(data as PaymentRow, clients.find((item) => item.id === payment.clientId));
         setPayments((current) => current.map((item) => (item.id === payment.id ? nextPayment : item)));
@@ -962,12 +1004,28 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setPayments((current) => current.map((item) => (item.id === id ? nextPaymentInput : item)));
           return nextPaymentInput;
         }
-        const { data, error } = await supabase!
-          .from('payments')
-          .update(toPaymentRow(nextPaymentInput, agencyId!))
-          .eq('id', id)
-          .select('*')
-          .single();
+        let data: unknown = null;
+        let error: Error | null = null;
+        {
+          const result = await supabase!
+            .from('payments')
+            .update(toPaymentRow(nextPaymentInput, agencyId!, true))
+            .eq('id', id)
+            .select('*')
+            .single();
+          data = result.data;
+          error = result.error as Error | null;
+        }
+        if (isMissingPaymentVehicleColumn(error)) {
+          const fallback = await supabase!
+            .from('payments')
+            .update(toPaymentRow(nextPaymentInput, agencyId!, false))
+            .eq('id', id)
+            .select('*')
+            .single();
+          data = fallback.data;
+          error = fallback.error as Error | null;
+        }
         if (error) throw error;
         const nextPayment = mapPayment(data as PaymentRow, clients.find((item) => item.id === payment.clientId));
         setPayments((current) => current.map((item) => (item.id === id ? nextPayment : item)));

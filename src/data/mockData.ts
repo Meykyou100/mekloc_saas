@@ -119,6 +119,7 @@ export type Payment = {
   client: string;
   clientId?: string;
   reservationId?: string;
+  vehicleId?: string;
   amount: number;
   method: 'Cash' | 'Card' | 'Bank transfer';
   status: PaymentStatus;
@@ -442,6 +443,7 @@ export const payments: Payment[] = [
     client: 'Amina El Fassi',
     clientId: 'cli-1',
     reservationId: 'RS-1024',
+    vehicleId: 'veh-1',
     amount: 9000,
     method: 'Card',
     status: 'Paid',
@@ -453,6 +455,7 @@ export const payments: Payment[] = [
     client: 'Yassine Benjelloun',
     clientId: 'cli-2',
     reservationId: 'RS-1025',
+    vehicleId: 'veh-6',
     amount: 6300,
     method: 'Bank transfer',
     status: 'Partial',
@@ -464,6 +467,7 @@ export const payments: Payment[] = [
     client: 'Omar Tazi',
     clientId: 'cli-4',
     reservationId: 'RS-1027',
+    vehicleId: 'veh-4',
     amount: 4100,
     method: 'Cash',
     status: 'Pending',
@@ -475,6 +479,7 @@ export const payments: Payment[] = [
     client: 'Sofia Amrani',
     clientId: 'cli-3',
     reservationId: 'RS-1026',
+    vehicleId: 'veh-2',
     amount: 1200,
     method: 'Cash',
     status: 'Late',

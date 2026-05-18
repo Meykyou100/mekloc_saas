@@ -52,6 +52,10 @@ function compactDate(value: string | undefined) {
   return d.toLocaleDateString('fr-MA', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
+function getReservationPaymentId(reservation: Reservation) {
+  return reservation.recordId || reservation.id;
+}
+
 export function getTodayReservations(
   reservations: Reservation[],
   mode: 'pickup' | 'return',
@@ -78,11 +82,11 @@ export function getPaymentAlerts(reservations: Reservation[], payments: Payment[
     .filter((reservation) => reservation.status !== 'Cancelled')
     .map((reservation) => {
       const total = Math.max(0, reservation.totalAmount || reservation.dailyPrice || 0);
-      const invoiceRef = `INV-${reservation.id}`;
+      const reservationPaymentId = getReservationPaymentId(reservation);
       const alreadyPaid = payments
         .filter(
           (payment) =>
-            (payment.reservationId === reservation.id || payment.invoice === invoiceRef) &&
+            payment.reservationId === reservationPaymentId &&
             payment.status !== 'Pending' &&
             payment.status !== 'Late',
         )

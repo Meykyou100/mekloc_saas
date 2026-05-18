@@ -1,68 +1,50 @@
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-internal-key',
-};
+import { defaultCorsHeaders as corsHeaders, json, requireSuperAdmin, serviceHeaders } from '../_shared/security.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const internalKey = req.headers.get('x-internal-key') || '';
-    const anonKey = Deno.env.get('ANON_KEY') || '';
-    if (!anonKey || internalKey !== anonKey) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const projectUrl = Deno.env.get('PROJECT_URL') || '';
-    const serviceRole = Deno.env.get('SERVICE_ROLE_KEY') || '';
-    if (!projectUrl || !serviceRole) throw new Error('PROJECT_URL or SERVICE_ROLE_KEY missing');
+    const auth = await requireSuperAdmin(req);
+    if (!auth.ok) return json(corsHeaders, { error: auth.error }, auth.status);
 
     const { agencyId } = (await req.json()) as { agencyId?: string };
-    if (!agencyId) throw new Error('agencyId required');
+    if (!agencyId) return json(corsHeaders, { error: 'Paramètres invalides.' }, 400);
 
-    const adminHeaders = {
-      apikey: serviceRole,
-      Authorization: `Bearer ${serviceRole}`,
-      'Content-Type': 'application/json',
-    };
-
+    const adminHeaders = serviceHeaders(auth.serviceRole);
     const profilesRes = await fetch(
-      `${projectUrl}/rest/v1/users_profiles?agency_id=eq.${encodeURIComponent(agencyId)}&select=id,email`,
+      `${auth.projectUrl}/rest/v1/users_profiles?agency_id=eq.${encodeURIComponent(agencyId)}&select=id,email`,
       { method: 'GET', headers: adminHeaders },
     );
     const profiles = profilesRes.ok ? ((await profilesRes.json()) as Array<{ id: string; email: string | null }>) : [];
 
     for (const table of ['payments', 'contracts', 'reservations', 'maintenance', 'clients', 'vehicles', 'users_profiles']) {
-      await fetch(`${projectUrl}/rest/v1/${table}?agency_id=eq.${encodeURIComponent(agencyId)}`, {
+      const res = await fetch(`${auth.projectUrl}/rest/v1/${table}?agency_id=eq.${encodeURIComponent(agencyId)}`, {
         method: 'DELETE',
         headers: adminHeaders,
       });
+      if (!res.ok) console.error(`delete-agency-account ${table} cleanup failed`, await res.text());
     }
 
-    await fetch(`${projectUrl}/rest/v1/agencies?id=eq.${encodeURIComponent(agencyId)}`, {
+    const agencyRes = await fetch(`${auth.projectUrl}/rest/v1/agencies?id=eq.${encodeURIComponent(agencyId)}`, {
       method: 'DELETE',
       headers: adminHeaders,
     });
+    if (!agencyRes.ok) {
+      console.error('delete-agency-account agency delete failed', await agencyRes.text());
+      return json(corsHeaders, { error: 'Suppression agence impossible.' }, 400);
+    }
 
-    // Remove auth users tied to the deleted agency profiles.
     for (const p of profiles) {
-      await fetch(`${projectUrl}/auth/v1/admin/users/${p.id}`, {
+      const res = await fetch(`${auth.projectUrl}/auth/v1/admin/users/${p.id}`, {
         method: 'DELETE',
         headers: adminHeaders,
       });
+      if (!res.ok) console.error('delete-agency-account auth cleanup failed', await res.text());
     }
 
-    return new Response(JSON.stringify({ success: true, deletedAuthUsers: profiles.length }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return json(corsHeaders, { success: true, deletedAuthUsers: profiles.length });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('delete-agency-account failed', error);
+    return json(corsHeaders, { error: 'Suppression agence impossible.' }, 500);
   }
 });
-

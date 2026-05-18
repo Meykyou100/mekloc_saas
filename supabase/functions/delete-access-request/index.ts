@@ -1,51 +1,27 @@
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-internal-key',
-};
+import { defaultCorsHeaders as corsHeaders, json, requireSuperAdmin, serviceHeaders } from '../_shared/security.ts';
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    const internalKey = req.headers.get('x-internal-key') || '';
-    const anonKey = Deno.env.get('ANON_KEY') || '';
-    if (!anonKey || internalKey !== anonKey) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const projectUrl = Deno.env.get('PROJECT_URL') || '';
-    const serviceRole = Deno.env.get('SERVICE_ROLE_KEY') || '';
-    if (!projectUrl || !serviceRole) throw new Error('PROJECT_URL or SERVICE_ROLE_KEY missing');
+    const auth = await requireSuperAdmin(req);
+    if (!auth.ok) return json(corsHeaders, { error: auth.error }, auth.status);
 
     const { requestId } = (await req.json()) as { requestId?: string };
-    if (!requestId) throw new Error('requestId required');
+    if (!requestId) return json(corsHeaders, { error: 'Paramètres invalides.' }, 400);
 
-    const adminHeaders = {
-      apikey: serviceRole,
-      Authorization: `Bearer ${serviceRole}`,
-      'Content-Type': 'application/json',
-    };
-
-    const res = await fetch(`${projectUrl}/rest/v1/access_requests?id=eq.${encodeURIComponent(requestId)}`, {
+    const res = await fetch(`${auth.projectUrl}/rest/v1/access_requests?id=eq.${encodeURIComponent(requestId)}`, {
       method: 'DELETE',
-      headers: adminHeaders,
+      headers: serviceHeaders(auth.serviceRole),
     });
     if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text);
+      console.error('delete-access-request failed', await res.text());
+      return json(corsHeaders, { error: 'Suppression impossible.' }, 400);
     }
 
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return json(corsHeaders, { success: true });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
-      status: 400,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('delete-access-request failed', error);
+    return json(corsHeaders, { error: 'Suppression impossible.' }, 500);
   }
 });
-

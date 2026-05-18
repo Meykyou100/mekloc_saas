@@ -64,6 +64,10 @@ function statusFr(status: ReservationStatus) {
   return 'Annulée';
 }
 
+function paymentMatchesReservation(payment: { reservationId?: string }, reservation: Reservation) {
+  return Boolean(payment.reservationId && payment.reservationId === (reservation.recordId || reservation.id));
+}
+
 function urgencyBadge(reservation: Reservation, todayIso: string) {
   if (reservation.returnDate < todayIso && reservation.status !== 'Completed' && reservation.status !== 'Cancelled') {
     return { label: 'En retard', className: 'border-rose-300/40 bg-rose-500/15 text-rose-100' };
@@ -486,7 +490,7 @@ export default function ReservationsPage() {
           {filteredReservations.map((reservation) => {
             const days = getRentalDays(reservation.pickupDate, reservation.returnDate);
             const urgency = urgencyBadge(reservation, todayIso);
-            const payment = payments.find((item) => item.reservationId === reservation.id);
+            const payment = payments.find((item) => paymentMatchesReservation(item, reservation));
             return (
               <Card key={reservation.id} interactive className="group overflow-hidden border-white/10 bg-gradient-to-br from-[#131821] to-[#0b0f15] p-5 shadow-[0_10px_30px_rgba(0,0,0,.28)] transition-all hover:border-[#D4A017]/35">
                 <div className="mb-3 flex items-start justify-between gap-3">

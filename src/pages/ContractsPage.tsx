@@ -151,12 +151,49 @@ function escapePdfWinAnsi(value: string) {
 }
 
 type PdfLogoAsset = {
-  bytes: Uint8Array;
+  dataUrl: string;
   width: number;
   height: number;
 };
 
+function measureDataUrlImage(dataUrl: string): Promise<PdfLogoAsset | null> {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      resolve({
+        dataUrl,
+        width: image.naturalWidth || image.width,
+        height: image.naturalHeight || image.height,
+      });
+    };
+    image.onerror = () => resolve(null);
+    image.src = dataUrl;
+  });
+}
+
+function blobToDataUrl(blob: Blob) {
+  return new Promise<string | null>((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(blob);
+  });
+}
+
 async function loadLogoForPdf(logoUrl: string): Promise<PdfLogoAsset | null> {
+  try {
+    const response = await fetch(logoUrl, { mode: 'cors', cache: 'force-cache' });
+    if (response.ok) {
+      const dataUrl = await blobToDataUrl(await response.blob());
+      if (dataUrl) {
+        const measured = await measureDataUrlImage(dataUrl);
+        if (measured) return measured;
+      }
+    }
+  } catch {
+    // Fall back to image decoding below; some signed storage URLs reject fetch but still load in an <img>.
+  }
+
   return new Promise((resolve) => {
     const image = new Image();
     image.crossOrigin = 'anonymous';
@@ -174,12 +211,8 @@ async function loadLogoForPdf(logoUrl: string): Promise<PdfLogoAsset | null> {
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(image, 0, 0);
         const dataUrl = canvas.toDataURL('image/jpeg', 0.92);
-        const base64 = dataUrl.split(',')[1] || '';
-        const binary = atob(base64);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
         resolve({
-          bytes,
+          dataUrl,
           width: canvas.width,
           height: canvas.height,
         });
@@ -190,6 +223,47 @@ async function loadLogoForPdf(logoUrl: string): Promise<PdfLogoAsset | null> {
     image.onerror = () => resolve(null);
     image.src = logoUrl;
   });
+}
+
+const A4_SOURCE_WIDTH = 794;
+const A4_SOURCE_HEIGHT = 1123;
+
+function createPdfCaptureSource(source: HTMLElement, logoDataUrl?: string | null) {
+  const host = document.createElement('div');
+  host.style.position = 'fixed';
+  host.style.left = '-10000px';
+  host.style.top = '0';
+  host.style.width = `${A4_SOURCE_WIDTH}px`;
+  host.style.background = '#ffffff';
+  host.style.pointerEvents = 'none';
+  host.style.zIndex = '-1';
+
+  const clone = source.cloneNode(true) as HTMLElement;
+  clone.removeAttribute('id');
+  clone.style.width = `${A4_SOURCE_WIDTH}px`;
+  clone.style.minHeight = `${A4_SOURCE_HEIGHT}px`;
+  clone.style.height = 'auto';
+  clone.style.transform = 'none';
+  clone.style.transformOrigin = 'top left';
+  clone.style.boxShadow = 'none';
+  clone.style.borderRadius = '0';
+  clone.style.margin = '0';
+  clone.style.background = '#ffffff';
+
+  if (logoDataUrl) {
+    const logoImage = clone.querySelector<HTMLImageElement>('img[data-pdf-logo="agency"]');
+    if (logoImage) {
+      logoImage.src = logoDataUrl;
+      logoImage.removeAttribute('crossorigin');
+    }
+  }
+
+  host.appendChild(clone);
+  document.body.appendChild(host);
+  return {
+    element: clone,
+    cleanup: () => host.remove(),
+  };
 }
 
 export default function ContractsPage() {
@@ -487,6 +561,36 @@ export default function ContractsPage() {
     );
   }
 
+  async function captureContractCanvas(source: HTMLElement) {
+    let logoAsset: PdfLogoAsset | null = null;
+    if (logoPublicUrl) {
+      logoAsset = await loadLogoForPdf(logoPublicUrl);
+    }
+
+    const captureSource = createPdfCaptureSource(source, logoAsset?.dataUrl);
+    try {
+      await waitForImagesToLoad(captureSource.element);
+      await document.fonts?.ready;
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+      return await html2canvas(captureSource.element, {
+        width: A4_SOURCE_WIDTH,
+        height: Math.max(A4_SOURCE_HEIGHT, captureSource.element.scrollHeight),
+        windowWidth: A4_SOURCE_WIDTH,
+        windowHeight: Math.max(A4_SOURCE_HEIGHT, captureSource.element.scrollHeight),
+        scale: Math.min(Math.max(window.devicePixelRatio || 2, 2), 2.5),
+        useCORS: true,
+        allowTaint: false,
+        backgroundColor: '#ffffff',
+        logging: false,
+        scrollX: 0,
+        scrollY: 0,
+      });
+    } finally {
+      captureSource.cleanup();
+    }
+  }
+
   async function downloadContractPreview() {
     if (!ensureRequiredData('preview')) return;
     if (!previewRef.current) {
@@ -495,45 +599,28 @@ export default function ContractsPage() {
     }
     try {
       setDownloadingPdf(true);
-      await waitForImagesToLoad(previewRef.current);
-      await new Promise((resolve) => setTimeout(resolve, 100));
-
-      const originalTransform = previewRef.current.style.transform;
-      const originalTransformOrigin = previewRef.current.style.transformOrigin;
-      previewRef.current.style.transform = 'none';
-      previewRef.current.style.transformOrigin = 'top left';
-      let canvas: HTMLCanvasElement;
-      try {
-        canvas = await html2canvas(previewRef.current, {
-          scale: Math.min(window.devicePixelRatio || 2, 2),
-          useCORS: true,
-          backgroundColor: '#ffffff',
-          logging: false,
-        });
-      } finally {
-        previewRef.current.style.transform = originalTransform;
-        previewRef.current.style.transformOrigin = originalTransformOrigin;
-      }
-
-      const imageData = canvas.toDataURL('image/jpeg', 0.98);
+      const canvas = await captureContractCanvas(previewRef.current);
+      const imageData = canvas.toDataURL('image/png');
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imageWidth = pdfWidth;
-      const imageHeight = (canvas.height * imageWidth) / canvas.width;
+      const sourcePageRatio = A4_SOURCE_HEIGHT / A4_SOURCE_WIDTH;
+      const renderedRatio = canvas.height / canvas.width;
 
-      if (imageHeight <= pdfHeight + 0.5) {
-        pdf.addImage(imageData, 'JPEG', 0, 0, imageWidth, imageHeight, undefined, 'FAST');
+      if (renderedRatio <= sourcePageRatio + 0.025) {
+        pdf.addImage(imageData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
       } else {
+        const imageWidth = pdfWidth;
+        const imageHeight = (canvas.height * imageWidth) / canvas.width;
         let heightLeft = imageHeight;
         let position = 0;
-        pdf.addImage(imageData, 'JPEG', 0, position, imageWidth, imageHeight, undefined, 'FAST');
+        pdf.addImage(imageData, 'PNG', 0, position, imageWidth, imageHeight, undefined, 'FAST');
         heightLeft -= pdfHeight;
 
-        while (heightLeft > 0) {
+        while (heightLeft > 1) {
           position = heightLeft - imageHeight;
           pdf.addPage();
-          pdf.addImage(imageData, 'JPEG', 0, position, imageWidth, imageHeight, undefined, 'FAST');
+          pdf.addImage(imageData, 'PNG', 0, position, imageWidth, imageHeight, undefined, 'FAST');
           heightLeft -= pdfHeight;
         }
       }
@@ -728,7 +815,7 @@ export default function ContractsPage() {
                 <div className="flex items-start gap-3">
                   <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-xl border border-[#e6ebf2] bg-[#f8fafc]">
                     {logoPublicUrl ? (
-                      <img src={logoPublicUrl} alt="Logo agence" crossOrigin="anonymous" className="h-full w-full object-contain" />
+                      <img src={logoPublicUrl} alt="Logo agence" crossOrigin="anonymous" data-pdf-logo="agency" className="h-full w-full object-contain" />
                     ) : (
                       <Building2 className="h-7 w-7 text-[#9aa3b2]" />
                     )}

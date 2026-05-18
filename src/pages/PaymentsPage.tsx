@@ -7,7 +7,7 @@ import { Field, SelectField, TextAreaField } from '../components/ui/Form';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import StatCard from '../components/ui/StatCard';
-import { formatMAD, type Payment, type PaymentStatus } from '../data/mockData';
+import { formatMAD, type Payment, type PaymentStatus, type Reservation } from '../data/mockData';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
 import { sanitizeText, validatePositiveNumber } from '../lib/security';
@@ -24,6 +24,18 @@ const filters: Array<{ key: FilterKey; label: string }> = [
 ];
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function getReservationPaymentId(reservation: Reservation) {
+  return reservation.recordId && UUID_RE.test(reservation.recordId) ? reservation.recordId : reservation.id;
+}
+
+function paymentMatchesReservation(payment: Pick<Payment, 'reservationId'>, reservation: Reservation) {
+  return Boolean(payment.reservationId && payment.reservationId === getReservationPaymentId(reservation));
+}
+
+function getPaidAmount(payment: Payment) {
+  return payment.status === 'Pending' || payment.status === 'Late' ? 0 : Math.max(0, payment.amount);
+}
 
 export default function PaymentsPage() {
   const { payments, reservations, vehicles, clients, createPayment, updatePayment } = useData();
@@ -44,12 +56,11 @@ export default function PaymentsPage() {
   const enriched = useMemo(() => {
     const now = new Date().toISOString().slice(0, 10);
     return paymentRows.map((payment) => {
-      const reservation = reservations.find(
-        (item) => item.recordId === payment.reservationId || item.id === payment.reservationId,
-      );
-      const vehicle = reservation ? vehicles.find((item) => item.id === reservation.vehicleId) : undefined;
+      const reservation = reservations.find((item) => paymentMatchesReservation(payment, item));
+      const vehicleId = payment.vehicleId || reservation?.vehicleId;
+      const vehicle = vehicleId ? vehicles.find((item) => item.id === vehicleId) : undefined;
       const total = reservation?.totalAmount || reservation?.dailyPrice || payment.amount;
-      const paid = payment.status === 'Pending' || payment.status === 'Late' ? 0 : payment.amount;
+      const paid = getPaidAmount(payment);
       const remaining = Math.max(0, total - paid);
       let statusFr: 'Payé' | 'Partiel' | 'En attente' | 'En retard' = payment.status === 'Paid' ? 'Payé' : payment.status === 'Partial' ? 'Partiel' : payment.status === 'Late' ? 'En retard' : 'En attente';
       if (remaining === 0) statusFr = 'Payé';
@@ -57,7 +68,7 @@ export default function PaymentsPage() {
       else if (paid > 0) statusFr = 'Partiel';
       return {
         ...payment,
-        reservationCode: reservation?.id || payment.invoice?.replace(/^INV-/, '') || '—',
+        reservationCode: reservation?.id || '—',
         vehicleLabel: vehicle ? `${vehicle.brand} ${vehicle.model}` : '—',
         total,
         paid,
@@ -91,18 +102,11 @@ export default function PaymentsPage() {
 
   const reservationSummary = useMemo(() => {
     if (!selectedReservationChoice) return null;
-    const reservationCode = selectedReservationChoice.reservation.id;
-    const reservationRecordId = selectedReservationChoice.reservation.recordId;
+    const reservation = selectedReservationChoice.reservation;
     const total = selectedReservationChoice.total;
-    const invoiceRef = `INV-${reservationCode}`;
     const alreadyPaidFromRows = paymentRows
-      .filter(
-        (item) =>
-          (item.reservationId === reservationRecordId || item.invoice === invoiceRef) &&
-          item.status !== 'Pending' &&
-          item.status !== 'Late',
-      )
-      .reduce((sum, item) => sum + item.amount, 0);
+      .filter((item) => paymentMatchesReservation(item, reservation))
+      .reduce((sum, item) => sum + getPaidAmount(item), 0);
     const alreadyPaid = Math.max(0, alreadyPaidFromRows);
     const remaining = Math.max(0, total - alreadyPaid);
     const statusFr = remaining <= 0 ? 'Payé' : alreadyPaid > 0 ? 'Partiel' : 'En attente';
@@ -178,10 +182,8 @@ export default function PaymentsPage() {
 
     try {
       setSavingPayment(true);
-      const linkedPayment = paymentRows.find(
-        (item) => item.reservationId === reservation.recordId || item.invoice === `INV-${reservation.id}`,
-      );
-      const reservationIdForDb = reservation.recordId && UUID_RE.test(reservation.recordId) ? reservation.recordId : undefined;
+      const linkedPayment = paymentRows.find((item) => paymentMatchesReservation(item, reservation));
+      const reservationIdForDb = getReservationPaymentId(reservation);
       if (linkedPayment) {
         const nextAmount = Math.max(0, linkedPayment.amount + amount);
         const nextStatus: PaymentStatus =
@@ -191,6 +193,7 @@ export default function PaymentsPage() {
           client: reservation.client,
           clientId: resolvedClientId,
           reservationId: reservationIdForDb,
+          vehicleId: reservation.vehicleId,
           amount: nextAmount,
           method: paymentMethod === 'Other' ? 'Cash' : paymentMethod,
           status: nextStatus,
@@ -203,6 +206,7 @@ export default function PaymentsPage() {
           client: reservation.client,
           clientId: resolvedClientId,
           reservationId: reservationIdForDb,
+          vehicleId: reservation.vehicleId,
           amount,
           method: paymentMethod === 'Other' ? 'Cash' : paymentMethod,
           status: amount >= reservationSummary.remaining ? 'Paid' : amount > 0 ? 'Partial' : 'Pending',

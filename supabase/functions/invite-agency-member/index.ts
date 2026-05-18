@@ -1,6 +1,6 @@
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-internal-key',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 type AgencyRole = 'owner' | 'manager' | 'agent' | 'accountant';
@@ -62,9 +62,7 @@ Deno.serve(async (req) => {
     const projectUrl = Deno.env.get('PROJECT_URL') || Deno.env.get('SUPABASE_URL') || '';
     const serviceRole = Deno.env.get('SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const anonKey = Deno.env.get('ANON_KEY') || Deno.env.get('SUPABASE_ANON_KEY') || '';
-    const internalKey = req.headers.get('x-internal-key') || '';
     if (!projectUrl || !serviceRole || !anonKey) throw new Error('Configuration Supabase manquante.');
-    if (internalKey !== anonKey) return json({ error: 'Unauthorized' }, 401);
 
     const body = await req.json() as { action?: 'invite' | 'generate_link'; email?: string; fullName?: string; role?: string; redirectTo?: string };
     const action = body.action || 'invite';

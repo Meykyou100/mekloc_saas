@@ -1,6 +1,6 @@
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-internal-key',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 type ProfileRow = {
@@ -10,12 +10,7 @@ type ProfileRow = {
   email: string | null;
 };
 
-type AgencyRow = {
-  id: string;
-  name: string | null;
-  phone: string | null;
-  email: string | null;
-};
+const rateBuckets = new Map<string, number[]>();
 
 function json(payload: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(payload), {
@@ -28,21 +23,49 @@ function isEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
+function clientIp(req: Request) {
+  return req.headers.get('cf-connecting-ip') || req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+}
+
+function checkRateLimit(key: string, limit: number, windowMs: number) {
+  const now = Date.now();
+  const hits = (rateBuckets.get(key) || []).filter((timestamp) => timestamp > now - windowMs);
+  if (hits.length >= limit) {
+    rateBuckets.set(key, hits);
+    return false;
+  }
+  hits.push(now);
+  rateBuckets.set(key, hits);
+  return true;
+}
+
+function genericLookupResponse() {
+  return {
+    found: true,
+    email: '',
+    accountStatus: 'pending',
+    agencyName: 'votre agence',
+    agencyPhone: '',
+    agencyEmail: '',
+  };
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
     const projectUrl = Deno.env.get('PROJECT_URL') || Deno.env.get('SUPABASE_URL') || '';
     const serviceRole = Deno.env.get('SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    const anonKey = Deno.env.get('ANON_KEY') || Deno.env.get('SUPABASE_ANON_KEY') || '';
-    const internalKey = req.headers.get('x-internal-key') || '';
-    if (!projectUrl || !serviceRole || !anonKey) throw new Error('Configuration Supabase manquante.');
-    if (internalKey !== anonKey) return json({ error: 'Unauthorized' }, 401);
+    if (!projectUrl || !serviceRole) throw new Error('Configuration Supabase manquante.');
 
     const { email } = await req.json() as { email?: string };
     const normalizedEmail = String(email || '').trim().toLowerCase();
+    const ip = clientIp(req);
+    if (!checkRateLimit(`ip:${ip}`, 20, 10 * 60 * 1000) || !checkRateLimit(`email:${normalizedEmail}`, 5, 10 * 60 * 1000)) {
+      return json(genericLookupResponse(), 200);
+    }
     if (!normalizedEmail || !isEmail(normalizedEmail)) {
-      return json({ found: false });
+      return json(genericLookupResponse(), 200);
     }
 
     const serviceHeaders = {
@@ -57,24 +80,11 @@ Deno.serve(async (req) => {
     if (!profileRes.ok) throw new Error(await profileRes.text());
     const profileRows = await profileRes.json() as ProfileRow[];
     const profile = profileRows?.[0] || null;
-    if (!profile?.agency_id) return json({ found: false });
+    if (!profile?.agency_id || profile.account_status === 'active') return json(genericLookupResponse(), 200);
 
-    const agencyRes = await fetch(`${projectUrl}/rest/v1/agencies?id=eq.${encodeURIComponent(profile.agency_id)}&select=id,name,phone,email&limit=1`, {
-      headers: serviceHeaders,
-    });
-    if (!agencyRes.ok) throw new Error(await agencyRes.text());
-    const agencyRows = await agencyRes.json() as AgencyRow[];
-    const agency = agencyRows?.[0] || null;
-
-    return json({
-      found: true,
-      email: normalizedEmail,
-      accountStatus: profile.account_status || 'pending',
-      agencyName: agency?.name || 'votre agence',
-      agencyPhone: agency?.phone || '',
-      agencyEmail: agency?.email || '',
-    });
+    return json({ ...genericLookupResponse(), accountStatus: profile.account_status || 'pending' }, 200);
   } catch (error) {
-    return json({ error: error instanceof Error ? error.message : 'Vérification impossible.' }, 400);
+    console.error('lookup-login-email failed', error);
+    return json(genericLookupResponse(), 200);
   }
 });
