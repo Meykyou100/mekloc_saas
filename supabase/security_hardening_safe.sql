@@ -56,7 +56,7 @@ begin
       for select
       to authenticated
       using (
-        bucket_id in ('logos', 'agency-assets', 'vehicle-images', 'client-documents', 'contracts')
+        bucket_id in ('logos', 'agency-assets', 'vehicle-images', 'client-documents', 'contract-pdfs')
         and split_part(name, '/', 1) = (
           select up.agency_id::text
           from public.users_profiles up
@@ -77,7 +77,7 @@ begin
       for insert
       to authenticated
       with check (
-        bucket_id in ('logos', 'agency-assets', 'vehicle-images', 'client-documents', 'contracts')
+        bucket_id in ('logos', 'agency-assets', 'vehicle-images', 'client-documents', 'contract-pdfs')
         and split_part(name, '/', 1) = (
           select up.agency_id::text
           from public.users_profiles up
@@ -98,7 +98,7 @@ begin
       for update
       to authenticated
       using (
-        bucket_id in ('logos', 'agency-assets', 'vehicle-images', 'client-documents', 'contracts')
+        bucket_id in ('logos', 'agency-assets', 'vehicle-images', 'client-documents', 'contract-pdfs')
         and split_part(name, '/', 1) = (
           select up.agency_id::text
           from public.users_profiles up
@@ -107,7 +107,7 @@ begin
         )
       )
       with check (
-        bucket_id in ('logos', 'agency-assets', 'vehicle-images', 'client-documents', 'contracts')
+        bucket_id in ('logos', 'agency-assets', 'vehicle-images', 'client-documents', 'contract-pdfs')
         and split_part(name, '/', 1) = (
           select up.agency_id::text
           from public.users_profiles up
@@ -128,7 +128,7 @@ begin
       for delete
       to authenticated
       using (
-        bucket_id in ('logos', 'agency-assets', 'vehicle-images', 'client-documents', 'contracts')
+        bucket_id in ('logos', 'agency-assets', 'vehicle-images', 'client-documents', 'contract-pdfs')
         and split_part(name, '/', 1) = (
           select up.agency_id::text
           from public.users_profiles up

@@ -32,6 +32,7 @@ export const supabase = isSupabaseConfigured
 
 export const storageBuckets = {
   logos: 'logos',
+  agencyAssets: 'agency-assets',
   contracts: 'contract-pdfs',
   vehicleImages: 'vehicle-images',
   clientDocuments: 'client-documents',

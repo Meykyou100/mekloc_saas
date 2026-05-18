@@ -344,25 +344,26 @@ export default function VehiclesPage() {
             const insuranceSoon = !insuranceExpired && isDateSoon(vehicle.insuranceExpiry, 30);
             const inspectionSoon = !inspectionExpired && isDateSoon(vehicle.inspectionDate, 30);
             return (
-              <Card key={vehicle.id} interactive className="flex h-full flex-col overflow-hidden border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-                <div className="vehicle-visual relative h-52 overflow-hidden bg-gradient-to-br from-zinc-800 via-zinc-900 to-zinc-950">
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(255,255,255,0.1),transparent_58%)]" />
-                  <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/35 to-transparent" />
+              <Card key={vehicle.id} interactive className="group flex h-full flex-col overflow-hidden border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+                <div className="vehicle-visual relative h-48 w-full overflow-hidden rounded-t-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 md:h-52">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(255,255,255,0.14),transparent_58%)]" />
+                  <div className="absolute inset-x-0 top-0 z-[1] h-20 bg-gradient-to-b from-black/55 via-black/20 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 z-[1] h-24 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
                   <div className="absolute left-4 top-4 z-10">
                     <Badge>{vehicle.status}</Badge>
                   </div>
-                  <span className="absolute right-4 top-4 z-10 rounded-full border border-gold-300/30 bg-carbon-950/85 px-3 py-1 text-xs font-bold text-gold-200">
+                  <span className="absolute right-4 top-4 z-10 max-w-[46%] truncate rounded-full border border-gold-300/30 bg-carbon-950/85 px-3 py-1 text-xs font-bold text-gold-200 shadow-lg backdrop-blur">
                     {vehicle.plate}
                   </span>
                   {vehicle.imageUrl ? (
                     <img
                       src={vehicle.imageUrl}
                       alt={`${vehicle.brand} ${vehicle.model}`}
-                      className="absolute inset-0 m-auto h-[74%] w-[88%] object-contain drop-shadow-[0_22px_28px_rgba(0,0,0,0.45)]"
+                      className="h-full w-full rounded-t-2xl object-cover object-center transition-transform duration-300 ease-out group-hover:scale-105"
                     />
                   ) : (
                     <div className="absolute inset-0 grid place-items-center">
-                      <div className="grid h-28 w-40 place-items-center rounded-2xl border border-white/15 bg-carbon-950/30">
+                      <div className="grid h-28 w-40 place-items-center rounded-2xl border border-white/15 bg-carbon-950/30 shadow-[0_18px_45px_rgba(0,0,0,.28)]">
                         <Car className="h-16 w-16 text-white/75" strokeWidth={1.4} />
                       </div>
                     </div>

@@ -20,7 +20,7 @@ export async function uploadAgencyLogo(agencyId: string, file: File) {
   if (validation) throw new Error(validation);
 
   const path = safeStoragePath(agencyId, 'logos', file.name || 'logo.png');
-  const uploadBuckets: string[] = [storageBuckets.logos, 'agency-assets'];
+  const uploadBuckets: string[] = [storageBuckets.logos, storageBuckets.agencyAssets];
   let uploadData: { path: string } | null = null;
   let usedBucket = storageBuckets.logos as string;
   let lastErrorMessage = '';
