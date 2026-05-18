@@ -814,31 +814,31 @@ export default function ContractsPage() {
               className="mx-auto origin-top"
               style={isMobilePreview ? { width: 794, transform: `scale(${previewScale})`, height: 1123 * previewScale } : undefined}
             >
-              <article ref={previewRef} className="mx-auto w-[794px] min-h-[1123px] rounded-xl border border-[#e8e8e8] bg-white p-6 text-[#1c2330] shadow-[0_16px_40px_rgba(15,23,42,.12)] sm:p-8">
-              <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[#e8edf4] pb-5">
+              <article ref={previewRef} className="mx-auto w-[794px] min-h-[1123px] rounded-xl border border-[#e8e8e8] bg-white px-8 py-7 text-[#1c2330] shadow-[0_16px_40px_rgba(15,23,42,.12)]">
+              <header className="flex items-start justify-between gap-5 border-b border-[#e8edf4] pb-4">
                 <div className="flex items-start gap-3">
-                  <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-xl border border-[#e6ebf2] bg-[#f8fafc]">
+                  <div className="grid h-[70px] w-[70px] shrink-0 place-items-center overflow-hidden rounded-xl border border-[#dce4ef] bg-white p-1.5 shadow-sm">
                     {logoPublicUrl ? (
                       <img src={logoPublicUrl} alt="Logo agence" crossOrigin="anonymous" data-pdf-logo="agency" className="h-full w-full object-contain" />
                     ) : (
                       <Building2 className="h-7 w-7 text-[#9aa3b2]" />
                     )}
                   </div>
-                  <div>
-                    <p className="text-lg font-bold">{profile?.agency?.name || 'MekLoc Agency'}</p>
-                    <p className="text-sm text-[#5e697a]">{agencyMeta.address || 'Adresse non renseignée'}</p>
-                    <p className="text-sm text-[#5e697a]">{agencyMeta.phone || profile?.phone || 'Téléphone non renseigné'} · {agencyMeta.email || profile?.email || 'Email non renseigné'}</p>
+                  <div className="max-w-[330px] pt-1">
+                    <p className="text-lg font-black leading-tight">{profile?.agency?.name || 'MekLoc Agency'}</p>
+                    <p className="mt-1 text-sm leading-5 text-[#5e697a]">{agencyMeta.address || 'Adresse non renseignée'}</p>
+                    <p className="text-sm leading-5 text-[#5e697a]">{agencyMeta.phone || profile?.phone || 'Téléphone non renseigné'} · {agencyMeta.email || profile?.email || 'Email non renseigné'}</p>
                   </div>
                 </div>
-                <div className="text-right">
+                <div className="max-w-[320px] text-right">
                   <p className="text-[11px] font-semibold uppercase tracking-[.14em] text-[#a58b3f]">Contrat</p>
-                  <h1 className="mt-1 text-xl font-black">CONTRAT DE LOCATION DE VÉHICULE</h1>
+                  <h1 className="mt-1 text-xl font-black leading-tight">CONTRAT DE LOCATION DE VÉHICULE</h1>
                   <p className="mt-1 text-sm text-[#5e697a]">Réf: {contractReference}</p>
                   <p className="text-sm text-[#5e697a]">Date: {new Date().toLocaleDateString('fr-MA')}</p>
                 </div>
               </header>
 
-              <section className="mt-5 grid gap-4 md:grid-cols-2">
+              <section className="mt-4 grid gap-3 md:grid-cols-2">
                 <InfoBlock
                   icon={<Landmark className="h-4 w-4 text-[#a58b3f]" />}
                   title="Agence"
@@ -865,9 +865,9 @@ export default function ContractsPage() {
                 />
               </section>
 
-              <section className="mt-4 rounded-xl border p-4" style={{ borderColor: contractBorder }}>
+              <section className="mt-3 rounded-xl border p-3.5" style={{ borderColor: contractBorder }}>
                 <p className="text-[11px] font-bold uppercase tracking-[.12em]" style={{ color: contractBorder }}>2ème conducteur</p>
-                <div className="mt-2 grid gap-2 md:grid-cols-2 text-sm text-[#334155]">
+                <div className="mt-2 grid gap-1.5 text-[13px] text-[#334155] md:grid-cols-2">
                   <p>Nom: —</p><p>Prénom: —</p>
                   <p>Date de naissance: —</p><p>Nationalité: —</p>
                   <p>CIN/Passport: —</p><p>Permis N°: —</p>
@@ -875,7 +875,7 @@ export default function ContractsPage() {
                 </div>
               </section>
 
-              <section className="mt-4 grid gap-4 md:grid-cols-2">
+              <section className="mt-3 grid gap-3 md:grid-cols-2">
                 <InfoBlock
                   icon={<Building2 className="h-4 w-4 text-[#a58b3f]" />}
                   title="Véhicule"
@@ -905,9 +905,9 @@ export default function ContractsPage() {
                 />
               </section>
 
-              <section className="mt-4 rounded-xl border p-4" style={{ borderColor: contractBorder }}>
+              <section className="mt-3 rounded-xl border p-3.5" style={{ borderColor: contractBorder }}>
                 <p className="text-[11px] font-bold uppercase tracking-[.12em]" style={{ color: contractBorder }}>Montants</p>
-                <div className="mt-2 grid gap-2 md:grid-cols-2 text-sm text-[#334155]">
+                <div className="mt-2 grid gap-1.5 text-[13px] text-[#334155] md:grid-cols-2">
                   <p>Nombre de jours: <span className="font-semibold">{rentalDays}</span></p>
                   <p>Prix / 24h: <span className="font-semibold">{formatMAD(vehicle.dailyPrice || 0)}</span></p>
                   <p>Prix total: <span className="font-semibold">{formatMAD(totalAmount || 0)}</span></p>
@@ -919,30 +919,30 @@ export default function ContractsPage() {
                 </div>
               </section>
 
-              <section className="mt-5 rounded-xl border border-[#e8edf4] p-4">
+              <section className="mt-3 rounded-xl border border-[#e8edf4] p-3.5">
                 <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#6b7280]">Conditions générales</p>
-                <div className="mt-2 space-y-2 text-sm leading-6 text-[#2f3a4b]">
+                <div className="mt-2 space-y-1.5 text-[13px] leading-5 text-[#2f3a4b]">
                   {(terms.trim() ? terms.split('\n').filter(Boolean) : defaultTerms).map((item, index) => (
                     <p key={`${item}-${index}`}>{index + 1}. {item}</p>
                   ))}
                 </div>
               </section>
 
-              <section className="mt-4 rounded-xl border border-[#e8edf4] p-4">
+              <section className="mt-3 rounded-xl border border-[#e8edf4] p-3.5">
                 <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#6b7280]">Accessoires véhicule</p>
-                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
                   {Object.entries(accessoryLabels).map(([key, label]) => (
-                    <p key={key} className="text-sm text-[#334155]">
+                    <p key={key} className="text-[13px] text-[#334155]">
                       {accessories[key as keyof typeof accessories] ? '☑' : '☐'} {label}
                     </p>
                   ))}
                 </div>
               </section>
 
-              <section className="mt-4 rounded-xl border border-[#e8edf4] p-4">
+              <section className="mt-3 rounded-xl border border-[#e8edf4] p-3.5">
                 <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#6b7280]">Schéma des dommages</p>
                 <div className="mt-3 grid gap-3 md:grid-cols-[180px_1fr]">
-                  <svg viewBox="0 0 120 220" className="h-52 w-full max-w-[180px] rounded-lg border border-[#dbe3ee] bg-[#f8fafc]">
+                  <svg viewBox="0 0 120 220" className="h-48 w-full max-w-[180px] rounded-lg border border-[#dbe3ee] bg-[#f8fafc]">
                     <rect x="48" y="20" width="24" height="180" rx="8" fill="#fff" stroke="#334155" strokeWidth="1.2" />
                     <rect x="40" y="48" width="40" height="124" rx="8" fill="none" stroke="#64748b" strokeWidth="1" />
                     <line x1="48" y1="108" x2="72" y2="108" stroke="#64748b" strokeWidth="1" />
@@ -971,7 +971,7 @@ export default function ContractsPage() {
                       );
                     })}
                   </svg>
-                  <div className="space-y-2 text-sm text-[#334155]">
+                  <div className="space-y-1.5 text-[13px] text-[#334155]">
                     {damageMarks.length === 0 ? (
                       <p>Aucun dommage signalé au départ.</p>
                     ) : (
@@ -986,16 +986,16 @@ export default function ContractsPage() {
                 </div>
               </section>
 
-              <section className="mt-5 grid gap-4 md:grid-cols-2">
+              <section className="mt-4 grid gap-3 md:grid-cols-2">
                 <SignatureBox title="Signature agence" />
                 <SignatureBox title="Signature client" />
               </section>
 
-              <section className="mt-4 rounded-xl border border-[#e8edf4] p-4 text-sm text-[#3f4b5d]">
+              <section className="mt-3 rounded-xl border border-[#e8edf4] p-3 text-sm text-[#3f4b5d]">
                 Fait à {signatureCity}, le {new Date().toLocaleDateString('fr-MA')}
               </section>
 
-              <footer className="mt-6 border-t border-[#e8edf4] pt-3 text-xs text-[#778396]">
+              <footer className="mt-4 border-t border-[#e8edf4] pt-3 text-xs text-[#778396]">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span>Contrat généré par MekLoc</span>
                   <span>{contractReference}</span>
@@ -1021,14 +1021,14 @@ function InfoBlock({
   rows: [string, string][];
 }) {
   return (
-    <div className="rounded-xl border p-4" style={{ borderColor: contractBorder }}>
+    <div className="rounded-xl border bg-[#fffdf8] p-3.5" style={{ borderColor: contractBorder }}>
       <div className="mb-2 flex items-center gap-2">
         {icon}
         <p className="text-[11px] font-bold uppercase tracking-[.12em]" style={{ color: contractBorder }}>{title}</p>
       </div>
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {rows.map(([label, value]) => (
-          <p key={`${label}-${value}`} className="flex justify-between gap-3 text-sm text-[#334155]">
+          <p key={`${label}-${value}`} className="flex justify-between gap-3 text-[13px] leading-5 text-[#334155]">
             <span className="text-[#64748b]">{label}</span>
             <span className="text-right font-semibold">{value || 'Non renseigné'}</span>
           </p>
@@ -1040,8 +1040,8 @@ function InfoBlock({
 
 function SignatureBox({ title }: { title: string }) {
   return (
-    <div className="rounded-xl border border-dashed border-[#cfd7e3] p-4">
-      <PenLine className="mb-12 h-5 w-5 text-[#94a3b8]" />
+    <div className="rounded-xl border border-dashed border-[#cfd7e3] p-3.5">
+      <PenLine className="mb-10 h-5 w-5 text-[#94a3b8]" />
       <p className="text-sm font-semibold text-[#334155]">{title}</p>
     </div>
   );
