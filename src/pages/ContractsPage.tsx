@@ -22,7 +22,6 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { SelectField, TextAreaField } from '../components/ui/Form';
 import PageHeader from '../components/ui/PageHeader';
-import StatCard from '../components/ui/StatCard';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -315,13 +314,13 @@ export default function ContractsPage() {
       if (!viewport) return;
       const isMobile = window.innerWidth < 768;
       setIsMobilePreview(isMobile);
-      setPreviewMaxHeight(Math.max(460, window.innerHeight - 260));
-      if (!isMobile) {
-        setPreviewScale(1);
-        return;
-      }
-      const availableWidth = Math.max(220, viewport.clientWidth - 12);
-      setPreviewScale(Math.max(0.38, Math.min(1, availableWidth / 794)));
+      const nextMaxHeight = Math.max(isMobile ? 460 : 620, window.innerHeight - 220);
+      setPreviewMaxHeight(nextMaxHeight);
+      const availableWidth = Math.max(220, viewport.clientWidth - (isMobile ? 12 : 48));
+      const widthScale = availableWidth / A4_SOURCE_WIDTH;
+      const heightScale = (nextMaxHeight - 36) / A4_SOURCE_HEIGHT;
+      const minScale = isMobile ? 0.38 : 0.58;
+      setPreviewScale(Math.max(minScale, Math.min(1, widthScale, heightScale)));
     };
 
     updatePreviewScale();
@@ -342,7 +341,10 @@ export default function ContractsPage() {
 
   useEffect(() => {
     async function loadAgencyMeta() {
-      if (!agencyId || !supabase) return;
+      if (!agencyId || !supabase) {
+        setLogoPublicUrl(profile?.agency?.logoUrl || null);
+        return;
+      }
       const { data } = await supabase
         .from('agencies')
         .select('address,phone,email,logo_path,logo_url,ice,rc')
@@ -360,15 +362,15 @@ export default function ContractsPage() {
             break;
           }
         }
-        setLogoPublicUrl(resolvedLogo || (data as { logo_url?: string | null }).logo_url || null);
+        setLogoPublicUrl(resolvedLogo || (data as { logo_url?: string | null }).logo_url || profile?.agency?.logoUrl || null);
       } else if ((data as { logo_url?: string | null }).logo_url) {
         setLogoPublicUrl((data as { logo_url?: string | null }).logo_url || null);
       } else {
-        setLogoPublicUrl(null);
+        setLogoPublicUrl(profile?.agency?.logoUrl || null);
       }
     }
     loadAgencyMeta();
-  }, [agencyId]);
+  }, [agencyId, profile?.agency?.logoUrl]);
 
   const emptyClient: Client = {
     id: '',
@@ -494,12 +496,14 @@ export default function ContractsPage() {
     };
   }, [contracts]);
 
+  const effectiveLogoUrl = logoPublicUrl || profile?.agency?.logoUrl || null;
+
   const checklist = [
     { label: 'Client sélectionné', ok: Boolean(client.id) },
     { label: 'Véhicule sélectionné', ok: Boolean(vehicle.id) },
     { label: 'Réservation sélectionnée', ok: Boolean(selectedReservation?.id) },
     { label: 'Conditions ajoutées', ok: Boolean(terms.trim()) },
-    { label: 'Logo agence présent', ok: Boolean(logoPublicUrl) },
+    { label: 'Logo agence présent', ok: Boolean(effectiveLogoUrl) },
   ];
 
   const contractFileName = `contract-location-${sanitizeFileName(client.fullName || 'client')}-${sanitizeFileName(vehicle.plate || 'vehicule')}-${new Date().toISOString().slice(0, 10)}.pdf`;
@@ -563,8 +567,8 @@ export default function ContractsPage() {
 
   async function captureContractCanvas(source: HTMLElement) {
     let logoAsset: PdfLogoAsset | null = null;
-    if (logoPublicUrl) {
-      logoAsset = await loadLogoForPdf(logoPublicUrl);
+    if (effectiveLogoUrl) {
+      logoAsset = await loadLogoForPdf(effectiveLogoUrl);
     }
 
     const captureSource = createPdfCaptureSource(source, logoAsset?.dataUrl);

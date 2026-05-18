@@ -82,6 +82,7 @@ const sessionStartedAtKey = 'mekloc_session_started_at';
 const demoEmail = 'demo@mekloc.ma';
 const demoPassword = 'demo123456';
 const allowDemoMode = import.meta.env.DEV && import.meta.env.VITE_ENABLE_DEMO_MODE === 'true';
+const authRequestTimeoutMs = 12000;
 
 type ProfileRow = {
   id: string;
@@ -244,6 +245,10 @@ async function fetchProfile(userId: string): Promise<UserProfile | null> {
   return mapProfile(row);
 }
 
+function fetchProfileWithTimeout(userId: string) {
+  return withTimeout(fetchProfile(userId), authRequestTimeoutMs, 'Chargement du profil trop long.');
+}
+
 async function hasApprovedAccessRequest(email: string | null | undefined): Promise<boolean> {
   if (!supabase || !email) return false;
   const normalized = normalizeEmail(email);
@@ -268,6 +273,16 @@ async function isDeletedByEmail(email: string | null | undefined): Promise<boole
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+    promise
+      .then(resolve)
+      .catch(reject)
+      .finally(() => window.clearTimeout(timer));
+  });
 }
 
 function getOrCreateSessionKey() {
@@ -407,6 +422,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const lastSeenUpdateRef = useRef<number>(0);
   const lastRevocationCheckRef = useRef<number>(0);
+  const hasCompletedInitialLoadRef = useRef(false);
 
   async function syncSessionActivity(currentUser: User, currentProfile: UserProfile | null, options?: { isLogin?: boolean }) {
     if (!supabase || !currentProfile?.agencyId) return;
@@ -516,32 +532,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
 
     async function loadInitialSession() {
-      const { data, error } = await supabase!.auth.getSession();
-      if (!mounted) return;
-      if (error) {
-        setLoading(false);
-        return;
-      }
+      try {
+        const { data, error } = await withTimeout(
+          supabase!.auth.getSession(),
+          authRequestTimeoutMs,
+          'Vérification de session trop longue.',
+        );
+        if (!mounted) return;
+        if (error) return;
 
-      setSession(data.session);
-      setUser(data.session?.user ?? null);
-      if (data.session?.user) {
-        try {
-          const nextProfile = await fetchProfile(data.session.user.id);
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+        if (data.session?.user) {
+          const nextProfile = await fetchProfileWithTimeout(data.session.user.id);
+          if (!mounted) return;
           setProfile(nextProfile);
           setProfileLoadError(null);
           if (nextProfile) {
             await syncSessionActivity(data.session.user, nextProfile);
             await checkRevokedSession(data.session.user);
           }
-        } catch (error) {
-          setProfileLoadError(error instanceof Error ? error.message : 'Chargement du profil impossible.');
-        } finally {
-          setLoading(false);
+        } else {
+          setProfile(null);
+          setProfileLoadError(null);
         }
-      } else {
-        setProfile(null);
-        setProfileLoadError(null);
+      } catch (error) {
+        if (mounted) setProfileLoadError(error instanceof Error ? error.message : 'Chargement du profil impossible.');
+      } finally {
+        hasCompletedInitialLoadRef.current = true;
         setLoading(false);
       }
     }
@@ -555,8 +573,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(nextSession?.user ?? null);
 
       if (nextSession?.user) {
-        setLoading(true);
-        fetchProfile(nextSession.user.id)
+        const shouldBlockUi = !hasCompletedInitialLoadRef.current || event === 'SIGNED_IN';
+        if (shouldBlockUi) setLoading(true);
+        fetchProfileWithTimeout(nextSession.user.id)
           .then((nextProfile) => {
             if (mounted) {
               setProfile(nextProfile);
@@ -571,11 +590,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           })
           .finally(() => {
-            if (mounted) setLoading(false);
+            if (mounted && shouldBlockUi) {
+              hasCompletedInitialLoadRef.current = true;
+              setLoading(false);
+            }
           });
       } else {
         setProfile(null);
         setProfileLoadError(null);
+        hasCompletedInitialLoadRef.current = true;
         setLoading(false);
       }
     });
@@ -594,6 +617,51 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       checkRevokedSession(session.user).catch(() => undefined);
     }, 2 * 60 * 1000);
     return () => window.clearInterval(interval);
+  }, [session?.user, profile?.agencyId]);
+
+  useEffect(() => {
+    if (!supabase || !session?.user || !profile) return undefined;
+    const client = supabase;
+    let cancelled = false;
+
+    const refreshOnReturn = async () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        const { data, error } = await withTimeout(
+          client.auth.getSession(),
+          authRequestTimeoutMs,
+          'Vérification de session trop longue.',
+        );
+        if (cancelled || error) return;
+        if (!data.session) {
+          setSession(null);
+          setUser(null);
+          setProfile(null);
+          setProfileLoadError(null);
+          return;
+        }
+        setSession(data.session);
+        setUser(data.session.user);
+        const nextProfile = await fetchProfileWithTimeout(data.session.user.id);
+        if (cancelled) return;
+        setProfile(nextProfile);
+        setProfileLoadError(null);
+        if (nextProfile) {
+          await syncSessionActivity(data.session.user, nextProfile);
+          await checkRevokedSession(data.session.user);
+        }
+      } catch {
+        // Temporary network or browser-tab throttling failure: keep the current UI/session visible.
+      }
+    };
+
+    document.addEventListener('visibilitychange', refreshOnReturn);
+    window.addEventListener('focus', refreshOnReturn);
+    return () => {
+      cancelled = true;
+      document.removeEventListener('visibilitychange', refreshOnReturn);
+      window.removeEventListener('focus', refreshOnReturn);
+    };
   }, [session?.user, profile?.agencyId]);
 
   const value = useMemo<AuthContextValue>(

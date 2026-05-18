@@ -21,7 +21,7 @@ export default function ProtectedRoute({
     return requireSuperAdmin ? <Navigate to="/auth" replace state={{ from: location }} /> : <Outlet />;
   }
 
-  if (loading) {
+  if (loading && !session && !profile) {
     return (
       <div className="grid min-h-screen place-items-center bg-carbon-950 px-4 light:bg-carbon-50">
         <Card className="w-full max-w-md p-6">

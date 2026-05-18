@@ -64,6 +64,17 @@ type DataContextValue = {
 
 const DataContext = createContext<DataContextValue | null>(null);
 const allowMockData = import.meta.env.DEV && import.meta.env.VITE_USE_MOCK_DATA === 'true';
+const dataRequestTimeoutMs = 15000;
+
+function withDataTimeout<T>(promise: Promise<T>, timeoutMs = dataRequestTimeoutMs): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error('Chargement des données trop long.')), timeoutMs);
+    promise
+      .then(resolve)
+      .catch(reject)
+      .finally(() => window.clearTimeout(timer));
+  });
+}
 
 function setEmptyDataState(
   setters: {
@@ -556,7 +567,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         contractsResult,
         paymentsResult,
         maintenanceResult,
-      ] = await Promise.all([
+      ] = await withDataTimeout(Promise.all([
         canReadVehicles
           ? supabase.from('vehicles').select('*').order('created_at', { ascending: false })
           : Promise.resolve({ data: [], error: null }),
@@ -575,7 +586,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         canReadMaintenance
           ? supabase.from('maintenance').select('*').order('service_date', { ascending: true })
           : Promise.resolve({ data: [], error: null }),
-      ]);
+      ]));
 
       const firstError = [
         vehiclesResult.error,
@@ -635,8 +646,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     refreshData().catch(() => {
       if (allowMockData) {
         setMockDataState(setters);
-      } else {
-        setEmptyDataState(setters);
       }
     });
   }, [agencyId, authLoading, isSupabaseEnabled, profile, refreshData]);
