@@ -60,6 +60,7 @@ type AuthContextValue = {
   session: Session | null;
   user: User | null;
   profile: UserProfile | null;
+  profileLoadError: string | null;
   agencyId: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<AuthActionResult>;
@@ -401,6 +402,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
   const [isDemoSession, setIsDemoSession] = useState(() => allowDemoMode && localStorage.getItem(demoAuthKey) === 'true');
   const [loading, setLoading] = useState(isSupabaseConfigured);
   const lastSeenUpdateRef = useRef<number>(0);
@@ -501,6 +503,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(demoSession);
       setUser(demoUser);
       setProfile(demoProfile);
+      setProfileLoadError(null);
       setLoading(false);
       return undefined;
     }
@@ -526,17 +529,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const nextProfile = await fetchProfile(data.session.user.id);
           setProfile(nextProfile);
+          setProfileLoadError(null);
           if (nextProfile) {
             await syncSessionActivity(data.session.user, nextProfile);
             await checkRevokedSession(data.session.user);
           }
-        } catch {
-          setProfile(null);
+        } catch (error) {
+          setProfileLoadError(error instanceof Error ? error.message : 'Chargement du profil impossible.');
         } finally {
           setLoading(false);
         }
       } else {
         setProfile(null);
+        setProfileLoadError(null);
         setLoading(false);
       }
     }
@@ -555,17 +560,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .then((nextProfile) => {
             if (mounted) {
               setProfile(nextProfile);
+              setProfileLoadError(null);
               syncSessionActivity(nextSession.user, nextProfile, { isLogin: event === 'SIGNED_IN' }).catch(() => undefined);
+              checkRevokedSession(nextSession.user).catch(() => undefined);
             }
           })
-          .catch(() => {
-            if (mounted) setProfile(null);
+          .catch((error) => {
+            if (mounted) {
+              setProfileLoadError(error instanceof Error ? error.message : 'Chargement du profil impossible.');
+            }
           })
           .finally(() => {
             if (mounted) setLoading(false);
           });
       } else {
         setProfile(null);
+        setProfileLoadError(null);
         setLoading(false);
       }
     });
@@ -592,6 +602,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       session,
       user,
       profile,
+      profileLoadError,
       agencyId: profile?.agencyId ?? null,
       loading,
       signIn: async (email, password) => {
@@ -601,6 +612,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(demoSession);
           setUser(demoUser);
           setProfile(demoProfile);
+          setProfileLoadError(null);
           setLoading(false);
           return { profile: demoProfile };
         }
@@ -614,6 +626,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           setSession(data.session);
           setUser(data.user);
+          setProfileLoadError(null);
           localStorage.setItem(sessionStartedAtKey, new Date().toISOString());
           const deleted = await isDeletedByEmail(data.user?.email);
           if (deleted) {
@@ -641,8 +654,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
 
           setProfile(nextProfile);
+          setProfileLoadError(null);
           if (data.user && nextProfile) {
             await syncSessionActivity(data.user, nextProfile, { isLogin: true });
+            await checkRevokedSession(data.user);
           }
           return { profile: nextProfile };
         } finally {
@@ -684,6 +699,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setSession(null);
             setUser(data.user);
             setProfile(null);
+            setProfileLoadError(null);
             return { needsEmailConfirmation: true };
           }
 
@@ -692,6 +708,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(data.session);
           setUser(data.user);
           setProfile(nextProfile);
+          setProfileLoadError(null);
           return {};
         } finally {
           setLoading(false);
@@ -703,6 +720,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         try {
           const nextProfile = await createAgencyAndProfile(user, agencyName, fullName, phone);
           setProfile(nextProfile);
+          setProfileLoadError(null);
           return nextProfile;
         } finally {
           setLoading(false);
@@ -721,9 +739,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(null);
           throw new Error('Ce compte a été supprimé. Contactez MekLoc pour réactivation.');
         }
-        const nextProfile = await fetchProfile(activeUser.id);
-        setProfile(nextProfile);
-        return nextProfile;
+        try {
+          const nextProfile = await fetchProfile(activeUser.id);
+          setProfile(nextProfile);
+          setProfileLoadError(null);
+          return nextProfile;
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Chargement du profil impossible.';
+          setProfileLoadError(message);
+          throw error;
+        }
       },
       signOut: async () => {
         if (isDemoSession) {
@@ -732,6 +757,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(null);
           setUser(null);
           setProfile(null);
+          setProfileLoadError(null);
           localStorage.removeItem(sessionStartedAtKey);
           return;
         }
@@ -742,6 +768,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(null);
         setUser(null);
         setProfile(null);
+        setProfileLoadError(null);
       },
       requestPasswordReset: async (email: string) => {
         if (!supabase) throw new Error('Supabase non configuré.');
@@ -761,6 +788,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(null);
         setUser(null);
         setProfile(null);
+        setProfileLoadError(null);
       },
       updatePassword: async (password: string) => {
         if (!supabase) throw new Error('Supabase non configuré.');
@@ -800,7 +828,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { status: row.status, agencyName: row.agency_name, plan: row.selected_plan, createdAt: row.created_at };
       },
     }),
-    [isDemoSession, loading, profile, session, user],
+    [isDemoSession, loading, profile, profileLoadError, session, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

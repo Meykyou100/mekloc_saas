@@ -44,7 +44,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
       <div className="flex items-center justify-between px-5 py-5">
         <NavLink to="/" className="flex items-center gap-3" onClick={onClose}>
           {logoUrl && !logoBroken ? (
-            <span className="grid h-11 w-11 place-items-center overflow-hidden rounded-2xl border border-white/10 bg-white shadow-[0_10px_22px_rgba(212,160,23,.14)]">
+            <span className="grid h-[52px] w-[52px] shrink-0 place-items-center overflow-hidden rounded-2xl border border-white/10 bg-carbon-900/80 p-1.5 shadow-[0_12px_26px_rgba(212,160,23,.14)] light:border-carbon-950/10 light:bg-white">
               <img
                 src={logoUrl}
                 alt="Logo agence"
@@ -53,15 +53,15 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
               />
             </span>
           ) : (
-            <span className="grid h-11 w-11 place-items-center rounded-2xl bg-[#D4A017] text-xl font-black text-carbon-950 shadow-[0_10px_22px_rgba(212,160,23,.14)]">
+            <span className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-2xl border border-gold-200/25 bg-[#D4A017] text-xl font-black text-carbon-950 shadow-[0_12px_26px_rgba(212,160,23,.14)]">
               M
             </span>
           )}
-          <span>
+          <span className="min-w-0">
             <span className="block text-xl font-black tracking-wide text-white light:text-carbon-950">
               MekLoc
             </span>
-            <span className="text-xs text-carbon-400">Smart Rental Management System</span>
+            <span className="block max-w-[160px] text-xs leading-4 text-carbon-400">Smart Rental Management System</span>
           </span>
         </NavLink>
         <button

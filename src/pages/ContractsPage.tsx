@@ -360,7 +360,7 @@ export default function ContractsPage() {
             break;
           }
         }
-        setLogoPublicUrl(resolvedLogo);
+        setLogoPublicUrl(resolvedLogo || (data as { logo_url?: string | null }).logo_url || null);
       } else if ((data as { logo_url?: string | null }).logo_url) {
         setLogoPublicUrl((data as { logo_url?: string | null }).logo_url || null);
       } else {
@@ -699,37 +699,39 @@ export default function ContractsPage() {
         </Button>
       </div>
 
-      <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard label="Contrats générés" value={String(stats.total)} trend="Historique total" icon={FileSignature} />
         <StatCard label="Brouillons" value={String(stats.drafts)} trend="En préparation" icon={FileText} />
         <StatCard label="Contrats ce mois" value={String(stats.thisMonth)} trend="Période actuelle" icon={CalendarDays} />
         <StatCard label="Dernier contrat" value={stats.last} trend="Référence récente" icon={Sparkles} />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[0.74fr_1.26fr]">
-        <Card className="p-5">
-          <div className="mb-5 flex items-center gap-3">
+      <div className="grid gap-6 xl:grid-cols-[330px_minmax(0,1fr)] 2xl:grid-cols-[340px_minmax(0,1fr)]">
+        <Card className="overflow-hidden p-0 xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)]">
+          <div className="border-b border-white/10 bg-white/[0.035] p-4">
+            <div className="flex items-center gap-3">
             <div className="rounded-2xl bg-gold-400/10 p-3 text-gold-200">
               <Wand2 className="h-5 w-5" />
             </div>
             <div>
               <h2 className="font-semibold text-white light:text-carbon-950">Éditeur de contrat</h2>
-              <p className="text-sm text-carbon-400">Configurez les données puis générez un contrat prêt à signer.</p>
+              <p className="text-sm leading-5 text-carbon-400">Configurez un document prêt à signer.</p>
+            </div>
             </div>
           </div>
 
-          <div className="grid gap-5">
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="mb-3 text-xs font-black uppercase tracking-wide text-gold-200">Modèle</p>
+          <div className="max-h-none space-y-3 overflow-y-auto p-4 xl:max-h-[calc(100vh-17rem)]">
+            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-3.5">
+              <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Modèle</p>
               <SelectField label="Type de modèle" value={template} onChange={(event) => setTemplate(event.target.value)}>
                 {templates.map((item) => <option key={item}>{item}</option>)}
               </SelectField>
               <p className="mt-2 text-xs text-carbon-500">Langue: Français · Format: A4 portrait</p>
             </section>
 
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="mb-3 text-xs font-black uppercase tracking-wide text-gold-200">Sélection client / véhicule</p>
-              <div className="grid gap-4">
+            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-3.5">
+              <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Sélection client / véhicule</p>
+              <div className="grid gap-3">
                 <SelectField label="Client" value={clientId} onChange={(event) => setClientId(event.target.value)}>
                   {clients.map((item) => <option key={item.id} value={item.id}>{item.fullName}</option>)}
                 </SelectField>
@@ -739,8 +741,8 @@ export default function ContractsPage() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="mb-3 text-xs font-black uppercase tracking-wide text-gold-200">Réservation source</p>
+            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-3.5">
+              <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Réservation source</p>
               <SelectField label="Réservation" value={reservationId} onChange={(event) => setReservationId(event.target.value)}>
                 {reservations.map((item) => (
                   <option key={item.id} value={item.id}>
@@ -751,37 +753,39 @@ export default function ContractsPage() {
               <p className="mt-2 text-xs text-carbon-500">Le contrat reprend automatiquement les dates, lieux et tarifs.</p>
             </section>
 
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="mb-3 text-xs font-black uppercase tracking-wide text-gold-200">Conditions générales</p>
+            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-3.5">
+              <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Conditions générales</p>
               <TextAreaField
                 label="Texte des conditions"
                 value={terms}
                 onChange={(event) => setTerms(event.target.value)}
-                className="min-h-36"
+                className="min-h-28"
               />
               <p className="mt-2 text-xs text-carbon-500">Laissez ce texte clair et précis. Il sera inclus dans le PDF final.</p>
             </section>
 
-            <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p className="mb-3 text-xs font-black uppercase tracking-wide text-gold-200">Checklist de complétude</p>
+            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-3.5">
+              <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Checklist de complétude</p>
               <div className="grid gap-2">
                 {checklist.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/15 px-3 py-2 text-sm">
+                  <div key={item.label} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/15 px-3 py-2 text-xs">
                     <span className="text-carbon-200">{item.label}</span>
                     {item.ok ? (
-                      <span className="inline-flex items-center gap-1 text-emerald-300"><CheckCircle2 className="h-4 w-4" /> OK</span>
+                      <span className="inline-flex items-center gap-1 font-semibold text-emerald-300"><CheckCircle2 className="h-3.5 w-3.5" /> OK</span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-amber-200"><CircleAlert className="h-4 w-4" /> À vérifier</span>
+                      <span className="inline-flex items-center gap-1 font-semibold text-amber-200"><CircleAlert className="h-3.5 w-3.5" /> À vérifier</span>
                     )}
                   </div>
                 ))}
               </div>
             </section>
+          </div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              <Button type="button" variant="secondary" onClick={() => notify({ title: 'Aperçu mis à jour', message: 'Le document à droite reflète vos sélections.', type: 'info' })}>
-                Aperçu
-              </Button>
+          <div className="sticky bottom-0 grid gap-2 border-t border-white/10 bg-carbon-950/95 p-4 backdrop-blur-xl light:bg-white/95">
+            <Button type="button" variant="secondary" onClick={() => notify({ title: 'Aperçu mis à jour', message: 'Le document à droite reflète vos sélections.', type: 'info' })}>
+              Aperçu
+            </Button>
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
               <Button type="button" variant="secondary" icon={<RefreshCcw className="h-4 w-4" />} onClick={() => setTerms(defaultTerms.join('\n'))}>
                 Réinitialiser
               </Button>
@@ -792,7 +796,7 @@ export default function ContractsPage() {
           </div>
         </Card>
 
-        <div className="rounded-3xl border border-white/10 bg-[#090d13] p-3 shadow-[0_24px_80px_rgba(0,0,0,.45)] sm:p-4">
+        <div className="rounded-3xl border border-white/10 bg-[#090d13] p-3 shadow-[0_24px_80px_rgba(0,0,0,.45)] sm:p-5">
           <div className="mb-3 flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
             <div className="flex items-center gap-2 text-sm text-carbon-300">
               <FileText className="h-4 w-4 text-gold-200" />

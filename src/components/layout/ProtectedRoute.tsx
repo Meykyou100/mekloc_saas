@@ -14,7 +14,7 @@ export default function ProtectedRoute({
   requireSuperAdmin?: boolean;
   requiredPermission?: AppPermission;
 }) {
-  const { isSupabaseEnabled, loading, session, agencyId, profile, user } = useAuth();
+  const { isSupabaseEnabled, loading, session, agencyId, profile, profileLoadError, refreshProfile, user } = useAuth();
   const location = useLocation();
 
   if (!isSupabaseEnabled) {
@@ -35,6 +35,26 @@ export default function ProtectedRoute({
 
   if (!session) {
     return <Navigate to="/auth" replace state={{ from: location }} />;
+  }
+
+  if (profileLoadError) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-carbon-950 px-4 light:bg-carbon-50">
+        <Card className="w-full max-w-md p-6 text-center">
+          <p className="text-lg font-semibold text-white light:text-carbon-950">Connexion conservée</p>
+          <p className="mt-2 text-sm text-carbon-400">
+            Votre session est active, mais le profil agence n’a pas pu être chargé. Vérifiez votre connexion puis réessayez.
+          </p>
+          <button
+            type="button"
+            className="focus-ring mt-5 rounded-xl bg-gold-400 px-4 py-2 text-sm font-semibold text-carbon-950"
+            onClick={() => refreshProfile().catch(() => undefined)}
+          >
+            Réessayer
+          </button>
+        </Card>
+      </div>
+    );
   }
 
   if (requireSuperAdmin) {

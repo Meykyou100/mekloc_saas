@@ -1,4 +1,4 @@
-import { BellRing, Building2, Camera, FileSignature, Globe2, Link2, Loader2, Mail, MessageCircle, Percent, RefreshCw, Save, ShieldAlert, ShieldCheck, Trash2, UserPlus, UsersRound } from 'lucide-react';
+import { BellRing, Building2, Camera, Copy, ExternalLink, FileSignature, Globe2, Link2, Loader2, Mail, MessageCircle, Percent, RefreshCw, Save, ShieldAlert, ShieldCheck, Trash2, UserPlus, UsersRound } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
@@ -21,6 +21,11 @@ type TeamMember = {
 };
 
 type TeamRole = 'owner' | 'manager' | 'agent' | 'accountant';
+type SettingsTab = 'Général' | 'Contrats' | 'Facturation' | 'Abonnement' | 'Équipe' | 'Notifications';
+type ActivationLinkMember = Pick<TeamMember, 'full_name' | 'email' | 'role' | 'account_status'> & { id?: string };
+
+const settingsTabs: SettingsTab[] = ['Général', 'Contrats', 'Facturation', 'Abonnement', 'Équipe', 'Notifications'];
+const settingsTabStorageKey = 'mekloc-settings-active-tab';
 
 const teamRoleOptions: Array<{ value: TeamRole; label: string }> = [
   { value: 'owner', label: 'Propriétaire' },
@@ -82,13 +87,19 @@ function extractMissingColumnName(message: string) {
   return null;
 }
 
+function readInitialSettingsTab(): SettingsTab {
+  if (typeof window === 'undefined') return 'Général';
+  const stored = window.localStorage.getItem(settingsTabStorageKey);
+  return settingsTabs.includes(stored as SettingsTab) ? (stored as SettingsTab) : 'Général';
+}
+
 export default function SettingsPage() {
   const { notify } = useApp();
   const { agencyId, isSupabaseEnabled, profile, signOut, deleteAccountWithPassword, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const logoInputRef = useRef<HTMLInputElement | null>(null);
-  const [tab, setTab] = useState('Général');
-  const tabs = ['Général', 'Contrats', 'Facturation', 'Abonnement', 'Équipe', 'Notifications'];
+  const [tab, setTab] = useState<SettingsTab>(readInitialSettingsTab);
+  const tabs = settingsTabs;
   const agency = profile?.agency;
   const billingStatusFr =
     agency?.billingStatus === 'trial' ? 'Essai' :
@@ -133,8 +144,9 @@ export default function SettingsPage() {
   const [inviteFullName, setInviteFullName] = useState('');
   const [inviteRole, setInviteRole] = useState<TeamRole>('agent');
   const [inviteLink, setInviteLink] = useState('');
-  const [generatedMemberLink, setGeneratedMemberLink] = useState<{ email: string; link: string } | null>(null);
-  const [memberLinkOpen, setMemberLinkOpen] = useState(false);
+  const [generatedActivationLink, setGeneratedActivationLink] = useState('');
+  const [selectedMemberForActivation, setSelectedMemberForActivation] = useState<ActivationLinkMember | null>(null);
+  const [isActivationModalOpen, setIsActivationModalOpen] = useState(false);
   const [inviteSending, setInviteSending] = useState(false);
   const canManageTeam = profile?.role === 'owner' || profile?.role === 'manager' || Boolean(profile?.isSuperAdmin);
   const hasChanges = useMemo(() => {
@@ -208,6 +220,13 @@ export default function SettingsPage() {
     if (tab !== 'Équipe') return;
     void loadTeamMembers();
   }, [loadTeamMembers, tab]);
+
+  function selectSettingsTab(nextTab: SettingsTab) {
+    setTab(nextTab);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(settingsTabStorageKey, nextTab);
+    }
+  }
 
   async function runTeamAction(key: string, action: () => Promise<void>) {
     setTeamActionLoading((curr) => ({ ...curr, [key]: true }));
@@ -302,6 +321,17 @@ export default function SettingsPage() {
     });
   }
 
+  function openActivationLinkModal(member: ActivationLinkMember, link: string) {
+    selectSettingsTab('Équipe');
+    setSelectedMemberForActivation(member);
+    setGeneratedActivationLink(link);
+    setIsActivationModalOpen(true);
+  }
+
+  function closeActivationLinkModal() {
+    setIsActivationModalOpen(false);
+  }
+
   async function handleChangeMemberRole(member: TeamMember, nextRole: TeamRole) {
     const client = supabase;
     if (!client || !agencyId || !canManageTeam) return;
@@ -370,7 +400,9 @@ export default function SettingsPage() {
       notify({ title: 'Email manquant', message: 'Impossible de générer un lien sans email.', type: 'warning' });
       return;
     }
-    await runTeamAction(`link-${member.id}`, async () => {
+    selectSettingsTab('Équipe');
+    setTeamActionLoading((curr) => ({ ...curr, [`link-${member.id}`]: true }));
+    try {
       const response = await postGenerateTeamMemberLinkWebhook({
         memberId: member.id,
         email: member.email,
@@ -380,15 +412,17 @@ export default function SettingsPage() {
       if (!response.ok) throw new Error(payload?.error || 'Génération du lien impossible');
       const link = typeof payload?.activationLink === 'string' ? payload.activationLink : '';
       if (!link) throw new Error('Lien activation absent.');
-      setGeneratedMemberLink({ email: member.email || '', link });
-      setMemberLinkOpen(true);
-      const copied = await writeTextToClipboard(link);
+      openActivationLinkModal(member, link);
       notify({
-        title: copied ? 'Lien copié' : 'Lien affiché',
-        message: copied ? 'Lien activation généré et copié.' : 'Le lien activation est affiché dans la fenêtre.',
-        type: copied ? 'success' : 'warning',
+        title: 'Lien d’activation prêt',
+        message: 'Le lien est affiché dans la fenêtre.',
+        type: 'success',
       });
-    });
+    } catch (error) {
+      notify({ title: 'Impossible de générer le lien', message: extractErrorMessage(error), type: 'warning' });
+    } finally {
+      setTeamActionLoading((curr) => ({ ...curr, [`link-${member.id}`]: false }));
+    }
   }
 
   async function handleDeleteMember(member: TeamMember) {
@@ -401,9 +435,10 @@ export default function SettingsPage() {
       const response = await postDeleteTeamMemberWebhook({ memberId: member.id });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.error || 'Suppression impossible');
-      if (generatedMemberLink?.email === member.email) {
-        setGeneratedMemberLink(null);
-        setMemberLinkOpen(false);
+      if (selectedMemberForActivation?.email === member.email) {
+        setGeneratedActivationLink('');
+        setSelectedMemberForActivation(null);
+        setIsActivationModalOpen(false);
       }
       notify({ title: 'Utilisateur supprimé', message: member.full_name || member.email || 'Membre supprimé', type: 'success' });
       await loadTeamMembers();
@@ -441,8 +476,10 @@ export default function SettingsPage() {
       }
       if (nextInviteLink) {
         setInviteLink(nextInviteLink);
-        setGeneratedMemberLink({ email: safeEmail, link: nextInviteLink });
-        setMemberLinkOpen(true);
+        openActivationLinkModal(
+          { id: '', full_name: safeName || null, email: safeEmail, role: inviteRole, account_status: 'pending' },
+          nextInviteLink,
+        );
       }
       notify({
         title: payload?.inviteSent === false || nextInviteLink ? 'Lien activation prêt' : 'Invitation envoyée',
@@ -742,7 +779,7 @@ startxref
             <button
               key={item}
               className={`focus-ring rounded-xl px-4 py-2 text-sm font-semibold transition ${tab === item ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300 hover:bg-white/10 light:text-carbon-700'}`}
-              onClick={() => setTab(item)}
+              onClick={() => selectSettingsTab(item)}
             >
               {item}
             </button>
@@ -947,29 +984,6 @@ startxref
                     {teamMembers.length} membre{teamMembers.length > 1 ? 's' : ''} dans votre agence
                   </p>
                 </div>
-                {generatedMemberLink ? (
-                  <div className="rounded-2xl border border-gold-300/25 bg-gold-400/10 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold-200">Lien activation</p>
-                    <p className="mt-1 text-sm text-carbon-300">{generatedMemberLink.email}</p>
-                    <p className="mt-2 break-all text-sm text-carbon-100">{generatedMemberLink.link}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        icon={<Mail className="h-4 w-4" />}
-                        onClick={() => copyActivationLink(generatedMemberLink.link)}
-                      >
-                        Copier le lien
-                      </Button>
-                      <Button type="button" variant="secondary" onClick={() => setMemberLinkOpen(true)}>
-                        Afficher
-                      </Button>
-                      <Button type="button" variant="ghost" onClick={() => { setGeneratedMemberLink(null); setMemberLinkOpen(false); }}>
-                        Fermer
-                      </Button>
-                    </div>
-                  </div>
-                ) : null}
                 {teamMembers.map((member) => (
                   <div
                     key={member.id}
@@ -1149,27 +1163,44 @@ startxref
         </form>
       </Modal>
 
-      <Modal open={memberLinkOpen && Boolean(generatedMemberLink)} onClose={() => setMemberLinkOpen(false)} title="Lien activation">
-        {generatedMemberLink ? (
+      <Modal open={isActivationModalOpen && Boolean(generatedActivationLink)} onClose={closeActivationLinkModal} title="Lien d’activation">
+        {selectedMemberForActivation && generatedActivationLink ? (
           <div className="space-y-4">
+            <p className="text-sm text-carbon-300 light:text-carbon-600">
+              Envoyez ce lien au membre pour activer son compte.
+            </p>
             <div className="rounded-2xl border border-gold-300/25 bg-gold-400/10 p-4">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold-200">Membre</p>
-              <p className="mt-1 text-sm text-carbon-200">{generatedMemberLink.email}</p>
+              <p className="mt-2 text-sm font-semibold text-white light:text-carbon-950">
+                {selectedMemberForActivation.full_name || selectedMemberForActivation.email || 'Membre'}
+              </p>
+              <p className="mt-1 break-all text-sm text-carbon-300">{selectedMemberForActivation.email || 'Email non renseigné'}</p>
+              <p className="mt-2 inline-flex rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-carbon-200">
+                {roleFr(selectedMemberForActivation.role)}
+              </p>
             </div>
             <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-carbon-200 light:text-carbon-700">Lien à envoyer</span>
-              <textarea
-                className="form-control min-h-[120px] resize-none break-all"
-                value={generatedMemberLink.link}
+              <span className="mb-2 block text-sm font-semibold text-carbon-200 light:text-carbon-700">Lien activation</span>
+              <input
+                className="form-control w-full text-sm"
+                value={generatedActivationLink}
                 readOnly
                 onFocus={(event) => event.currentTarget.select()}
               />
             </label>
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <Button type="button" variant="secondary" onClick={() => setMemberLinkOpen(false)}>
+              <Button type="button" variant="secondary" onClick={closeActivationLinkModal}>
                 Fermer
               </Button>
-              <Button type="button" icon={<Mail className="h-4 w-4" />} onClick={() => copyActivationLink(generatedMemberLink.link)}>
+              <Button
+                type="button"
+                variant="secondary"
+                icon={<ExternalLink className="h-4 w-4" />}
+                onClick={() => window.open(generatedActivationLink, '_blank', 'noopener,noreferrer')}
+              >
+                Ouvrir le lien
+              </Button>
+              <Button type="button" icon={<Copy className="h-4 w-4" />} onClick={() => copyActivationLink(generatedActivationLink)}>
                 Copier le lien
               </Button>
             </div>
