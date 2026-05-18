@@ -280,9 +280,10 @@ export default function ContractsPage() {
   const [terms, setTerms] = useState(defaultTerms.join('\n'));
   const [generating, setGenerating] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
-  const [isMobilePreview, setIsMobilePreview] = useState(false);
+  const [, setIsMobilePreview] = useState(false);
   const [previewScale, setPreviewScale] = useState(1);
   const [previewMaxHeight, setPreviewMaxHeight] = useState(560);
+  const [logoBroken, setLogoBroken] = useState(false);
 
   const [agencyMeta, setAgencyMeta] = useState<{
     address?: string;
@@ -496,14 +497,18 @@ export default function ContractsPage() {
     };
   }, [contracts]);
 
-  const effectiveLogoUrl = logoPublicUrl || profile?.agency?.logoUrl || null;
+  const effectiveLogoUrl = profile?.agency?.logoUrl || logoPublicUrl || null;
+
+  useEffect(() => {
+    setLogoBroken(false);
+  }, [effectiveLogoUrl]);
 
   const checklist = [
     { label: 'Client sélectionné', ok: Boolean(client.id) },
     { label: 'Véhicule sélectionné', ok: Boolean(vehicle.id) },
     { label: 'Réservation sélectionnée', ok: Boolean(selectedReservation?.id) },
     { label: 'Conditions ajoutées', ok: Boolean(terms.trim()) },
-    { label: 'Logo agence présent', ok: Boolean(effectiveLogoUrl) },
+    { label: 'Logo agence présent', ok: Boolean(effectiveLogoUrl && !logoBroken) },
   ];
 
   const contractFileName = `contract-location-${sanitizeFileName(client.fullName || 'client')}-${sanitizeFileName(vehicle.plate || 'vehicule')}-${new Date().toISOString().slice(0, 10)}.pdf`;
@@ -567,7 +572,7 @@ export default function ContractsPage() {
 
   async function captureContractCanvas(source: HTMLElement) {
     let logoAsset: PdfLogoAsset | null = null;
-    if (effectiveLogoUrl) {
+    if (effectiveLogoUrl && !logoBroken) {
       logoAsset = await loadLogoForPdf(effectiveLogoUrl);
     }
 
@@ -704,28 +709,39 @@ export default function ContractsPage() {
       </div>
 
       <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Contrats générés" value={String(stats.total)} trend="Historique total" icon={FileSignature} />
-        <StatCard label="Brouillons" value={String(stats.drafts)} trend="En préparation" icon={FileText} />
-        <StatCard label="Contrats ce mois" value={String(stats.thisMonth)} trend="Période actuelle" icon={CalendarDays} />
-        <StatCard label="Dernier contrat" value={stats.last} trend="Référence récente" icon={Sparkles} />
+        {[
+          { label: 'Contrats', value: String(stats.total), helper: 'Total généré', icon: FileSignature },
+          { label: 'Brouillons', value: String(stats.drafts), helper: 'En préparation', icon: FileText },
+          { label: 'Ce mois', value: String(stats.thisMonth), helper: 'Période actuelle', icon: CalendarDays },
+          { label: 'Dernier', value: stats.last, helper: 'Référence récente', icon: Sparkles },
+        ].map(({ label, value, helper, icon: Icon }) => (
+          <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] light:bg-white">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-carbon-400">{label}</p>
+              <Icon className="h-4 w-4 text-gold-300" />
+            </div>
+            <p className="mt-2 truncate text-xl font-black text-white light:text-carbon-950">{value}</p>
+            <p className="mt-1 text-xs text-carbon-500">{helper}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[330px_minmax(0,1fr)] 2xl:grid-cols-[340px_minmax(0,1fr)]">
-        <Card className="overflow-hidden p-0 xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)]">
-          <div className="border-b border-white/10 bg-white/[0.035] p-4">
+      <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+        <Card className="overflow-hidden border-white/10 p-0 xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)]">
+          <div className="border-b border-white/10 bg-gradient-to-br from-white/[0.075] to-white/[0.025] p-5">
             <div className="flex items-center gap-3">
-            <div className="rounded-2xl bg-gold-400/10 p-3 text-gold-200">
-              <Wand2 className="h-5 w-5" />
-            </div>
-            <div>
-              <h2 className="font-semibold text-white light:text-carbon-950">Éditeur de contrat</h2>
-              <p className="text-sm leading-5 text-carbon-400">Configurez un document prêt à signer.</p>
-            </div>
+              <div className="rounded-2xl border border-gold-300/20 bg-gold-400/10 p-3 text-gold-200">
+                <Wand2 className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-white light:text-carbon-950">Éditeur de contrat</h2>
+                <p className="text-sm leading-5 text-carbon-400">Configurez un document prêt à signer.</p>
+              </div>
             </div>
           </div>
 
-          <div className="max-h-none space-y-3 overflow-y-auto p-4 xl:max-h-[calc(100vh-17rem)]">
-            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-3.5">
+          <div className="max-h-none space-y-4 overflow-y-auto p-5 xl:max-h-[calc(100vh-18rem)]">
+            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
               <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Modèle</p>
               <SelectField label="Type de modèle" value={template} onChange={(event) => setTemplate(event.target.value)}>
                 {templates.map((item) => <option key={item}>{item}</option>)}
@@ -733,7 +749,7 @@ export default function ContractsPage() {
               <p className="mt-2 text-xs text-carbon-500">Langue: Français · Format: A4 portrait</p>
             </section>
 
-            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-3.5">
+            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
               <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Sélection client / véhicule</p>
               <div className="grid gap-3">
                 <SelectField label="Client" value={clientId} onChange={(event) => setClientId(event.target.value)}>
@@ -745,7 +761,7 @@ export default function ContractsPage() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-3.5">
+            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
               <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Réservation source</p>
               <SelectField label="Réservation" value={reservationId} onChange={(event) => setReservationId(event.target.value)}>
                 {reservations.map((item) => (
@@ -757,7 +773,7 @@ export default function ContractsPage() {
               <p className="mt-2 text-xs text-carbon-500">Le contrat reprend automatiquement les dates, lieux et tarifs.</p>
             </section>
 
-            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-3.5">
+            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
               <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Conditions générales</p>
               <TextAreaField
                 label="Texte des conditions"
@@ -768,7 +784,7 @@ export default function ContractsPage() {
               <p className="mt-2 text-xs text-carbon-500">Laissez ce texte clair et précis. Il sera inclus dans le PDF final.</p>
             </section>
 
-            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-3.5">
+            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
               <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Checklist de complétude</p>
               <div className="grid gap-2">
                 {checklist.map((item) => (
@@ -785,11 +801,11 @@ export default function ContractsPage() {
             </section>
           </div>
 
-          <div className="sticky bottom-0 grid gap-2 border-t border-white/10 bg-carbon-950/95 p-4 backdrop-blur-xl light:bg-white/95">
-            <Button type="button" variant="secondary" onClick={() => notify({ title: 'Aperçu mis à jour', message: 'Le document à droite reflète vos sélections.', type: 'info' })}>
-              Aperçu
-            </Button>
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+          <div className="sticky bottom-0 border-t border-white/10 bg-carbon-950/95 p-5 backdrop-blur-xl light:bg-white/95">
+            <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
+              <Button type="button" variant="secondary" onClick={() => notify({ title: 'Aperçu mis à jour', message: 'Le document à droite reflète vos sélections.', type: 'info' })}>
+                Aperçu
+              </Button>
               <Button type="button" variant="secondary" icon={<RefreshCcw className="h-4 w-4" />} onClick={() => setTerms(defaultTerms.join('\n'))}>
                 Réinitialiser
               </Button>
@@ -800,7 +816,7 @@ export default function ContractsPage() {
           </div>
         </Card>
 
-        <div className="rounded-3xl border border-white/10 bg-[#090d13] p-3 shadow-[0_24px_80px_rgba(0,0,0,.45)] sm:p-5">
+        <div className="min-w-0 rounded-3xl border border-white/10 bg-[#090d13] p-3 shadow-[0_24px_80px_rgba(0,0,0,.45)] sm:p-5">
           <div className="mb-3 flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
             <div className="flex items-center gap-2 text-sm text-carbon-300">
               <FileText className="h-4 w-4 text-gold-200" />
@@ -811,19 +827,26 @@ export default function ContractsPage() {
 
           <div
             ref={previewViewportRef}
-            className="overflow-auto rounded-2xl bg-white p-2 sm:max-h-[78vh] sm:p-6"
-            style={isMobilePreview ? { maxHeight: `${previewMaxHeight}px` } : undefined}
+            className="overflow-auto rounded-2xl bg-[#f4f6f9] p-3 sm:p-6"
+            style={{ maxHeight: `${previewMaxHeight}px` }}
           >
             <div
               className="mx-auto origin-top"
-              style={isMobilePreview ? { width: 794, transform: `scale(${previewScale})`, height: 1123 * previewScale } : undefined}
+              style={{ width: A4_SOURCE_WIDTH, transform: `scale(${previewScale})`, height: A4_SOURCE_HEIGHT * previewScale }}
             >
               <article ref={previewRef} className="mx-auto w-[794px] min-h-[1123px] rounded-xl border border-[#e8e8e8] bg-white px-8 py-7 text-[#1c2330] shadow-[0_16px_40px_rgba(15,23,42,.12)]">
               <header className="flex items-start justify-between gap-5 border-b border-[#e8edf4] pb-4">
                 <div className="flex items-start gap-3">
-                  <div className="grid h-[70px] w-[70px] shrink-0 place-items-center overflow-hidden rounded-xl border border-[#dce4ef] bg-white p-1.5 shadow-sm">
-                    {logoPublicUrl ? (
-                      <img src={logoPublicUrl} alt="Logo agence" crossOrigin="anonymous" data-pdf-logo="agency" className="h-full w-full object-contain" />
+                  <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-[#dce4ef] bg-white p-1.5 shadow-sm">
+                    {effectiveLogoUrl && !logoBroken ? (
+                      <img
+                        src={effectiveLogoUrl}
+                        alt={`${profile?.agency?.name || 'Agence'} logo`}
+                        crossOrigin="anonymous"
+                        data-pdf-logo="agency"
+                        className="h-full w-full object-contain"
+                        onError={() => setLogoBroken(true)}
+                      />
                     ) : (
                       <Building2 className="h-7 w-7 text-[#9aa3b2]" />
                     )}
