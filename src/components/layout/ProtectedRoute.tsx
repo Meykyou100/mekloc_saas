@@ -73,7 +73,7 @@ export default function ProtectedRoute({
     return requireSuperAdmin ? <Navigate to="/auth" replace state={{ from: location }} /> : <Outlet />;
   }
 
-  if (loading) {
+  if (loading && !session && !profile) {
     return <RouteLoadingState />;
   }
 

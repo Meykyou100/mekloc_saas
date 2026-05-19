@@ -1,5 +1,5 @@
-import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { Navigate, Route, Routes } from 'react-router-dom';
+import { motion } from 'framer-motion';
 import { Suspense, lazy, useEffect } from 'react';
 import type { ComponentType } from 'react';
 import AppLayout from './components/layout/AppLayout';
@@ -89,8 +89,6 @@ function AppLoadingFallback() {
 }
 
 export default function App() {
-  const location = useLocation();
-
   useEffect(() => {
     (window as Window & { __MEKLOC_APP_READY__?: boolean }).__MEKLOC_APP_READY__ = true;
     // Warm frequently used private pages to make route switching feel instant.
@@ -107,8 +105,7 @@ export default function App() {
   return (
     <>
       <Suspense fallback={<AppLoadingFallback />}>
-        <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
+          <Routes>
           <Route
             path="/"
             element={
@@ -199,7 +196,6 @@ export default function App() {
           <Route path="/login" element={<Navigate to="/auth" replace />} />
           <Route path="*" element={<NotFoundPage />} />
           </Routes>
-        </AnimatePresence>
       </Suspense>
       <ToastViewport />
     </>
