@@ -104,12 +104,17 @@ function cellClass(state: CellState) {
   return 'bg-emerald-500/[0.08] hover:bg-emerald-500/[0.14]';
 }
 
+function isArchivedVehicle(vehicle: { archivedAt?: string; status: string }) {
+  return Boolean(vehicle.archivedAt || vehicle.status.toLowerCase() === 'archived');
+}
+
 export default function CalendarPage() {
   const { vehicles, reservations, maintenance, loading } = useData();
   const navigate = useNavigate();
   const [daysToShow, setDaysToShow] = useState(14);
   const [windowStart, setWindowStart] = useState(() => toDateOnly(new Date()));
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const todayIso = isoDate(new Date());
 
@@ -121,12 +126,19 @@ export default function CalendarPage() {
   const firstDayIso = days[0] ? isoDate(days[0]) : todayIso;
   const lastDayIso = days[days.length - 1] ? isoDate(days[days.length - 1]) : todayIso;
   const timelineWidth = days.length * DAY_COL_WIDTH;
-  const hasData = vehicles.length > 0;
+  const archivedVehicleCount = vehicles.filter(isArchivedVehicle).length;
+  const visibleVehicles = useMemo(
+    () => vehicles.filter((vehicle) => (showArchived ? isArchivedVehicle(vehicle) : !isArchivedVehicle(vehicle))),
+    [showArchived, vehicles],
+  );
+  const visibleVehicleIds = useMemo(() => new Set(visibleVehicles.map((vehicle) => vehicle.id)), [visibleVehicles]);
+  const hasData = visibleVehicles.length > 0;
 
   const reservationBlocksByVehicle = useMemo(() => {
     const grouped = new Map<string, CalendarBlock[]>();
     reservations
       .filter((reservation) => reservation.status === 'Confirmed' || reservation.status === 'Active')
+      .filter((reservation) => visibleVehicleIds.has(reservation.vehicleId))
       .forEach((reservation) => {
         if (reservation.returnDate < firstDayIso || reservation.pickupDate > lastDayIso) return;
         const startIndex = Math.max(0, dayDiff(windowStart, new Date(reservation.pickupDate)));
@@ -142,18 +154,19 @@ export default function CalendarPage() {
     });
 
     return grouped;
-  }, [days.length, firstDayIso, lastDayIso, reservations, windowStart]);
+  }, [days.length, firstDayIso, lastDayIso, reservations, visibleVehicleIds, windowStart]);
 
   const maintenanceDatesByVehicle = useMemo(() => {
     const grouped = new Map<string, Set<string>>();
     maintenance.forEach((item) => {
+      if (!visibleVehicleIds.has(item.vehicleId)) return;
       const dateIso = item.nextServiceDate?.slice(0, 10);
       if (!dateIso) return;
       if (!grouped.has(item.vehicleId)) grouped.set(item.vehicleId, new Set());
       grouped.get(item.vehicleId)!.add(dateIso);
     });
     return grouped;
-  }, [maintenance]);
+  }, [maintenance, visibleVehicleIds]);
 
   const dateRangeLabel = useMemo(() => {
     if (!days.length) return 'Période actuelle';
@@ -224,6 +237,17 @@ export default function CalendarPage() {
               </button>
             ))}
           </div>
+          {archivedVehicleCount > 0 ? (
+            <button
+              type="button"
+              className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+                showArchived ? 'border-gold-300/40 bg-gold-400 text-carbon-950' : 'border-white/10 bg-white/[0.04] text-carbon-300 hover:bg-white/10'
+              }`}
+              onClick={() => setShowArchived((current) => !current)}
+            >
+              Afficher archivés
+            </button>
+          ) : null}
         </div>
 
         <div className="grid gap-2 rounded-xl border border-white/10 bg-carbon-950/55 p-3 text-xs sm:grid-cols-5 sm:text-sm">
@@ -296,13 +320,13 @@ export default function CalendarPage() {
                 </div>
               </div>
 
-              {vehicles.map((vehicle, rowIndex) => {
+              {visibleVehicles.map((vehicle, rowIndex) => {
                 const blocks = reservationBlocksByVehicle.get(vehicle.id) || [];
                 return (
                   <div key={vehicle.id} className="flex">
                     <div
                       className={`sticky left-0 z-10 shrink-0 border border-t-0 border-white/10 bg-carbon-950/98 px-4 py-3 backdrop-blur ${
-                        rowIndex === vehicles.length - 1 ? 'rounded-bl-2xl' : ''
+                        rowIndex === visibleVehicles.length - 1 ? 'rounded-bl-2xl' : ''
                       }`}
                       style={{ width: VEHICLE_COL_WIDTH, minHeight: ROW_HEIGHT }}
                     >
@@ -315,13 +339,13 @@ export default function CalendarPage() {
                         {vehicle.city || 'Ville non renseignée'}
                       </div>
                       <div className="mt-2">
-                        <Badge>{vehicle.status}</Badge>
+                        <Badge>{isArchivedVehicle(vehicle) ? 'Archivé' : vehicle.status}</Badge>
                       </div>
                     </div>
 
                     <div
                       className={`relative border border-l-0 border-t-0 border-white/10 ${
-                        rowIndex === vehicles.length - 1 ? 'rounded-br-2xl' : ''
+                        rowIndex === visibleVehicles.length - 1 ? 'rounded-br-2xl' : ''
                       }`}
                       style={{ width: timelineWidth, minHeight: ROW_HEIGHT }}
                     >
