@@ -3,8 +3,7 @@ import { Suspense, useState } from 'react';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import { CalendarDays, Car, LayoutDashboard, Settings, Users } from 'lucide-react';
-import { NavLink, useLocation } from 'react-router-dom';
-import { AnimatePresence, motion } from 'framer-motion';
+import { NavLink } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 
 function PageLoadingHint() {
@@ -19,7 +18,6 @@ function PageLoadingHint() {
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const location = useLocation();
   const { loading: dataLoading } = useData();
 
   return (
@@ -37,17 +35,7 @@ export default function AppLayout() {
             <div className="h-full w-1/3 animate-pulse rounded-full bg-gold-300" />
           </div>
           <Suspense fallback={<PageLoadingHint />}>
-            <AnimatePresence mode="popLayout">
-              <motion.div
-                key={location.pathname}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -3 }}
-                transition={{ duration: 0.14, ease: 'easeOut' }}
-              >
-                <Outlet />
-              </motion.div>
-            </AnimatePresence>
+            <Outlet />
           </Suspense>
         </main>
       </div>
