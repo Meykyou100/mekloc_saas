@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CalendarClock, CheckCircle2, ClipboardList, ShieldAlert, Trash2, Wrench } from 'lucide-react';
+import { CalendarClock, Camera, Car, CheckCircle2, ClipboardList, ImagePlus, ShieldAlert, Trash2, Wrench } from 'lucide-react';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -13,6 +13,12 @@ import { formatMAD, type MaintenanceItem } from '../data/mockData';
 
 const SERVICE_TYPES: MaintenanceItem['serviceType'][] = ['Vidange', 'Assurance', 'Visite technique', 'Pneus', 'Freins', 'Réparation', 'Autre'];
 const STATUS_VALUES: MaintenanceItem['status'][] = ['Scheduled', 'Done', 'Due soon', 'Overdue'];
+const statusLabels: Record<MaintenanceItem['status'], string> = {
+  Scheduled: 'Planifié',
+  Done: 'Terminé',
+  'Due soon': 'Bientôt dû',
+  Overdue: 'En retard',
+};
 type MaintenanceForm = Omit<MaintenanceItem, 'id' | 'vehicle' | 'currentMileage' | 'mileageAtService' | 'nextServiceMileage' | 'cost'> & {
   currentMileage: string;
   mileageAtService: string;
@@ -63,6 +69,7 @@ export default function MaintenancePage() {
   const oilReminders = smartItems.filter((i) => i.serviceType === 'Vidange' && i.status !== 'Done').length;
   const inspectionReminders = smartItems.filter((i) => i.serviceType === 'Visite technique' && i.status !== 'Done').length;
   const monthlyCost = smartItems.filter((i) => i.lastServiceDate.startsWith(monthKey)).reduce((a, b) => a + b.cost, 0);
+  const selectedFormVehicle = vehicles.find((v) => v.id === form.vehicleId);
 
   function openCreate() {
     setEditing(null);
@@ -83,23 +90,36 @@ export default function MaintenancePage() {
   }
   async function saveRecord() {
     const vehicle = vehicles.find((v) => v.id === form.vehicleId);
-    if (!vehicle) return notify({ title: 'Vehicle required', message: 'Please select a vehicle.', type: 'warning' });
+    if (!vehicle) return notify({ title: 'Véhicule obligatoire', message: 'Veuillez sélectionner un véhicule.', type: 'warning' });
+    if (!form.serviceType) return notify({ title: 'Service obligatoire', message: 'Veuillez choisir un type de service.', type: 'warning' });
+    if (!form.lastServiceDate || !form.nextServiceDate) return notify({ title: 'Dates obligatoires', message: 'Veuillez renseigner les dates de service.', type: 'warning' });
+    if (new Date(form.nextServiceDate).getTime() < new Date(form.lastServiceDate).getTime()) {
+      return notify({ title: 'Dates invalides', message: 'La prochaine échéance doit être après la dernière intervention.', type: 'warning' });
+    }
+    const cost = form.cost.trim() === '' ? Number.NaN : Number(form.cost);
+    if (!Number.isFinite(cost) || cost <= 0) return notify({ title: 'Coût invalide', message: 'Veuillez saisir un coût positif.', type: 'warning' });
+    const currentMileage = form.currentMileage.trim() === '' ? vehicle.mileage : Number(form.currentMileage);
+    const mileageAtService = form.mileageAtService.trim() === '' ? currentMileage : Number(form.mileageAtService);
+    const nextServiceMileage = form.nextServiceMileage.trim() === '' ? mileageAtService : Number(form.nextServiceMileage);
+    if (![currentMileage, mileageAtService, nextServiceMileage].every((value) => Number.isFinite(value) && value >= 0)) {
+      return notify({ title: 'Kilométrage invalide', message: 'Veuillez vérifier les valeurs de kilométrage.', type: 'warning' });
+    }
     const payload: MaintenanceItem = {
       id: editing?.id || `mnt-${Date.now()}`,
       vehicle: `${vehicle.brand} ${vehicle.model}`,
       ...form,
-      currentMileage: form.currentMileage.trim() === '' ? 0 : Number(form.currentMileage),
-      mileageAtService: form.mileageAtService.trim() === '' ? 0 : Number(form.mileageAtService),
-      nextServiceMileage: form.nextServiceMileage.trim() === '' ? 0 : Number(form.nextServiceMileage),
-      cost: form.cost.trim() === '' ? 0 : Number(form.cost),
+      currentMileage,
+      mileageAtService,
+      nextServiceMileage,
+      cost,
       plate: vehicle.plate,
     };
     try {
       if (editing) await updateMaintenance(payload); else await createMaintenance(payload);
-      notify({ title: editing ? 'Record updated' : 'Record created', message: 'Maintenance record saved successfully.', type: 'success' });
+      notify({ title: editing ? 'Entretien mis à jour' : 'Entretien ajouté', message: 'La fiche entretien a été enregistrée.', type: 'success' });
       setOpen(false);
     } catch (error) {
-      notify({ title: 'Action failed', message: error instanceof Error ? error.message : 'Try again.', type: 'warning' });
+      notify({ title: 'Action impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
     }
   }
 
@@ -133,19 +153,68 @@ export default function MaintenancePage() {
       </div>)}</div>}
     </Card>
     <Modal open={open} onClose={() => setOpen(false)} title={editing ? 'Modifier l’entretien' : 'Ajouter un entretien'}>
-      <div className="grid gap-4 md:grid-cols-2">
-        <SelectField label="Véhicule" value={form.vehicleId} onChange={(e) => setForm((c) => ({ ...c, vehicleId: e.target.value }))}><option value="">Choisir un véhicule</option>{vehicles.map((v) => <option key={v.id} value={v.id}>{v.brand} {v.model} · {v.plate}</option>)}</SelectField>
-        <SelectField label="Service type" value={form.serviceType} onChange={(e) => setForm((c) => ({ ...c, serviceType: e.target.value as MaintenanceItem['serviceType'] }))}>{SERVICE_TYPES.map((s) => <option key={s} value={s}>{s}</option>)}</SelectField>
-        <Field label="Last service date" type="date" value={form.lastServiceDate} onChange={(e) => setForm((c) => ({ ...c, lastServiceDate: e.target.value }))} />
-        <Field label="Next service date" type="date" value={form.nextServiceDate} onChange={(e) => setForm((c) => ({ ...c, nextServiceDate: e.target.value }))} />
-        <Field label="Current mileage" type="number" value={form.currentMileage} onChange={(e) => setForm((c) => ({ ...c, currentMileage: e.target.value }))} />
-        <Field label="Mileage at service" type="number" value={form.mileageAtService} onChange={(e) => setForm((c) => ({ ...c, mileageAtService: e.target.value }))} />
-        <Field label="Next service mileage" type="number" value={form.nextServiceMileage} onChange={(e) => setForm((c) => ({ ...c, nextServiceMileage: e.target.value }))} />
-        <Field label="Cost (MAD)" type="number" value={form.cost} onChange={(e) => setForm((c) => ({ ...c, cost: e.target.value }))} />
-        <Field label="Garage / provider" value={form.providerName} onChange={(e) => setForm((c) => ({ ...c, providerName: e.target.value }))} />
-        <SelectField label="Status" value={form.status} onChange={(e) => setForm((c) => ({ ...c, status: e.target.value as MaintenanceItem['status'] }))}>{STATUS_VALUES.map((s) => <option key={s} value={s}>{s}</option>)}</SelectField>
-        <div className="md:col-span-2"><TextAreaField label="Notes" value={form.notes} onChange={(e) => setForm((c) => ({ ...c, notes: e.target.value }))} /></div>
-        <div className="md:col-span-2"><Field label="Facture/photo (URL)" value={form.invoiceUrl || ''} onChange={(e) => setForm((c) => ({ ...c, invoiceUrl: e.target.value }))} /></div>
+      <div className="grid max-h-[72vh] gap-4 overflow-y-auto pr-1">
+        <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gold-200">Véhicule & service</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <SelectField label="Véhicule *" value={form.vehicleId} onChange={(e) => setForm((c) => ({ ...c, vehicleId: e.target.value }))}><option value="">Choisir un véhicule</option>{vehicles.map((v) => <option key={v.id} value={v.id}>{v.brand} {v.model} · {v.plate}</option>)}</SelectField>
+            <SelectField label="Type de service *" value={form.serviceType} onChange={(e) => setForm((c) => ({ ...c, serviceType: e.target.value as MaintenanceItem['serviceType'] }))}>{SERVICE_TYPES.map((s) => <option key={s} value={s}>{s}</option>)}</SelectField>
+          </div>
+          {selectedFormVehicle ? (
+            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/15 p-3">
+              <div className="grid h-14 w-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-white/[0.04]">
+                {selectedFormVehicle.imageUrl ? <img src={selectedFormVehicle.imageUrl} alt={`${selectedFormVehicle.brand} ${selectedFormVehicle.model}`} className="h-full w-full object-cover" /> : <Car className="h-6 w-6 text-carbon-400" />}
+              </div>
+              <div className="min-w-0">
+                <p className="truncate font-semibold text-white light:text-carbon-950">{selectedFormVehicle.brand} {selectedFormVehicle.model}</p>
+                <p className="mt-1 text-sm text-carbon-400">{selectedFormVehicle.plate} · {selectedFormVehicle.mileage.toLocaleString()} km</p>
+              </div>
+              <Badge>{selectedFormVehicle.status}</Badge>
+            </div>
+          ) : null}
+        </section>
+
+        <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gold-200">Dates & kilométrage</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Dernière intervention *" type="date" value={form.lastServiceDate} onChange={(e) => setForm((c) => ({ ...c, lastServiceDate: e.target.value }))} />
+            <Field label="Prochaine échéance *" type="date" value={form.nextServiceDate} onChange={(e) => setForm((c) => ({ ...c, nextServiceDate: e.target.value }))} />
+            <Field label="Kilométrage actuel" type="number" min="0" value={form.currentMileage} onChange={(e) => setForm((c) => ({ ...c, currentMileage: e.target.value }))} />
+            <Field label="Kilométrage intervention" type="number" min="0" value={form.mileageAtService} onChange={(e) => setForm((c) => ({ ...c, mileageAtService: e.target.value }))} />
+            <Field label="Prochain kilométrage" type="number" min="0" value={form.nextServiceMileage} onChange={(e) => setForm((c) => ({ ...c, nextServiceMileage: e.target.value }))} />
+            <SelectField label="Statut" value={form.status} onChange={(e) => setForm((c) => ({ ...c, status: e.target.value as MaintenanceItem['status'] }))}>{STATUS_VALUES.map((s) => <option key={s} value={s}>{statusLabels[s]}</option>)}</SelectField>
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gold-200">Coût & garage</h3>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Field label="Coût (MAD) *" type="number" min="0" step="0.01" value={form.cost} onChange={(e) => setForm((c) => ({ ...c, cost: e.target.value }))} />
+            <Field label="Garage / prestataire" value={form.providerName} onChange={(e) => setForm((c) => ({ ...c, providerName: e.target.value }))} />
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gold-200">Facture / photo</h3>
+          <div className="rounded-2xl border border-dashed border-white/20 bg-black/15 p-4">
+            <div className="mb-3 flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-gold-400/15 text-gold-200">
+                <ImagePlus className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-semibold text-white light:text-carbon-950">Justificatif optionnel</p>
+                <p className="text-xs text-carbon-400">Ajoutez un lien vers une facture ou une photo déjà hébergée.</p>
+              </div>
+              <Camera className="ml-auto h-5 w-5 text-carbon-500" />
+            </div>
+            <Field label="Lien facture ou photo" value={form.invoiceUrl || ''} placeholder="https://..." onChange={(e) => setForm((c) => ({ ...c, invoiceUrl: e.target.value }))} />
+          </div>
+        </section>
+
+        <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gold-200">Notes</h3>
+          <TextAreaField label="Observations" value={form.notes} onChange={(e) => setForm((c) => ({ ...c, notes: e.target.value }))} />
+        </section>
       </div>
       <div className="mt-5 flex justify-end gap-2"><Button variant="ghost" onClick={() => setOpen(false)}>Annuler</Button><Button icon={<Wrench className="h-4 w-4" />} onClick={saveRecord}>{editing ? 'Mettre à jour' : 'Enregistrer'}</Button></div>
     </Modal>
