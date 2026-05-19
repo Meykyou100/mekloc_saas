@@ -1,5 +1,6 @@
-import { Download, MessageCircle, Plus, Search } from 'lucide-react';
+import { Download, MessageCircle, Plus, Search, Trash2 } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import jsPDF from 'jspdf';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -40,8 +41,35 @@ function getPaidAmount(payment: Payment) {
   return payment.status === 'Pending' || payment.status === 'Late' ? 0 : Math.max(0, payment.amount);
 }
 
+function sanitizeFileName(value: string) {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'paiement';
+}
+
+function methodFr(method: Payment['method']) {
+  if (method === 'Bank transfer') return 'Virement bancaire';
+  if (method === 'Card') return 'Carte';
+  return 'Espèces';
+}
+
+async function loadImageDataUrl(url?: string) {
+  if (!url) return null;
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('Logo illisible.'));
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 export default function PaymentsPage() {
-  const { payments, reservations, vehicles, clients, createPayment, updatePayment } = useData();
+  const { payments, reservations, vehicles, clients, createPayment, updatePayment, deletePayment } = useData();
   const { notify } = useApp();
   const { profile } = useAuth();
   const notificationPreferences = getNotificationPreferences(profile?.agency?.settings);
@@ -241,49 +269,133 @@ export default function PaymentsPage() {
     }
   }
 
-  function downloadReceipt(invoice: string, total: number, paid: number, remaining: number) {
-    const escapePdf = (value: string) => value.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
-    const rows = [
-      'FACTURE / REÇU DE PAIEMENT',
-      `Facture: ${invoice}`,
-      `Date: ${new Date().toLocaleDateString('fr-MA')}`,
-      `Montant total: ${formatMAD(total)}`,
-      `Montant payé: ${formatMAD(paid)}`,
-      `Reste à payer: ${formatMAD(remaining)}`,
-      'Agence: MekLoc',
-      'Signature agence: _____________________',
-      'Contrat généré par MekLoc',
+  async function handleDeletePayment(payment: Payment) {
+    if (!window.confirm(`Supprimer le paiement ${payment.invoice} ?`)) return;
+    try {
+      await deletePayment(payment.id);
+      notify({
+        title: 'Paiement supprimé',
+        message: payment.reservationId ? 'Le paiement a été supprimé. Le solde de la réservation est recalculé.' : 'Le paiement a été supprimé.',
+        type: 'success',
+      });
+    } catch (error) {
+      if (import.meta.env.DEV) console.error('Payment delete failed', error);
+      notify({ title: 'Suppression impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
+    }
+  }
+
+  async function downloadReceipt(item: (typeof enriched)[number]) {
+    const agency = profile?.agency;
+    const agencyName = agency?.name || 'MekLoc';
+    const agencyPhone = agency?.phone || profile?.phone || '';
+    const agencyEmail = agency?.email || profile?.email || '';
+    const agencyAddress = agency?.address || '';
+    const logoDataUrl = await loadImageDataUrl(agency?.logoUrl || undefined);
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const margin = 48;
+    const right = pageWidth - margin;
+
+    pdf.setFillColor(18, 20, 24);
+    pdf.rect(0, 0, pageWidth, 118, 'F');
+    pdf.setFillColor(212, 160, 23);
+    pdf.rect(0, 116, pageWidth, 3, 'F');
+
+    if (logoDataUrl) {
+      pdf.setFillColor(255, 255, 255);
+      pdf.roundedRect(margin, 26, 58, 58, 10, 10, 'F');
+      pdf.addImage(logoDataUrl, 'PNG', margin + 8, 34, 42, 42, undefined, 'FAST');
+    } else {
+      pdf.setFillColor(212, 160, 23);
+      pdf.roundedRect(margin, 26, 58, 58, 10, 10, 'F');
+      pdf.setTextColor(18, 20, 24);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(24);
+      pdf.text('M', margin + 22, 63);
+    }
+
+    pdf.setTextColor(255, 255, 255);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(18);
+    pdf.text(agencyName, margin + 74, 48);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    [agencyAddress, agencyPhone, agencyEmail].filter(Boolean).forEach((line, index) => {
+      pdf.text(String(line), margin + 74, 64 + index * 13);
+    });
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(22);
+    pdf.text('REÇU DE PAIEMENT', right, 50, { align: 'right' });
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(`N° ${item.invoice}`, right, 70, { align: 'right' });
+
+    let y = 158;
+    pdf.setTextColor(18, 20, 24);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    pdf.text('Informations paiement', margin, y);
+    pdf.text('Résumé financier', 330, y);
+    y += 18;
+
+    const leftRows = [
+      ['Date paiement', item.dueDate || new Date().toISOString().slice(0, 10)],
+      ['Client', item.client],
+      ['Véhicule', item.vehicleLabel],
+      ['Réservation', item.reservationCode],
+      ['Méthode', methodFr(item.method)],
     ];
-    const stream = rows
-      .map((line, i) => `BT /F1 ${i === 0 ? 16 : 11} Tf 50 ${780 - i * 24} Td (${escapePdf(line)}) Tj ET`)
-      .join('\n');
-    const pdf = `%PDF-1.4
-1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
-2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
-3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj
-4 0 obj << /Length ${stream.length} >> stream
-${stream}
-endstream endobj
-5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
-xref
-0 6
-0000000000 65535 f
-0000000010 00000 n
-0000000060 00000 n
-0000000117 00000 n
-0000000243 00000 n
-000000${(260 + stream.length).toString().padStart(10, '0')} 00000 n
-trailer << /Root 1 0 R /Size 6 >>
-startxref
-0
-%%EOF`;
-    const blob = new Blob([pdf], { type: 'application/pdf' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `facture-${invoice}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const rightRows = [
+      ['Montant payé', formatMAD(item.paid)],
+      ['Total', formatMAD(item.total)],
+      ['Déjà payé', formatMAD(item.paid)],
+      ['Reste à payer', formatMAD(item.remaining)],
+      ['Statut', item.statusFr],
+    ];
+    const drawRows = (rows: string[][], x: number, startY: number) => {
+      rows.forEach(([label, value], index) => {
+        const rowY = startY + index * 30;
+        pdf.setFillColor(index % 2 === 0 ? 248 : 255, index % 2 === 0 ? 248 : 255, index % 2 === 0 ? 248 : 255);
+        pdf.roundedRect(x, rowY - 13, 220, 24, 4, 4, 'F');
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        pdf.setTextColor(105, 112, 122);
+        pdf.text(label, x + 10, rowY - 1);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(10);
+        pdf.setTextColor(18, 20, 24);
+        pdf.text(String(value || '—').slice(0, 34), x + 90, rowY - 1);
+      });
+    };
+    drawRows(leftRows, margin, y);
+    drawRows(rightRows, 330, y);
+
+    y = 370;
+    pdf.setFillColor(250, 247, 238);
+    pdf.roundedRect(margin, y, pageWidth - margin * 2, 86, 8, 8, 'F');
+    pdf.setTextColor(120, 88, 10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(12);
+    pdf.text('Montant encaissé', margin + 18, y + 30);
+    pdf.setTextColor(18, 20, 24);
+    pdf.setFontSize(24);
+    pdf.text(formatMAD(item.paid), margin + 18, y + 60);
+    pdf.setFontSize(11);
+    pdf.text(`Reste: ${formatMAD(item.remaining)}`, right - 18, y + 60, { align: 'right' });
+
+    y = 520;
+    pdf.setDrawColor(190, 190, 190);
+    pdf.roundedRect(margin, y, 210, 90, 6, 6);
+    pdf.roundedRect(right - 210, y, 210, 90, 6, 6);
+    pdf.setTextColor(105, 112, 122);
+    pdf.setFontSize(9);
+    pdf.text('Signature client', margin + 16, y + 24);
+    pdf.text('Signature / cachet agence', right - 194, y + 24);
+
+    pdf.setTextColor(105, 112, 122);
+    pdf.setFontSize(8);
+    pdf.text('Document généré par MekLoc - Smart Rental Management System', pageWidth / 2, 790, { align: 'center' });
+    pdf.save(`recu-paiement-${sanitizeFileName(item.invoice || item.id)}.pdf`);
   }
 
   function sendWhatsappReminder(item: { client: string; clientPhone?: string; vehicleLabel: string; remaining: number }) {
@@ -354,7 +466,7 @@ startxref
               {filtered.map((item) => (
                 <tr key={item.id} className="hover:bg-white/[0.03]">
                   <td className="px-5 py-4 font-semibold">{item.invoice}</td><td className="px-5 py-4">{item.client}</td><td className="px-5 py-4">{item.vehicleLabel}</td><td className="px-5 py-4">{item.reservationCode}</td><td className="px-5 py-4">{formatMAD(item.total)}</td><td className="px-5 py-4">{formatMAD(item.paid)}</td><td className="px-5 py-4">{formatMAD(item.remaining)}</td><td className="px-5 py-4">{item.dueDate}</td><td className="px-5 py-4">{item.method}</td><td className="px-5 py-4"><Badge>{item.statusFr}</Badge></td>
-                  <td className="px-5 py-4"><div className="flex gap-2"><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => notify({ title: 'Détail facture', message: `${item.invoice} · ${formatMAD(item.total)}`, type: 'info' })}>Voir</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => setModalOpen(true)}>Ajouter paiement</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => downloadReceipt(item.invoice, item.total, item.paid, item.remaining)}>Télécharger reçu</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" disabled={!notificationPreferences.paymentReminder || !item.clientPhone} onClick={() => sendWhatsappReminder(item)}>{!notificationPreferences.paymentReminder ? 'WhatsApp désactivé' : item.clientPhone ? 'Envoyer rappel' : 'Téléphone manquant'}</Button></div></td>
+                  <td className="px-5 py-4"><div className="flex flex-wrap gap-2"><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => notify({ title: 'Détail facture', message: `${item.invoice} · ${formatMAD(item.total)}`, type: 'info' })}>Voir</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => setModalOpen(true)}>Ajouter paiement</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => downloadReceipt(item)}>Télécharger reçu</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" disabled={!notificationPreferences.paymentReminder || !item.clientPhone} onClick={() => sendWhatsappReminder(item)}>{!notificationPreferences.paymentReminder ? 'WhatsApp désactivé' : item.clientPhone ? 'Envoyer rappel' : 'Téléphone manquant'}</Button><Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => handleDeletePayment(item)}>Supprimer</Button></div></td>
                 </tr>
               ))}
             </tbody>
@@ -372,7 +484,7 @@ startxref
               <p>Total: <strong>{formatMAD(item.total)}</strong></p><p>Payé: <strong>{formatMAD(item.paid)}</strong></p><p>Reste: <strong>{formatMAD(item.remaining)}</strong></p><p>Échéance: <strong>{item.dueDate}</strong></p>
             </div>
             <div className="mt-3 h-2 rounded-full bg-white/10"><div className={`h-2 rounded-full ${item.statusFr === 'En retard' ? 'bg-rose-400' : item.statusFr === 'Partiel' ? 'bg-gold-400' : 'bg-mint-400'}`} style={{ width: `${item.progress}%` }} /></div>
-            <div className="mt-3 grid grid-cols-2 gap-2"><Button variant="secondary" className="h-9 text-xs" onClick={() => downloadReceipt(item.invoice, item.total, item.paid, item.remaining)}>Télécharger reçu</Button><Button variant="secondary" className="h-9 text-xs" disabled={!notificationPreferences.paymentReminder || !item.clientPhone} onClick={() => sendWhatsappReminder(item)}>{!notificationPreferences.paymentReminder ? 'WhatsApp désactivé' : item.clientPhone ? 'Envoyer rappel' : 'Téléphone manquant'}</Button></div>
+            <div className="mt-3 grid grid-cols-2 gap-2"><Button variant="secondary" className="h-9 text-xs" onClick={() => downloadReceipt(item)}>Télécharger reçu</Button><Button variant="secondary" className="h-9 text-xs" disabled={!notificationPreferences.paymentReminder || !item.clientPhone} onClick={() => sendWhatsappReminder(item)}>{!notificationPreferences.paymentReminder ? 'WhatsApp désactivé' : item.clientPhone ? 'Envoyer rappel' : 'Téléphone manquant'}</Button><Button variant="danger" className="col-span-2 h-9 text-xs" icon={<Trash2 className="h-4 w-4" />} onClick={() => handleDeletePayment(item)}>Supprimer</Button></div>
           </Card>
         ))}
       </div>
