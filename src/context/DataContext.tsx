@@ -334,6 +334,15 @@ function toVehicleRow(vehicle: Vehicle, agencyId: string, withImage = true) {
   };
 }
 
+function getMissingColumnName(error: Error | null) {
+  const message = error?.message || '';
+  return (
+    message.match(/Could not find the '([^']+)' column/i)?.[1] ||
+    message.match(/column ["']?([a-zA-Z0-9_]+)["']? does not exist/i)?.[1] ||
+    null
+  );
+}
+
 function mapClient(row: ClientRow): Client {
   return {
     id: row.id,
@@ -787,25 +796,29 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }
         let data: unknown = null;
         let error: Error | null = null;
-        {
+        const payload = toVehicleRow(vehicle, agencyId!, true) as Record<string, unknown>;
+        for (let attempt = 0; attempt < 8; attempt += 1) {
           const result = await supabase!
             .from('vehicles')
-            .update(toVehicleRow(vehicle, agencyId!, true))
+            .update(payload)
             .eq('id', vehicle.id)
             .select('*')
             .single();
           data = result.data;
           error = result.error as Error | null;
-        }
-        if (error && /image_(url|path)/i.test(error.message || '')) {
-          const fallback = await supabase!
-            .from('vehicles')
-            .update(toVehicleRow(vehicle, agencyId!, false))
-            .eq('id', vehicle.id)
-            .select('*')
-            .single();
-          data = fallback.data;
-          error = fallback.error as Error | null;
+          if (!error) break;
+          if (import.meta.env.DEV) console.error('Supabase vehicle update failed', { vehicleId: vehicle.id, error, payload });
+          const missingColumn = getMissingColumnName(error);
+          if (missingColumn && missingColumn in payload) {
+            delete payload[missingColumn];
+            continue;
+          }
+          if (/image_(url|path)/i.test(error.message || '')) {
+            delete payload.image_url;
+            delete payload.image_path;
+            continue;
+          }
+          break;
         }
         if (error) throw error;
         const nextVehicle = mapVehicle(data as VehicleRow);

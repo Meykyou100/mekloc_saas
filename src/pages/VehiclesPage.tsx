@@ -279,6 +279,7 @@ export default function VehiclesPage() {
         type: 'success',
       });
     } catch (error) {
+      if (import.meta.env.DEV) console.error('Vehicle save failed', error);
       notify({
         title: 'Enregistrement impossible',
         message: error instanceof Error ? error.message : 'Réessayez.',
