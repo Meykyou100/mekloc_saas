@@ -101,6 +101,8 @@ export type Reservation = {
   vehicleId: string;
   pickupDate: string;
   returnDate: string;
+  pickupTime?: string;
+  returnTime?: string;
   dailyPrice: number;
   deposit: number;
   totalAmount?: number;

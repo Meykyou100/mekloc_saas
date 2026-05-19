@@ -466,6 +466,8 @@ export default function ContractsPage() {
 
   const pickupDate = selectedReservation?.pickupDate || '';
   const returnDate = selectedReservation?.returnDate || '';
+  const pickupTime = selectedReservation?.pickupTime || '';
+  const returnTime = selectedReservation?.returnTime || '';
   const rentalDays = getDiffDays(pickupDate, returnDate);
   const totalAmount = selectedReservation?.totalAmount || vehicle.dailyPrice * rentalDays;
   const deposit = selectedReservation?.deposit ?? 0;
@@ -766,7 +768,7 @@ export default function ContractsPage() {
               <SelectField label="Réservation" value={reservationId} onChange={(event) => setReservationId(event.target.value)}>
                 {reservations.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.id} · {item.client} · {item.pickupDate} → {item.returnDate}
+                    {item.id} · {item.client} · {item.pickupDate}{item.pickupTime ? ` ${item.pickupTime}` : ''} → {item.returnDate}{item.returnTime ? ` ${item.returnTime}` : ''}
                   </option>
                 ))}
               </SelectField>
@@ -924,8 +926,8 @@ export default function ContractsPage() {
                     ['Date de départ', formatDateFr(pickupDate)],
                     ['Date de retour', formatDateFr(returnDate)],
                     ['Retour réel', '—'],
-                    ['Heure départ', '—'],
-                    ['Heure retour', '—'],
+                    ['Heure départ', pickupTime || '—'],
+                    ['Heure retour', returnTime || '—'],
                     ['Lieu départ', selectedReservation?.pickupLocation || 'Non renseigné'],
                     ['Lieu retour', selectedReservation?.returnLocation || 'Non renseigné'],
                   ]}

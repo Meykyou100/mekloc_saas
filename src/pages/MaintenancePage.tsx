@@ -13,6 +13,12 @@ import { formatMAD, type MaintenanceItem } from '../data/mockData';
 
 const SERVICE_TYPES: MaintenanceItem['serviceType'][] = ['Vidange', 'Assurance', 'Visite technique', 'Pneus', 'Freins', 'Réparation', 'Autre'];
 const STATUS_VALUES: MaintenanceItem['status'][] = ['Scheduled', 'Done', 'Due soon', 'Overdue'];
+type MaintenanceForm = Omit<MaintenanceItem, 'id' | 'vehicle' | 'currentMileage' | 'mileageAtService' | 'nextServiceMileage' | 'cost'> & {
+  currentMileage: string;
+  mileageAtService: string;
+  nextServiceMileage: string;
+  cost: string;
+};
 
 export default function MaintenancePage() {
   const { vehicles, maintenance, createMaintenance, updateMaintenance, deleteMaintenance } = useData();
@@ -20,16 +26,16 @@ export default function MaintenancePage() {
   const [open, setOpen] = useState(false);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>('all');
   const [editing, setEditing] = useState<MaintenanceItem | null>(null);
-  const [form, setForm] = useState<Omit<MaintenanceItem, 'id' | 'vehicle'>>({
+  const [form, setForm] = useState<MaintenanceForm>({
     vehicleId: '',
     plate: '',
     serviceType: 'Vidange',
     lastServiceDate: '',
     nextServiceDate: '',
-    currentMileage: 0,
-    mileageAtService: 0,
-    nextServiceMileage: 0,
-    cost: 0,
+    currentMileage: '',
+    mileageAtService: '',
+    nextServiceMileage: '',
+    cost: '',
     providerName: '',
     status: 'Scheduled',
     notes: '',
@@ -60,18 +66,34 @@ export default function MaintenancePage() {
 
   function openCreate() {
     setEditing(null);
-    setForm({ vehicleId: '', plate: '', serviceType: 'Vidange', lastServiceDate: '', nextServiceDate: '', currentMileage: 0, mileageAtService: 0, nextServiceMileage: 0, cost: 0, providerName: '', status: 'Scheduled', notes: '', invoiceUrl: '' });
+    setForm({ vehicleId: '', plate: '', serviceType: 'Vidange', lastServiceDate: '', nextServiceDate: '', currentMileage: '', mileageAtService: '', nextServiceMileage: '', cost: '', providerName: '', status: 'Scheduled', notes: '', invoiceUrl: '' });
     setOpen(true);
   }
   function openEdit(item: MaintenanceItem) {
     setEditing(item);
-    setForm({ ...item, invoiceUrl: item.invoiceUrl || '' });
+    setForm({
+      ...item,
+      currentMileage: String(item.currentMileage ?? ''),
+      mileageAtService: String(item.mileageAtService ?? ''),
+      nextServiceMileage: String(item.nextServiceMileage ?? ''),
+      cost: String(item.cost ?? ''),
+      invoiceUrl: item.invoiceUrl || '',
+    });
     setOpen(true);
   }
   async function saveRecord() {
     const vehicle = vehicles.find((v) => v.id === form.vehicleId);
     if (!vehicle) return notify({ title: 'Vehicle required', message: 'Please select a vehicle.', type: 'warning' });
-    const payload: MaintenanceItem = { id: editing?.id || `mnt-${Date.now()}`, vehicle: `${vehicle.brand} ${vehicle.model}`, ...form, plate: vehicle.plate };
+    const payload: MaintenanceItem = {
+      id: editing?.id || `mnt-${Date.now()}`,
+      vehicle: `${vehicle.brand} ${vehicle.model}`,
+      ...form,
+      currentMileage: form.currentMileage.trim() === '' ? 0 : Number(form.currentMileage),
+      mileageAtService: form.mileageAtService.trim() === '' ? 0 : Number(form.mileageAtService),
+      nextServiceMileage: form.nextServiceMileage.trim() === '' ? 0 : Number(form.nextServiceMileage),
+      cost: form.cost.trim() === '' ? 0 : Number(form.cost),
+      plate: vehicle.plate,
+    };
     try {
       if (editing) await updateMaintenance(payload); else await createMaintenance(payload);
       notify({ title: editing ? 'Record updated' : 'Record created', message: 'Maintenance record saved successfully.', type: 'success' });
@@ -116,10 +138,10 @@ export default function MaintenancePage() {
         <SelectField label="Service type" value={form.serviceType} onChange={(e) => setForm((c) => ({ ...c, serviceType: e.target.value as MaintenanceItem['serviceType'] }))}>{SERVICE_TYPES.map((s) => <option key={s} value={s}>{s}</option>)}</SelectField>
         <Field label="Last service date" type="date" value={form.lastServiceDate} onChange={(e) => setForm((c) => ({ ...c, lastServiceDate: e.target.value }))} />
         <Field label="Next service date" type="date" value={form.nextServiceDate} onChange={(e) => setForm((c) => ({ ...c, nextServiceDate: e.target.value }))} />
-        <Field label="Current mileage" type="number" value={form.currentMileage} onChange={(e) => setForm((c) => ({ ...c, currentMileage: Number(e.target.value) }))} />
-        <Field label="Mileage at service" type="number" value={form.mileageAtService} onChange={(e) => setForm((c) => ({ ...c, mileageAtService: Number(e.target.value) }))} />
-        <Field label="Next service mileage" type="number" value={form.nextServiceMileage} onChange={(e) => setForm((c) => ({ ...c, nextServiceMileage: Number(e.target.value) }))} />
-        <Field label="Cost (MAD)" type="number" value={form.cost} onChange={(e) => setForm((c) => ({ ...c, cost: Number(e.target.value) }))} />
+        <Field label="Current mileage" type="number" value={form.currentMileage} onChange={(e) => setForm((c) => ({ ...c, currentMileage: e.target.value }))} />
+        <Field label="Mileage at service" type="number" value={form.mileageAtService} onChange={(e) => setForm((c) => ({ ...c, mileageAtService: e.target.value }))} />
+        <Field label="Next service mileage" type="number" value={form.nextServiceMileage} onChange={(e) => setForm((c) => ({ ...c, nextServiceMileage: e.target.value }))} />
+        <Field label="Cost (MAD)" type="number" value={form.cost} onChange={(e) => setForm((c) => ({ ...c, cost: e.target.value }))} />
         <Field label="Garage / provider" value={form.providerName} onChange={(e) => setForm((c) => ({ ...c, providerName: e.target.value }))} />
         <SelectField label="Status" value={form.status} onChange={(e) => setForm((c) => ({ ...c, status: e.target.value as MaintenanceItem['status'] }))}>{STATUS_VALUES.map((s) => <option key={s} value={s}>{s}</option>)}</SelectField>
         <div className="md:col-span-2"><TextAreaField label="Notes" value={form.notes} onChange={(e) => setForm((c) => ({ ...c, notes: e.target.value }))} /></div>

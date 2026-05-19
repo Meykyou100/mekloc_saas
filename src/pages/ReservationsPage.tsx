@@ -53,6 +53,14 @@ function isoPlusOne(dateIso: string) {
   return value.toISOString().slice(0, 10);
 }
 
+function formatReservationDateTime(date: string, time?: string) {
+  return `${date || '—'}${time ? ` ${time}` : ''}`;
+}
+
+function parseOptionalNumber(value: string) {
+  return value.trim() === '' ? null : Number(value);
+}
+
 function isDateOverlap(startA: string, endA: string, startB: string, endB: string) {
   return new Date(startA) <= new Date(endB) && new Date(endA) >= new Date(startB);
 }
@@ -117,9 +125,11 @@ export default function ReservationsPage() {
   const [draftReturnDate, setDraftReturnDate] = useState('');
   const [draftPickupLocation, setDraftPickupLocation] = useState('');
   const [draftReturnLocation, setDraftReturnLocation] = useState('');
-  const [draftDailyPrice, setDraftDailyPrice] = useState(0);
-  const [draftDeposit, setDraftDeposit] = useState(0);
-  const [draftMileageOut, setDraftMileageOut] = useState(0);
+  const [draftPickupTime, setDraftPickupTime] = useState('');
+  const [draftReturnTime, setDraftReturnTime] = useState('');
+  const [draftDailyPrice, setDraftDailyPrice] = useState('');
+  const [draftDeposit, setDraftDeposit] = useState('');
+  const [draftMileageOut, setDraftMileageOut] = useState('');
   const [draftFuelLevelOut, setDraftFuelLevelOut] = useState('');
   const [draftNotes, setDraftNotes] = useState('');
   const [draftStatus, setDraftStatus] = useState<ReservationStatus>('Confirmed');
@@ -129,7 +139,10 @@ export default function ReservationsPage() {
   const selectedClient = clients.find((client) => client.id === draftClientId) || null;
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === draftVehicleId) || null;
   const rentalDays = getRentalDays(draftPickupDate || todayIso, draftReturnDate || todayIso);
-  const totalEstimate = Math.max(0, Number(draftDailyPrice || 0) * rentalDays);
+  const dailyPriceNumber = parseOptionalNumber(draftDailyPrice);
+  const depositNumber = parseOptionalNumber(draftDeposit);
+  const mileageOutNumber = parseOptionalNumber(draftMileageOut);
+  const totalEstimate = Math.max(0, Number(dailyPriceNumber || 0) * rentalDays);
 
   const vehicleReservations = useMemo(
     () =>
@@ -196,11 +209,13 @@ export default function ReservationsPage() {
     const next = new Date(todayIso);
     next.setDate(next.getDate() + 2);
     setDraftReturnDate(next.toISOString().slice(0, 10));
-    setDraftDailyPrice(firstVehicle?.dailyPrice || 0);
-    setDraftDeposit(0);
+    setDraftPickupTime('10:00');
+    setDraftReturnTime('18:00');
+    setDraftDailyPrice(firstVehicle?.dailyPrice ? String(firstVehicle.dailyPrice) : '');
+    setDraftDeposit('');
     setDraftPickupLocation('');
     setDraftReturnLocation('');
-    setDraftMileageOut(0);
+    setDraftMileageOut('');
     setDraftFuelLevelOut('');
     setDraftNotes('');
     setDraftStatus('Confirmed');
@@ -226,7 +241,7 @@ export default function ReservationsPage() {
     const nextVehicle = vehicles.find((item) => item.id === vehicleId) || vehicles[0] || null;
     if (nextVehicle) {
       setDraftVehicleId(nextVehicle.id);
-      setDraftDailyPrice(nextVehicle.dailyPrice || 0);
+      setDraftDailyPrice(nextVehicle.dailyPrice ? String(nextVehicle.dailyPrice) : '');
     }
     setDraftPickupDate(pickup);
     setDraftReturnDate(returnDate);
@@ -249,11 +264,13 @@ export default function ReservationsPage() {
     setDraftVehicleId(reservation.vehicleId);
     setDraftPickupDate(reservation.pickupDate);
     setDraftReturnDate(reservation.returnDate);
-    setDraftDailyPrice(reservation.dailyPrice);
-    setDraftDeposit(reservation.deposit);
+    setDraftPickupTime(reservation.pickupTime || '');
+    setDraftReturnTime(reservation.returnTime || '');
+    setDraftDailyPrice(String(reservation.dailyPrice || ''));
+    setDraftDeposit(String(reservation.deposit ?? ''));
     setDraftPickupLocation(reservation.pickupLocation || '');
     setDraftReturnLocation(reservation.returnLocation || '');
-    setDraftMileageOut(reservation.mileageOut ?? 0);
+    setDraftMileageOut(String(reservation.mileageOut ?? ''));
     setDraftFuelLevelOut(reservation.fuelLevelOut || '');
     setDraftNotes(reservation.notes || '');
     setDraftStatus(reservation.status);
@@ -285,11 +302,11 @@ export default function ReservationsPage() {
       }
     }
     if (reservationStep === 3) {
-      if (Number(draftDailyPrice) <= 0) {
+      if (!dailyPriceNumber || dailyPriceNumber <= 0) {
         notify({ title: 'Tarif invalide', message: 'Le prix journalier doit être supérieur à 0.', type: 'warning' });
         return false;
       }
-      if (Number(draftDeposit) < 0) {
+      if (depositNumber !== null && depositNumber < 0) {
         notify({ title: 'Caution invalide', message: 'La caution doit être positive ou égale à 0.', type: 'warning' });
         return false;
       }
@@ -311,7 +328,7 @@ export default function ReservationsPage() {
       notify({ title: 'Conflit véhicule', message: 'Ce véhicule est déjà réservé sur cette période.', type: 'warning' });
       return;
     }
-    if (Number(draftDailyPrice) <= 0 || Number(draftDeposit) < 0) {
+    if (!dailyPriceNumber || dailyPriceNumber <= 0 || (depositNumber !== null && depositNumber < 0)) {
       notify({ title: 'Tarification invalide', message: 'Vérifiez prix journalier et caution.', type: 'warning' });
       return;
     }
@@ -324,12 +341,14 @@ export default function ReservationsPage() {
       vehicleId: selectedVehicle.id,
       pickupDate: draftPickupDate,
       returnDate: draftReturnDate,
-      dailyPrice: Number(draftDailyPrice),
-      deposit: Number(draftDeposit),
+      pickupTime: draftPickupTime,
+      returnTime: draftReturnTime,
+      dailyPrice: dailyPriceNumber,
+      deposit: depositNumber ?? 0,
       totalAmount: totalEstimate,
       pickupLocation: draftPickupLocation,
       returnLocation: draftReturnLocation,
-      mileageOut: Number(draftMileageOut || 0),
+      mileageOut: mileageOutNumber ?? 0,
       fuelLevelOut: draftFuelLevelOut,
       status: draftStatus,
       notes: draftNotes,
@@ -468,7 +487,7 @@ export default function ReservationsPage() {
                     <td className="px-5 py-4 font-bold text-white">{reservation.id}</td>
                     <td className="px-5 py-4 text-carbon-300">{reservation.client}</td>
                     <td className="px-5 py-4 text-carbon-300">{reservation.vehicle}</td>
-                    <td className="px-5 py-4 text-carbon-400">{reservation.pickupDate} → {reservation.returnDate}</td>
+                    <td className="px-5 py-4 text-carbon-400">{formatReservationDateTime(reservation.pickupDate, reservation.pickupTime)} → {formatReservationDateTime(reservation.returnDate, reservation.returnTime)}</td>
                     <td className="px-5 py-4"><Badge>{reservation.status}</Badge></td>
                     <td className="px-5 py-4 text-white">{formatMAD(reservation.totalAmount ?? reservation.dailyPrice)}</td>
                     <td className="px-5 py-4">
@@ -509,7 +528,7 @@ export default function ReservationsPage() {
                 ) : null}
 
                 <div className="grid gap-2 text-sm text-carbon-300">
-                  <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-gold-200" /> {reservation.pickupDate} → {reservation.returnDate} ({days} jours)</p>
+                  <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-gold-200" /> {formatReservationDateTime(reservation.pickupDate, reservation.pickupTime)} → {formatReservationDateTime(reservation.returnDate, reservation.returnTime)} ({days} jours)</p>
                   <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-gold-200" /> {reservation.pickupLocation || 'Lieu départ non renseigné'}</p>
                   <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-gold-200" /> {reservation.returnLocation || 'Lieu retour non renseigné'}</p>
                 </div>
@@ -642,7 +661,7 @@ export default function ReservationsPage() {
                             onChange={(event) => {
                               const v = vehicles.find((item) => item.id === event.target.value);
                               setDraftVehicleId(event.target.value);
-                              if (v) setDraftDailyPrice(v.dailyPrice);
+                              if (v) setDraftDailyPrice(v.dailyPrice ? String(v.dailyPrice) : '');
                             }}
                             required
                           >
@@ -687,8 +706,14 @@ export default function ReservationsPage() {
                           <ReservationField label="Date de départ">
                             <input className={inputClass} type="date" value={draftPickupDate} onChange={(event) => setDraftPickupDate(event.target.value)} required />
                           </ReservationField>
+                          <ReservationField label="Heure de départ">
+                            <input className={inputClass} type="time" value={draftPickupTime} onChange={(event) => setDraftPickupTime(event.target.value)} />
+                          </ReservationField>
                           <ReservationField label="Date de retour">
                             <input className={inputClass} type="date" value={draftReturnDate} onChange={(event) => setDraftReturnDate(event.target.value)} required />
+                          </ReservationField>
+                          <ReservationField label="Heure de retour">
+                            <input className={inputClass} type="time" value={draftReturnTime} onChange={(event) => setDraftReturnTime(event.target.value)} />
                           </ReservationField>
                         </div>
                         <div className="grid gap-4 md:grid-cols-2">
@@ -721,20 +746,20 @@ export default function ReservationsPage() {
                         </div>
                         <div className="grid gap-4 md:grid-cols-[1fr_1fr_1.25fr]">
                           <ReservationField label="Prix journalier">
-                            <input className={inputClass} type="number" value={draftDailyPrice} onChange={(event) => setDraftDailyPrice(Number(event.target.value))} min={1} required />
+                            <input className={inputClass} type="number" value={draftDailyPrice} onChange={(event) => setDraftDailyPrice(event.target.value)} min={1} required />
                           </ReservationField>
                           <ReservationField label="Caution">
-                            <input className={inputClass} type="number" value={draftDeposit} onChange={(event) => setDraftDeposit(Number(event.target.value))} min={0} required />
+                            <input className={inputClass} type="number" value={draftDeposit} onChange={(event) => setDraftDeposit(event.target.value)} min={0} required />
                           </ReservationField>
                           <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
                             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-carbon-500">Montant total</p>
                             <p className="mt-1 text-xl font-semibold text-white">{formatMAD(totalEstimate)}</p>
-                            <p className="mt-1 text-xs text-carbon-500">{rentalDays} jours × {formatMAD(draftDailyPrice)}</p>
+                            <p className="mt-1 text-xs text-carbon-500">{rentalDays} jours × {formatMAD(dailyPriceNumber || 0)}</p>
                           </div>
                         </div>
                         <div className="grid gap-4 md:grid-cols-2">
                           <ReservationField label="Kilométrage sortie">
-                            <input className={inputClass} type="number" value={draftMileageOut} onChange={(event) => setDraftMileageOut(Number(event.target.value))} min={0} />
+                            <input className={inputClass} type="number" value={draftMileageOut} onChange={(event) => setDraftMileageOut(event.target.value)} min={0} />
                           </ReservationField>
                           <ReservationField label="Niveau carburant sortie">
                             <input className={inputClass} value={draftFuelLevelOut} onChange={(event) => setDraftFuelLevelOut(event.target.value)} placeholder="Ex: 3/4" />
@@ -763,10 +788,10 @@ export default function ReservationsPage() {
                         <div className="premium-surface rounded-3xl p-5">
                           <p className="text-lg font-semibold text-white">{selectedClient?.fullName || 'Client non sélectionné'}</p>
                           <p className="mt-1 text-sm text-carbon-400">{selectedVehicle?.brand} {selectedVehicle?.model} · {selectedVehicle?.plate}</p>
-                          <p className="mt-2 text-sm text-carbon-300">{draftPickupDate} → {draftReturnDate} · {rentalDays} jours</p>
+                          <p className="mt-2 text-sm text-carbon-300">{formatReservationDateTime(draftPickupDate, draftPickupTime)} → {formatReservationDateTime(draftReturnDate, draftReturnTime)} · {rentalDays} jours</p>
                           <p className="mt-2 text-sm text-carbon-300">{draftPickupLocation || 'Lieu départ non renseigné'} → {draftReturnLocation || 'Lieu retour non renseigné'}</p>
                           <p className="mt-4 text-2xl font-semibold text-white">{formatMAD(totalEstimate)}</p>
-                          <p className="text-sm text-carbon-400">Caution: {formatMAD(draftDeposit)}</p>
+                          <p className="text-sm text-carbon-400">Caution: {formatMAD(depositNumber || 0)}</p>
                         </div>
 
                         <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -857,7 +882,7 @@ export default function ReservationsPage() {
                       </div>
                       <div className="flex items-center justify-between gap-3">
                         <span className="flex items-center gap-2 text-carbon-400"><MapPin className="h-4 w-4" /> Départ</span>
-                        <strong className="text-white">{draftPickupDate || '—'}</strong>
+                        <strong className="text-white">{formatReservationDateTime(draftPickupDate, draftPickupTime)}</strong>
                       </div>
                       <div className="h-px bg-white/10" />
                       <div className="flex items-center justify-between gap-3">
@@ -866,7 +891,7 @@ export default function ReservationsPage() {
                       </div>
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-carbon-400">Caution</span>
-                        <strong className="text-white">{formatMAD(Number(draftDeposit || 0))}</strong>
+                        <strong className="text-white">{formatMAD(depositNumber || 0)}</strong>
                       </div>
                       <div className="flex items-center justify-between gap-3">
                         <span className="text-carbon-400">Statut</span>
@@ -897,7 +922,7 @@ export default function ReservationsPage() {
             <div className="grid gap-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-carbon-300">
               <p><strong className="text-white">Client:</strong> {detailsTarget.client}</p>
               <p><strong className="text-white">Véhicule:</strong> {detailsTarget.vehicle}</p>
-              <p><strong className="text-white">Période:</strong> {detailsTarget.pickupDate} → {detailsTarget.returnDate}</p>
+              <p><strong className="text-white">Période:</strong> {formatReservationDateTime(detailsTarget.pickupDate, detailsTarget.pickupTime)} → {formatReservationDateTime(detailsTarget.returnDate, detailsTarget.returnTime)}</p>
               <p><strong className="text-white">Lieu départ:</strong> {detailsTarget.pickupLocation || 'Non renseigné'}</p>
               <p><strong className="text-white">Lieu retour:</strong> {detailsTarget.returnLocation || 'Non renseigné'}</p>
               <p><strong className="text-white">Total:</strong> {formatMAD(detailsTarget.totalAmount ?? detailsTarget.dailyPrice)}</p>

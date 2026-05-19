@@ -28,7 +28,6 @@ import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
-import StatCard from '../components/ui/StatCard';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -72,7 +71,7 @@ function hasDocs(client: Client) {
 }
 
 export default function ClientsPage() {
-  const { clients, reservations, createClient, updateClient, deleteClient: removeClient } = useData();
+  const { clients, reservations, payments, createClient, updateClient, deleteClient: removeClient } = useData();
   const { profile } = useAuth();
   const { notify } = useApp();
 
@@ -100,22 +99,42 @@ export default function ClientsPage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
-  const activeClientIds = useMemo(() => {
-    return new Set(reservations.map((reservation) => reservation.clientId));
-  }, [reservations]);
+  const clientUsage = useMemo(() => {
+    return clients.reduce<Record<string, { reservations: number; spent: number }>>((acc, client) => {
+      const clientReservations = reservations.filter((reservation) => reservation.clientId === client.id);
+      const reservationIds = new Set(clientReservations.map((reservation) => reservation.recordId || reservation.id));
+      const reservationSpent = clientReservations.reduce((sum, reservation) => sum + (reservation.totalAmount ?? 0), 0);
+      const paymentSpent = payments
+        .filter((payment) => payment.clientId === client.id || (payment.reservationId ? reservationIds.has(payment.reservationId) : false))
+        .reduce((sum, payment) => sum + payment.amount, 0);
+      acc[client.id] = {
+        reservations: clientReservations.length,
+        spent: paymentSpent || reservationSpent || 0,
+      };
+      return acc;
+    }, {});
+  }, [clients, payments, reservations]);
+
+  const enrichedClients = useMemo(() => {
+    return clients.map((client) => ({
+      ...client,
+      computedReservations: clientUsage[client.id]?.reservations ?? 0,
+      computedSpent: clientUsage[client.id]?.spent ?? 0,
+    }));
+  }, [clientUsage, clients]);
 
   const clientsStats = useMemo(() => {
     const total = clients.length;
-    const withReservations = clients.filter((client) => client.totalRentals > 0 || activeClientIds.has(client.id)).length;
-    const totalSpent = clients.reduce((sum, client) => sum + client.totalSpent, 0);
+    const withReservations = enrichedClients.filter((client) => client.computedReservations > 0).length;
+    const totalSpent = enrichedClients.reduce((sum, client) => sum + client.computedSpent, 0);
     const withMissingDocs = clients.filter((client) => !hasDocs(client)).length;
     const newClients = clients.filter((client) => client.status === 'New').length;
     return { total, withReservations, totalSpent, withMissingDocs, newClients };
-  }, [activeClientIds, clients]);
+  }, [clients, enrichedClients]);
 
   const filteredClients = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return clients.filter((client) => {
+    return enrichedClients.filter((client) => {
       const searchHit =
         !q ||
         `${client.fullName} ${client.phone} ${client.email} ${client.cin} ${client.license} ${client.address}`.toLowerCase().includes(q);
@@ -124,10 +143,10 @@ export default function ClientsPage() {
 
       if (filter === 'with-docs') return hasDocs(client);
       if (filter === 'missing-docs') return !hasDocs(client);
-      if (filter === 'active') return client.totalRentals > 0 || activeClientIds.has(client.id);
+      if (filter === 'active') return client.computedReservations > 0;
       return true;
     });
-  }, [activeClientIds, clients, filter, query]);
+  }, [enrichedClients, filter, query]);
 
   useEffect(() => {
     if (modalOpen) {
@@ -403,12 +422,30 @@ export default function ClientsPage() {
         action={<Button icon={<UserPlus className="h-4 w-4" />} onClick={openNewClient}>Ajouter un client</Button>}
       />
 
-      <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <StatCard label="Total clients" value={String(clientsStats.total)} trend="Clients enregistrés" icon={Users} />
-        <StatCard label="Nouveaux clients" value={String(clientsStats.newClients)} trend="Statut Nouveau" icon={UserPlus} />
-        <StatCard label="Clients avec réservations" value={String(clientsStats.withReservations)} trend="Base active" icon={BadgeCheck} />
-        <StatCard label="Total dépensé" value={formatMAD(clientsStats.totalSpent)} trend="Historique cumulé" icon={Wallet} />
-        <StatCard label="Documents manquants" value={String(clientsStats.withMissingDocs)} trend="À compléter" icon={AlertTriangle} />
+      <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        {[
+          { label: 'Total clients', value: String(clientsStats.total), helper: 'Clients enregistrés', icon: Users, tone: 'text-sky-200' },
+          { label: 'Nouveaux clients', value: String(clientsStats.newClients), helper: 'Statut Nouveau', icon: UserPlus, tone: 'text-emerald-200' },
+          { label: 'Avec réservations', value: String(clientsStats.withReservations), helper: 'Base active', icon: BadgeCheck, tone: 'text-gold-200' },
+          { label: 'Total dépensé', value: formatMAD(clientsStats.totalSpent), helper: 'Paiements ou réservations', icon: Wallet, tone: 'text-violet-200' },
+          { label: 'Docs manquants', value: String(clientsStats.withMissingDocs), helper: 'À compléter', icon: AlertTriangle, tone: 'text-amber-200' },
+        ].map(({ label, value, helper, icon: Icon, tone }) => (
+          <div
+            key={label}
+            className="min-h-[116px] rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.07] to-white/[0.025] p-4 shadow-[0_14px_34px_rgba(0,0,0,.22),inset_0_1px_0_rgba(255,255,255,.045)] light:bg-white"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-[11px] font-black uppercase tracking-[0.16em] text-carbon-500">{label}</p>
+                <p className="mt-2 truncate text-2xl font-black text-white light:text-carbon-950">{value}</p>
+              </div>
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-white/10 bg-black/20">
+                <Icon className={`h-5 w-5 ${tone}`} />
+              </span>
+            </div>
+            <p className="mt-2 truncate text-xs font-medium text-carbon-400">{helper}</p>
+          </div>
+        ))}
       </div>
 
       <Card className="mb-5 p-4">
@@ -498,11 +535,11 @@ export default function ClientsPage() {
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
                     <p className="text-xs text-carbon-500">Réservations</p>
-                    <p className="mt-1 text-xl font-semibold text-white">{client.totalRentals}</p>
+                    <p className="mt-1 text-xl font-semibold text-white">{client.computedReservations}</p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
                     <p className="text-xs text-carbon-500">Total dépensé</p>
-                    <p className="mt-1 text-xl font-semibold text-white">{formatMAD(client.totalSpent)}</p>
+                    <p className="mt-1 text-xl font-semibold text-white">{formatMAD(client.computedSpent)}</p>
                   </div>
                 </div>
 

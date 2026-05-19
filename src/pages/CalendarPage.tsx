@@ -403,7 +403,7 @@ export default function CalendarPage() {
                 </p>
                 <p className="inline-flex items-center gap-2">
                   <CalendarDays className="h-4 w-4 text-carbon-400" />
-                  {selectedReservation.pickupDate} → {selectedReservation.returnDate}
+                  {selectedReservation.pickupDate}{selectedReservation.pickupTime ? ` ${selectedReservation.pickupTime}` : ''} → {selectedReservation.returnDate}{selectedReservation.returnTime ? ` ${selectedReservation.returnTime}` : ''}
                 </p>
                 <p className="inline-flex items-center gap-2">
                   <MapPin className="h-4 w-4 text-carbon-400" />
@@ -445,4 +445,3 @@ export default function CalendarPage() {
     </section>
   );
 }
-
