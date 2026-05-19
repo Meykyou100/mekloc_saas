@@ -8,10 +8,10 @@ import { useData } from '../context/DataContext';
 
 function MetricCard({ label, value, note }: { label: string; value: string; note: string }) {
   return (
-    <Card className="p-5">
-      <p className="text-sm font-medium text-carbon-400 light:text-carbon-600">{label}</p>
-      <p className="mt-3 text-2xl font-semibold tracking-tight text-white light:text-carbon-950">{value}</p>
-      <p className="mt-3 text-sm text-carbon-500 light:text-carbon-600">{note}</p>
+    <Card className="flex min-h-[82px] flex-col justify-between p-3 sm:min-h-[118px] sm:p-5">
+      <p className="truncate text-[11px] font-medium text-carbon-400 light:text-carbon-600 sm:text-sm">{label}</p>
+      <p className="mt-1 truncate text-lg font-semibold tracking-tight text-white light:text-carbon-950 sm:mt-3 sm:text-2xl">{value}</p>
+      <p className="mt-1 truncate text-[10px] text-carbon-500 light:text-carbon-600 sm:mt-3 sm:text-sm">{note}</p>
     </Card>
   );
 }
@@ -53,7 +53,7 @@ export default function ReportsPage() {
         <Card className="p-6 text-sm text-carbon-400">Aucune donnée pour le moment.</Card>
       ) : null}
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+      <section className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-2 xl:grid-cols-5">
         <MetricCard label="Monthly revenue" value={formatMAD(monthlyRevenue)} note="Current month bookings" />
         <MetricCard label="Occupancy rate" value={`${occupancyRate}%`} note="Active rentals vs fleet" />
         <MetricCard label="Overdue payments" value={formatMAD(overduePayments)} note="Needs follow-up" />

@@ -53,17 +53,17 @@ function KpiCard({
   icon: typeof Car;
 }) {
   return (
-    <Card className="p-5 sm:p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-carbon-400 light:text-carbon-600">{label}</p>
-          <p className="mt-3 text-3xl font-semibold tracking-tight text-white light:text-carbon-950">{value}</p>
+    <Card className="flex min-h-[92px] flex-col justify-between p-3 sm:min-h-[136px] sm:p-6">
+      <div className="flex items-start justify-between gap-2 sm:gap-4">
+        <div className="min-w-0">
+          <p className="truncate text-[11px] font-medium text-carbon-400 light:text-carbon-600 sm:text-sm">{label}</p>
+          <p className="mt-1 truncate text-xl font-semibold tracking-tight text-white light:text-carbon-950 sm:mt-3 sm:text-3xl">{value}</p>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/[0.045] p-3 text-carbon-200 light:bg-carbon-950/[0.04] light:text-carbon-700">
-          <Icon className="h-5 w-5" />
+        <div className="rounded-xl border border-white/10 bg-white/[0.045] p-2 text-carbon-200 light:bg-carbon-950/[0.04] light:text-carbon-700 sm:rounded-2xl sm:p-3">
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
       </div>
-      <p className="mt-5 text-sm text-carbon-500 light:text-carbon-600">{helper}</p>
+      <p className="mt-2 line-clamp-1 text-[11px] text-carbon-500 light:text-carbon-600 sm:mt-5 sm:text-sm">{helper}</p>
     </Card>
   );
 }
@@ -474,7 +474,7 @@ export default function DashboardPage() {
         )}
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
         <KpiCard label="Véhicules disponibles" value={String(availableVehicles)} helper="Prêts pour de nouvelles réservations" icon={Car} />
         <KpiCard label="Réservations actives" value={String(activeReservations)} helper="Locations en cours" icon={CalendarClock} />
         <KpiCard label="Revenus du mois" value={formatMAD(monthlyRevenue)} helper="Paiements encaissés et partiels" icon={WalletCards} />

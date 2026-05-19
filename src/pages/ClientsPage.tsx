@@ -422,7 +422,7 @@ export default function ClientsPage() {
         action={<Button icon={<UserPlus className="h-4 w-4" />} onClick={openNewClient}>Ajouter un client</Button>}
       />
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="mb-5 grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {[
           { label: 'Total clients', value: String(clientsStats.total), helper: 'Clients enregistrés', icon: Users, tone: 'text-sky-200' },
           { label: 'Nouveaux clients', value: String(clientsStats.newClients), helper: 'Statut Nouveau', icon: UserPlus, tone: 'text-emerald-200' },
@@ -432,18 +432,18 @@ export default function ClientsPage() {
         ].map(({ label, value, helper, icon: Icon, tone }) => (
           <div
             key={label}
-            className="min-h-[116px] rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.07] to-white/[0.025] p-4 shadow-[0_14px_34px_rgba(0,0,0,.22),inset_0_1px_0_rgba(255,255,255,.045)] light:bg-white"
+            className="min-h-[86px] rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.07] to-white/[0.025] p-3 shadow-[0_14px_34px_rgba(0,0,0,.22),inset_0_1px_0_rgba(255,255,255,.045)] light:bg-white sm:min-h-[116px] sm:p-4"
           >
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start justify-between gap-2 sm:gap-3">
               <div className="min-w-0">
-                <p className="truncate text-[11px] font-black uppercase tracking-[0.16em] text-carbon-500">{label}</p>
-                <p className="mt-2 truncate text-2xl font-black text-white light:text-carbon-950">{value}</p>
+                <p className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-carbon-500 sm:text-[11px] sm:tracking-[0.16em]">{label}</p>
+                <p className="mt-1 truncate text-xl font-black text-white light:text-carbon-950 sm:mt-2 sm:text-2xl">{value}</p>
               </div>
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-white/10 bg-black/20">
-                <Icon className={`h-5 w-5 ${tone}`} />
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-white/10 bg-black/20 sm:h-10 sm:w-10 sm:rounded-2xl">
+                <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${tone}`} />
               </span>
             </div>
-            <p className="mt-2 truncate text-xs font-medium text-carbon-400">{helper}</p>
+            <p className="mt-1 truncate text-[10px] font-medium text-carbon-400 sm:mt-2 sm:text-xs">{helper}</p>
           </div>
         ))}
       </div>

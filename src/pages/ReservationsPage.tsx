@@ -420,7 +420,7 @@ export default function ReservationsPage() {
         action={<Button icon={<Plus className="h-4 w-4" />} onClick={openNewReservation}>Ajouter une réservation</Button>}
       />
 
-      <div className="mb-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+      <div className="mb-5 grid grid-cols-2 gap-2 sm:gap-4 sm:grid-cols-2 xl:grid-cols-6">
         <StatCard label="Total réservations" value={String(stats.total)} trend="Global" icon={CalendarDays} />
         <StatCard label="Confirmées" value={String(stats.confirmed)} trend="Planifiées" icon={CheckCircle2} />
         <StatCard label="Actives" value={String(stats.active)} trend="En cours" icon={Clock3} />

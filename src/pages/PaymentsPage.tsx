@@ -308,7 +308,7 @@ startxref
         action={<Button icon={<Plus className="h-4 w-4" />} onClick={() => setModalOpen(true)}>Ajouter un paiement</Button>}
       />
 
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
         <StatCard label="Total facturé" value={formatMAD(totalFacture)} trend="Montants des factures" icon={Download} />
         <StatCard label="Total encaissé" value={formatMAD(totalEncaisse)} trend="Paiements reçus" icon={Download} />
         <StatCard label="Solde ouvert" value={formatMAD(soldeOuvert)} trend="Reste à encaisser" icon={Download} />

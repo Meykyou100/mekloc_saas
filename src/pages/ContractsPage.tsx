@@ -722,20 +722,20 @@ export default function ContractsPage() {
         </Button>
       </div>
 
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
           { label: 'Contrats', value: String(stats.total), helper: 'Total généré', icon: FileSignature },
           { label: 'Brouillons', value: String(stats.drafts), helper: 'En préparation', icon: FileText },
           { label: 'Ce mois', value: String(stats.thisMonth), helper: 'Période actuelle', icon: CalendarDays },
           { label: 'Dernier', value: stats.last, helper: 'Référence récente', icon: Sparkles },
         ].map(({ label, value, helper, icon: Icon }) => (
-          <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] light:bg-white">
-            <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-carbon-400">{label}</p>
-              <Icon className="h-4 w-4 text-gold-300" />
+          <div key={label} className="min-h-[82px] rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] light:bg-white sm:min-h-[104px] sm:px-4">
+            <div className="flex items-center justify-between gap-2 sm:gap-3">
+              <p className="truncate text-[10px] font-semibold uppercase tracking-[0.1em] text-carbon-400 sm:text-xs sm:tracking-[0.14em]">{label}</p>
+              <Icon className="h-3.5 w-3.5 shrink-0 text-gold-300 sm:h-4 sm:w-4" />
             </div>
-            <p className="mt-2 truncate text-xl font-black text-white light:text-carbon-950">{value}</p>
-            <p className="mt-1 text-xs text-carbon-500">{helper}</p>
+            <p className="mt-1 truncate text-lg font-black text-white light:text-carbon-950 sm:mt-2 sm:text-xl">{value}</p>
+            <p className="mt-1 truncate text-[10px] text-carbon-500 sm:text-xs">{helper}</p>
           </div>
         ))}
       </div>

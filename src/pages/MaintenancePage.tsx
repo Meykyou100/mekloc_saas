@@ -125,11 +125,11 @@ export default function MaintenancePage() {
 
   return <div>
     <PageHeader eyebrow="Opérations flotte" title="Entretien" description="Suivez les interventions, les coûts, les échéances et l’historique des véhicules." action={<Button onClick={openCreate}>Ajouter un entretien</Button>} />
-    <div className="grid gap-4 md:grid-cols-4">
-      <Card className="p-4"><p className="text-xs text-carbon-400">Insurance reminders</p><p className="mt-2 text-2xl font-bold">{insuranceReminders}</p></Card>
-      <Card className="p-4"><p className="text-xs text-carbon-400">Oil change reminders</p><p className="mt-2 text-2xl font-bold">{oilReminders}</p></Card>
-      <Card className="p-4"><p className="text-xs text-carbon-400">Technical inspections</p><p className="mt-2 text-2xl font-bold">{inspectionReminders}</p></Card>
-      <Card className="p-4"><p className="text-xs text-carbon-400">Cost this month</p><p className="mt-2 text-2xl font-bold text-gold-200">{formatMAD(monthlyCost)}</p></Card>
+    <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
+      <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] text-carbon-400 sm:text-xs">Rappels assurance</p><p className="mt-1 truncate text-xl font-bold sm:mt-2 sm:text-2xl">{insuranceReminders}</p></Card>
+      <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] text-carbon-400 sm:text-xs">Rappels vidange</p><p className="mt-1 truncate text-xl font-bold sm:mt-2 sm:text-2xl">{oilReminders}</p></Card>
+      <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] text-carbon-400 sm:text-xs">Visites techniques</p><p className="mt-1 truncate text-xl font-bold sm:mt-2 sm:text-2xl">{inspectionReminders}</p></Card>
+      <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] text-carbon-400 sm:text-xs">Coût ce mois</p><p className="mt-1 truncate text-xl font-bold text-gold-200 sm:mt-2 sm:text-2xl">{formatMAD(monthlyCost)}</p></Card>
     </div>
     <Card className="mt-6 p-5">
       <div className="mb-4 flex items-center justify-between gap-3">

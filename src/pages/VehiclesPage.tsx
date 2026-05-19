@@ -290,12 +290,12 @@ export default function VehiclesPage() {
         action={<Button icon={<Plus className="h-4 w-4" />} onClick={openNewVehicle}>Ajouter un véhicule</Button>}
       />
 
-      <div className="mb-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <Card className="p-4"><p className="text-xs uppercase tracking-wide text-carbon-500">Total</p><p className="mt-2 text-2xl font-black">{stats.total}</p></Card>
-        <Card className="p-4"><p className="text-xs uppercase tracking-wide text-carbon-500">Disponibles</p><p className="mt-2 text-2xl font-black text-emerald-300">{stats.available}</p></Card>
-        <Card className="p-4"><p className="text-xs uppercase tracking-wide text-carbon-500">Loués</p><p className="mt-2 text-2xl font-black text-sky-300">{stats.rented}</p></Card>
-        <Card className="p-4"><p className="text-xs uppercase tracking-wide text-carbon-500">Maintenance / indispo</p><p className="mt-2 text-2xl font-black text-amber-300">{stats.maintenance}</p></Card>
-        <Card className="p-4"><p className="text-xs uppercase tracking-wide text-carbon-500">Prix moyen / jour</p><p className="mt-2 text-2xl font-black text-gold-200">{formatMAD(stats.avgPrice)}</p></Card>
+      <div className="mb-5 grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] uppercase tracking-wide text-carbon-500 sm:text-xs">Total</p><p className="mt-1 truncate text-xl font-black sm:mt-2 sm:text-2xl">{stats.total}</p></Card>
+        <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] uppercase tracking-wide text-carbon-500 sm:text-xs">Disponibles</p><p className="mt-1 truncate text-xl font-black text-emerald-300 sm:mt-2 sm:text-2xl">{stats.available}</p></Card>
+        <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] uppercase tracking-wide text-carbon-500 sm:text-xs">Loués</p><p className="mt-1 truncate text-xl font-black text-sky-300 sm:mt-2 sm:text-2xl">{stats.rented}</p></Card>
+        <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] uppercase tracking-wide text-carbon-500 sm:text-xs">Maintenance / indispo</p><p className="mt-1 truncate text-xl font-black text-amber-300 sm:mt-2 sm:text-2xl">{stats.maintenance}</p></Card>
+        <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] uppercase tracking-wide text-carbon-500 sm:text-xs">Prix moyen / jour</p><p className="mt-1 truncate text-xl font-black text-gold-200 sm:mt-2 sm:text-2xl">{formatMAD(stats.avgPrice)}</p></Card>
       </div>
 
       <Card className="mb-5 p-4">
