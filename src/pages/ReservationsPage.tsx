@@ -651,8 +651,18 @@ export default function ReservationsPage() {
                         </ReservationField>
                         {selectedVehicle ? (
                           <div className="premium-surface grid gap-3 rounded-3xl p-5 sm:grid-cols-[180px_1fr]">
-                            <div className="vehicle-visual grid h-28 place-items-center rounded-3xl">
-                              <Car className="h-14 w-14 text-white/70" strokeWidth={1.3} />
+                            <div className="relative h-32 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-800 to-zinc-950 sm:h-28">
+                              {selectedVehicle.imageUrl ? (
+                                <img
+                                  src={selectedVehicle.imageUrl}
+                                  alt={`${selectedVehicle.brand} ${selectedVehicle.model}`}
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="grid h-full w-full place-items-center">
+                                  <Car className="h-14 w-14 text-white/70" strokeWidth={1.3} />
+                                </div>
+                              )}
                             </div>
                             <div>
                               <div className="flex flex-wrap items-center gap-3">
