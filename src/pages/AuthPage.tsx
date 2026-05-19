@@ -1,4 +1,4 @@
-import { ArrowLeft, Chrome, Eye, EyeOff, LockKeyhole, Mail, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Chrome, Eye, EyeOff, LockKeyhole, Mail, MessageCircle, X } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Button from '../components/ui/Button';
@@ -32,6 +32,8 @@ type LoginMemberLookup = {
   agencyEmail: string;
 };
 
+const rememberedEmailsKey = 'mekloc-remembered-login-emails';
+
 function normalizeWhatsAppPhone(phone: string | null | undefined) {
   const compact = String(phone || '').replace(/[^\d+]/g, '');
   if (!compact) return '';
@@ -48,6 +50,20 @@ function buildAgencyWhatsAppUrl(member: LoginMemberLookup | null) {
   return `https://wa.me/${phone}?text=${text}`;
 }
 
+function readRememberedEmails() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(rememberedEmailsKey) || '[]');
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string').slice(0, 5) : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeRememberedEmails(emails: string[]) {
+  window.localStorage.setItem(rememberedEmailsKey, JSON.stringify(emails.slice(0, 5)));
+}
+
 export default function AuthPage() {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -60,6 +76,8 @@ export default function AuthPage() {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [memberLoginHint, setMemberLoginHint] = useState<LoginMemberLookup | null>(null);
+  const [rememberedEmails, setRememberedEmails] = useState<string[]>(readRememberedEmails);
+  const [emailSuggestionsOpen, setEmailSuggestionsOpen] = useState(false);
   const navigate = useNavigate();
   const { notify } = useApp();
   const {
@@ -101,6 +119,81 @@ export default function AuthPage() {
       window.history.replaceState(null, '', '/auth');
     }
   }, [notify, searchParams]);
+
+  function rememberLoginEmail(email: string) {
+    const normalized = email.trim().toLowerCase();
+    if (!normalized) return;
+    setRememberedEmails((current) => {
+      const next = [normalized, ...current.filter((item) => item !== normalized)].slice(0, 5);
+      writeRememberedEmails(next);
+      return next;
+    });
+  }
+
+  function removeRememberedEmail(email: string) {
+    setRememberedEmails((current) => {
+      const next = current.filter((item) => item !== email);
+      writeRememberedEmails(next);
+      return next;
+    });
+  }
+
+  function handleEmailChange(value: string) {
+    setLoginEmail(value);
+    setMemberLoginHint(null);
+    setEmailSuggestionsOpen(true);
+  }
+
+  function RememberedEmailField() {
+    const showSuggestions = emailSuggestionsOpen && rememberedEmails.length > 0;
+    return (
+      <label className="relative grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
+        <span>Email</span>
+        <input
+          className="form-control focus-ring w-full"
+          name="email"
+          type="email"
+          placeholder="admin@agency.ma"
+          value={loginEmail}
+          autoComplete="email"
+          onFocus={() => setEmailSuggestionsOpen(true)}
+          onBlur={() => window.setTimeout(() => setEmailSuggestionsOpen(false), 140)}
+          onChange={(e) => handleEmailChange(e.target.value)}
+          required
+        />
+        {showSuggestions ? (
+          <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-white/10 bg-carbon-950/98 shadow-2xl backdrop-blur light:bg-white">
+            {rememberedEmails.map((email) => (
+              <button
+                key={email}
+                type="button"
+                className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm text-carbon-200 transition hover:bg-white/[0.06] light:text-carbon-800 light:hover:bg-carbon-950/5"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => {
+                  setLoginEmail(email);
+                  setMemberLoginHint(null);
+                  setEmailSuggestionsOpen(false);
+                }}
+              >
+                <span className="truncate">{email}</span>
+                <span
+                  role="button"
+                  tabIndex={-1}
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-carbon-400 hover:bg-white/10 hover:text-white light:hover:bg-carbon-950/10 light:hover:text-carbon-950"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    removeRememberedEmail(email);
+                  }}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </label>
+    );
+  }
 
   async function lookupAgencyMemberForLogin(email: string): Promise<LoginMemberLookup | null> {
     const normalized = email.trim().toLowerCase();
@@ -237,6 +330,7 @@ export default function AuthPage() {
           : 'Vous entrez en mode démo avec des données exemples.',
         type: 'success',
       });
+      rememberLoginEmail(email);
       navigate(getPostLoginRedirect(nextProfile, isSupabaseEnabled), { replace: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Authentification échouée';
@@ -396,34 +490,12 @@ export default function AuthPage() {
                 <p className="mt-2 text-sm text-carbon-400 light:text-carbon-600">Accédez à votre espace MekLoc.</p>
                 {loginStep === 'email' ? (
                   <form className="mt-7 grid gap-4" onSubmit={handleEmailStep}>
-                    <Field
-                      label="Email"
-                      name="email"
-                      type="email"
-                      placeholder="admin@agency.ma"
-                      value={loginEmail}
-                      onChange={(e) => {
-                        setLoginEmail(e.target.value);
-                        setMemberLoginHint(null);
-                      }}
-                      required
-                    />
+                    <RememberedEmailField />
                     <Button type="submit" loading={loading} icon={<Mail className="h-4 w-4" />}>Suivant</Button>
                   </form>
                 ) : (
                   <form className="mt-7 grid gap-4" onSubmit={handleSubmit}>
-                  <Field
-                    label="Email"
-                    name="email"
-                    type="email"
-                    placeholder="admin@agency.ma"
-                    value={loginEmail}
-                    onChange={(e) => {
-                      setLoginEmail(e.target.value);
-                      setMemberLoginHint(null);
-                    }}
-                    required
-                  />
+                  <RememberedEmailField />
                   <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
                     <span>Mot de passe</span>
                     <div className="relative">
