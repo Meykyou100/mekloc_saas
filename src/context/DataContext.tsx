@@ -218,6 +218,7 @@ type MaintenanceRow = {
   status: MaintenanceItem['status'] | string;
   notes?: string | null;
   invoice_url?: string | null;
+  details?: Record<string, string | number | boolean | undefined> | null;
 };
 
 function vehicleName(vehicle?: Vehicle) {
@@ -508,6 +509,7 @@ function mapMaintenance(row: MaintenanceRow, vehicle?: Vehicle): MaintenanceItem
     status,
     notes: row.notes || '',
     invoiceUrl: row.invoice_url || undefined,
+    details: row.details || {},
     type: row.service_type || row.type || 'Autre',
     date: nextDate,
     priority: status === 'Overdue' ? 'High' : status === 'Due soon' ? 'Medium' : 'Low',
@@ -533,6 +535,7 @@ function toMaintenanceRow(item: MaintenanceItem, agencyId: string) {
     status: item.status,
     notes: sanitizeText(item.notes || '', 800),
     invoice_url: sanitizeText(item.invoiceUrl || '', 1000) || null,
+    details: item.details || {},
   };
 }
 

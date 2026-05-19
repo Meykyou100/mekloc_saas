@@ -222,6 +222,7 @@ alter table public.maintenance add column if not exists next_service_mileage int
 alter table public.maintenance add column if not exists provider_name text not null default '';
 alter table public.maintenance add column if not exists notes text not null default '';
 alter table public.maintenance add column if not exists invoice_url text;
+alter table public.maintenance add column if not exists details jsonb not null default '{}'::jsonb;
 
 create index if not exists users_profiles_agency_id_idx on public.users_profiles(agency_id);
 create index if not exists vehicles_agency_id_idx on public.vehicles(agency_id);

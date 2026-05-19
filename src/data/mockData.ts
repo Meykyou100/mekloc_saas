@@ -162,6 +162,7 @@ export type MaintenanceItem = {
   status: 'Scheduled' | 'Done' | 'Due soon' | 'Overdue';
   notes: string;
   invoiceUrl?: string;
+  details?: Record<string, string | number | boolean | undefined>;
   type?: string;
   date?: string;
   priority?: 'High' | 'Medium' | 'Low';
