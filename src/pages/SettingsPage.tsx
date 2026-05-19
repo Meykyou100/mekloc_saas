@@ -9,6 +9,7 @@ import PageHeader from '../components/ui/PageHeader';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { normalizeText, sanitizeText, validateEmail, validateFileUpload, validatePhone } from '../lib/security';
+import { getNotificationPreferences, type NotificationPreferenceKey, type NotificationPreferences } from '../lib/notificationPreferences';
 import { uploadAgencyLogo } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 
@@ -23,9 +24,14 @@ type TeamMember = {
 type TeamRole = 'owner' | 'manager' | 'agent' | 'accountant';
 type SettingsTab = 'Général' | 'Contrats' | 'Facturation' | 'Abonnement' | 'Équipe' | 'Notifications';
 type ActivationLinkMember = Pick<TeamMember, 'full_name' | 'email' | 'role' | 'account_status'> & { id?: string };
-
 const settingsTabs: SettingsTab[] = ['Général', 'Contrats', 'Facturation', 'Abonnement', 'Équipe', 'Notifications'];
 const settingsTabStorageKey = 'mekloc-settings-active-tab';
+const notificationPreferenceItems: Array<{ key: NotificationPreferenceKey; label: string }> = [
+  { key: 'reservationConfirmation', label: 'Confirmation réservation' },
+  { key: 'paymentReminder', label: 'Rappel paiement' },
+  { key: 'returnReminder', label: 'Rappel retour' },
+  { key: 'contractSending', label: 'Envoi contrat' },
+];
 
 const teamRoleOptions: Array<{ value: TeamRole; label: string }> = [
   { value: 'owner', label: 'Propriétaire' },
@@ -148,6 +154,9 @@ export default function SettingsPage() {
   const [selectedMemberForActivation, setSelectedMemberForActivation] = useState<ActivationLinkMember | null>(null);
   const [isActivationModalOpen, setIsActivationModalOpen] = useState(false);
   const [inviteSending, setInviteSending] = useState(false);
+  const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(() =>
+    getNotificationPreferences(profile?.agency?.settings),
+  );
   const canManageTeam = profile?.role === 'owner' || profile?.role === 'manager' || Boolean(profile?.isSuperAdmin);
   const hasChanges = useMemo(() => {
     const baseName = profile?.agency?.name || '';
@@ -155,15 +164,17 @@ export default function SettingsPage() {
     const basePhone = profile?.agency?.phone || profile?.phone || '';
     const baseAddress = profile?.agency?.address || '';
     const baseLogo = profile?.agency?.logoUrl || '';
+    const baseNotifications = getNotificationPreferences(profile?.agency?.settings);
     return (
       agencyName !== baseName ||
       agencyEmail !== baseEmail ||
       agencyPhone !== basePhone ||
       agencyAddress !== baseAddress ||
       logoPreviewUrl !== baseLogo ||
-      Boolean(pendingLogoFile)
+      Boolean(pendingLogoFile) ||
+      notificationPreferenceItems.some((item) => notificationPreferences[item.key] !== baseNotifications[item.key])
     );
-  }, [agencyAddress, agencyEmail, agencyName, agencyPhone, logoPreviewUrl, pendingLogoFile, profile?.agency?.address, profile?.agency?.email, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.email, profile?.phone]);
+  }, [agencyAddress, agencyEmail, agencyName, agencyPhone, logoPreviewUrl, notificationPreferences, pendingLogoFile, profile?.agency?.address, profile?.agency?.email, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.settings, profile?.email, profile?.phone]);
   useEffect(() => {
     setAgencyName(profile?.agency?.name || '');
     setAgencyEmail(profile?.agency?.email || profile?.email || '');
@@ -172,9 +183,10 @@ export default function SettingsPage() {
     setLogoPreviewUrl(profile?.agency?.logoUrl || '');
     setPendingLogoFile(null);
     setLogoFileName('');
+    setNotificationPreferences(getNotificationPreferences(profile?.agency?.settings));
     setSaveState('idle');
     setLogoPreviewBroken(false);
-  }, [profile?.agency?.address, profile?.agency?.email, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.email, profile?.phone]);
+  }, [profile?.agency?.address, profile?.agency?.email, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.settings, profile?.email, profile?.phone]);
 
   useEffect(() => {
     setLogoPreviewBroken(false);
@@ -702,6 +714,10 @@ startxref
         address: safeAgencyAddress || null,
         phone: safeAgencyPhone || null,
         email: safeAgencyEmail || null,
+        settings: {
+          ...(profile?.agency?.settings || {}),
+          notifications: notificationPreferences,
+        },
       };
       for (let attempt = 0; attempt < 6; attempt += 1) {
         const { error: agencyErr } = await supabase.from('agencies').update(agencyPayload).eq('id', agencyId);
@@ -1081,17 +1097,26 @@ startxref
               <h2 className="font-semibold text-white light:text-carbon-950">Automatisation WhatsApp</h2>
             </div>
             <div className="grid gap-3">
-              {['Confirmation réservation', 'Rappel paiement', 'Rappel retour', 'Envoi contrat'].map((item) => (
-                <div key={item} className="premium-surface flex items-center justify-between rounded-2xl p-4">
+              {notificationPreferenceItems.map((item) => {
+                const enabled = notificationPreferences[item.key];
+                return (
+                <div key={item.key} className="premium-surface flex items-center justify-between rounded-2xl p-4">
                   <div>
-                    <p className="font-bold text-white light:text-carbon-950">{item}</p>
-                    <p className="text-sm text-carbon-400">Bientôt disponible.</p>
+                    <p className="font-bold text-white light:text-carbon-950">{item.label}</p>
+                    <p className="text-sm text-carbon-400">{enabled ? 'Bouton WhatsApp actif.' : 'Bouton WhatsApp désactivé.'}</p>
                   </div>
-                  <button disabled className="h-6 w-11 cursor-not-allowed rounded-full bg-gold-400/20 p-1 opacity-70">
-                    <span className="block h-4 w-4 rounded-full bg-gold-300" />
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={enabled}
+                    className={`h-6 w-11 rounded-full p-1 transition ${enabled ? 'bg-gold-400' : 'bg-white/15'}`}
+                    onClick={() => setNotificationPreferences((current) => ({ ...current, [item.key]: !current[item.key] }))}
+                  >
+                    <span className={`block h-4 w-4 rounded-full bg-white transition ${enabled ? 'translate-x-5' : 'translate-x-0'}`} />
                   </button>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </Card>
         </div>

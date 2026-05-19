@@ -10,6 +10,7 @@ import {
   LayoutGrid,
   ListFilter,
   MapPin,
+  MessageCircle,
   Pencil,
   Plus,
   Search,
@@ -28,9 +29,12 @@ import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import StatCard from '../components/ui/StatCard';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { formatMAD, type Reservation, type ReservationStatus } from '../data/mockData';
 import { sanitizeText } from '../lib/security';
+import { buildWhatsAppReminderUrl } from '../lib/assistantDuJour';
+import { getNotificationPreferences } from '../lib/notificationPreferences';
 
 type ViewMode = 'list' | 'grid';
 type ReservationFilterStatus = 'All' | ReservationStatus;
@@ -105,6 +109,7 @@ function ReservationField({ label, hint, children }: { label: string; hint?: str
 export default function ReservationsPage() {
   const { clients, vehicles, reservations, payments, createReservation, updateReservation, deleteReservation } = useData();
   const { notify } = useApp();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -135,6 +140,7 @@ export default function ReservationsPage() {
   const [draftStatus, setDraftStatus] = useState<ReservationStatus>('Confirmed');
 
   const todayIso = new Date().toISOString().slice(0, 10);
+  const notificationPreferences = getNotificationPreferences(profile?.agency?.settings);
 
   const selectedClient = clients.find((client) => client.id === draftClientId) || null;
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === draftVehicleId) || null;
@@ -931,6 +937,26 @@ export default function ReservationsPage() {
               <p><strong className="text-white">Notes:</strong> {detailsTarget.notes || 'Aucune note'}</p>
             </div>
             <div className="flex flex-wrap justify-end gap-2">
+              {(() => {
+                const detailsClient = clients.find((item) => item.id === detailsTarget.clientId);
+                const whatsappUrl = buildWhatsAppReminderUrl({
+                  kind: 'confirmation',
+                  phone: detailsClient?.phone,
+                  clientName: detailsTarget.client,
+                  vehicle: detailsTarget.vehicle,
+                  date: detailsTarget.pickupDate,
+                });
+                if (!notificationPreferences.reservationConfirmation) {
+                  return <Button variant="secondary" disabled>WhatsApp désactivé</Button>;
+                }
+                return whatsappUrl ? (
+                  <a href={whatsappUrl} target="_blank" rel="noreferrer">
+                    <Button variant="secondary" icon={<MessageCircle className="h-4 w-4" />}>WhatsApp</Button>
+                  </a>
+                ) : (
+                  <Button variant="secondary" disabled>Téléphone manquant</Button>
+                );
+              })()}
               <Button variant="secondary" icon={<Pencil className="h-4 w-4" />} onClick={() => { setDetailsTarget(null); openEditReservation(detailsTarget); }}>
                 Modifier
               </Button>

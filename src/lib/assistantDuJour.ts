@@ -23,7 +23,7 @@ export type VehicleExpiryAlert = {
   source: 'assurance' | 'visite' | 'entretien';
 };
 
-type WhatsAppReminderKind = 'pickup' | 'return' | 'payment' | 'documents';
+type WhatsAppReminderKind = 'confirmation' | 'pickup' | 'return' | 'payment' | 'contract' | 'documents';
 
 function toDateKey(date: Date) {
   return date.toISOString().slice(0, 10);
@@ -190,9 +190,11 @@ export function buildWhatsAppReminderUrl({
 
   const intro = `Bonjour ${clientName},`;
   const bodyByKind: Record<WhatsAppReminderKind, string> = {
+    confirmation: `confirmation réservation: votre réservation${vehicle ? ` pour ${vehicle}` : ''} est bien enregistrée pour le ${compactDate(date)}. Merci de nous confirmer votre disponibilité.`,
     pickup: `rappel pour votre départ prévu le ${compactDate(date)}${vehicle ? ` avec ${vehicle}` : ''}. Merci de confirmer votre disponibilité.`,
-    return: `rappel pour votre retour prévu le ${compactDate(date)}${vehicle ? ` (${vehicle})` : ''}. Merci de nous confirmer l’heure de restitution.`,
+    return: `rappel retour véhicule: retour prévu le ${compactDate(date)}${vehicle ? ` (${vehicle})` : ''}. Merci de nous confirmer l’heure de restitution.`,
     payment: `rappel paiement: il reste ${amount ? `${amount.toLocaleString('fr-MA')} MAD` : 'un montant'} à régler. Merci de finaliser votre paiement aujourd’hui.`,
+    contract: `envoi contrat: votre contrat de location${vehicle ? ` pour ${vehicle}` : ''} est prêt. Merci de le vérifier et de nous confirmer réception.`,
     documents: `merci de compléter votre dossier (${(missingDocs || []).join(' / ') || 'documents manquants'}) pour valider votre réservation.`,
   };
   const text = encodeURIComponent(`${intro}\n${bodyByKind[kind]}\n\n— MekLoc`);

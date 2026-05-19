@@ -9,7 +9,10 @@ import PageHeader from '../components/ui/PageHeader';
 import StatCard from '../components/ui/StatCard';
 import { formatMAD, type Payment, type PaymentStatus, type Reservation } from '../data/mockData';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
+import { buildWhatsAppReminderUrl } from '../lib/assistantDuJour';
+import { getNotificationPreferences } from '../lib/notificationPreferences';
 import { sanitizeText, validatePositiveNumber } from '../lib/security';
 
 type FilterKey = 'tous' | 'paye' | 'partiel' | 'attente' | 'retard' | 'mois';
@@ -40,6 +43,8 @@ function getPaidAmount(payment: Payment) {
 export default function PaymentsPage() {
   const { payments, reservations, vehicles, clients, createPayment, updatePayment } = useData();
   const { notify } = useApp();
+  const { profile } = useAuth();
+  const notificationPreferences = getNotificationPreferences(profile?.agency?.settings);
   const [filter, setFilter] = useState<FilterKey>('tous');
   const [query, setQuery] = useState('');
   const [methodFilter, setMethodFilter] = useState<MethodFilter>('toutes');
@@ -50,7 +55,6 @@ export default function PaymentsPage() {
   const [paymentDate, setPaymentDate] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
   const [savingPayment, setSavingPayment] = useState(false);
-  const supportPhone = '212762971653';
   const paymentRows = payments;
 
   const enriched = useMemo(() => {
@@ -59,6 +63,8 @@ export default function PaymentsPage() {
       const reservation = reservations.find((item) => paymentMatchesReservation(payment, item));
       const vehicleId = payment.vehicleId || reservation?.vehicleId;
       const vehicle = vehicleId ? vehicles.find((item) => item.id === vehicleId) : undefined;
+      const client = clients.find((item) => item.id === (payment.clientId || reservation?.clientId)) ||
+        clients.find((item) => item.fullName.trim().toLowerCase() === payment.client.trim().toLowerCase());
       const total = reservation?.totalAmount || reservation?.dailyPrice || payment.amount;
       const paid = getPaidAmount(payment);
       const remaining = Math.max(0, total - paid);
@@ -70,6 +76,7 @@ export default function PaymentsPage() {
         ...payment,
         reservationCode: reservation?.id || '—',
         vehicleLabel: vehicle ? `${vehicle.brand} ${vehicle.model}` : '—',
+        clientPhone: client?.phone,
         total,
         paid,
         remaining,
@@ -77,7 +84,7 @@ export default function PaymentsPage() {
         progress: total > 0 ? Math.round((paid / total) * 100) : 0,
       };
     });
-  }, [paymentRows, reservations, vehicles]);
+  }, [clients, paymentRows, reservations, vehicles]);
 
   const reservationChoices = useMemo(
     () =>
@@ -279,9 +286,16 @@ startxref
     URL.revokeObjectURL(url);
   }
 
-  function sendWhatsappReminder(invoice: string, amount: number) {
-    const text = encodeURIComponent(`Bonjour, rappel de paiement MekLoc pour la facture ${invoice}. Montant: ${formatMAD(amount)}.`);
-    window.open(`https://wa.me/${supportPhone}?text=${text}`, '_blank', 'noopener,noreferrer');
+  function sendWhatsappReminder(item: { client: string; clientPhone?: string; vehicleLabel: string; remaining: number }) {
+    const whatsappUrl = buildWhatsAppReminderUrl({
+      kind: 'payment',
+      phone: item.clientPhone,
+      clientName: item.client,
+      vehicle: item.vehicleLabel,
+      amount: item.remaining,
+    });
+    if (!whatsappUrl) return;
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
     notify({ title: 'WhatsApp', message: 'Rappel WhatsApp prêt à être envoyé.', type: 'info' });
   }
 
@@ -340,7 +354,7 @@ startxref
               {filtered.map((item) => (
                 <tr key={item.id} className="hover:bg-white/[0.03]">
                   <td className="px-5 py-4 font-semibold">{item.invoice}</td><td className="px-5 py-4">{item.client}</td><td className="px-5 py-4">{item.vehicleLabel}</td><td className="px-5 py-4">{item.reservationCode}</td><td className="px-5 py-4">{formatMAD(item.total)}</td><td className="px-5 py-4">{formatMAD(item.paid)}</td><td className="px-5 py-4">{formatMAD(item.remaining)}</td><td className="px-5 py-4">{item.dueDate}</td><td className="px-5 py-4">{item.method}</td><td className="px-5 py-4"><Badge>{item.statusFr}</Badge></td>
-                  <td className="px-5 py-4"><div className="flex gap-2"><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => notify({ title: 'Détail facture', message: `${item.invoice} · ${formatMAD(item.total)}`, type: 'info' })}>Voir</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => setModalOpen(true)}>Ajouter paiement</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => downloadReceipt(item.invoice, item.total, item.paid, item.remaining)}>Télécharger reçu</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => sendWhatsappReminder(item.invoice, item.remaining)}>Envoyer rappel</Button></div></td>
+                  <td className="px-5 py-4"><div className="flex gap-2"><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => notify({ title: 'Détail facture', message: `${item.invoice} · ${formatMAD(item.total)}`, type: 'info' })}>Voir</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => setModalOpen(true)}>Ajouter paiement</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => downloadReceipt(item.invoice, item.total, item.paid, item.remaining)}>Télécharger reçu</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" disabled={!notificationPreferences.paymentReminder || !item.clientPhone} onClick={() => sendWhatsappReminder(item)}>{!notificationPreferences.paymentReminder ? 'WhatsApp désactivé' : item.clientPhone ? 'Envoyer rappel' : 'Téléphone manquant'}</Button></div></td>
                 </tr>
               ))}
             </tbody>
@@ -358,7 +372,7 @@ startxref
               <p>Total: <strong>{formatMAD(item.total)}</strong></p><p>Payé: <strong>{formatMAD(item.paid)}</strong></p><p>Reste: <strong>{formatMAD(item.remaining)}</strong></p><p>Échéance: <strong>{item.dueDate}</strong></p>
             </div>
             <div className="mt-3 h-2 rounded-full bg-white/10"><div className={`h-2 rounded-full ${item.statusFr === 'En retard' ? 'bg-rose-400' : item.statusFr === 'Partiel' ? 'bg-gold-400' : 'bg-mint-400'}`} style={{ width: `${item.progress}%` }} /></div>
-            <div className="mt-3 grid grid-cols-2 gap-2"><Button variant="secondary" className="h-9 text-xs" onClick={() => downloadReceipt(item.invoice, item.total, item.paid, item.remaining)}>Télécharger reçu</Button><Button variant="secondary" className="h-9 text-xs" onClick={() => sendWhatsappReminder(item.invoice, item.remaining)}>Envoyer rappel</Button></div>
+            <div className="mt-3 grid grid-cols-2 gap-2"><Button variant="secondary" className="h-9 text-xs" onClick={() => downloadReceipt(item.invoice, item.total, item.paid, item.remaining)}>Télécharger reçu</Button><Button variant="secondary" className="h-9 text-xs" disabled={!notificationPreferences.paymentReminder || !item.clientPhone} onClick={() => sendWhatsappReminder(item)}>{!notificationPreferences.paymentReminder ? 'WhatsApp désactivé' : item.clientPhone ? 'Envoyer rappel' : 'Téléphone manquant'}</Button></div>
           </Card>
         ))}
       </div>

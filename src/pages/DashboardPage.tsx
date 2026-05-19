@@ -31,6 +31,7 @@ import {
   getVehicleExpiryAlerts,
   type AssistantPriority,
 } from '../lib/assistantDuJour';
+import { getNotificationPreferences } from '../lib/notificationPreferences';
 import { daysUntil, isSubscriptionExpiringSoon } from '../lib/subscription';
 
 const actionItems = [
@@ -111,6 +112,7 @@ export default function DashboardPage() {
   } = useData();
   const { profile } = useAuth();
   const { notify } = useApp();
+  const notificationPreferences = getNotificationPreferences(profile?.agency?.settings);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const availableVehicles = vehicles.filter((vehicle) => vehicle.status === 'Available').length;
   const activeReservations = reservations.filter((reservation) => reservation.status === 'Active').length;
@@ -250,7 +252,11 @@ export default function DashboardPage() {
                               Générer contrat
                             </Link>
                           ) : null}
-                          {whatsappUrl ? (
+                          {!notificationPreferences.reservationConfirmation ? (
+                            <button type="button" disabled className="cursor-not-allowed rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-carbon-500">
+                              WhatsApp désactivé
+                            </button>
+                          ) : whatsappUrl ? (
                             <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-carbon-200 hover:bg-white/[0.07]">
                               <MessageCircle className="h-3.5 w-3.5" /> Envoyer WhatsApp
                             </a>
@@ -302,7 +308,11 @@ export default function DashboardPage() {
                           <Link to="/reservations" className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-carbon-200 hover:bg-white/[0.07]">
                             Voir détails
                           </Link>
-                          {whatsappUrl ? (
+                          {!notificationPreferences.returnReminder ? (
+                            <button type="button" disabled className="cursor-not-allowed rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-carbon-500">
+                              WhatsApp désactivé
+                            </button>
+                          ) : whatsappUrl ? (
                             <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-carbon-200 hover:bg-white/[0.07]">
                               <MessageCircle className="h-3.5 w-3.5" /> Envoyer WhatsApp
                             </a>
@@ -370,7 +380,11 @@ export default function DashboardPage() {
                           <Link to="/payments" className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-carbon-200 hover:bg-white/[0.07]">
                             Ajouter paiement
                           </Link>
-                          {whatsappUrl ? (
+                          {!notificationPreferences.paymentReminder ? (
+                            <button type="button" disabled className="cursor-not-allowed rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-carbon-500">
+                              WhatsApp désactivé
+                            </button>
+                          ) : whatsappUrl ? (
                             <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-carbon-200 hover:bg-white/[0.07]">
                               <MessageCircle className="h-3.5 w-3.5" /> Envoyer WhatsApp
                             </a>

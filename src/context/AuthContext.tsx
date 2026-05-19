@@ -40,6 +40,7 @@ export type AgencySubscription = {
   paymentMethod: PaymentMethod;
   paymentNotes: string;
   createdAt: string;
+  settings?: Record<string, unknown>;
 };
 
 type SignUpInput = {
@@ -117,6 +118,7 @@ type AgencyRow = {
   payment_method: PaymentMethod | null;
   payment_notes: string | null;
   created_at: string;
+  settings?: Record<string, unknown> | null;
 };
 
 const demoAgency: AgencySubscription = {
@@ -187,6 +189,7 @@ function mapAgency(row: AgencyRow | AgencyRow[] | null): AgencySubscription | nu
     paymentMethod: agency.payment_method || 'other',
     paymentNotes: agency.payment_notes || '',
     createdAt: agency.created_at,
+    settings: agency.settings || {},
   };
 }
 

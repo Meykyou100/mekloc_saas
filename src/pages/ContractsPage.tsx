@@ -7,6 +7,7 @@ import {
   FileSignature,
   FileText,
   Landmark,
+  MessageCircle,
   PenLine,
   RefreshCcw,
   Sparkles,
@@ -26,6 +27,8 @@ import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { formatMAD, type Client, type Vehicle } from '../data/mockData';
+import { buildWhatsAppReminderUrl } from '../lib/assistantDuJour';
+import { getNotificationPreferences } from '../lib/notificationPreferences';
 import { supabase } from '../lib/supabase';
 
 const templates = ['Standard location', 'Véhicule premium', 'Compte entreprise'];
@@ -687,7 +690,16 @@ export default function ContractsPage() {
     }
   }
 
+  const contractWhatsAppUrl = buildWhatsAppReminderUrl({
+    kind: 'contract',
+    phone: client.phone,
+    clientName: client.fullName,
+    vehicle: `${vehicle.brand} ${vehicle.model}`,
+    date: pickupDate,
+  });
+
   const previewStatus = contracts[0]?.status || 'Draft';
+  const notificationPreferences = getNotificationPreferences(profile?.agency?.settings);
 
   return (
     <div>
@@ -805,6 +817,21 @@ export default function ContractsPage() {
 
           <div className="sticky bottom-0 border-t border-white/10 bg-carbon-950/95 p-5 backdrop-blur-xl light:bg-white/95">
             <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
+              {!notificationPreferences.contractSending ? (
+                <Button type="button" variant="secondary" disabled>
+                  WhatsApp désactivé
+                </Button>
+              ) : contractWhatsAppUrl ? (
+                <a href={contractWhatsAppUrl} target="_blank" rel="noreferrer" className="block">
+                  <Button type="button" variant="secondary" className="w-full" icon={<MessageCircle className="h-4 w-4" />}>
+                    Envoyer WhatsApp
+                  </Button>
+                </a>
+              ) : (
+                <Button type="button" variant="secondary" disabled>
+                  Téléphone manquant
+                </Button>
+              )}
               <Button type="button" variant="secondary" onClick={() => notify({ title: 'Aperçu mis à jour', message: 'Le document à droite reflète vos sélections.', type: 'info' })}>
                 Aperçu
               </Button>
