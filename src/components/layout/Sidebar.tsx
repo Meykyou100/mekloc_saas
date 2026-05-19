@@ -39,12 +39,14 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
     setLogoBroken(false);
   }, [logoUrl]);
 
+  const logoBadgeClass = 'grid h-[52px] w-[52px] shrink-0 place-items-center overflow-hidden rounded-2xl border border-gold-200/25 bg-gradient-to-br from-carbon-900 via-carbon-950 to-[#3f2b07] p-2 shadow-[0_12px_26px_rgba(212,160,23,.18)] light:border-gold-500/30 light:from-white light:via-gold-50 light:to-gold-100';
+
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between px-5 py-5">
         <NavLink to="/" className="flex items-center gap-3" onClick={onClose}>
           {logoUrl && !logoBroken ? (
-            <span className="grid h-[52px] w-[52px] shrink-0 place-items-center overflow-hidden rounded-2xl border border-white/10 bg-carbon-900/80 p-1.5 shadow-[0_12px_26px_rgba(212,160,23,.14)] light:border-carbon-950/10 light:bg-white">
+            <span className={logoBadgeClass}>
               <img
                 src={logoUrl}
                 alt="Logo agence"
@@ -53,7 +55,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
               />
             </span>
           ) : (
-            <span className="grid h-[52px] w-[52px] shrink-0 place-items-center rounded-2xl border border-gold-200/25 bg-[#D4A017] text-xl font-black text-carbon-950 shadow-[0_12px_26px_rgba(212,160,23,.14)]">
+            <span className={`${logoBadgeClass} text-xl font-black text-gold-100 light:text-carbon-950`}>
               M
             </span>
           )}

@@ -157,6 +157,7 @@ export default function SettingsPage() {
   const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(() =>
     getNotificationPreferences(profile?.agency?.settings),
   );
+  const logoBadgeClass = 'grid h-[52px] w-[52px] shrink-0 place-items-center overflow-hidden rounded-2xl border border-gold-200/25 bg-gradient-to-br from-carbon-900 via-carbon-950 to-[#3f2b07] p-2 shadow-[0_12px_26px_rgba(212,160,23,.18)] light:border-gold-500/30 light:from-white light:via-gold-50 light:to-gold-100';
   const canManageTeam = profile?.role === 'owner' || profile?.role === 'manager' || Boolean(profile?.isSuperAdmin);
   const hasChanges = useMemo(() => {
     const baseName = profile?.agency?.name || '';
@@ -828,7 +829,7 @@ startxref
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <div className="h-14 w-14 overflow-hidden rounded-xl border border-white/10 bg-carbon-900">
+                <div className={logoBadgeClass}>
                   {logoPreviewUrl && !logoPreviewBroken ? (
                     <img
                       src={logoPreviewUrl}
@@ -837,7 +838,7 @@ startxref
                       onError={() => setLogoPreviewBroken(true)}
                     />
                   ) : (
-                    <div className="grid h-full w-full place-items-center text-sm font-black text-gold-200">M</div>
+                    <div className="grid h-full w-full place-items-center text-xl font-black text-gold-100 light:text-carbon-950">M</div>
                   )}
                 </div>
               </div>
@@ -857,6 +858,27 @@ startxref
                     Supprimer le logo
                   </Button>
                 ) : null}
+              </div>
+            </div>
+            <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gold-200">Aperçu du logo</p>
+              <div className="flex items-center gap-3">
+                <div className={logoBadgeClass}>
+                  {logoPreviewUrl && !logoPreviewBroken ? (
+                    <img
+                      src={logoPreviewUrl}
+                      alt="Aperçu logo agence"
+                      className="h-full w-full object-contain"
+                      onError={() => setLogoPreviewBroken(true)}
+                    />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center text-xl font-black text-gold-100 light:text-carbon-950">M</div>
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-xl font-black tracking-wide text-white light:text-carbon-950">MekLoc</p>
+                  <p className="max-w-[220px] text-xs leading-4 text-carbon-400">Smart Rental Management System</p>
+                </div>
               </div>
             </div>
           </Card>
