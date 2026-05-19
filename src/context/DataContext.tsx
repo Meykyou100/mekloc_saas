@@ -65,7 +65,11 @@ type DataContextValue = {
 const DataContext = createContext<DataContextValue | null>(null);
 const allowMockData = import.meta.env.DEV && import.meta.env.VITE_USE_MOCK_DATA === 'true';
 const dataRequestTimeoutMs = 15000;
-const linkedVehicleDeleteMessage = 'Ce véhicule est lié à des réservations. Vous pouvez le marquer indisponible ou l’archiver.';
+const activeReservationStatuses: ReservationStatus[] = ['Confirmed', 'Active'];
+
+function linkedVehicleDeleteMessage(count: number) {
+  return `Ce véhicule est lié à ${count} réservation${count > 1 ? 's' : ''} active${count > 1 ? 's' : ''}. Vous pouvez le marquer indisponible ou l’archiver.`;
+}
 
 function withDataTimeout<T>(promise: Promise<T>, timeoutMs = dataRequestTimeoutMs): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -761,20 +765,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         assertPermission('vehicles');
         const existingVehicle = vehicles.find((item) => item.id === id);
         if (hasBackend) {
-          const [{ count: reservationCount, error: reservationError }, { count: contractCount, error: contractError }] = await Promise.all([
-            supabase!
-              .from('reservations')
-              .select('id', { count: 'exact', head: true })
-              .eq('vehicle_id', id),
-            supabase!
-              .from('contracts')
-              .select('id', { count: 'exact', head: true })
-              .eq('vehicle_id', id),
-          ]);
+          const { data: linkedReservations, error: reservationError } = await supabase!
+            .from('reservations')
+            .select('id, status')
+            .eq('vehicle_id', id)
+            .in('status', activeReservationStatuses);
           if (reservationError) throw reservationError;
-          if (contractError) throw contractError;
 
-          if ((reservationCount || 0) > 0 || (contractCount || 0) > 0) {
+          const blockingReservationIds = (linkedReservations || []).map((reservation) => reservation.id);
+          if (blockingReservationIds.length > 0) {
+            if (import.meta.env.DEV) {
+              console.info('Vehicle delete blocked by active reservation ids', blockingReservationIds);
+            }
             const { data, error } = await supabase!
               .from('vehicles')
               .update({ status: 'Unavailable' })
@@ -784,18 +786,24 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             if (error) throw error;
             const archivedVehicle = mapVehicle(data as VehicleRow);
             setVehicles((current) => current.map((item) => (item.id === id ? archivedVehicle : item)));
-            throw new Error(linkedVehicleDeleteMessage);
+            throw new Error(linkedVehicleDeleteMessage(blockingReservationIds.length));
           }
 
           const { error } = await supabase!.from('vehicles').delete().eq('id', id);
           if (error) throw error;
-        } else if (existingVehicle && (
-          reservations.some((reservation) => reservation.vehicleId === id) ||
-          contracts.some((contract) => contract.vehicleId === id)
-        )) {
-          setVehicles((current) => current.map((item) => (item.id === id ? { ...item, status: 'Unavailable' } : item)));
-          throw new Error(linkedVehicleDeleteMessage);
+        } else if (existingVehicle) {
+          const blockingReservationIds = reservations
+            .filter((reservation) => reservation.vehicleId === id && activeReservationStatuses.includes(reservation.status))
+            .map((reservation) => reservation.id);
+          if (blockingReservationIds.length > 0) {
+            if (import.meta.env.DEV) {
+              console.info('Vehicle delete blocked by active reservation ids', blockingReservationIds);
+            }
+            setVehicles((current) => current.map((item) => (item.id === id ? { ...item, status: 'Unavailable' } : item)));
+            throw new Error(linkedVehicleDeleteMessage(blockingReservationIds.length));
+          }
         }
+        if (!hasBackend && !existingVehicle) return;
         setVehicles((current) => current.filter((item) => item.id !== id));
       },
       createClient: async (client) => {
