@@ -66,9 +66,35 @@ const DataContext = createContext<DataContextValue | null>(null);
 const allowMockData = import.meta.env.DEV && import.meta.env.VITE_USE_MOCK_DATA === 'true';
 const dataRequestTimeoutMs = 15000;
 const activeReservationStatuses: ReservationStatus[] = ['Confirmed', 'Active'];
+const activeContractStatuses: ContractStatus[] = ['Draft', 'Signed'];
 
 function linkedVehicleDeleteMessage(count: number) {
   return `Ce véhicule est lié à ${count} réservation${count > 1 ? 's' : ''} active${count > 1 ? 's' : ''}. Vous pouvez le marquer indisponible ou l’archiver.`;
+}
+
+function vehicleDeleteBlockerMessage(type: 'reservation' | 'contract' | 'maintenance' | 'payment' | 'rls', count?: number) {
+  if (type === 'rls') return 'Permission RLS';
+  const labels = {
+    reservation: 'réservation',
+    contract: 'contrat',
+    maintenance: 'maintenance',
+    payment: 'paiement',
+  };
+  const label = labels[type];
+  return `Bloqué par ${label}${count && count > 1 ? 's' : ''}${count ? ` (${count})` : ''}`;
+}
+
+function isRlsError(error: { message?: string; code?: string } | null | undefined) {
+  const message = error?.message || '';
+  return error?.code === '42501' || /row-level security|permission denied|not authorized|rls/i.test(message);
+}
+
+function isForeignKeyError(error: { message?: string; code?: string } | null | undefined) {
+  return error?.code === '23503' || /foreign key|violates.*constraint|still referenced/i.test(error?.message || '');
+}
+
+function relationCount<T extends { id: string }>(items: T[] | null | undefined) {
+  return items?.length || 0;
 }
 
 function withDataTimeout<T>(promise: Promise<T>, timeoutMs = dataRequestTimeoutMs): Promise<T> {
@@ -768,12 +794,35 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         assertPermission('vehicles');
         const existingVehicle = vehicles.find((item) => item.id === id);
         if (hasBackend) {
-          const { data: linkedReservations, error: reservationError } = await supabase!
-            .from('reservations')
-            .select('id, status')
-            .eq('vehicle_id', id)
-            .in('status', activeReservationStatuses);
+          const [
+            { data: linkedReservations, error: reservationError },
+            { data: linkedContracts, error: contractError },
+            { data: linkedMaintenance, error: maintenanceError },
+            { data: linkedPayments, error: paymentError },
+          ] = await Promise.all([
+            supabase!
+              .from('reservations')
+              .select('id, status')
+              .eq('vehicle_id', id)
+              .in('status', activeReservationStatuses),
+            supabase!
+              .from('contracts')
+              .select('id, status')
+              .eq('vehicle_id', id)
+              .in('status', activeContractStatuses),
+            supabase!
+              .from('maintenance')
+              .select('id')
+              .eq('vehicle_id', id),
+            supabase!
+              .from('payments')
+              .select('id')
+              .eq('vehicle_id', id),
+          ]);
           if (reservationError) throw reservationError;
+          if (contractError) throw contractError;
+          if (maintenanceError) throw maintenanceError;
+          if (paymentError && !isMissingPaymentVehicleColumn(paymentError)) throw paymentError;
 
           const blockingReservationIds = (linkedReservations || []).map((reservation) => reservation.id);
           if (blockingReservationIds.length > 0) {
@@ -792,8 +841,47 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             throw new Error(linkedVehicleDeleteMessage(blockingReservationIds.length));
           }
 
+          const blockingContractIds = (linkedContracts || []).map((contract) => contract.id);
+          if (blockingContractIds.length > 0) {
+            if (import.meta.env.DEV) {
+              console.info('Vehicle delete blocked by contract ids', blockingContractIds);
+            }
+            throw new Error(vehicleDeleteBlockerMessage('contract', blockingContractIds.length));
+          }
+
+          const maintenanceCount = relationCount(linkedMaintenance);
+          const paymentCount = isMissingPaymentVehicleColumn(paymentError) ? 0 : relationCount(linkedPayments);
           const { error } = await supabase!.from('vehicles').delete().eq('id', id);
-          if (error) throw error;
+          if (error) {
+            if (import.meta.env.DEV) {
+              console.error('Supabase vehicle delete failed', {
+                vehicleId: id,
+                error,
+                activeReservationIds: blockingReservationIds,
+                contractIds: blockingContractIds,
+                maintenanceIds: (linkedMaintenance || []).map((item) => item.id),
+                paymentIds: (linkedPayments || []).map((item) => item.id),
+              });
+            }
+            if (isRlsError(error)) throw new Error(vehicleDeleteBlockerMessage('rls'));
+            if (isForeignKeyError(error)) {
+              if (maintenanceCount > 0) {
+                const { data, error: archiveError } = await supabase!
+                  .from('vehicles')
+                  .update({ status: 'Unavailable' })
+                  .eq('id', id)
+                  .select('*')
+                  .single();
+                if (archiveError) throw archiveError;
+                const archivedVehicle = mapVehicle(data as VehicleRow);
+                setVehicles((current) => current.map((item) => (item.id === id ? archivedVehicle : item)));
+                throw new Error(vehicleDeleteBlockerMessage('maintenance', maintenanceCount));
+              }
+              if (paymentCount > 0) throw new Error(vehicleDeleteBlockerMessage('payment', paymentCount));
+              throw new Error(error.message || 'Suppression impossible');
+            }
+            throw error;
+          }
         } else if (existingVehicle) {
           const blockingReservationIds = reservations
             .filter((reservation) => reservation.vehicleId === id && activeReservationStatuses.includes(reservation.status))
@@ -804,6 +892,23 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             }
             setVehicles((current) => current.map((item) => (item.id === id ? { ...item, status: 'Unavailable' } : item)));
             throw new Error(linkedVehicleDeleteMessage(blockingReservationIds.length));
+          }
+          const blockingContractIds = contracts
+            .filter((contract) => contract.vehicleId === id && activeContractStatuses.includes(contract.status))
+            .map((contract) => contract.id);
+          if (blockingContractIds.length > 0) {
+            if (import.meta.env.DEV) {
+              console.info('Vehicle delete blocked by contract ids', blockingContractIds);
+            }
+            throw new Error(vehicleDeleteBlockerMessage('contract', blockingContractIds.length));
+          }
+          const maintenanceIds = maintenance.filter((item) => item.vehicleId === id).map((item) => item.id);
+          if (maintenanceIds.length > 0) {
+            if (import.meta.env.DEV) {
+              console.info('Vehicle delete archived because maintenance ids exist', maintenanceIds);
+            }
+            setVehicles((current) => current.map((item) => (item.id === id ? { ...item, status: 'Unavailable' } : item)));
+            throw new Error(vehicleDeleteBlockerMessage('maintenance', maintenanceIds.length));
           }
         }
         if (!hasBackend && !existingVehicle) return;
