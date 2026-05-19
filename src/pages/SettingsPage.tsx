@@ -40,6 +40,19 @@ const teamRoleOptions: Array<{ value: TeamRole; label: string }> = [
   { value: 'accountant', label: 'Comptable' },
 ];
 
+const contractSettingCards = [
+  { title: 'Valeurs par défaut', text: 'Langue, modèles et règles appliqués aux nouveaux contrats.' },
+  { title: 'Caution', text: 'Montant ou méthode utilisée pour sécuriser chaque location.' },
+  { title: 'Retards', text: 'Frais horaires affichés clairement dans les documents client.' },
+];
+
+const notificationDescriptions: Record<NotificationPreferenceKey, string> = {
+  reservationConfirmation: 'Prépare un message WhatsApp pour confirmer les dates, le véhicule et le montant.',
+  paymentReminder: 'Prépare un rappel de paiement avec le montant et la date limite.',
+  returnReminder: 'Prépare un rappel avant le retour du véhicule.',
+  contractSending: 'Prépare un message pour envoyer ou rappeler le contrat au client.',
+};
+
 function normalizeTeamRole(role: string | null | undefined): TeamRole {
   const value = String(role || '').trim().toLowerCase();
   if (value === 'owner' || value === 'admin') return 'owner';
@@ -807,9 +820,16 @@ startxref
       {tab === 'Général' ? (
         <div className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
           <Card className="p-5">
-            <div className="mb-5 flex items-center gap-3">
-              <Building2 className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">Profil agence</h2>
+            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400/12 text-gold-200">
+                  <Building2 className="h-5 w-5" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-white light:text-carbon-950">Profil agence</h2>
+                  <p className="text-sm text-carbon-400">Informations visibles dans vos documents et communications.</p>
+                </div>
+              </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Nom de l’agence" value={agencyName} onChange={(e) => setAgencyName(e.target.value)} />
@@ -817,7 +837,7 @@ startxref
               <Field label="Email" value={agencyEmail} onChange={(e) => setAgencyEmail(e.target.value)} />
               <Field label="Adresse" value={agencyAddress} onChange={(e) => setAgencyAddress(e.target.value)} placeholder="Adresse agence" />
             </div>
-            <div className="mt-5 flex flex-col gap-4 rounded-2xl border border-dashed border-gold-300/30 bg-gold-400/5 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-5 grid gap-4 rounded-2xl border border-dashed border-gold-300/30 bg-gradient-to-br from-gold-400/10 via-white/[0.025] to-black/10 p-5 lg:grid-cols-[1fr_auto] lg:items-center">
               <div className="flex items-center gap-3">
                 <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gold-400 text-carbon-950">
                   <Camera className="h-6 w-6" />
@@ -828,7 +848,7 @@ startxref
                   {logoFileName ? <p className="mt-1 text-xs text-gold-200">{logoFileName}</p> : null}
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 lg:justify-end">
                 <div className={logoBadgeClass}>
                   {logoPreviewUrl && !logoPreviewBroken ? (
                     <img
@@ -849,7 +869,7 @@ startxref
                 accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
                 onChange={(event) => handleLogoUpload(event.target.files?.[0])}
               />
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2 lg:col-span-2">
                 <Button type="button" variant="secondary" onClick={() => logoInputRef.current?.click()} loading={logoUploading}>
                   {logoPreviewUrl ? 'Modifier le logo' : 'Choisir le logo'}
                 </Button>
@@ -860,9 +880,9 @@ startxref
                 ) : null}
               </div>
             </div>
-            <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+            <div className="mt-5 rounded-2xl border border-white/10 bg-[#0d1117] p-4 shadow-inner light:bg-white">
               <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gold-200">Aperçu du logo</p>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 p-3 light:bg-carbon-950">
                 <div className={logoBadgeClass}>
                   {logoPreviewUrl && !logoPreviewBroken ? (
                     <img
@@ -903,48 +923,78 @@ startxref
       ) : null}
 
       {tab === 'Contrats' ? (
-        <Card className="p-5">
-          <div className="mb-5 flex items-center gap-3">
-            <FileSignature className="h-5 w-5 text-gold-300" />
+        <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+          <div className="grid gap-4">
+            {contractSettingCards.map((item, index) => (
+              <Card key={item.title} className="p-5">
+                <div className="flex items-start gap-4">
+                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gold-400/12 text-gold-200">
+                    {index === 0 ? <FileSignature className="h-5 w-5" /> : index === 1 ? <ShieldCheck className="h-5 w-5" /> : <Percent className="h-5 w-5" />}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white light:text-carbon-950">{item.title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-carbon-400">{item.text}</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+          <Card className="p-5">
+            <div className="mb-5 flex items-center gap-3">
+              <FileSignature className="h-5 w-5 text-gold-300" />
               <h2 className="font-semibold text-white light:text-carbon-950">Paramètres contrats</h2>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <SelectField label="Langue contrat par défaut" defaultValue="Français">
-              <option>Français</option>
-              <option>العربية</option>
-            </SelectField>
-            <SelectField label="Règle de caution" defaultValue="Fixe">
-              <option>Fixe</option>
-              <option>Pourcentage</option>
-              <option>Catégorie véhicule</option>
-            </SelectField>
-            <Field label="Caution par défaut" defaultValue="4000" type="number" />
-            <Field label="Frais retard / heure" defaultValue="150" type="number" />
-          </div>
-        </Card>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <SelectField label="Langue contrat par défaut" defaultValue="Français">
+                <option>Français</option>
+                <option>العربية</option>
+              </SelectField>
+              <SelectField label="Règle de caution" defaultValue="Fixe">
+                <option>Fixe</option>
+                <option>Pourcentage</option>
+                <option>Catégorie véhicule</option>
+              </SelectField>
+              <Field label="Caution par défaut" defaultValue="4000" type="number" />
+              <Field label="Frais retard / heure" defaultValue="150" type="number" />
+            </div>
+          </Card>
+        </div>
       ) : null}
 
       {tab === 'Facturation' ? (
         <div className="grid gap-6 lg:grid-cols-2">
           <Card className="p-5">
-            <div className="mb-5 flex items-center gap-3">
-              <Percent className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">Paramètres fiscaux</h2>
+            <div className="mb-5 flex items-start gap-3">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400/12 text-gold-200">
+                <Percent className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-white light:text-carbon-950">Paramètres fiscaux</h2>
+                <p className="mt-1 text-sm text-carbon-400">TVA et affichage des taxes sur les factures.</p>
+              </div>
             </div>
-            <div className="grid gap-4">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+              <div className="grid gap-4">
               <Field label="Taux TVA" defaultValue="20" type="number" />
               <SelectField label="Affichage taxe facture" defaultValue="Incluse">
                 <option>Incluse</option>
                 <option>Exclue</option>
               </SelectField>
+              </div>
             </div>
           </Card>
           <Card className="p-5">
-            <div className="mb-5 flex items-center gap-3">
-              <ShieldCheck className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">Facturation abonnement</h2>
+            <div className="mb-5 flex items-start gap-3">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-400/12 text-emerald-200">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-white light:text-carbon-950">Facturation abonnement</h2>
+                <p className="mt-1 text-sm text-carbon-400">Plan actuel et méthode de règlement préférée.</p>
+              </div>
             </div>
-            <div className="grid gap-4">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+              <div className="grid gap-4">
               <SelectField label="Plan actuel" defaultValue="Pro">
                 <option>Gratuit</option>
                 <option>Pro</option>
@@ -955,6 +1005,7 @@ startxref
                 <option>Virement bancaire</option>
                 <option>Carte</option>
               </SelectField>
+              </div>
             </div>
           </Card>
         </div>
@@ -962,22 +1013,39 @@ startxref
 
       {tab === 'Abonnement' ? (
         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <Card className="p-5">
-            <h2 className="mb-4 text-lg font-semibold text-white light:text-carbon-950">Abonnement</h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Plan actuel</p><p className="mt-1 font-semibold capitalize">{agency?.plan || 'starter'}</p></div>
-              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Prix</p><p className="mt-1 font-semibold">{agency?.monthlyPrice ? `${agency.monthlyPrice} MAD / mois` : '99 MAD / mois'}</p></div>
+          <Card className="overflow-hidden p-0">
+            <div className="border-b border-white/10 bg-gradient-to-br from-gold-400/16 via-white/[0.035] to-transparent p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-200">Plan actuel</p>
+                  <h2 className="mt-2 text-3xl font-black capitalize text-white light:text-carbon-950">{agency?.plan || 'starter'}</h2>
+                  <p className="mt-1 text-sm text-carbon-400">{billingTypeFr} · {agency?.monthlyPrice ? `${agency.monthlyPrice} MAD / mois` : '99 MAD / mois'}</p>
+                </div>
+                <span className={`inline-flex w-fit rounded-full px-3 py-1.5 text-xs font-bold ${agency?.billingStatus === 'paid' ? 'bg-emerald-400/15 text-emerald-200' : agency?.billingStatus === 'trial' ? 'bg-sky-400/15 text-sky-200' : agency?.billingStatus === 'overdue' ? 'bg-orange-400/15 text-orange-200' : agency?.billingStatus === 'unpaid' ? 'bg-rose-400/15 text-rose-200' : 'bg-slate-400/15 text-slate-200'}`}>{billingStatusFr}</span>
+              </div>
+            </div>
+            <div className="p-5">
+              <div className="grid gap-3 sm:grid-cols-2">
               <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Type facturation</p><p className="mt-1 font-semibold">{billingTypeFr}</p></div>
-              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Statut paiement</p><p className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${agency?.billingStatus === 'paid' ? 'bg-emerald-400/15 text-emerald-200' : agency?.billingStatus === 'trial' ? 'bg-sky-400/15 text-sky-200' : agency?.billingStatus === 'overdue' ? 'bg-orange-400/15 text-orange-200' : agency?.billingStatus === 'unpaid' ? 'bg-rose-400/15 text-rose-200' : 'bg-slate-400/15 text-slate-200'}`}>{billingStatusFr}</p></div>
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Statut paiement</p><p className="mt-1 font-semibold">{billingStatusFr}</p></div>
               <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Dernier paiement</p><p className="mt-1 font-semibold">{agency?.lastPaymentDate || '—'}</p></div>
               <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Prochain paiement</p><p className="mt-1 font-semibold">{agency?.nextPaymentDueDate || '—'}</p></div>
               <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Fin d’abonnement</p><p className="mt-1 font-semibold">{agency?.subscriptionEndDate || '—'}</p></div>
               <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Méthode de paiement</p><p className="mt-1 font-semibold">{agency?.paymentMethod || 'other'}</p></div>
             </div>
             {agency?.paymentNotes ? <p className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-sm text-carbon-300">Notes paiement: {agency.paymentNotes}</p> : null}
+            </div>
           </Card>
           <Card className="p-5">
-            <h2 className="mb-4 text-lg font-semibold text-white light:text-carbon-950">Alertes abonnement</h2>
+            <div className="mb-4 flex items-center gap-3">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-400/12 text-sky-200">
+                <BellRing className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-white light:text-carbon-950">Alertes abonnement</h2>
+                <p className="text-sm text-carbon-400">Suivi paiement, échéance et support MekLoc.</p>
+              </div>
+            </div>
             <div className="grid gap-3">
               {nextDiff !== null && nextDiff >= 0 && nextDiff <= 7 ? <p className="rounded-2xl border border-gold-300/25 bg-gold-400/10 p-3 text-sm text-gold-100">Votre abonnement expire bientôt. Prochain paiement le {nextPaymentDate}.</p> : null}
               {agency?.billingStatus === 'unpaid' ? <p className="rounded-2xl border border-rose-300/25 bg-rose-400/10 p-3 text-sm text-rose-100">Votre paiement est en attente. Merci de régulariser votre abonnement.</p> : null}
@@ -1025,18 +1093,24 @@ startxref
                 {teamMembers.map((member) => (
                   <div
                     key={member.id}
-                    className="premium-surface grid gap-4 rounded-2xl p-4 xl:grid-cols-[minmax(0,1fr)_auto]"
+                    className="premium-surface grid gap-4 rounded-2xl border border-white/10 p-4 xl:grid-cols-[minmax(0,1fr)_auto]"
                   >
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="truncate font-semibold text-white light:text-carbon-900">
-                          {member.full_name || 'Utilisateur'}
-                        </p>
-                        {member.id === profile?.id ? (
-                          <span className="rounded-full bg-gold-400/15 px-2 py-0.5 text-[11px] font-bold text-gold-100">Vous</span>
-                        ) : null}
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/10 text-sm font-black text-gold-100">
+                        {(member.full_name || member.email || 'U').slice(0, 1).toUpperCase()}
                       </div>
-                      <p className="truncate text-sm text-carbon-400">{member.email || 'Email non renseigné'}</p>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="truncate font-semibold text-white light:text-carbon-900">
+                            {member.full_name || 'Utilisateur'}
+                          </p>
+                          {member.id === profile?.id ? (
+                            <span className="rounded-full bg-gold-400/15 px-2 py-0.5 text-[11px] font-bold text-gold-100">Vous</span>
+                          ) : null}
+                        </div>
+                        <p className="truncate text-sm text-carbon-400">{member.email || 'Email non renseigné'}</p>
+                        <p className="mt-1 text-xs text-carbon-500">{roleFr(member.role)}</p>
+                      </div>
                     </div>
                     <div className="grid gap-3 lg:grid-cols-[170px_auto] xl:grid-cols-[170px_auto_auto] xl:items-center">
                       <select
@@ -1100,32 +1174,48 @@ startxref
       {tab === 'Notifications' ? (
         <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
           <Card className="p-5">
-            <div className="mb-5 flex items-center gap-3">
-              <BellRing className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">Préférences notifications</h2>
+            <div className="mb-5 flex items-start gap-3">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400/12 text-gold-200">
+                <BellRing className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-white light:text-carbon-950">Préférences notifications</h2>
+                <p className="mt-1 text-sm text-carbon-400">Canal et horaire utilisés pour préparer les rappels.</p>
+              </div>
             </div>
-            <div className="grid gap-4">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+              <div className="grid gap-4">
               <Field label="Numéro WhatsApp" defaultValue={agencyPhone || '+212 6 00 00 00 00'} />
               <SelectField label="Heure rappel par défaut" defaultValue="09:00">
                 <option>09:00</option>
                 <option>12:00</option>
                 <option>18:00</option>
               </SelectField>
+              </div>
             </div>
           </Card>
           <Card className="p-5">
-            <div className="mb-5 flex items-center gap-3">
-              <MessageCircle className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">Automatisation WhatsApp</h2>
+            <div className="mb-5 flex items-start gap-3">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-400/12 text-emerald-200">
+                <MessageCircle className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-white light:text-carbon-950">Automatisation WhatsApp</h2>
+                <p className="mt-1 text-sm text-carbon-400">Active les boutons WhatsApp dans les écrans opérationnels.</p>
+              </div>
             </div>
             <div className="grid gap-3">
               {notificationPreferenceItems.map((item) => {
                 const enabled = notificationPreferences[item.key];
                 return (
-                <div key={item.key} className="premium-surface flex items-center justify-between rounded-2xl p-4">
-                  <div>
+                <div key={item.key} className="premium-surface flex items-start justify-between gap-4 rounded-2xl border border-white/10 p-4">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <MessageCircle className={`h-4 w-4 ${enabled ? 'text-emerald-300' : 'text-carbon-500'}`} />
                     <p className="font-bold text-white light:text-carbon-950">{item.label}</p>
-                    <p className="text-sm text-carbon-400">{enabled ? 'Bouton WhatsApp actif.' : 'Bouton WhatsApp désactivé.'}</p>
+                    </div>
+                    <p className="mt-1 text-sm leading-5 text-carbon-400">{notificationDescriptions[item.key]}</p>
+                    <p className={`mt-2 text-xs font-semibold ${enabled ? 'text-emerald-300' : 'text-carbon-500'}`}>{enabled ? 'Bouton WhatsApp actif' : 'Bouton WhatsApp désactivé'}</p>
                   </div>
                   <button
                     type="button"
