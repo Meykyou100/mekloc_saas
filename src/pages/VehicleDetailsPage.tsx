@@ -11,7 +11,7 @@ import { useData } from '../context/DataContext';
 export default function VehicleDetailsPage() {
   const { id } = useParams();
   const { vehicles, reservations, maintenance: maintenanceItems } = useData();
-  const vehicle = vehicles.find((item) => item.id === id) || vehicles[0];
+  const vehicle = vehicles.find((item) => item.id === id);
   if (!vehicle) {
     return (
       <div>
@@ -24,6 +24,7 @@ export default function VehicleDetailsPage() {
     );
   }
   const relatedReservations = reservations.filter((reservation) => reservation.vehicleId === vehicle.id);
+  const relatedMaintenance = maintenanceItems.filter((item) => item.vehicleId === vehicle.id);
   const vehicleStats: { label: string; value: string; icon: LucideIcon }[] = [
     { label: 'Mileage', value: `${vehicle.mileage.toLocaleString()} km`, icon: Gauge },
     { label: 'Fuel', value: vehicle.fuel, icon: Car },
@@ -93,7 +94,7 @@ export default function VehicleDetailsPage() {
               <h2 className="font-semibold text-white light:text-carbon-950">Service history</h2>
             </div>
             <div className="grid gap-3">
-              {maintenanceItems.slice(0, 3).map((item) => (
+              {relatedMaintenance.length ? relatedMaintenance.map((item) => (
                 <div key={item.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.035] p-4">
                   <div>
                     <p className="font-bold text-white light:text-carbon-950">{item.type}</p>
@@ -101,7 +102,7 @@ export default function VehicleDetailsPage() {
                   </div>
                   <p className="font-bold text-gold-200">{formatMAD(item.cost)}</p>
                 </div>
-              ))}
+              )) : <p className="text-sm text-carbon-400">No maintenance records for this vehicle yet.</p>}
             </div>
           </Card>
         </div>

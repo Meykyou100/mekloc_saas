@@ -145,7 +145,7 @@ export default function MaintenancePage() {
         <Field label="Garage / provider" value={form.providerName} onChange={(e) => setForm((c) => ({ ...c, providerName: e.target.value }))} />
         <SelectField label="Status" value={form.status} onChange={(e) => setForm((c) => ({ ...c, status: e.target.value as MaintenanceItem['status'] }))}>{STATUS_VALUES.map((s) => <option key={s} value={s}>{s}</option>)}</SelectField>
         <div className="md:col-span-2"><TextAreaField label="Notes" value={form.notes} onChange={(e) => setForm((c) => ({ ...c, notes: e.target.value }))} /></div>
-        <div className="md:col-span-2"><Field label="Invoice/photo upload placeholder (URL)" value={form.invoiceUrl || ''} onChange={(e) => setForm((c) => ({ ...c, invoiceUrl: e.target.value }))} /></div>
+        <div className="md:col-span-2"><Field label="Facture/photo (URL)" value={form.invoiceUrl || ''} onChange={(e) => setForm((c) => ({ ...c, invoiceUrl: e.target.value }))} /></div>
       </div>
       <div className="mt-5 flex justify-end gap-2"><Button variant="ghost" onClick={() => setOpen(false)}>Annuler</Button><Button icon={<Wrench className="h-4 w-4" />} onClick={saveRecord}>{editing ? 'Mettre à jour' : 'Enregistrer'}</Button></div>
     </Modal>

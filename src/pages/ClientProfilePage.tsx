@@ -10,7 +10,7 @@ import { useData } from '../context/DataContext';
 export default function ClientProfilePage() {
   const { id } = useParams();
   const { clients, reservations, payments } = useData();
-  const client = clients.find((item) => item.id === id) || clients[0];
+  const client = clients.find((item) => item.id === id);
   if (!client) {
     return (
       <div>

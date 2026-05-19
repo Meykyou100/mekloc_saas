@@ -404,7 +404,7 @@ startxref
           </SelectField>
           <Field label="Date de paiement" name="paymentDate" type="date" required value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} />
           <TextAreaField label="Notes" name="notes" placeholder="Détails complémentaires..." value={paymentNotes} onChange={(event) => setPaymentNotes(sanitizeText(event.target.value, 260))} />
-          <Field label="Justificatif (placeholder)" name="receipt" placeholder="URL ou nom du fichier reçu" />
+          <Field label="Justificatif" name="receipt" placeholder="URL ou nom du fichier reçu" />
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Annuler</Button><Button type="submit" loading={savingPayment}>{savingPayment ? 'Enregistrement...' : 'Enregistrer'}</Button></div>
         </form>
       </Modal>
