@@ -115,6 +115,7 @@ create table if not exists public.vehicles (
   technical_inspection_date date not null,
   city text not null default '',
   revenue numeric(12, 2) not null default 0,
+  archived_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (agency_id, plate_number)

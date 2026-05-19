@@ -15,7 +15,8 @@ import { formatMAD, type DamageType, type Vehicle, type VehicleAccessories, type
 import { safeStoragePath, validateFileUpload } from '../lib/security';
 import { storageBuckets, supabase } from '../lib/supabase';
 
-const vehicleStatuses: Array<'All' | VehicleStatus> = ['All', 'Available', 'Rented', 'Maintenance', 'Unavailable'];
+type VehicleFilterStatus = 'All' | VehicleStatus | 'Archived';
+const vehicleStatuses: VehicleFilterStatus[] = ['All', 'Available', 'Rented', 'Maintenance', 'Unavailable', 'Archived'];
 
 type FormErrors = Partial<Record<'brand' | 'model' | 'plate' | 'year' | 'mileage' | 'dailyPrice', string>>;
 const accessoryItems: Array<{ key: keyof VehicleAccessories; label: string }> = [
@@ -104,6 +105,7 @@ function normalizeVehicleForm(form: FormData, base?: Vehicle): Vehicle {
     vehicleColor: String(form.get('vehicleColor') || '').trim(),
     accessories,
     damageMarks,
+    archivedAt: base?.archivedAt,
   };
 }
 
@@ -120,12 +122,12 @@ function validateVehicle(vehicle: Vehicle): FormErrors {
 }
 
 export default function VehiclesPage() {
-  const { vehicles, createVehicle, updateVehicle, deleteVehicle: removeVehicle } = useData();
+  const { vehicles, reservations, contracts, payments, maintenance, createVehicle, updateVehicle, deleteVehicle: removeVehicle } = useData();
   const { agencyId } = useAuth();
   const { notify } = useApp();
 
   const [query, setQuery] = useState('');
-  const [status, setStatus] = useState<'All' | VehicleStatus>('All');
+  const [status, setStatus] = useState<VehicleFilterStatus>('All');
   const [view, setView] = useState<'grid' | 'table'>('grid');
   const [modalOpen, setModalOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
@@ -142,18 +144,21 @@ export default function VehiclesPage() {
     () =>
       vehicles.filter((vehicle) => {
         const haystack = `${vehicle.brand} ${vehicle.model} ${vehicle.plate} ${vehicle.city}`.toLowerCase();
-        return haystack.includes(query.toLowerCase()) && (status === 'All' || vehicle.status === status);
+        const archiveHit = status === 'Archived' ? Boolean(vehicle.archivedAt) : !vehicle.archivedAt;
+        return haystack.includes(query.toLowerCase()) && archiveHit && (status === 'All' || status === 'Archived' || vehicle.status === status);
       }),
     [query, status, vehicles],
   );
 
   const stats = useMemo(() => {
-    const total = vehicles.length;
-    const available = vehicles.filter((v) => v.status === 'Available').length;
-    const rented = vehicles.filter((v) => v.status === 'Rented').length;
-    const maintenance = vehicles.filter((v) => v.status === 'Maintenance' || v.status === 'Unavailable').length;
-    const avgPrice = total ? Math.round(vehicles.reduce((sum, v) => sum + v.dailyPrice, 0) / total) : 0;
-    return { total, available, rented, maintenance, avgPrice };
+    const activeVehicles = vehicles.filter((vehicle) => !vehicle.archivedAt);
+    const total = activeVehicles.length;
+    const available = activeVehicles.filter((v) => v.status === 'Available').length;
+    const rented = activeVehicles.filter((v) => v.status === 'Rented').length;
+    const maintenance = activeVehicles.filter((v) => v.status === 'Maintenance' || v.status === 'Unavailable').length;
+    const archived = vehicles.filter((vehicle) => vehicle.archivedAt).length;
+    const avgPrice = total ? Math.round(activeVehicles.reduce((sum, v) => sum + v.dailyPrice, 0) / total) : 0;
+    return { total, available, rented, maintenance, archived, avgPrice };
   }, [vehicles]);
 
   useEffect(() => {
@@ -268,9 +273,24 @@ export default function VehiclesPage() {
   }
 
   async function deleteVehicle(vehicle: Vehicle) {
+    const linkedReservations = reservations.filter((item) => item.vehicleId === vehicle.id).length;
+    const linkedContracts = contracts.filter((item) => item.vehicleId === vehicle.id).length;
+    const linkedPayments = payments.filter((item) => item.vehicleId === vehicle.id).length;
+    const linkedMaintenance = maintenance.filter((item) => item.vehicleId === vehicle.id).length;
+    const hasLinkedRecords = linkedReservations + linkedContracts + linkedPayments + linkedMaintenance > 0;
+    const confirmed = window.confirm(
+      hasLinkedRecords
+        ? `Ce véhicule est lié à des réservations/contrats/paiements. Archiver véhicule ?`
+        : `Supprimer définitivement ${vehicle.plate} ?`,
+    );
+    if (!confirmed) return;
     try {
       await removeVehicle(vehicle.id);
-      notify({ title: 'Véhicule supprimé', message: `${vehicle.plate} a été retiré du parc.`, type: 'warning' });
+      notify({
+        title: hasLinkedRecords ? 'Véhicule archivé' : 'Véhicule supprimé',
+        message: hasLinkedRecords ? `${vehicle.plate} est masqué de la liste normale.` : `${vehicle.plate} a été retiré du parc.`,
+        type: hasLinkedRecords ? 'success' : 'warning',
+      });
     } catch (error) {
       if (import.meta.env.DEV) console.error('Vehicle delete failed', error);
       notify({
@@ -295,7 +315,7 @@ export default function VehiclesPage() {
         <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] uppercase tracking-wide text-carbon-500 sm:text-xs">Disponibles</p><p className="mt-1 truncate text-xl font-black text-emerald-300 sm:mt-2 sm:text-2xl">{stats.available}</p></Card>
         <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] uppercase tracking-wide text-carbon-500 sm:text-xs">Loués</p><p className="mt-1 truncate text-xl font-black text-sky-300 sm:mt-2 sm:text-2xl">{stats.rented}</p></Card>
         <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] uppercase tracking-wide text-carbon-500 sm:text-xs">Maintenance / indispo</p><p className="mt-1 truncate text-xl font-black text-amber-300 sm:mt-2 sm:text-2xl">{stats.maintenance}</p></Card>
-        <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] uppercase tracking-wide text-carbon-500 sm:text-xs">Prix moyen / jour</p><p className="mt-1 truncate text-xl font-black text-gold-200 sm:mt-2 sm:text-2xl">{formatMAD(stats.avgPrice)}</p></Card>
+        <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] uppercase tracking-wide text-carbon-500 sm:text-xs">Prix moyen / jour</p><p className="mt-1 truncate text-xl font-black text-gold-200 sm:mt-2 sm:text-2xl">{formatMAD(stats.avgPrice)}</p><p className="mt-1 text-[10px] text-carbon-500">Archivés: {stats.archived}</p></Card>
       </div>
 
       <Card className="mb-5 p-4">
@@ -318,7 +338,7 @@ export default function VehiclesPage() {
                 }`}
                 onClick={() => setStatus(item)}
               >
-                {item === 'All' ? 'Tous' : item}
+                {item === 'All' ? 'Tous' : item === 'Archived' ? 'Archivés' : item}
               </button>
             ))}
           </div>
@@ -351,7 +371,7 @@ export default function VehiclesPage() {
                   <div className="absolute inset-x-0 top-0 z-[1] h-20 bg-gradient-to-b from-black/55 via-black/20 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 z-[1] h-24 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
                   <div className="absolute left-4 top-4 z-10">
-                    <Badge>{vehicle.status}</Badge>
+                    <Badge>{vehicle.archivedAt ? 'Archivé' : vehicle.status}</Badge>
                   </div>
                   <span className="absolute right-4 top-4 z-10 max-w-[46%] truncate rounded-full border border-gold-300/30 bg-carbon-950/85 px-3 py-1 text-xs font-bold text-gold-200 shadow-lg backdrop-blur">
                     {vehicle.plate}
@@ -455,7 +475,7 @@ export default function VehiclesPage() {
                     <td className="px-5 py-4 text-carbon-300">{vehicle.mileage.toLocaleString()} km</td>
                     <td className="px-5 py-4 font-semibold text-gold-200">{formatMAD(vehicle.dailyPrice)}</td>
                     <td className="px-5 py-4 text-carbon-400">Ass. {vehicle.insuranceExpiry || '—'} · V.T. {vehicle.inspectionDate || '—'}</td>
-                    <td className="px-5 py-4"><Badge>{vehicle.status}</Badge></td>
+                    <td className="px-5 py-4"><Badge>{vehicle.archivedAt ? 'Archivé' : vehicle.status}</Badge></td>
                     <td className="px-5 py-4">
                       <div className="flex gap-2">
                         <Button variant="secondary" className="h-9 px-3" onClick={() => openEditVehicle(vehicle)}>Modifier</Button>

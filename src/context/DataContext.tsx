@@ -97,6 +97,26 @@ function relationCount<T extends { id: string }>(items: T[] | null | undefined) 
   return items?.length || 0;
 }
 
+async function archiveVehicle(id: string) {
+  const archivedAt = new Date().toISOString();
+  const result = await supabase!
+    .from('vehicles')
+    .update({ archived_at: archivedAt, status: 'Unavailable' })
+    .eq('id', id)
+    .select('*')
+    .single();
+  if (!result.error) return result;
+  if (/archived_at|schema cache|column/i.test(result.error.message || '')) {
+    return supabase!
+      .from('vehicles')
+      .update({ status: 'Unavailable' })
+      .eq('id', id)
+      .select('*')
+      .single();
+  }
+  return result;
+}
+
 function withDataTimeout<T>(promise: Promise<T>, timeoutMs = dataRequestTimeoutMs): Promise<T> {
   return new Promise((resolve, reject) => {
     const timer = window.setTimeout(() => reject(new Error('Chargement des données trop long.')), timeoutMs);
@@ -163,6 +183,7 @@ type VehicleRow = {
   vehicle_color?: string | null;
   accessories?: Record<string, boolean> | null;
   damage_marks?: Array<{ id: string; zone: string; type: string; x?: number; y?: number; note?: string }> | null;
+  archived_at?: string | null;
 };
 
 type ClientRow = {
@@ -272,6 +293,7 @@ function mapVehicle(row: VehicleRow): Vehicle {
     vehicleColor: row.vehicle_color || undefined,
     accessories: row.accessories || undefined,
     damageMarks: row.damage_marks as Vehicle['damageMarks'],
+    archivedAt: row.archived_at || undefined,
   };
 }
 
@@ -803,13 +825,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             supabase!
               .from('reservations')
               .select('id, status')
-              .eq('vehicle_id', id)
-              .in('status', activeReservationStatuses),
+              .eq('vehicle_id', id),
             supabase!
               .from('contracts')
               .select('id, status')
-              .eq('vehicle_id', id)
-              .in('status', activeContractStatuses),
+              .eq('vehicle_id', id),
             supabase!
               .from('maintenance')
               .select('id')
@@ -824,91 +844,70 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           if (maintenanceError) throw maintenanceError;
           if (paymentError && !isMissingPaymentVehicleColumn(paymentError)) throw paymentError;
 
-          const blockingReservationIds = (linkedReservations || []).map((reservation) => reservation.id);
-          if (blockingReservationIds.length > 0) {
+          const linkedReservationIds = (linkedReservations || []).map((reservation) => reservation.id);
+          const linkedContractIds = (linkedContracts || []).map((contract) => contract.id);
+          const linkedMaintenanceIds = (linkedMaintenance || []).map((item) => item.id);
+          const linkedPaymentIds = paymentError && isMissingPaymentVehicleColumn(paymentError) ? [] : (linkedPayments || []).map((item) => item.id);
+          const linkedCount = linkedReservationIds.length + linkedContractIds.length + linkedMaintenanceIds.length + linkedPaymentIds.length;
+
+          if (linkedCount > 0) {
             if (import.meta.env.DEV) {
-              console.info('Vehicle delete blocked by active reservation ids', blockingReservationIds);
+              console.info('Vehicle archived because linked records exist', {
+                vehicleId: id,
+                reservationIds: linkedReservationIds,
+                contractIds: linkedContractIds,
+                maintenanceIds: linkedMaintenanceIds,
+                paymentIds: linkedPaymentIds,
+              });
             }
-            const { data, error } = await supabase!
-              .from('vehicles')
-              .update({ status: 'Unavailable' })
-              .eq('id', id)
-              .select('*')
-              .single();
+            const { data, error } = await archiveVehicle(id);
             if (error) throw error;
             const archivedVehicle = mapVehicle(data as VehicleRow);
-            setVehicles((current) => current.map((item) => (item.id === id ? archivedVehicle : item)));
-            throw new Error(linkedVehicleDeleteMessage(blockingReservationIds.length));
+            const nextArchivedVehicle = archivedVehicle.archivedAt ? archivedVehicle : { ...archivedVehicle, archivedAt: new Date().toISOString() };
+            setVehicles((current) => current.map((item) => (item.id === id ? nextArchivedVehicle : item)));
+            return;
           }
 
-          const blockingContractIds = (linkedContracts || []).map((contract) => contract.id);
-          if (blockingContractIds.length > 0) {
-            if (import.meta.env.DEV) {
-              console.info('Vehicle delete blocked by contract ids', blockingContractIds);
-            }
-            throw new Error(vehicleDeleteBlockerMessage('contract', blockingContractIds.length));
-          }
-
-          const maintenanceCount = relationCount(linkedMaintenance);
-          const paymentCount = isMissingPaymentVehicleColumn(paymentError) ? 0 : relationCount(linkedPayments);
           const { error } = await supabase!.from('vehicles').delete().eq('id', id);
           if (error) {
             if (import.meta.env.DEV) {
               console.error('Supabase vehicle delete failed', {
                 vehicleId: id,
                 error,
-                activeReservationIds: blockingReservationIds,
-                contractIds: blockingContractIds,
-                maintenanceIds: (linkedMaintenance || []).map((item) => item.id),
-                paymentIds: (linkedPayments || []).map((item) => item.id),
+                reservationIds: linkedReservationIds,
+                contractIds: linkedContractIds,
+                maintenanceIds: linkedMaintenanceIds,
+                paymentIds: linkedPaymentIds,
               });
             }
             if (isRlsError(error)) throw new Error(vehicleDeleteBlockerMessage('rls'));
             if (isForeignKeyError(error)) {
-              if (maintenanceCount > 0) {
-                const { data, error: archiveError } = await supabase!
-                  .from('vehicles')
-                  .update({ status: 'Unavailable' })
-                  .eq('id', id)
-                  .select('*')
-                  .single();
-                if (archiveError) throw archiveError;
-                const archivedVehicle = mapVehicle(data as VehicleRow);
-                setVehicles((current) => current.map((item) => (item.id === id ? archivedVehicle : item)));
-                throw new Error(vehicleDeleteBlockerMessage('maintenance', maintenanceCount));
-              }
-              if (paymentCount > 0) throw new Error(vehicleDeleteBlockerMessage('payment', paymentCount));
-              throw new Error(error.message || 'Suppression impossible');
+              const { data, error: archiveError } = await archiveVehicle(id);
+              if (archiveError) throw archiveError;
+              const archivedVehicle = mapVehicle(data as VehicleRow);
+              const nextArchivedVehicle = archivedVehicle.archivedAt ? archivedVehicle : { ...archivedVehicle, archivedAt: new Date().toISOString() };
+              setVehicles((current) => current.map((item) => (item.id === id ? nextArchivedVehicle : item)));
+              return;
             }
             throw error;
           }
         } else if (existingVehicle) {
-          const blockingReservationIds = reservations
-            .filter((reservation) => reservation.vehicleId === id && activeReservationStatuses.includes(reservation.status))
-            .map((reservation) => reservation.id);
-          if (blockingReservationIds.length > 0) {
+          const linkedReservationIds = reservations.filter((reservation) => reservation.vehicleId === id).map((reservation) => reservation.id);
+          const linkedContractIds = contracts.filter((contract) => contract.vehicleId === id).map((contract) => contract.id);
+          const linkedMaintenanceIds = maintenance.filter((item) => item.vehicleId === id).map((item) => item.id);
+          const linkedPaymentIds = payments.filter((payment) => payment.vehicleId === id).map((payment) => payment.id);
+          if (linkedReservationIds.length + linkedContractIds.length + linkedMaintenanceIds.length + linkedPaymentIds.length > 0) {
             if (import.meta.env.DEV) {
-              console.info('Vehicle delete blocked by active reservation ids', blockingReservationIds);
+              console.info('Vehicle archived because linked records exist', {
+                vehicleId: id,
+                reservationIds: linkedReservationIds,
+                contractIds: linkedContractIds,
+                maintenanceIds: linkedMaintenanceIds,
+                paymentIds: linkedPaymentIds,
+              });
             }
-            setVehicles((current) => current.map((item) => (item.id === id ? { ...item, status: 'Unavailable' } : item)));
-            throw new Error(linkedVehicleDeleteMessage(blockingReservationIds.length));
-          }
-          const blockingContractIds = contracts
-            .filter((contract) => contract.vehicleId === id && activeContractStatuses.includes(contract.status))
-            .map((contract) => contract.id);
-          if (blockingContractIds.length > 0) {
-            if (import.meta.env.DEV) {
-              console.info('Vehicle delete blocked by contract ids', blockingContractIds);
-            }
-            throw new Error(vehicleDeleteBlockerMessage('contract', blockingContractIds.length));
-          }
-          const maintenanceIds = maintenance.filter((item) => item.vehicleId === id).map((item) => item.id);
-          if (maintenanceIds.length > 0) {
-            if (import.meta.env.DEV) {
-              console.info('Vehicle delete archived because maintenance ids exist', maintenanceIds);
-            }
-            setVehicles((current) => current.map((item) => (item.id === id ? { ...item, status: 'Unavailable' } : item)));
-            throw new Error(vehicleDeleteBlockerMessage('maintenance', maintenanceIds.length));
+            setVehicles((current) => current.map((item) => (item.id === id ? { ...item, status: 'Unavailable', archivedAt: new Date().toISOString() } : item)));
+            return;
           }
         }
         if (!hasBackend && !existingVehicle) return;

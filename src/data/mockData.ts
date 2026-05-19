@@ -74,6 +74,7 @@ export type Vehicle = {
   vehicleColor?: string;
   accessories?: VehicleAccessories;
   damageMarks?: VehicleDamageMark[];
+  archivedAt?: string;
 };
 
 export type Client = {
