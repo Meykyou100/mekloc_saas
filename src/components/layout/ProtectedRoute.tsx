@@ -37,22 +37,26 @@ export default function ProtectedRoute({
     refreshProfile,
     user,
     getAccessRequestStatusByEmail,
+    isInitialized,
   } = useAuth();
   const location = useLocation();
   const [accessStatus, setAccessStatus] = useState<string | null>(null);
   const [accessStatusLoading, setAccessStatusLoading] = useState(false);
+  const [accessStatusChecked, setAccessStatusChecked] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     const email = user?.email;
 
-    if (!isSupabaseEnabled || !requireAgency || loading || !session || agencyId || profile || !email) {
+    if (!isSupabaseEnabled || !requireAgency || !isInitialized || loading || !session || agencyId || profile || !email) {
       setAccessStatus(null);
       setAccessStatusLoading(false);
+      setAccessStatusChecked(false);
       return undefined;
     }
 
     setAccessStatusLoading(true);
+    setAccessStatusChecked(false);
     getAccessRequestStatusByEmail(email)
       .then((request) => {
         if (!cancelled) setAccessStatus(request?.status ?? null);
@@ -61,19 +65,22 @@ export default function ProtectedRoute({
         if (!cancelled) setAccessStatus(null);
       })
       .finally(() => {
-        if (!cancelled) setAccessStatusLoading(false);
+        if (!cancelled) {
+          setAccessStatusChecked(true);
+          setAccessStatusLoading(false);
+        }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [agencyId, getAccessRequestStatusByEmail, isSupabaseEnabled, loading, profile, requireAgency, session, user?.email]);
+  }, [agencyId, getAccessRequestStatusByEmail, isInitialized, isSupabaseEnabled, loading, profile, requireAgency, session, user?.email]);
 
   if (!isSupabaseEnabled) {
     return requireSuperAdmin ? <Navigate to="/auth" replace state={{ from: location }} /> : <Outlet />;
   }
 
-  if (loading && !session && !profile) {
+  if (!isInitialized || (loading && !session && !profile)) {
     return <RouteLoadingState />;
   }
 
@@ -110,7 +117,7 @@ export default function ProtectedRoute({
   }
 
   if (requireAgency && !agencyId) {
-    if (!profile && user?.email && accessStatusLoading) {
+    if (!profile && user?.email && (accessStatusLoading || !accessStatusChecked)) {
       return <RouteLoadingState />;
     }
     if (!profile && accessStatus === 'approved') {

@@ -272,6 +272,7 @@ export default function VehiclesPage() {
       await removeVehicle(vehicle.id);
       notify({ title: 'Véhicule supprimé', message: `${vehicle.plate} a été retiré du parc.`, type: 'warning' });
     } catch (error) {
+      if (import.meta.env.DEV) console.error('Vehicle delete failed', error);
       notify({
         title: 'Suppression impossible',
         message: error instanceof Error ? error.message : 'Réessayez plus tard.',

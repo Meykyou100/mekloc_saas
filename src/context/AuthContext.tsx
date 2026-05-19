@@ -63,6 +63,7 @@ type AuthContextValue = {
   profileLoadError: string | null;
   agencyId: string | null;
   loading: boolean;
+  isInitialized: boolean;
   signIn: (email: string, password: string) => Promise<AuthActionResult>;
   signInWithGoogle: () => Promise<void>;
   signUp: (input: SignUpInput) => Promise<AuthActionResult>;
@@ -420,6 +421,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profileLoadError, setProfileLoadError] = useState<string | null>(null);
   const [isDemoSession, setIsDemoSession] = useState(() => allowDemoMode && localStorage.getItem(demoAuthKey) === 'true');
   const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [isInitialized, setIsInitialized] = useState(!isSupabaseConfigured);
   const lastSeenUpdateRef = useRef<number>(0);
   const lastRevocationCheckRef = useRef<number>(0);
   const hasCompletedInitialLoadRef = useRef(false);
@@ -520,11 +522,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(demoUser);
       setProfile(demoProfile);
       setProfileLoadError(null);
+      setIsInitialized(true);
       setLoading(false);
       return undefined;
     }
 
     if (!supabase) {
+      setIsInitialized(true);
       setLoading(false);
       return undefined;
     }
@@ -532,6 +536,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     let mounted = true;
 
     async function loadInitialSession() {
+      setIsInitialized(false);
       try {
         const { data, error } = await withTimeout(
           supabase!.auth.getSession(),
@@ -560,6 +565,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (mounted) setProfileLoadError(error instanceof Error ? error.message : 'Chargement du profil impossible.');
       } finally {
         hasCompletedInitialLoadRef.current = true;
+        if (mounted) setIsInitialized(true);
         setLoading(false);
       }
     }
@@ -592,6 +598,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .finally(() => {
             if (mounted && shouldBlockUi) {
               hasCompletedInitialLoadRef.current = true;
+              setIsInitialized(true);
               setLoading(false);
             }
           });
@@ -599,6 +606,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(null);
         setProfileLoadError(null);
         hasCompletedInitialLoadRef.current = true;
+        setIsInitialized(true);
         setLoading(false);
       }
     });
@@ -673,6 +681,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       profileLoadError,
       agencyId: profile?.agencyId ?? null,
       loading,
+      isInitialized,
       signIn: async (email, password) => {
         if (allowDemoMode && email.trim().toLowerCase() === demoEmail && password === demoPassword) {
           localStorage.setItem(demoAuthKey, 'true');
@@ -681,6 +690,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(demoUser);
           setProfile(demoProfile);
           setProfileLoadError(null);
+          setIsInitialized(true);
           setLoading(false);
           return { profile: demoProfile };
         }
@@ -805,6 +815,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(null);
           setUser(null);
           setProfile(null);
+          setIsInitialized(true);
           throw new Error('Ce compte a été supprimé. Contactez MekLoc pour réactivation.');
         }
         try {
@@ -826,6 +837,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null);
           setProfile(null);
           setProfileLoadError(null);
+          setIsInitialized(true);
           localStorage.removeItem(sessionStartedAtKey);
           return;
         }
@@ -837,6 +849,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(null);
         setProfile(null);
         setProfileLoadError(null);
+        setIsInitialized(true);
       },
       requestPasswordReset: async (email: string) => {
         if (!supabase) throw new Error('Supabase non configuré.');
@@ -896,7 +909,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { status: row.status, agencyName: row.agency_name, plan: row.selected_plan, createdAt: row.created_at };
       },
     }),
-    [isDemoSession, loading, profile, profileLoadError, session, user],
+    [isDemoSession, isInitialized, loading, profile, profileLoadError, session, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
