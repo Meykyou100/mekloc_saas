@@ -17,6 +17,28 @@ import { storageBuckets, supabase } from '../lib/supabase';
 
 type VehicleFilterStatus = 'All' | VehicleStatus | 'Archived';
 const vehicleStatuses: VehicleFilterStatus[] = ['All', 'Available', 'Rented', 'Maintenance', 'Unavailable', 'Archived'];
+const vehicleBrandModels: Record<string, string[]> = {
+  Dacia: ['Duster', 'Sandero', 'Logan', 'Dokker', 'Lodgy', 'Spring'],
+  Renault: ['Clio 4', 'Clio 5', 'Megane', 'Captur', 'Kangoo', 'Express'],
+  Peugeot: ['208', '308', '301', '2008', '3008', 'Partner', 'Expert'],
+  Citroën: ['C3', 'C4', 'C-Elysée', 'Berlingo', 'C5 Aircross'],
+  Hyundai: ['i10', 'i20', 'Accent', 'Tucson', 'Creta', 'Santa Fe'],
+  Kia: ['Picanto', 'Rio', 'Sportage', 'Sorento'],
+  Toyota: ['Yaris', 'Corolla', 'Prado', 'RAV4', 'Hilux', 'Land Cruiser'],
+  Volkswagen: ['Golf 7', 'Golf 8', 'Polo', 'Tiguan', 'Passat', 'T-Roc'],
+  Fiat: ['500', 'Tipo', 'Doblo', 'Panda'],
+  Opel: ['Corsa', 'Astra', 'Mokka', 'Crossland', 'Grandland'],
+  Ford: ['Fiesta', 'Focus', 'Kuga', 'Transit'],
+  Nissan: ['Micra', 'Qashqai', 'Juke', 'X-Trail'],
+  Seat: ['Ibiza', 'Leon', 'Arona', 'Ateca'],
+  Skoda: ['Fabia', 'Octavia', 'Kodiaq'],
+  Mercedes: ['Classe A', 'Classe C', 'GLA', 'GLC', 'Vito'],
+  BMW: ['Série 1', 'Série 3', 'X1', 'X3', 'X5'],
+  Audi: ['A1', 'A3', 'A4', 'Q3', 'Q5'],
+  'Range Rover': ['Evoque', 'Sport', 'Velar'],
+  Jeep: ['Renegade', 'Compass', 'Wrangler'],
+};
+const vehicleBrands = Object.keys(vehicleBrandModels);
 
 type FormErrors = Partial<Record<'brand' | 'model' | 'plate' | 'year' | 'mileage' | 'dailyPrice', string>>;
 const accessoryItems: Array<{ key: keyof VehicleAccessories; label: string }> = [
@@ -139,6 +161,9 @@ export default function VehiclesPage() {
   const [damageZone, setDamageZone] = useState<VehicleDamageMark['zone']>('avant');
   const [damageType, setDamageType] = useState<DamageType>('rayure');
   const [damageNote, setDamageNote] = useState('');
+  const [vehicleBrandDraft, setVehicleBrandDraft] = useState('');
+  const [vehicleModelDraft, setVehicleModelDraft] = useState('');
+  const selectedBrandModels = vehicleBrandModels[vehicleBrandDraft] || [];
 
   const filteredVehicles = useMemo(
     () =>
@@ -182,6 +207,8 @@ export default function VehiclesPage() {
     setDamageZone('avant');
     setDamageType('rayure');
     setDamageNote('');
+    setVehicleBrandDraft('');
+    setVehicleModelDraft('');
     setModalOpen(true);
   }
 
@@ -194,6 +221,8 @@ export default function VehiclesPage() {
     setDamageZone('avant');
     setDamageType('rayure');
     setDamageNote('');
+    setVehicleBrandDraft(vehicle.brand);
+    setVehicleModelDraft(vehicle.model);
     setModalOpen(true);
   }
 
@@ -496,11 +525,43 @@ export default function VehiclesPage() {
             <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-carbon-400">Identification</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Field label="Marque *" name="brand" defaultValue={editingVehicle?.brand || ''} required />
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-carbon-200 light:text-carbon-700">Marque *</span>
+                  <input
+                    className="form-control w-full"
+                    name="brand"
+                    list="vehicle-brand-presets"
+                    value={vehicleBrandDraft}
+                    onChange={(event) => {
+                      setVehicleBrandDraft(event.target.value);
+                      setVehicleModelDraft('');
+                    }}
+                    placeholder="Choisir ou saisir une marque"
+                    required
+                  />
+                  <datalist id="vehicle-brand-presets">
+                    {vehicleBrands.map((brand) => <option key={brand} value={brand} />)}
+                  </datalist>
+                </label>
                 {errors.brand ? <p className="mt-1 text-xs text-red-300">{errors.brand}</p> : null}
               </div>
               <div>
-                <Field label="Modèle *" name="model" defaultValue={editingVehicle?.model || ''} required />
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-carbon-200 light:text-carbon-700">Modèle *</span>
+                  <input
+                    className="form-control w-full"
+                    name="model"
+                    list="vehicle-model-presets"
+                    value={vehicleModelDraft}
+                    onChange={(event) => setVehicleModelDraft(event.target.value)}
+                    placeholder={selectedBrandModels.length ? 'Choisir ou saisir un modèle' : 'Saisir un modèle'}
+                    required
+                  />
+                  <datalist id="vehicle-model-presets">
+                    {selectedBrandModels.map((model) => <option key={model} value={model} />)}
+                  </datalist>
+                </label>
+                {selectedBrandModels.length ? <p className="mt-1 text-xs text-carbon-500">{selectedBrandModels.length} modèles courants disponibles.</p> : null}
                 {errors.model ? <p className="mt-1 text-xs text-red-300">{errors.model}</p> : null}
               </div>
               <div>
