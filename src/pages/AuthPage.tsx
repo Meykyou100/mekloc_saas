@@ -99,6 +99,7 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (resetMode || authLoading || !session) return;
+    if (isSupabaseEnabled && !profile) return;
     navigate(getPostLoginRedirect(profile, isSupabaseEnabled), { replace: true });
   }, [authLoading, isSupabaseEnabled, navigate, profile, resetMode, session]);
 
