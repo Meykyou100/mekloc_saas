@@ -7,6 +7,20 @@ function slugify(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
 
+function randomToken() {
+  const bytes = new Uint8Array(18);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(36).padStart(2, '0')).join('').slice(0, 28);
+}
+
+function getAppOrigin(redirectTo?: string) {
+  try {
+    return new URL(redirectTo || 'https://mekloc-saas.vercel.app').origin;
+  } catch {
+    return 'https://mekloc-saas.vercel.app';
+  }
+}
+
 function normalizePlan(rawPlan: string): 'starter' | 'pro' | 'business' {
   const value = rawPlan.trim().toLowerCase();
   if (value === 'pro') return 'pro';
@@ -20,9 +34,21 @@ async function generateActivationLink(params: {
   serviceRole: string;
   email: string;
   redirectTo?: string;
-}) {
+}): Promise<{ activationLink: string; userId: string }> {
   const { projectUrl, serviceRole, email, redirectTo } = params;
   const headers = { apikey: serviceRole, Authorization: `Bearer ${serviceRole}`, 'Content-Type': 'application/json' };
+
+  const extractUserId = (payload: unknown): string => {
+    if (!payload || typeof payload !== 'object') return '';
+    const obj = payload as Record<string, unknown>;
+    const directUser = obj.user && typeof obj.user === 'object' ? obj.user as Record<string, unknown> : null;
+    if (typeof directUser?.id === 'string') return directUser.id;
+    const data = obj.data && typeof obj.data === 'object' ? obj.data as Record<string, unknown> : null;
+    const dataUser = data?.user && typeof data.user === 'object' ? data.user as Record<string, unknown> : null;
+    if (typeof dataUser?.id === 'string') return dataUser.id;
+    if (typeof obj.id === 'string') return obj.id;
+    return '';
+  };
 
   const requestLink = async (type: 'recovery' | 'invite') => {
     const res = await fetch(`${projectUrl}/auth/v1/admin/generate_link`, {
@@ -42,7 +68,7 @@ async function generateActivationLink(params: {
   const first = await requestLink('recovery');
   if (first.res.ok) {
     const data = JSON.parse(first.txt) as { action_link?: string; properties?: { action_link?: string } };
-    return data?.action_link || data?.properties?.action_link || '';
+    return { activationLink: data?.action_link || data?.properties?.action_link || '', userId: extractUserId(data) };
   }
 
   // If user does not exist, create Auth user then retry recovery
@@ -57,21 +83,25 @@ async function generateActivationLink(params: {
       }),
     });
     const createTxt = await createRes.text();
+    let createdUserId = '';
     if (!createRes.ok && !createTxt.toLowerCase().includes('already')) {
       throw new Error(createTxt || 'Création utilisateur Auth impossible');
+    }
+    if (createRes.ok) {
+      createdUserId = extractUserId(JSON.parse(createTxt));
     }
 
     const retry = await requestLink('recovery');
     if (retry.res.ok) {
       const data = JSON.parse(retry.txt) as { action_link?: string; properties?: { action_link?: string } };
-      return data?.action_link || data?.properties?.action_link || '';
+      return { activationLink: data?.action_link || data?.properties?.action_link || '', userId: extractUserId(data) || createdUserId };
     }
 
     // Last fallback
     const inviteFallback = await requestLink('invite');
     if (inviteFallback.res.ok) {
       const data = JSON.parse(inviteFallback.txt) as { action_link?: string; properties?: { action_link?: string } };
-      return data?.action_link || data?.properties?.action_link || '';
+      return { activationLink: data?.action_link || data?.properties?.action_link || '', userId: extractUserId(data) || createdUserId };
     }
 
     throw new Error(retry.txt || inviteFallback.txt || first.txt);
@@ -81,7 +111,7 @@ async function generateActivationLink(params: {
   const invite = await requestLink('invite');
   if (invite.res.ok) {
     const data = JSON.parse(invite.txt) as { action_link?: string; properties?: { action_link?: string } };
-    return data?.action_link || data?.properties?.action_link || '';
+    return { activationLink: data?.action_link || data?.properties?.action_link || '', userId: extractUserId(data) };
   }
 
   throw new Error(first.txt || invite.txt || 'Génération du lien impossible');
@@ -142,9 +172,33 @@ Deno.serve(async (req) => {
     nextDue.setDate(nextDue.getDate() + 30);
     const nextDueDate = nextDue.toISOString().slice(0, 10);
 
-    const agencyLookupRes = await fetch(`${projectUrl}/rest/v1/agencies?owner_email=eq.${encodeURIComponent(email)}&select=id,name&limit=1`, { headers });
-    const agencyLookup = (await agencyLookupRes.json()) as Array<{ id: string }>;
-    let agencyId = agencyLookup?.[0]?.id;
+    let activationLink = '';
+    let inviteInfo = 'activation_link_generated';
+    let approvedUserId = '';
+    try {
+      const activation = await generateActivationLink({
+        projectUrl,
+        serviceRole,
+        email,
+        redirectTo,
+      });
+      activationLink = activation.activationLink;
+      approvedUserId = activation.userId;
+      if (!activationLink) inviteInfo = 'email_failed';
+    } catch {
+      inviteInfo = 'email_failed';
+    }
+    if (!approvedUserId) throw new Error('Utilisateur Auth introuvable pour cette demande approuvée.');
+
+    const legacyProfileRes = await fetch(`${projectUrl}/rest/v1/users_profiles?email=ilike.${encodeURIComponent(email)}&select=id,agency_id&limit=1`, { headers });
+    const legacyProfile = (await legacyProfileRes.json()) as Array<{ id: string; agency_id: string | null }>;
+    let agencyId = legacyProfile?.[0]?.agency_id || '';
+
+    if (!agencyId) {
+      const agencyLookupRes = await fetch(`${projectUrl}/rest/v1/agencies?name=ilike.${encodeURIComponent(agencyName)}&select=id,name&order=created_at.desc&limit=1`, { headers });
+      const agencyLookup = (await agencyLookupRes.json()) as Array<{ id: string }>;
+      agencyId = agencyLookup?.[0]?.id || '';
+    }
 
     if (!agencyId) {
       const createAgencyRes = await fetch(`${projectUrl}/rest/v1/agencies`, {
@@ -153,7 +207,7 @@ Deno.serve(async (req) => {
         body: JSON.stringify([{
           name: agencyName,
           slug: `${slugify(agencyName)}-${Date.now().toString().slice(-5)}`,
-          created_by: adminUserId,
+          created_by: approvedUserId,
           plan,
           billing_status: 'trial',
           subscription_start_date: startDate,
@@ -183,24 +237,46 @@ Deno.serve(async (req) => {
       }
     }
 
-    const authLookupRes = await fetch(`${projectUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}`, { headers });
-    const authLookup = authLookupRes.ok ? await authLookupRes.json() as { users?: Array<{ id?: string }> } : null;
-    const approvedUserId = authLookup?.users?.[0]?.id || '';
+    const profilePayload = {
+      id: approvedUserId,
+      agency_id: agencyId,
+      full_name: ownerName,
+      email,
+      phone,
+      role: 'owner',
+      account_status: 'active',
+      is_super_admin: false,
+    };
 
-    const profileLookupRes = await fetch(`${projectUrl}/rest/v1/users_profiles?email=eq.${encodeURIComponent(email)}&select=id&limit=1`, { headers });
-    const profileLookup = (await profileLookupRes.json()) as Array<{ id: string }>;
-    if (profileLookup?.[0]?.id) {
-      await fetch(`${projectUrl}/rest/v1/users_profiles?id=eq.${encodeURIComponent(profileLookup[0].id)}`, {
+    const profileByIdRes = await fetch(`${projectUrl}/rest/v1/users_profiles?id=eq.${encodeURIComponent(approvedUserId)}&select=id&limit=1`, { headers });
+    const profileById = (await profileByIdRes.json()) as Array<{ id: string }>;
+    const legacyProfileId = legacyProfile?.[0]?.id || '';
+    if (profileById?.[0]?.id) {
+      const updateProfileRes = await fetch(`${projectUrl}/rest/v1/users_profiles?id=eq.${encodeURIComponent(approvedUserId)}`, {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({ ...(approvedUserId ? { id: approvedUserId } : {}), agency_id: agencyId, email, full_name: ownerName, account_status: 'active', is_super_admin: false }),
+        body: JSON.stringify(profilePayload),
       });
-    } else {
-      await fetch(`${projectUrl}/rest/v1/users_profiles`, {
+      if (!updateProfileRes.ok) throw new Error(`Erreur mise à jour profil: ${await updateProfileRes.text()}`);
+    } else if (legacyProfileId && legacyProfileId !== approvedUserId) {
+      const deleteLegacyRes = await fetch(`${projectUrl}/rest/v1/users_profiles?id=eq.${encodeURIComponent(legacyProfileId)}`, {
+        method: 'DELETE',
+        headers,
+      });
+      if (!deleteLegacyRes.ok) throw new Error(`Erreur suppression ancien profil: ${await deleteLegacyRes.text()}`);
+      const insertProfileRes = await fetch(`${projectUrl}/rest/v1/users_profiles`, {
         method: 'POST',
         headers,
-        body: JSON.stringify([{ ...(approvedUserId ? { id: approvedUserId } : {}), email, agency_id: agencyId, full_name: ownerName, role: 'Admin', account_status: 'active', is_super_admin: false }]),
+        body: JSON.stringify([profilePayload]),
       });
+      if (!insertProfileRes.ok) throw new Error(`Erreur création profil: ${await insertProfileRes.text()}`);
+    } else {
+      const insertProfileRes = await fetch(`${projectUrl}/rest/v1/users_profiles`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify([profilePayload]),
+      });
+      if (!insertProfileRes.ok) throw new Error(`Erreur création profil: ${await insertProfileRes.text()}`);
     }
 
     await fetch(`${projectUrl}/rest/v1/access_requests?id=eq.${encodeURIComponent(accessRequestId)}`, {
@@ -209,23 +285,23 @@ Deno.serve(async (req) => {
       body: JSON.stringify({ status: 'approved' }),
     });
 
-    let activationLink = '';
-    let inviteInfo = 'activation_link_generated';
-    try {
-      activationLink = await generateActivationLink({
-        projectUrl,
-        serviceRole,
+    const shortToken = randomToken();
+    const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+    const shortInsertRes = await fetch(`${projectUrl}/rest/v1/activation_links`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify([{
+        token: shortToken,
         email,
-        redirectTo,
-      });
-      if (!activationLink) {
-        inviteInfo = 'email_failed';
-      }
-    } catch {
-      inviteInfo = 'email_failed';
-    }
+        agency_id: agencyId,
+        role: 'owner',
+        expires_at: expiresAt,
+      }]),
+    });
+    if (!shortInsertRes.ok) throw new Error(`Erreur création lien court: ${await shortInsertRes.text()}`);
+    activationLink = `${getAppOrigin(redirectTo)}/activation/${shortToken}`;
 
-    return new Response(JSON.stringify({ success: true, inviteInfo, activationLink }), {
+    return new Response(JSON.stringify({ success: true, inviteInfo, activationLink, agencyId, profileId: approvedUserId }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {

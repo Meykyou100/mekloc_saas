@@ -43,6 +43,20 @@ function extractUserId(payload: unknown): string {
   return '';
 }
 
+function randomToken() {
+  const bytes = new Uint8Array(18);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (byte) => byte.toString(36).padStart(2, '0')).join('').slice(0, 28);
+}
+
+function getAppOrigin(redirectTo?: string) {
+  try {
+    return new URL(redirectTo || 'https://mekloc-saas.vercel.app').origin;
+  } catch {
+    return 'https://mekloc-saas.vercel.app';
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -97,6 +111,23 @@ Deno.serve(async (req) => {
 
     const normalizedEmail = String(target.email || email || '').trim().toLowerCase();
     if (!normalizedEmail) throw new Error('Email membre introuvable.');
+    const createShortLink = async () => {
+      const token = randomToken();
+      const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
+      const insertRes = await fetch(`${projectUrl}/rest/v1/activation_links`, {
+        method: 'POST',
+        headers: serviceHeaders,
+        body: JSON.stringify([{
+          token,
+          email: normalizedEmail,
+          agency_id: target.agency_id,
+          role: normalizeRole(target.role),
+          expires_at: expiresAt,
+        }]),
+      });
+      if (!insertRes.ok) throw new Error(await insertRes.text());
+      return `${getAppOrigin(redirectTo)}/activation/${token}`;
+    };
 
     const buildLink = async (type: 'recovery' | 'invite') => {
       const res = await fetch(`${projectUrl}/auth/v1/admin/generate_link`, {
@@ -124,7 +155,7 @@ Deno.serve(async (req) => {
     if (first.res.ok) {
       const parsed = parseActivationLink(first.text);
       if (!parsed.activationLink) throw new Error('Lien non généré.');
-      return json({ success: true, activationLink: parsed.activationLink, email: normalizedEmail });
+      return json({ success: true, activationLink: await createShortLink(), email: normalizedEmail });
     }
 
     if (first.text.includes('user_not_found')) {
@@ -160,14 +191,14 @@ Deno.serve(async (req) => {
       if (retry.res.ok) {
         const parsed = parseActivationLink(retry.text);
         if (!parsed.activationLink) throw new Error('Lien non généré après création utilisateur.');
-        return json({ success: true, activationLink: parsed.activationLink, email: normalizedEmail, memberId: createdUserId || target.id });
+        return json({ success: true, activationLink: await createShortLink(), email: normalizedEmail, memberId: createdUserId || target.id });
       }
 
       const invite = await buildLink('invite');
       if (invite.res.ok) {
         const parsed = parseActivationLink(invite.text);
         if (!parsed.activationLink) throw new Error('Lien invitation non généré.');
-        return json({ success: true, activationLink: parsed.activationLink, email: normalizedEmail, memberId: createdUserId || target.id });
+        return json({ success: true, activationLink: await createShortLink(), email: normalizedEmail, memberId: createdUserId || target.id });
       }
 
       throw new Error(retry.text || invite.text || first.text);
@@ -177,7 +208,7 @@ Deno.serve(async (req) => {
     if (inviteFallback.res.ok) {
       const parsed = parseActivationLink(inviteFallback.text);
       if (!parsed.activationLink) throw new Error('Lien invitation non généré.');
-      return json({ success: true, activationLink: parsed.activationLink, email: normalizedEmail });
+      return json({ success: true, activationLink: await createShortLink(), email: normalizedEmail });
     }
 
     throw new Error(first.text || inviteFallback.text || 'Génération du lien impossible.');

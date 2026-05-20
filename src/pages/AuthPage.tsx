@@ -339,7 +339,7 @@ export default function AuthPage() {
         if (request?.status === 'approved') {
           notify({
             title: 'Profil agence introuvable',
-            message: "Votre accès est approuvé, mais le profil agence n’est pas encore lié à ce compte. Contactez l’administrateur pour corriger l’activation.",
+            message: "Votre accès est approuvé, mais MekLoc ne trouve pas encore l’agence liée à ce compte. Réessayez ou contactez l’administrateur.",
             type: 'warning',
           });
           return;

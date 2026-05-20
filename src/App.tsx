@@ -6,6 +6,7 @@ import AppLayout from './components/layout/AppLayout';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import ToastViewport from './components/ui/ToastViewport';
 import AccountStatusPage from './pages/AccountStatusPage';
+import ActivationPage from './pages/ActivationPage';
 import AuthPage from './pages/AuthPage';
 const ClientProfilePage = lazyWithRetry(() => import('./pages/ClientProfilePage'));
 const CalendarPage = lazyWithRetry(() => import('./pages/CalendarPage'));
@@ -119,6 +120,14 @@ export default function App() {
             element={
               <AnimatedPage>
                 <AuthPage />
+              </AnimatedPage>
+            }
+          />
+          <Route
+            path="/activation/:token"
+            element={
+              <AnimatedPage>
+                <ActivationPage />
               </AnimatedPage>
             }
           />

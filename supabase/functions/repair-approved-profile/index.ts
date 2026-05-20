@@ -50,6 +50,7 @@ Deno.serve(async (req) => {
 
     const agencyName = String(accessRequest.agency_name || accessRequest.company_name || 'Agence MekLoc').trim() || 'Agence MekLoc';
     const ownerName = String(accessRequest.owner_name || accessRequest.full_name || email).trim() || email;
+    const phone = `${String(accessRequest.phone_country_code || '+212')} ${String(accessRequest.phone_number || '')}`.trim();
     console.log('repair-approved-profile: approved request found', { userId, email, agencyName });
 
     const profileByIdRes = await fetch(
@@ -104,6 +105,7 @@ Deno.serve(async (req) => {
       email,
       agency_id: agencyId,
       full_name: ownerName,
+      phone,
       role: 'owner',
       account_status: 'active',
       is_super_admin: false,

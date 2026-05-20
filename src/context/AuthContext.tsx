@@ -209,39 +209,92 @@ function mapProfile(row: ProfileRow): UserProfile {
   };
 }
 
-async function fetchProfile(userId: string): Promise<UserProfile | null> {
+const profileSelect = `
+  id,
+  agency_id,
+  full_name,
+  email,
+  phone,
+  role,
+  account_status,
+  is_super_admin,
+  agencies (*)
+`;
+
+async function fetchAgencyById(agencyId: string): Promise<AgencyRow | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from('agencies')
+    .select('*')
+    .eq('id', agencyId)
+    .maybeSingle();
+  if (error) throw error;
+  return data as AgencyRow | null;
+}
+
+async function fetchProfile(userId: string, email?: string | null): Promise<UserProfile | null> {
   if (!supabase) return null;
 
-  const { data, error } = await supabase
+  const normalizedEmail = email ? normalizeEmail(email) : '';
+  if (import.meta.env.DEV) {
+    console.log('MekLoc profile loader: start', { userId, email: normalizedEmail || null });
+  }
+
+  const byId = await supabase
     .from('users_profiles')
-    .select(`
-      id,
-      agency_id,
-      full_name,
-      email,
-      phone,
-      role,
-      account_status,
-      is_super_admin,
-      agencies (*)
-    `)
+    .select(profileSelect)
     .eq('id', userId)
     .maybeSingle();
 
-  if (error) throw error;
-  if (!data) return null;
+  if (byId.error) throw byId.error;
+
+  let data = byId.data;
+  if (!data && normalizedEmail) {
+    const byEmail = await supabase
+      .from('users_profiles')
+      .select(profileSelect)
+      .ilike('email', normalizedEmail)
+      .maybeSingle();
+    if (byEmail.error) throw byEmail.error;
+    data = byEmail.data;
+    if (import.meta.env.DEV) {
+      console.log('MekLoc profile loader: email fallback', {
+        userId,
+        email: normalizedEmail,
+        profileFound: Boolean(data),
+        profileId: (data as ProfileRow | null)?.id,
+      });
+    }
+  }
+
+  if (!data) {
+    if (import.meta.env.DEV) {
+      console.log('MekLoc profile loader: profile not found', { userId, email: normalizedEmail || null });
+    }
+    return null;
+  }
 
   const row = data as ProfileRow;
   let agency = Array.isArray(row.agencies) ? row.agencies[0] : row.agencies;
   if (!agency && row.agency_id) {
-    const { data: agencyRow, error: agencyError } = await supabase
-      .from('agencies')
-      .select('*')
-      .eq('id', row.agency_id)
-      .maybeSingle();
-    if (agencyError) throw agencyError;
-    agency = agencyRow as AgencyRow | null;
+    agency = await fetchAgencyById(row.agency_id);
     row.agencies = agency;
+  }
+  if (import.meta.env.DEV) {
+    console.log('MekLoc profile loader: result', {
+      authUserId: userId,
+      authEmail: normalizedEmail || null,
+      profileRow: {
+        id: row.id,
+        email: row.email,
+        agency_id: row.agency_id,
+        account_status: row.account_status,
+        role: row.role,
+      },
+      agencyId: row.agency_id,
+      agencyFound: Boolean(agency),
+      redirectReason: row.agency_id && row.account_status === 'active' && agency ? 'active_profile_ready' : 'profile_missing_agency_or_inactive',
+    });
   }
   if (agency?.logo_path) {
     const candidateBuckets = ['logos', 'agency-assets'];
@@ -261,8 +314,8 @@ async function fetchProfile(userId: string): Promise<UserProfile | null> {
   return mapProfile(row);
 }
 
-function fetchProfileWithTimeout(userId: string) {
-  return withTimeout(fetchProfile(userId), authRequestTimeoutMs, 'Chargement du profil trop long.');
+function fetchProfileWithTimeout(userId: string, email?: string | null) {
+  return withTimeout(fetchProfile(userId, email), authRequestTimeoutMs, 'Chargement du profil trop long.');
 }
 
 async function hasApprovedAccessRequest(email: string | null | undefined): Promise<boolean> {
@@ -296,7 +349,7 @@ async function repairApprovedProfile(): Promise<UserProfile | null> {
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) throw userError || new Error('Session utilisateur introuvable.');
   await new Promise((resolve) => window.setTimeout(resolve, 250));
-  return fetchProfile(userData.user.id);
+  return fetchProfile(userData.user.id, userData.user.email);
 }
 
 async function isDeletedByEmail(email: string | null | undefined): Promise<boolean> {
@@ -639,7 +692,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(data.session);
         setUser(data.session?.user ?? null);
         if (data.session?.user) {
-          const nextProfile = await fetchProfileWithTimeout(data.session.user.id);
+          const nextProfile = await fetchProfileWithTimeout(data.session.user.id, data.session.user.email);
           if (!mounted) return;
           setProfile(nextProfile);
           setProfileLoadError(null);
@@ -671,7 +724,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (nextSession?.user) {
         const shouldBlockUi = !hasCompletedInitialLoadRef.current || event === 'SIGNED_IN';
         if (shouldBlockUi) setLoading(true);
-        fetchProfileWithTimeout(nextSession.user.id)
+        fetchProfileWithTimeout(nextSession.user.id, nextSession.user.email)
           .then((nextProfile) => {
             if (mounted) {
               setProfile(nextProfile);
@@ -740,7 +793,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         setSession(data.session);
         setUser(data.session.user);
-        const nextProfile = await fetchProfileWithTimeout(data.session.user.id);
+        const nextProfile = await fetchProfileWithTimeout(data.session.user.id, data.session.user.email);
         if (cancelled) return;
         setProfile(nextProfile);
         setProfileLoadError(null);
@@ -807,7 +860,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await supabase.auth.signOut();
             throw new Error('Ce compte a été supprimé. Contactez MekLoc pour réactivation.');
           }
-          let nextProfile = data.user ? await fetchProfile(data.user.id) : null;
+          let nextProfile = data.user ? await fetchProfile(data.user.id, data.user.email) : null;
           if (import.meta.env.DEV) {
             console.log('MekLoc login: profile lookup', {
               userId: data.user?.id,
@@ -833,7 +886,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .update({ account_status: 'active' })
               .eq('id', nextProfile.id);
             if (!activateError) {
-              nextProfile = await fetchProfile(data.user.id);
+              nextProfile = await fetchProfile(data.user.id, data.user.email);
               if (import.meta.env.DEV) {
                 console.log('MekLoc login: profile auto-activated from approved access request', {
                   userId: data.user.id,
@@ -961,7 +1014,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           throw new Error('Ce compte a été supprimé. Contactez MekLoc pour réactivation.');
         }
         try {
-          const nextProfile = await fetchProfile(activeUser.id);
+          const nextProfile = await fetchProfile(activeUser.id, activeUser.email);
           setProfile(nextProfile);
           setProfileLoadError(null);
           return nextProfile;
