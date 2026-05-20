@@ -21,7 +21,13 @@ export default function SetPasswordPage() {
     if (hasNotifiedInvalidLink.current) return;
     const hash = window.location.hash || '';
     const search = window.location.search || '';
-    const hasRecovery = hash.includes('type=recovery') || hash.includes('type=invite') || search.includes('type=recovery') || search.includes('type=invite');
+    const hasRecovery =
+      hash.includes('type=recovery') ||
+      hash.includes('type=invite') ||
+      hash.includes('access_token=') ||
+      search.includes('type=recovery') ||
+      search.includes('type=invite') ||
+      search.includes('code=');
     if (!hasRecovery) {
       hasNotifiedInvalidLink.current = true;
       notify({

@@ -289,6 +289,51 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string)
   });
 }
 
+function getUrlAuthParams() {
+  const url = new URL(window.location.href);
+  const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
+  return {
+    code: url.searchParams.get('code'),
+    accessToken: hash.get('access_token') || url.searchParams.get('access_token'),
+    refreshToken: hash.get('refresh_token') || url.searchParams.get('refresh_token'),
+    errorDescription: hash.get('error_description') || url.searchParams.get('error_description'),
+  };
+}
+
+async function waitForRecoveredSession() {
+  if (!supabase) return null;
+
+  const initial = await supabase.auth.getSession();
+  if (initial.data.session) return initial.data.session;
+
+  const { code, accessToken, refreshToken, errorDescription } = getUrlAuthParams();
+  if (errorDescription) throw new Error(decodeURIComponent(errorDescription.replace(/\+/g, ' ')));
+
+  if (code) {
+    const exchanged = await supabase.auth.exchangeCodeForSession(code);
+    if (exchanged.error) throw exchanged.error;
+    if (exchanged.data.session) return exchanged.data.session;
+  }
+
+  if (accessToken && refreshToken) {
+    const restored = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+    if (restored.error) throw restored.error;
+    if (restored.data.session) return restored.data.session;
+  }
+
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < 3500) {
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
+    const next = await supabase.auth.getSession();
+    if (next.data.session) return next.data.session;
+  }
+
+  return null;
+}
+
 function getOrCreateSessionKey() {
   const existing = localStorage.getItem(sessionStorageKey);
   if (existing) return existing;
@@ -876,6 +921,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       updatePassword: async (password: string) => {
         if (!supabase) throw new Error('Supabase non configuré.');
+        const recoveredSession = await waitForRecoveredSession();
+        if (!recoveredSession) {
+          throw new Error("Session d’activation introuvable. Ouvrez le lien le plus récent ou demandez un nouveau lien d’activation.");
+        }
         const { error } = await supabase.auth.updateUser({ password });
         if (error) throw error;
       },
