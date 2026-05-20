@@ -231,7 +231,17 @@ async function fetchProfile(userId: string): Promise<UserProfile | null> {
   if (!data) return null;
 
   const row = data as ProfileRow;
-  const agency = Array.isArray(row.agencies) ? row.agencies[0] : row.agencies;
+  let agency = Array.isArray(row.agencies) ? row.agencies[0] : row.agencies;
+  if (!agency && row.agency_id) {
+    const { data: agencyRow, error: agencyError } = await supabase
+      .from('agencies')
+      .select('*')
+      .eq('id', row.agency_id)
+      .maybeSingle();
+    if (agencyError) throw agencyError;
+    agency = agencyRow as AgencyRow | null;
+    row.agencies = agency;
+  }
   if (agency?.logo_path) {
     const candidateBuckets = ['logos', 'agency-assets'];
     let resolvedLogoUrl: string | null = null;
@@ -766,12 +776,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(data.user);
           setProfileLoadError(null);
           localStorage.setItem(sessionStartedAtKey, new Date().toISOString());
+          if (import.meta.env.DEV) {
+            console.log('MekLoc login: auth user', {
+              userId: data.user?.id,
+              email: data.user?.email,
+            });
+          }
           const deleted = await isDeletedByEmail(data.user?.email);
           if (deleted) {
             await supabase.auth.signOut();
             throw new Error('Ce compte a été supprimé. Contactez MekLoc pour réactivation.');
           }
           let nextProfile = data.user ? await fetchProfile(data.user.id) : null;
+          if (import.meta.env.DEV) {
+            console.log('MekLoc login: profile lookup', {
+              userId: data.user?.id,
+              profileFound: Boolean(nextProfile),
+              profileId: nextProfile?.id,
+              agencyId: nextProfile?.agencyId,
+              agencyFound: Boolean(nextProfile?.agency),
+              accountStatus: nextProfile?.accountStatus,
+            });
+          }
 
           // Self-heal legacy rows: if approved request exists but profile still pending,
           // activate the current profile automatically.
@@ -788,6 +814,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               .eq('id', nextProfile.id);
             if (!activateError) {
               nextProfile = await fetchProfile(data.user.id);
+              if (import.meta.env.DEV) {
+                console.log('MekLoc login: profile auto-activated from approved access request', {
+                  userId: data.user.id,
+                  profileId: nextProfile?.id,
+                  agencyId: nextProfile?.agencyId,
+                });
+              }
             }
           }
 

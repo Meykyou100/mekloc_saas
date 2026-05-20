@@ -92,16 +92,18 @@ export default function AuthPage() {
     profile,
     session,
   } = useAuth();
+  const forceLogin = searchParams.get('force') === 'login';
 
   useEffect(() => {
     if (hasPasswordFlowInUrl()) setResetMode(true);
   }, []);
 
   useEffect(() => {
+    if (forceLogin) return;
     if (resetMode || authLoading || !session) return;
     if (isSupabaseEnabled && !profile) return;
     navigate(getPostLoginRedirect(profile, isSupabaseEnabled), { replace: true });
-  }, [authLoading, isSupabaseEnabled, navigate, profile, resetMode, session]);
+  }, [authLoading, forceLogin, isSupabaseEnabled, navigate, profile, resetMode, session]);
 
   useEffect(() => {
     if (searchParams.get('approved') === '1') {
@@ -318,14 +320,45 @@ export default function AuthPage() {
       const nextProfile = isSupabaseEnabled ? (result.profile ?? await refreshProfile()) : null;
       if (!nextProfile && isSupabaseEnabled) {
         const request = await getAccessRequestStatusByEmail(email);
+        if (import.meta.env.DEV) {
+          console.log('MekLoc login redirect decision', {
+            email,
+            profileFound: false,
+            accessRequestStatus: request?.status ?? null,
+            reason: request?.status === 'approved' ? 'approved_request_without_profile' : 'missing_profile',
+          });
+        }
+        if (request?.status === 'approved') {
+          notify({
+            title: 'Profil agence introuvable',
+            message: "Votre accès est approuvé, mais le profil agence n’est pas encore lié à ce compte. Contactez l’administrateur pour corriger l’activation.",
+            type: 'warning',
+          });
+          return;
+        }
         if (request && ['pending', 'pending_verification', 'contacted', 'payment_pending', 'verified'].includes(request.status)) {
           navigate(`/verification-en-cours?email=${encodeURIComponent(email)}&agency=${encodeURIComponent(request.agencyName)}&plan=${encodeURIComponent(request.plan)}&created_at=${encodeURIComponent(request.createdAt)}${request.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`, { replace: true });
           return;
         }
-        navigate(`/demande-acces?email=${encodeURIComponent(email)}&from=login`, { replace: true });
+        notify({
+          title: 'Profil introuvable',
+          message: "Connexion réussie, mais aucun profil agence n’est lié à ce compte. Vérifiez l’email utilisé ou demandez un nouveau lien d’activation.",
+          type: 'warning',
+        });
         return;
       }
 
+      if (import.meta.env.DEV) {
+        console.log('MekLoc login redirect decision', {
+          email,
+          userId: nextProfile?.id,
+          profileFound: Boolean(nextProfile),
+          agencyId: nextProfile?.agencyId,
+          agencyFound: Boolean(nextProfile?.agency),
+          accountStatus: nextProfile?.accountStatus,
+          reason: nextProfile?.agencyId && nextProfile?.accountStatus === 'active' ? 'dashboard' : 'profile_status_or_agency',
+        });
+      }
       notify({
         title: 'Bon retour sur MekLoc',
         message: isSupabaseEnabled

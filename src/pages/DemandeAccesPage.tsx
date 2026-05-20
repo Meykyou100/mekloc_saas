@@ -5,6 +5,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { Field, SelectField } from '../components/ui/Form';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { normalizeText, sanitizeText, validateEmail, validatePhone, validatePositiveNumber } from '../lib/security';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
@@ -69,6 +70,7 @@ export default function DemandeAccesPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { notify } = useApp();
+  const { signOut, session } = useAuth();
   const normalizeEmail = (email: string) => normalizeText(email, 254).toLowerCase();
   const [country, setCountry] = useState('Maroc');
   const [phoneCountryCode, setPhoneCountryCode] = useState(countryDialCode.Maroc);
@@ -79,6 +81,12 @@ export default function DemandeAccesPage() {
   const prefilledEmail = searchParams.get('email') || '';
   const fromLogin = searchParams.get('from') === 'login';
 
+  async function returnToLogin() {
+    if (session) {
+      await signOut().catch(() => undefined);
+    }
+    navigate('/auth?force=login', { replace: true });
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -178,7 +186,7 @@ export default function DemandeAccesPage() {
   return (
     <div className="min-h-screen bg-carbon-950 px-4 py-6 text-white sm:px-6 sm:py-8">
       <div className="mx-auto w-full max-w-3xl">
-        <Link to="/auth" className="inline-flex items-center gap-2 text-sm font-semibold text-carbon-300 transition hover:text-gold-200"><ArrowLeft className="h-4 w-4" />Retour à la connexion</Link>
+        <button type="button" onClick={returnToLogin} className="inline-flex items-center gap-2 text-sm font-semibold text-carbon-300 transition hover:text-gold-200"><ArrowLeft className="h-4 w-4" />Retour à la connexion</button>
         <Card className="mt-4 p-4 sm:mt-6 sm:p-7">
           <h1 className="text-2xl font-black sm:text-3xl">Demande d’accès MekLoc</h1>
           {fromLogin ? <p className="mt-2 text-sm text-gold-200">Votre compte n’est pas encore activé. Remplissez cette demande pour obtenir l’accès.</p> : null}

@@ -59,10 +59,32 @@ export default function ProtectedRoute({
     setAccessStatusChecked(false);
     getAccessRequestStatusByEmail(email)
       .then((request) => {
-        if (!cancelled) setAccessStatus(request?.status ?? null);
+        if (!cancelled) {
+          setAccessStatus(request?.status ?? null);
+          if (import.meta.env.DEV) {
+            console.log('MekLoc route access lookup', {
+              userId: user?.id,
+              email,
+              profileFound: Boolean(profile),
+              agencyId,
+              accessStatus: request?.status ?? null,
+              reason: request?.status ? 'access_request_found' : 'no_profile_no_access_request',
+            });
+          }
+        }
       })
-      .catch(() => {
-        if (!cancelled) setAccessStatus(null);
+      .catch((error) => {
+        if (!cancelled) {
+          setAccessStatus('lookup_error');
+          if (import.meta.env.DEV) {
+            console.log('MekLoc route access lookup failed', {
+              userId: user?.id,
+              email,
+              error: error instanceof Error ? error.message : error,
+              reason: 'access_lookup_failed_no_redirect',
+            });
+          }
+        }
       })
       .finally(() => {
         if (!cancelled) {
@@ -139,6 +161,25 @@ export default function ProtectedRoute({
         </div>
       );
     }
+    if (!profile && accessStatus === 'lookup_error') {
+      return (
+        <div className="grid min-h-screen place-items-center bg-carbon-950 px-4 light:bg-carbon-50">
+          <Card className="w-full max-w-md p-6 text-center">
+            <p className="text-lg font-semibold text-white light:text-carbon-950">Vérification impossible</p>
+            <p className="mt-2 text-sm text-carbon-400">
+              Votre connexion est active, mais MekLoc n’a pas pu vérifier le profil agence. Réessayez dans quelques secondes.
+            </p>
+            <button
+              type="button"
+              className="focus-ring mt-5 rounded-xl bg-gold-400 px-4 py-2 text-sm font-semibold text-carbon-950"
+              onClick={() => refreshProfile().catch(() => undefined)}
+            >
+              Réessayer
+            </button>
+          </Card>
+        </div>
+      );
+    }
     if (!profile && accessStatus && ['pending', 'pending_verification', 'contacted', 'verified'].includes(accessStatus)) {
       return <Navigate to={`/verification-en-cours?email=${encodeURIComponent(user?.email || '')}&status=${encodeURIComponent(accessStatus)}`} replace />;
     }
@@ -147,6 +188,16 @@ export default function ProtectedRoute({
     }
     if (!profile && accessStatus === 'rejected') {
       return <Navigate to="/account-status" replace />;
+    }
+    if (import.meta.env.DEV) {
+      console.log('MekLoc route redirect decision', {
+        userId: user?.id,
+        email: user?.email,
+        profileFound: Boolean(profile),
+        agencyId,
+        accessStatus,
+        reason: 'no_profile_no_approved_access_redirect_demande_acces',
+      });
     }
     return <Navigate to={`/demande-acces?from=login${user?.email ? `&email=${encodeURIComponent(user.email)}` : ''}`} replace />;
   }
