@@ -47,21 +47,32 @@ export default function VehicleDetailsPage() {
       />
       <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
         <Card className="overflow-hidden">
-          <div className="h-72 bg-gold-sheen p-8">
-            <div className="flex h-full flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <Badge>{vehicle.status}</Badge>
-                <span className="rounded-full bg-carbon-950/70 px-4 py-2 text-sm font-bold text-gold-200">{formatMAD(vehicle.dailyPrice)} / day</span>
+          <div className="relative h-[300px] overflow-hidden bg-gradient-to-br from-zinc-900 via-carbon-950 to-zinc-950 sm:h-[380px] lg:h-[440px]">
+            {vehicle.imageUrl ? (
+              <img
+                src={vehicle.imageUrl}
+                alt={`${vehicle.brand} ${vehicle.model}`}
+                className="h-full w-full object-cover object-center"
+              />
+            ) : (
+              <div className="grid h-full w-full place-items-center bg-[radial-gradient(circle_at_50%_35%,rgba(212,160,23,.16),transparent_48%)]">
+                <div className="grid h-28 w-28 place-items-center rounded-3xl border border-white/10 bg-white/[0.04] text-carbon-200 shadow-2xl sm:h-36 sm:w-36">
+                  <Car className="h-16 w-16 sm:h-20 sm:w-20" strokeWidth={1.2} />
+                </div>
               </div>
-              {vehicle.imageUrl ? (
-                <img
-                  src={vehicle.imageUrl}
-                  alt={`${vehicle.brand} ${vehicle.model}`}
-                  className="ml-auto h-40 w-56 rounded-2xl border border-white/10 object-cover shadow-2xl"
-                />
-              ) : (
-                <Car className="ml-auto h-36 w-36 text-white/80" strokeWidth={1.1} />
-              )}
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-carbon-950/88 via-carbon-950/18 to-carbon-950/35" />
+            <div className="absolute left-4 right-4 top-4 flex items-center justify-between gap-3 sm:left-6 sm:right-6 sm:top-6">
+              <Badge>{vehicle.status}</Badge>
+              <span className="rounded-full border border-gold-300/25 bg-carbon-950/75 px-4 py-2 text-sm font-bold text-gold-200 shadow-xl backdrop-blur">
+                {formatMAD(vehicle.dailyPrice)} / day
+              </span>
+            </div>
+            <div className="absolute bottom-5 left-4 right-4 sm:bottom-6 sm:left-6 sm:right-6">
+              <p className="text-2xl font-black text-white drop-shadow sm:text-3xl">{vehicle.brand} {vehicle.model}</p>
+              <p className="mt-1 text-sm font-semibold text-carbon-200">
+                <PlateNumber value={vehicle.plate} /> · {vehicle.city || 'Ville non renseignée'} · {vehicle.year || '—'}
+              </p>
             </div>
           </div>
           <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
