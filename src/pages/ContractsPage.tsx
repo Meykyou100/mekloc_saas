@@ -263,6 +263,7 @@ function createPdfCaptureSource(source: HTMLElement, logoDataUrl?: string | null
     if (logoImage) {
       logoImage.src = logoDataUrl;
       logoImage.removeAttribute('crossorigin');
+      logoImage.decoding = 'sync';
     }
   }
 

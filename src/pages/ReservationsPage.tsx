@@ -63,7 +63,7 @@ function formatReservationDateTime(date: string, time?: string) {
 
 function parseOptionalNumber(value: string) {
   if (value.trim() === '') return null;
-  const parsed = Number(value);
+  const parsed = Number(value.replace(',', '.'));
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -768,7 +768,7 @@ export default function ReservationsPage() {
                             <input className={inputClass} type="number" value={draftDailyPrice} onChange={(event) => setDraftDailyPrice(event.target.value)} min={1} required />
                           </ReservationField>
                           <ReservationField label="Caution">
-                            <input className={inputClass} type="number" value={draftDeposit} onChange={(event) => setDraftDeposit(event.target.value)} min={0} required />
+                            <input className={inputClass} type="number" value={draftDeposit} onChange={(event) => setDraftDeposit(event.target.value)} min={0} />
                           </ReservationField>
                           <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
                             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-carbon-500">Montant total</p>

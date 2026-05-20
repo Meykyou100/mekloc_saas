@@ -1044,6 +1044,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           if (/row-level security|permission denied/i.test(error.message || '')) {
             throw new Error('Permission Supabase refusée pour créer la réservation.');
           }
+          if (/deposit|deposit_amount|caution/i.test(error.message || '')) {
+            throw new Error(`Erreur caution Supabase: ${error.message}`);
+          }
           throw error;
         }
         const nextReservation = mapReservation(

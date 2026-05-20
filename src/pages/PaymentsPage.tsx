@@ -51,21 +51,63 @@ function methodFr(method: Payment['method']) {
   return 'Espèces';
 }
 
-async function loadImageDataUrl(url?: string) {
+function measureReceiptLogo(dataUrl: string) {
+  return new Promise<string | null>((resolve) => {
+    const image = new Image();
+    image.onload = () => resolve(dataUrl);
+    image.onerror = () => resolve(null);
+    image.src = dataUrl;
+  });
+}
+
+async function blobToReceiptDataUrl(blob: Blob) {
+  return new Promise<string | null>((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function loadImageDataUrl(url?: string): Promise<string | null> {
   if (!url) return null;
   try {
-    const response = await fetch(url);
-    if (!response.ok) return null;
-    const blob = await response.blob();
-    return await new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(String(reader.result || ''));
-      reader.onerror = () => reject(new Error('Logo illisible.'));
-      reader.readAsDataURL(blob);
-    });
+    const response = await fetch(url, { mode: 'cors', cache: 'force-cache' });
+    if (response.ok) {
+      const dataUrl = await blobToReceiptDataUrl(await response.blob());
+      if (dataUrl) {
+        const measured = await measureReceiptLogo(dataUrl);
+        if (measured) return measured;
+      }
+    }
   } catch {
-    return null;
+    // Some Supabase Storage URLs reject fetch but can still be decoded by an image element.
   }
+
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.crossOrigin = 'anonymous';
+    image.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = image.naturalWidth || image.width;
+        canvas.height = image.naturalHeight || image.height;
+        const context = canvas.getContext('2d');
+        if (!context) {
+          resolve(null);
+          return;
+        }
+        context.fillStyle = '#ffffff';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(image, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      } catch {
+        resolve(null);
+      }
+    };
+    image.onerror = () => resolve(null);
+    image.src = url;
+  });
 }
 
 export default function PaymentsPage() {
