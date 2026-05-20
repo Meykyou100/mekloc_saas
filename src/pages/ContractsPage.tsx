@@ -13,6 +13,8 @@ import {
   Sparkles,
   UserRound,
   Wand2,
+  ZoomIn,
+  ZoomOut,
 } from 'lucide-react';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -331,6 +333,23 @@ export default function ContractsPage() {
     window.addEventListener('resize', updatePreviewScale);
     return () => window.removeEventListener('resize', updatePreviewScale);
   }, []);
+
+  function fitPreviewToStudio() {
+    const viewport = previewViewportRef.current;
+    if (!viewport) return;
+    const isMobile = window.innerWidth < 768;
+    const nextMaxHeight = Math.max(isMobile ? 460 : 620, window.innerHeight - 220);
+    const availableWidth = Math.max(220, viewport.clientWidth - (isMobile ? 12 : 48));
+    const widthScale = availableWidth / A4_SOURCE_WIDTH;
+    const heightScale = (nextMaxHeight - 36) / A4_SOURCE_HEIGHT;
+    const minScale = isMobile ? 0.38 : 0.58;
+    setPreviewMaxHeight(nextMaxHeight);
+    setPreviewScale(Math.max(minScale, Math.min(1, widthScale, heightScale)));
+  }
+
+  function nudgePreviewScale(delta: number) {
+    setPreviewScale((current) => Math.max(0.38, Math.min(1.15, Number((current + delta).toFixed(2)))));
+  }
 
   const selectedReservation = useMemo(
     () => reservations.find((item) => item.id === reservationId),
@@ -704,9 +723,9 @@ export default function ContractsPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Documents"
+        eyebrow="DOCUMENTS"
         title="Contrats"
-        description="Créez des contrats de location professionnels avec vos données agence, client et véhicule."
+        description="Contract Studio pour préparer, prévisualiser et exporter vos contrats de location."
         action={(
           <div className="hidden md:block">
             <Button icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf}>
@@ -740,23 +759,23 @@ export default function ContractsPage() {
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <Card className="overflow-hidden border-white/10 p-0 xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)]">
-          <div className="border-b border-white/10 bg-gradient-to-br from-white/[0.075] to-white/[0.025] p-5">
+      <div className="grid gap-6 xl:grid-cols-[minmax(320px,360px)_minmax(0,1fr)]">
+        <Card className="overflow-hidden border-white/10 bg-[#0c1118] p-0 shadow-[0_24px_70px_rgba(0,0,0,.32)] xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)]">
+          <div className="border-b border-white/10 bg-gradient-to-br from-gold-400/12 via-white/[0.055] to-white/[0.015] p-5">
             <div className="flex items-center gap-3">
               <div className="rounded-2xl border border-gold-300/20 bg-gold-400/10 p-3 text-gold-200">
                 <Wand2 className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="font-semibold text-white light:text-carbon-950">Éditeur de contrat</h2>
-                <p className="text-sm leading-5 text-carbon-400">Configurez un document prêt à signer.</p>
+                <h2 className="font-semibold text-white light:text-carbon-950">Contract Studio</h2>
+                <p className="text-sm leading-5 text-carbon-400">Assistant compact de génération.</p>
               </div>
             </div>
           </div>
 
           <div className="max-h-none space-y-4 overflow-y-auto p-5 xl:max-h-[calc(100vh-18rem)]">
             <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
-              <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Modèle</p>
+              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">1. Modèle</p>
               <SelectField label="Type de modèle" value={template} onChange={(event) => setTemplate(event.target.value)}>
                 {templates.map((item) => <option key={item}>{item}</option>)}
               </SelectField>
@@ -764,7 +783,7 @@ export default function ContractsPage() {
             </section>
 
             <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
-              <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Sélection client / véhicule</p>
+              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">2. Client & véhicule</p>
               <div className="grid gap-3">
                 <SelectField label="Client" value={clientId} onChange={(event) => setClientId(event.target.value)}>
                   {clients.map((item) => <option key={item.id} value={item.id}>{item.fullName}</option>)}
@@ -776,7 +795,7 @@ export default function ContractsPage() {
             </section>
 
             <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
-              <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Réservation source</p>
+              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">3. Réservation</p>
               <SelectField label="Réservation" value={reservationId} onChange={(event) => setReservationId(event.target.value)}>
                 {reservations.map((item) => (
                   <option key={item.id} value={item.id}>
@@ -788,7 +807,7 @@ export default function ContractsPage() {
             </section>
 
             <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
-              <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Conditions générales</p>
+              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">4. Conditions</p>
               <TextAreaField
                 label="Texte des conditions"
                 value={terms}
@@ -799,7 +818,7 @@ export default function ContractsPage() {
             </section>
 
             <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
-              <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Checklist de complétude</p>
+              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">5. Génération</p>
               <div className="grid gap-2">
                 {checklist.map((item) => (
                   <div key={item.label} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/15 px-3 py-2 text-xs">
@@ -845,18 +864,39 @@ export default function ContractsPage() {
           </div>
         </Card>
 
-        <div className="min-w-0 rounded-3xl border border-white/10 bg-[#090d13] p-3 shadow-[0_24px_80px_rgba(0,0,0,.45)] sm:p-5">
-          <div className="mb-3 flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-            <div className="flex items-center gap-2 text-sm text-carbon-300">
-              <FileText className="h-4 w-4 text-gold-200" />
-              Aperçu A4 prêt à imprimer
+        <div className="min-w-0 rounded-3xl border border-white/10 bg-[#070b10] p-3 shadow-[0_24px_80px_rgba(0,0,0,.45)] sm:p-5">
+          <div className="mb-3 flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-3 text-sm text-carbon-300">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-gold-400/12 text-gold-200">
+                <FileText className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="font-semibold text-white light:text-carbon-950">Studio aperçu A4</p>
+                <p className="text-xs text-carbon-500">Prévisualisation centrée avec logo agence.</p>
+              </div>
             </div>
-            <Badge>{statusLabel(previewStatus)}</Badge>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge>{statusLabel(previewStatus)}</Badge>
+              <div className="flex items-center rounded-xl border border-white/10 bg-black/20 p-1">
+                <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-carbon-300 hover:bg-white/10 hover:text-white" onClick={() => nudgePreviewScale(-0.08)} aria-label="Zoom arrière">
+                  <ZoomOut className="h-4 w-4" />
+                </button>
+                <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-carbon-300 hover:bg-white/10 hover:text-white" onClick={() => nudgePreviewScale(0.08)} aria-label="Zoom avant">
+                  <ZoomIn className="h-4 w-4" />
+                </button>
+                <button type="button" className="h-8 rounded-lg px-3 text-xs font-semibold text-carbon-300 hover:bg-white/10 hover:text-white" onClick={fitPreviewToStudio}>
+                  Fit
+                </button>
+              </div>
+              <Button className="h-9 px-3 text-xs" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf}>
+                Télécharger
+              </Button>
+            </div>
           </div>
 
           <div
             ref={previewViewportRef}
-            className="overflow-auto rounded-2xl bg-[#f4f6f9] p-3 sm:p-6"
+            className="overflow-auto rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top,rgba(212,160,23,.12),transparent_34%),#10151d] p-3 sm:p-6"
             style={{ maxHeight: `${previewMaxHeight}px` }}
           >
             <div
