@@ -183,19 +183,23 @@ Deno.serve(async (req) => {
       }
     }
 
+    const authLookupRes = await fetch(`${projectUrl}/auth/v1/admin/users?email=${encodeURIComponent(email)}`, { headers });
+    const authLookup = authLookupRes.ok ? await authLookupRes.json() as { users?: Array<{ id?: string }> } : null;
+    const approvedUserId = authLookup?.users?.[0]?.id || '';
+
     const profileLookupRes = await fetch(`${projectUrl}/rest/v1/users_profiles?email=eq.${encodeURIComponent(email)}&select=id&limit=1`, { headers });
     const profileLookup = (await profileLookupRes.json()) as Array<{ id: string }>;
     if (profileLookup?.[0]?.id) {
       await fetch(`${projectUrl}/rest/v1/users_profiles?id=eq.${encodeURIComponent(profileLookup[0].id)}`, {
         method: 'PATCH',
         headers,
-        body: JSON.stringify({ agency_id: agencyId, full_name: ownerName, account_status: 'active', is_super_admin: false }),
+        body: JSON.stringify({ ...(approvedUserId ? { id: approvedUserId } : {}), agency_id: agencyId, email, full_name: ownerName, account_status: 'active', is_super_admin: false }),
       });
     } else {
       await fetch(`${projectUrl}/rest/v1/users_profiles`, {
         method: 'POST',
         headers,
-        body: JSON.stringify([{ email, agency_id: agencyId, full_name: ownerName, role: 'Admin', account_status: 'active', is_super_admin: false }]),
+        body: JSON.stringify([{ ...(approvedUserId ? { id: approvedUserId } : {}), email, agency_id: agencyId, full_name: ownerName, role: 'Admin', account_status: 'active', is_super_admin: false }]),
       });
     }
 

@@ -54,6 +54,7 @@ type SignUpInput = {
 type AuthActionResult = {
   needsEmailConfirmation?: boolean;
   profile?: UserProfile | null;
+  approvedProfileRepairNeeded?: boolean;
 };
 
 type AuthContextValue = {
@@ -277,6 +278,17 @@ async function hasApprovedAccessRequest(email: string | null | undefined): Promi
     .maybeSingle();
   if (error) return false;
   return Boolean(data?.id);
+}
+
+async function repairApprovedProfile(): Promise<UserProfile | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.functions.invoke('repair-approved-profile');
+  if (error) throw error;
+  const repaired = data as { success?: boolean; repaired?: boolean; error?: string };
+  if (!repaired?.success) throw new Error(repaired?.error || 'Réparation du profil impossible.');
+  const { data: userData, error: userError } = await supabase.auth.getUser();
+  if (userError || !userData.user) throw userError || new Error('Session utilisateur introuvable.');
+  return fetchProfile(userData.user.id);
 }
 
 async function isDeletedByEmail(email: string | null | undefined): Promise<boolean> {
@@ -821,6 +833,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                   agencyId: nextProfile?.agencyId,
                 });
               }
+            }
+          }
+
+          if (!nextProfile && data.user?.email && await hasApprovedAccessRequest(data.user.email)) {
+            if (import.meta.env.DEV) {
+              console.log('MekLoc login: approved access without profile, attempting repair', {
+                userId: data.user.id,
+                email: data.user.email,
+              });
+            }
+            try {
+              nextProfile = await repairApprovedProfile();
+              if (import.meta.env.DEV) {
+                console.log('MekLoc login: approved profile repair result', {
+                  userId: data.user.id,
+                  profileFound: Boolean(nextProfile),
+                  agencyId: nextProfile?.agencyId,
+                  agencyFound: Boolean(nextProfile?.agency),
+                  accountStatus: nextProfile?.accountStatus,
+                });
+              }
+            } catch (repairError) {
+              if (import.meta.env.DEV) {
+                console.log('MekLoc login: approved profile repair failed', {
+                  userId: data.user.id,
+                  error: repairError instanceof Error ? repairError.message : repairError,
+                });
+              }
+              return { profile: null, approvedProfileRepairNeeded: true };
             }
           }
 

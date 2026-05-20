@@ -316,6 +316,14 @@ export default function AuthPage() {
         });
         return;
       }
+      if (result.approvedProfileRepairNeeded) {
+        notify({
+          title: 'Profil agence à réparer',
+          message: "Votre accès est approuvé, mais le profil agence n’est pas encore lié. Déployez la fonction repair-approved-profile puis reconnectez-vous.",
+          type: 'warning',
+        });
+        return;
+      }
 
       const nextProfile = isSupabaseEnabled ? (result.profile ?? await refreshProfile()) : null;
       if (!nextProfile && isSupabaseEnabled) {
