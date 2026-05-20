@@ -375,8 +375,8 @@ export default function AuthPage() {
         if (request) {
           if (request.status === 'approved') {
             notify({
-              title: 'Connexion impossible',
-              message: 'Email ou mot de passe incorrect.',
+              title: 'Mot de passe incorrect',
+              message: "Si vous n’avez pas encore défini votre mot de passe, utilisez le lien d’activation envoyé par votre agence.",
               type: 'warning',
             });
             return;
@@ -391,14 +391,22 @@ export default function AuthPage() {
           const normalized = email.trim().toLowerCase();
           const { data: profileRow } = await supabase
             .from('users_profiles')
-            .select('id,account_status,email')
+            .select('id,account_status,email,agency_id')
             .eq('email', normalized)
             .limit(1)
             .maybeSingle();
           if (profileRow) {
+            if (profileRow.account_status === 'active' && profileRow.agency_id) {
+              notify({
+                title: 'Mot de passe incorrect',
+                message: 'Vérifiez votre mot de passe puis réessayez.',
+                type: 'warning',
+              });
+              return;
+            }
             notify({
               title: 'Activation requise',
-              message: "Votre compte existe mais n’est pas encore activé côté connexion. Utilisez votre lien d’activation ou contactez votre agence.",
+              message: "Votre compte existe, mais le mot de passe n’est pas encore défini ou le compte n’est pas actif. Utilisez le lien d’activation ou contactez votre agence.",
               type: 'warning',
             });
             return;
@@ -410,7 +418,11 @@ export default function AuthPage() {
           notifyMemberNeedsActivation(memberLookup);
           return;
         }
-        navigate(`/demande-acces?email=${encodeURIComponent(email)}&from=login`, { replace: true });
+        notify({
+          title: 'Connexion impossible',
+          message: 'Email ou mot de passe incorrect.',
+          type: 'warning',
+        });
         return;
       }
       notify({
