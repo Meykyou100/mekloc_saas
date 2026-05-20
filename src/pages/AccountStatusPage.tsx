@@ -17,6 +17,10 @@ const statusCopy = {
     title: 'Compte suspendu',
     message: 'Votre compte est suspendu. Contactez MekLoc.',
   },
+  pending_deletion: {
+    title: 'Compte en cours de suppression',
+    message: 'Ce compte est en cours de suppression. Contactez l’administrateur pour annuler.',
+  },
   active: {
     title: 'Compte actif',
     message: 'Votre compte est actif.',
@@ -27,6 +31,10 @@ export default function AccountStatusPage() {
   const { profile, signOut } = useAuth();
   const { notify } = useApp();
   const current = statusCopy[profile?.accountStatus || 'pending'];
+  const scheduledAt = profile?.deletionScheduledAt ? new Date(profile.deletionScheduledAt) : null;
+  const scheduledDate = scheduledAt && !Number.isNaN(scheduledAt.getTime())
+    ? scheduledAt.toLocaleDateString('fr-MA', { year: 'numeric', month: '2-digit', day: '2-digit' })
+    : null;
 
   async function handleLogout() {
     await signOut();
@@ -41,7 +49,11 @@ export default function AccountStatusPage() {
         </div>
         <p className="mt-6 text-xs font-bold uppercase tracking-[0.3em] text-gold-300">MekLoc</p>
         <h1 className="mt-3 text-3xl font-black text-white light:text-carbon-950">{current.title}</h1>
-        <p className="mt-4 text-lg leading-8 text-carbon-300 light:text-carbon-600">{current.message}</p>
+        <p className="mt-4 text-lg leading-8 text-carbon-300 light:text-carbon-600">
+          {profile?.accountStatus === 'pending_deletion' && scheduledDate
+            ? `Ce compte est en cours de suppression. Suppression définitive prévue le ${scheduledDate}. Contactez l’administrateur pour annuler.`
+            : current.message}
+        </p>
         <p className="mt-5 text-sm text-carbon-500">
           {profile?.agency?.name || profile?.email || 'Votre espace'} sera disponible dès validation.
         </p>

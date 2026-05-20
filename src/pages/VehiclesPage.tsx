@@ -172,6 +172,7 @@ export default function VehiclesPage() {
   const [status, setStatus] = useState<VehicleFilterStatus>('All');
   const [view, setView] = useState<'grid' | 'table'>('grid');
   const [modalOpen, setModalOpen] = useState(false);
+  const [vehicleToDelete, setVehicleToDelete] = useState<Vehicle | null>(null);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
@@ -381,25 +382,25 @@ export default function VehiclesPage() {
     setDamageMarks((prev) => prev.filter((item) => item.id !== id));
   }
 
-  async function deleteVehicle(vehicle: Vehicle) {
+  function vehicleHasLinkedRecords(vehicle: Vehicle) {
     const linkedReservations = reservations.filter((item) => item.vehicleId === vehicle.id).length;
     const linkedContracts = contracts.filter((item) => item.vehicleId === vehicle.id).length;
     const linkedPayments = payments.filter((item) => item.vehicleId === vehicle.id).length;
     const linkedMaintenance = maintenance.filter((item) => item.vehicleId === vehicle.id).length;
-    const hasLinkedRecords = linkedReservations + linkedContracts + linkedPayments + linkedMaintenance > 0;
-    const confirmed = window.confirm(
-      hasLinkedRecords
-        ? `Ce véhicule est lié à des réservations/contrats/paiements. Archiver véhicule ?`
-        : `Supprimer définitivement ${vehicle.plate} ?`,
-    );
-    if (!confirmed) return;
+    return linkedReservations + linkedContracts + linkedPayments + linkedMaintenance > 0;
+  }
+
+  async function confirmDeleteVehicle() {
+    if (!vehicleToDelete) return;
+    const hasLinkedRecords = vehicleHasLinkedRecords(vehicleToDelete);
     try {
-      await removeVehicle(vehicle.id);
+      await removeVehicle(vehicleToDelete.id);
       notify({
         title: hasLinkedRecords ? 'Véhicule archivé' : 'Véhicule supprimé',
-        message: hasLinkedRecords ? `${vehicle.plate} est masqué de la liste normale.` : `${vehicle.plate} a été retiré du parc.`,
+        message: hasLinkedRecords ? `${vehicleToDelete.plate} est masqué de la liste normale.` : `${vehicleToDelete.plate} a été retiré du parc.`,
         type: hasLinkedRecords ? 'success' : 'warning',
       });
+      setVehicleToDelete(null);
     } catch (error) {
       if (import.meta.env.DEV) console.error('Vehicle delete failed', error);
       notify({
@@ -539,7 +540,7 @@ export default function VehiclesPage() {
                   <div className="mt-5 grid grid-cols-3 gap-2">
                     <Button variant="secondary" className="h-10 px-2 text-xs" icon={<Edit3 className="h-4 w-4" />} onClick={() => openEditVehicle(vehicle)}>Modifier</Button>
                     <Link to={`/vehicles/${vehicle.id}`}><Button variant="secondary" className="h-10 w-full px-2 text-xs" icon={<Eye className="h-4 w-4" />}>Détails</Button></Link>
-                    <Button variant="danger" className="h-10 px-2 text-xs" icon={<Trash2 className="h-4 w-4" />} onClick={() => deleteVehicle(vehicle)}>Supprimer</Button>
+                    <Button variant="danger" className="h-10 px-2 text-xs" icon={<Trash2 className="h-4 w-4" />} onClick={() => setVehicleToDelete(vehicle)}>Supprimer</Button>
                   </div>
                 </div>
               </Card>
@@ -588,7 +589,7 @@ export default function VehiclesPage() {
                     <td className="px-5 py-4">
                       <div className="flex gap-2">
                         <Button variant="secondary" className="h-9 px-3" onClick={() => openEditVehicle(vehicle)}>Modifier</Button>
-                        <Button variant="danger" className="h-9 px-3" onClick={() => deleteVehicle(vehicle)}>Supprimer</Button>
+                        <Button variant="danger" className="h-9 px-3" onClick={() => setVehicleToDelete(vehicle)}>Supprimer</Button>
                       </div>
                     </td>
                   </tr>
@@ -875,6 +876,28 @@ export default function VehiclesPage() {
             </div>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={Boolean(vehicleToDelete)} title={vehicleToDelete && vehicleHasLinkedRecords(vehicleToDelete) ? 'Archiver le véhicule' : 'Supprimer le véhicule'} onClose={() => setVehicleToDelete(null)}>
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
+            <p className="font-semibold text-rose-100">
+              {vehicleToDelete && vehicleHasLinkedRecords(vehicleToDelete) ? 'Ce véhicule est lié à des opérations existantes.' : 'Cette suppression est définitive.'}
+            </p>
+            <p className="mt-2 text-sm text-carbon-300">
+              {vehicleToDelete && vehicleHasLinkedRecords(vehicleToDelete)
+                ? 'Il sera archivé et masqué de la liste normale, tout en restant visible dans les anciens contrats et réservations.'
+                : 'Le véhicule sera retiré du parc si aucun contrat, paiement, entretien ou réservation ne le bloque.'}
+            </p>
+          </div>
+          <p className="text-sm text-carbon-300">Véhicule: <strong>{vehicleToDelete?.brand} {vehicleToDelete?.model}</strong></p>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={() => setVehicleToDelete(null)}>Annuler</Button>
+            <Button type="button" variant="danger" onClick={confirmDeleteVehicle}>
+              {vehicleToDelete && vehicleHasLinkedRecords(vehicleToDelete) ? 'Archiver véhicule' : 'Supprimer'}
+            </Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );

@@ -11,11 +11,13 @@ export type UserProfile = {
   phone: string;
   role: 'owner' | 'manager' | 'agent' | 'accountant';
   accountStatus: AccountStatus;
+  deletionRequestedAt: string | null;
+  deletionScheduledAt: string | null;
   isSuperAdmin: boolean;
   agency: AgencySubscription | null;
 };
 
-export type AccountStatus = 'pending' | 'active' | 'rejected' | 'suspended';
+export type AccountStatus = 'pending' | 'active' | 'rejected' | 'suspended' | 'pending_deletion';
 export type AgencyPlan = 'starter' | 'pro' | 'business';
 export type BillingStatus = 'trial' | 'paid' | 'unpaid' | 'overdue' | 'cancelled';
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'card' | 'other';
@@ -96,6 +98,8 @@ type ProfileRow = {
   phone: string | null;
   role: string;
   account_status: AccountStatus;
+  deletion_requested_at: string | null;
+  deletion_scheduled_at: string | null;
   is_super_admin: boolean;
   agencies: AgencyRow | AgencyRow[] | null;
 };
@@ -146,6 +150,8 @@ const demoProfile: UserProfile = {
   phone: '+212 6 00 00 00 00',
   role: 'owner',
   accountStatus: 'active',
+  deletionRequestedAt: null,
+  deletionScheduledAt: null,
   isSuperAdmin: false,
   agency: demoAgency,
 };
@@ -204,6 +210,8 @@ function mapProfile(row: ProfileRow): UserProfile {
     phone: row.phone || '',
     role: getRoleLabel(row.role),
     accountStatus: row.account_status || 'pending',
+    deletionRequestedAt: row.deletion_requested_at || null,
+    deletionScheduledAt: row.deletion_scheduled_at || null,
     isSuperAdmin: Boolean(row.is_super_admin),
     agency: mapAgency(row.agencies),
   };
@@ -217,6 +225,8 @@ const profileSelect = `
   phone,
   role,
   account_status,
+  deletion_requested_at,
+  deletion_scheduled_at,
   is_super_admin,
   agencies (*)
 `;
@@ -275,10 +285,24 @@ async function fetchProfile(userId: string, email?: string | null): Promise<User
   }
 
   const row = data as ProfileRow;
+  if (row.id === userId && normalizedEmail && normalizeEmail(row.email || '') !== normalizedEmail) {
+    const { error: syncEmailError } = await supabase
+      .from('users_profiles')
+      .update({ email: normalizedEmail })
+      .eq('id', row.id);
+    if (!syncEmailError) row.email = normalizedEmail;
+  }
   let agency = Array.isArray(row.agencies) ? row.agencies[0] : row.agencies;
   if (!agency && row.agency_id) {
     agency = await fetchAgencyById(row.agency_id);
     row.agencies = agency;
+  }
+  if (row.id === userId && normalizedEmail && agency?.id && normalizeEmail(agency.email || '') !== normalizedEmail) {
+    const { error: syncAgencyEmailError } = await supabase
+      .from('agencies')
+      .update({ email: normalizedEmail })
+      .eq('id', agency.id);
+    if (!syncAgencyEmailError) agency.email = normalizedEmail;
   }
   if (import.meta.env.DEV) {
     console.log('MekLoc profile loader: result', {
@@ -361,6 +385,21 @@ async function isDeletedByEmail(email: string | null | undefined): Promise<boole
 
 function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
+}
+
+function formatPendingDeletionDate(value: string | null | undefined) {
+  if (!value) return 'la date prévue';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'la date prévue';
+  return date.toLocaleDateString('fr-MA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  });
+}
+
+function pendingDeletionMessage(profile: UserProfile) {
+  return `Ce compte est en cours de suppression. Suppression définitive prévue le ${formatPendingDeletionDate(profile.deletionScheduledAt)}. Contactez l’administrateur pour annuler.`;
 }
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> {
@@ -872,6 +911,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             });
           }
 
+          if (nextProfile?.accountStatus === 'pending_deletion') {
+            await supabase.auth.signOut();
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+            setProfileLoadError(null);
+            throw new Error(pendingDeletionMessage(nextProfile));
+          }
+
           // Self-heal legacy rows: if approved request exists but profile still pending,
           // activate the current profile automatically.
           if (
@@ -924,6 +972,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               }
               return { profile: null, approvedProfileRepairNeeded: true };
             }
+          }
+
+          if (nextProfile?.accountStatus === 'pending_deletion') {
+            await supabase.auth.signOut();
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+            setProfileLoadError(null);
+            throw new Error(pendingDeletionMessage(nextProfile));
           }
 
           setProfile(nextProfile);
@@ -1056,11 +1113,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       deleteAccountWithPassword: async (password: string) => {
         if (!supabase || !user) throw new Error('Session utilisateur introuvable.');
         const email = user.email || '';
+        if (!email) throw new Error('Email utilisateur introuvable.');
         const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
         if (authError) throw new Error('Mot de passe incorrect.');
-        const { error: profileDeleteError } = await supabase.from('users_profiles').delete().eq('id', user.id);
-        if (profileDeleteError) throw profileDeleteError;
+        const now = new Date();
+        const scheduledAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+        const { error: profileUpdateError } = await supabase
+          .from('users_profiles')
+          .update({
+            account_status: 'pending_deletion',
+            deletion_requested_at: now.toISOString(),
+            deletion_scheduled_at: scheduledAt.toISOString(),
+            force_logout_at: now.toISOString(),
+          })
+          .eq('id', user.id);
+        if (profileUpdateError) throw profileUpdateError;
         await supabase.auth.signOut();
+        localStorage.removeItem(sessionStorageKey);
+        localStorage.removeItem(sessionStartedAtKey);
         setSession(null);
         setUser(null);
         setProfile(null);

@@ -53,6 +53,8 @@ type AdminUserRow = {
   last_login_at?: string | null;
   last_seen_at?: string | null;
   force_logout_at?: string | null;
+  deletion_requested_at?: string | null;
+  deletion_scheduled_at?: string | null;
 };
 
 type UserSessionRow = {
@@ -104,11 +106,22 @@ export default function SuperAdminPage() {
   const [requestNotes, setRequestNotes] = useState<Record<string, string>>({});
   const [requestToDelete, setRequestToDelete] = useState<AccessRequestRow | null>(null);
   const [agencyToDelete, setAgencyToDelete] = useState<AdminAgency | null>(null);
+  const [pendingUserToDelete, setPendingUserToDelete] = useState<AdminUserRow | null>(null);
+  const [adminDeleteConfirmText, setAdminDeleteConfirmText] = useState('');
   const [actionLoading, setActionLoading] = useState<Record<string, boolean>>({});
   const [activationLinkToCopy, setActivationLinkToCopy] = useState<{ email: string; link: string } | null>(null);
   const [agencyUsers, setAgencyUsers] = useState<Record<string, AdminUserRow[]>>({});
   const [agencySessions, setAgencySessions] = useState<Record<string, UserSessionRow[]>>({});
   const [expandedSessionAgencyId, setExpandedSessionAgencyId] = useState<string | null>(null);
+
+  const pendingDeletionAccounts = useMemo(() => {
+    return Object.entries(agencyUsers).flatMap(([agencyId, users]) => {
+      const agency = agencies.find((item) => item.id === agencyId);
+      return users
+        .filter((user) => user.account_status === 'pending_deletion')
+        .map((user) => ({ user, agency }));
+    });
+  }, [agencies, agencyUsers]);
 
   const loadAll = useCallback(async () => {
     if (!supabase || !isSupabaseConfigured) return;
@@ -117,7 +130,7 @@ export default function SuperAdminPage() {
       const [reqRes, agencyRes, usersRes, vehicleRes] = await Promise.all([
         supabase.from('access_requests').select('*').order('created_at', { ascending: false }),
         supabase.from('agencies').select('id,name,plan,billing_status,next_payment_due_date,monthly_price'),
-        supabase.from('users_profiles').select('id,agency_id,account_status,email,full_name,role,last_login_at,last_seen_at'),
+        supabase.from('users_profiles').select('id,agency_id,account_status,email,full_name,role,last_login_at,last_seen_at,deletion_requested_at,deletion_scheduled_at'),
         supabase.from('vehicles').select('agency_id'),
       ]);
       if (reqRes.error || agencyRes.error || usersRes.error || vehicleRes.error) throw reqRes.error || agencyRes.error || usersRes.error || vehicleRes.error;
@@ -405,6 +418,43 @@ export default function SuperAdminPage() {
     });
   }
 
+  function daysRemaining(value: string | null | undefined) {
+    if (!value) return '—';
+    const target = new Date(value).getTime();
+    if (Number.isNaN(target)) return '—';
+    return `${Math.max(0, Math.ceil((target - Date.now()) / 86400000))} jour(s)`;
+  }
+
+  async function cancelPendingDeletion(user: AdminUserRow) {
+    if (!supabase) return;
+    const { error } = await supabase
+      .from('users_profiles')
+      .update({
+        account_status: 'active',
+        deletion_requested_at: null,
+        deletion_scheduled_at: null,
+        force_logout_at: null,
+      })
+      .eq('id', user.id);
+    if (error) throw error;
+    notify({ title: 'Suppression annulée', message: 'Le compte est de nouveau actif.', type: 'success' });
+    await loadAll();
+  }
+
+  async function deletePendingAccountNow(user: AdminUserRow) {
+    if (!supabase) return;
+    if (adminDeleteConfirmText !== 'SUPPRIMER') throw new Error('Tapez SUPPRIMER pour confirmer.');
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+    const webhook = (import.meta.env.VITE_DELETE_PENDING_ACCOUNT_WEBHOOK as string | undefined) || (supabaseUrl ? `${supabaseUrl.replace(/\/$/, '')}/functions/v1/delete-pending-account` : '');
+    if (!webhook) throw new Error('Endpoint suppression compte manquant.');
+    const response = await fetchWithAdminAuth(webhook, { userId: user.id });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(payload?.error || 'Suppression définitive impossible.');
+    notify({ title: 'Compte supprimé définitivement', type: 'success' });
+    setAdminDeleteConfirmText('');
+    await loadAll();
+  }
+
   function activityLabel(lastSeenAt: string | null, revokedAt: string | null) {
     if (revokedAt) return 'Déconnecté';
     if (!lastSeenAt) return 'Inactif';
@@ -550,11 +600,58 @@ export default function SuperAdminPage() {
                       notify({ title: 'Lien affiché', message: 'Safari a bloqué la copie automatique. Copiez le lien affiché manuellement.', type: 'warning' });
                     }
                   })}>Créer compte client</Button>
-                  <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setRequestToDelete(req)}>Supprimer la demande</Button>
+                  <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => { setAdminDeleteConfirmText(''); setRequestToDelete(req); }}>Supprimer la demande</Button>
                 </div>
                 <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">
                   <textarea className="form-control min-h-16" value={requestNotes[req.id] || ''} onChange={(e) => setRequestNotes((c) => ({ ...c, [req.id]: e.target.value }))} placeholder="Notes admin..." />
                   <Button variant="secondary" className="h-10" icon={<FileText className="h-4 w-4" />} loading={Boolean(actionLoading[`req-note-${req.id}`])} onClick={() => runAction(`req-note-${req.id}`, async () => updateRequest(req.id, { admin_notes: requestNotes[req.id] || '' }, 'Note enregistrée'))}>Enregistrer note admin</Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="mt-6 overflow-hidden">
+          <div className="border-b border-white/10 p-5">
+            <h2 className="text-xl font-bold">Comptes en cours de suppression</h2>
+            <p className="mt-1 text-sm text-carbon-400">Période de grâce de 30 jours avant suppression définitive.</p>
+          </div>
+          <div className="grid gap-3 p-5">
+            {pendingDeletionAccounts.length === 0 ? (
+              <p className="text-sm text-carbon-400">Aucun compte en cours de suppression.</p>
+            ) : pendingDeletionAccounts.map(({ user, agency }) => (
+              <div key={user.id} className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-white">{agency?.agencyName || 'Agence inconnue'}</p>
+                    <p className="mt-1 text-sm text-carbon-300">{user.email || 'Email non renseigné'}</p>
+                  </div>
+                  <div className="grid gap-2 text-xs text-carbon-300 sm:grid-cols-3 lg:min-w-[520px]">
+                    <p><strong>Demandé le:</strong> {formatSince(user.deletion_requested_at)}</p>
+                    <p><strong>Prévu le:</strong> {formatSince(user.deletion_scheduled_at)}</p>
+                    <p><strong>Restant:</strong> {daysRemaining(user.deletion_scheduled_at)}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="secondary"
+                      className="h-8 px-3 text-xs"
+                      loading={Boolean(actionLoading[`cancel-deletion-${user.id}`])}
+                      onClick={() => runAction(`cancel-deletion-${user.id}`, async () => cancelPendingDeletion(user))}
+                    >
+                      Annuler suppression
+                    </Button>
+                    <Button
+                      variant="danger"
+                      className="h-8 px-3 text-xs"
+                      loading={Boolean(actionLoading[`delete-pending-${user.id}`])}
+                      onClick={() => {
+                        setAdminDeleteConfirmText('');
+                        setPendingUserToDelete(user);
+                      }}
+                    >
+                      Supprimer maintenant
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -578,7 +675,7 @@ export default function SuperAdminPage() {
                   <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-extend-${agency.id}`])} onClick={() => runAction(`agency-extend-${agency.id}`, async () => extendSubscription(agency, 30))}>Prolonger abonnement</Button>
                   <Button variant="secondary" icon={<UserPlus className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-link-${agency.id}`])} onClick={() => runAction(`agency-link-${agency.id}`, async () => generateActivationLinkForEmail(agency.email))}>Générer lien d’activation</Button>
                   <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-suspend-${agency.id}`])} onClick={() => runAction(`agency-suspend-${agency.id}`, async () => suspendAgency(agency))}>Suspendre compte</Button>
-                  <Button variant="danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => setAgencyToDelete(agency)}>Supprimer le compte</Button>
+                  <Button variant="danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => { setAdminDeleteConfirmText(''); setAgencyToDelete(agency); }}>Supprimer le compte</Button>
                 </div>
 
                 <div className="mt-4 rounded-xl border border-white/10 bg-carbon-900/60 p-3">
@@ -706,25 +803,49 @@ export default function SuperAdminPage() {
         </Card>
       </div>
 
-      <Modal open={Boolean(requestToDelete)} onClose={() => setRequestToDelete(null)} title="Confirmer la suppression">
-        <p className="text-sm text-carbon-300">Voulez-vous vraiment supprimer cette demande ?</p>
+      <Modal open={Boolean(requestToDelete)} onClose={() => { setRequestToDelete(null); setAdminDeleteConfirmText(''); }} title="Confirmer la suppression">
+        <div className="space-y-3">
+        <p className="text-sm text-carbon-300">Voulez-vous vraiment supprimer cette demande ? Tapez <strong>SUPPRIMER</strong> pour confirmer.</p>
+        <input className="form-control" value={adminDeleteConfirmText} onChange={(e) => setAdminDeleteConfirmText(e.target.value)} placeholder="SUPPRIMER" />
+        </div>
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="secondary" onClick={() => setRequestToDelete(null)}>Annuler</Button>
-          <Button variant="danger" loading={Boolean(actionLoading['delete-request'])} onClick={() => runAction('delete-request', deleteRequest)}>Supprimer</Button>
+          <Button variant="secondary" onClick={() => { setRequestToDelete(null); setAdminDeleteConfirmText(''); }}>Annuler</Button>
+          <Button variant="danger" disabled={adminDeleteConfirmText !== 'SUPPRIMER'} loading={Boolean(actionLoading['delete-request'])} onClick={() => runAction('delete-request', async () => { if (adminDeleteConfirmText !== 'SUPPRIMER') throw new Error('Tapez SUPPRIMER pour confirmer.'); await deleteRequest(); setAdminDeleteConfirmText(''); })}>Supprimer</Button>
         </div>
       </Modal>
 
-      <Modal open={Boolean(agencyToDelete)} onClose={() => setAgencyToDelete(null)} title="Confirmer la suppression">
-        <p className="text-sm text-carbon-300">Cette action va supprimer l’agence et ses données associées. Continuer ?</p>
+      <Modal open={Boolean(pendingUserToDelete)} onClose={() => { setPendingUserToDelete(null); setAdminDeleteConfirmText(''); }} title="Supprimer définitivement">
+        <div className="space-y-3">
+          <p className="text-sm text-carbon-300">Cette action supprime définitivement ce compte Auth et son profil. Tapez <strong>SUPPRIMER</strong>.</p>
+          <input className="form-control" value={adminDeleteConfirmText} onChange={(e) => setAdminDeleteConfirmText(e.target.value)} placeholder="SUPPRIMER" />
+        </div>
         <div className="mt-4 flex justify-end gap-2">
-          <Button variant="secondary" onClick={() => setAgencyToDelete(null)}>Annuler</Button>
+          <Button variant="secondary" onClick={() => { setPendingUserToDelete(null); setAdminDeleteConfirmText(''); }}>Annuler</Button>
+          <Button variant="danger" disabled={adminDeleteConfirmText !== 'SUPPRIMER'} loading={Boolean(actionLoading[`delete-pending-${pendingUserToDelete?.id}`])} onClick={() => runAction(`delete-pending-${pendingUserToDelete?.id}`, async () => {
+            if (!pendingUserToDelete) return;
+            await deletePendingAccountNow(pendingUserToDelete);
+            setPendingUserToDelete(null);
+          })}>Supprimer maintenant</Button>
+        </div>
+      </Modal>
+
+      <Modal open={Boolean(agencyToDelete)} onClose={() => { setAgencyToDelete(null); setAdminDeleteConfirmText(''); }} title="Confirmer la suppression">
+        <div className="space-y-3">
+        <p className="text-sm text-carbon-300">Cette action va supprimer l’agence et ses données associées. Tapez <strong>SUPPRIMER</strong> pour confirmer.</p>
+        <input className="form-control" value={adminDeleteConfirmText} onChange={(e) => setAdminDeleteConfirmText(e.target.value)} placeholder="SUPPRIMER" />
+        </div>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="secondary" onClick={() => { setAgencyToDelete(null); setAdminDeleteConfirmText(''); }}>Annuler</Button>
           <Button
             variant="danger"
+            disabled={adminDeleteConfirmText !== 'SUPPRIMER'}
             loading={Boolean(actionLoading['delete-agency'])}
             onClick={() => runAction('delete-agency', async () => {
               if (!agencyToDelete) return;
+              if (adminDeleteConfirmText !== 'SUPPRIMER') throw new Error('Tapez SUPPRIMER pour confirmer.');
               await deleteAgency(agencyToDelete);
               setAgencyToDelete(null);
+              setAdminDeleteConfirmText('');
               notify({ title: 'Compte supprimé', type: 'success' });
             })}
           >

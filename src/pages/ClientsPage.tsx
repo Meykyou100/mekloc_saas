@@ -79,6 +79,7 @@ export default function ClientsPage() {
   const [filter, setFilter] = useState<ClientFilter>('all');
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
 
   const [formState, setFormState] = useState<ClientFormState>(buildInitialForm());
@@ -398,12 +399,12 @@ export default function ClientsPage() {
     }
   }
 
-  async function deleteClient(client: Client) {
-    const confirmed = window.confirm(`Voulez-vous vraiment supprimer le client "${client.fullName}" ?`);
-    if (!confirmed) return;
+  async function confirmDeleteClient() {
+    if (!clientToDelete) return;
     try {
-      await removeClient(client.id);
-      notify({ title: 'Client supprimé', message: `${client.fullName} a été retiré du CRM.`, type: 'warning' });
+      await removeClient(clientToDelete.id);
+      notify({ title: 'Client supprimé', message: `${clientToDelete.fullName} a été retiré du CRM.`, type: 'warning' });
+      setClientToDelete(null);
     } catch (error) {
       notify({
         title: 'Suppression impossible',
@@ -552,7 +553,7 @@ export default function ClientsPage() {
                     <Eye className="h-4 w-4" />
                     Détails
                   </Link>
-                  <Button variant="danger" className="h-9 px-3" icon={<Trash2 className="h-4 w-4" />} onClick={() => deleteClient(client)}>Supprimer</Button>
+                  <Button variant="danger" className="h-9 px-3" icon={<Trash2 className="h-4 w-4" />} onClick={() => setClientToDelete(client)}>Supprimer</Button>
                 </div>
               </Card>
             );
@@ -620,6 +621,20 @@ export default function ClientsPage() {
             </div>
           </div>
         </form>
+      </Modal>
+
+      <Modal open={Boolean(clientToDelete)} title="Supprimer le client" onClose={() => setClientToDelete(null)}>
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
+            <p className="font-semibold text-rose-100">Cette action est sensible.</p>
+            <p className="mt-2 text-sm text-carbon-300">Le client sera retiré du CRM. Vérifiez qu’aucune opération en cours ne dépend de ce dossier.</p>
+          </div>
+          <p className="text-sm text-carbon-300">Client: <strong>{clientToDelete?.fullName}</strong></p>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={() => setClientToDelete(null)}>Annuler</Button>
+            <Button type="button" variant="danger" onClick={confirmDeleteClient}>Supprimer</Button>
+          </div>
+        </div>
       </Modal>
 
       <Modal open={cameraOpen} onClose={closeCamera} title="Prendre une photo">

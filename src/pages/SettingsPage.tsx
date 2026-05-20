@@ -1,4 +1,4 @@
-import { BellRing, Building2, Camera, Copy, ExternalLink, FileSignature, Globe2, Link2, Loader2, Mail, MessageCircle, Percent, RefreshCw, Save, ShieldAlert, ShieldCheck, Trash2, UserPlus, UsersRound } from 'lucide-react';
+import { BellRing, Building2, Camera, Copy, ExternalLink, FileSignature, Globe2, Link2, Loader2, Mail, MessageCircle, Percent, RefreshCw, Save, ShieldAlert, ShieldCheck, Smartphone, Trash2, UserPlus, UsersRound } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
@@ -21,11 +21,28 @@ type TeamMember = {
   account_status: string | null;
 };
 
+type AccountSession = {
+  id: string;
+  session_key?: string | null;
+  device_name: string | null;
+  device_label?: string | null;
+  browser: string | null;
+  os: string | null;
+  user_agent?: string | null;
+  location?: string | null;
+  location_city?: string | null;
+  location_country?: string | null;
+  last_seen_at: string | null;
+  first_seen_at: string | null;
+  revoked_at: string | null;
+};
+
 type TeamRole = 'owner' | 'manager' | 'agent' | 'accountant';
 type SettingsTab = 'Général' | 'Contrats' | 'Facturation' | 'Abonnement' | 'Équipe' | 'Notifications';
 type ActivationLinkMember = Pick<TeamMember, 'full_name' | 'email' | 'role' | 'account_status'> & { id?: string };
 const settingsTabs: SettingsTab[] = ['Général', 'Contrats', 'Facturation', 'Abonnement', 'Équipe', 'Notifications'];
 const settingsTabStorageKey = 'mekloc-settings-active-tab';
+const sessionStorageKey = 'mekloc_session_id';
 const notificationPreferenceItems: Array<{ key: NotificationPreferenceKey; label: string }> = [
   { key: 'reservationConfirmation', label: 'Confirmation réservation' },
   { key: 'paymentReminder', label: 'Rappel paiement' },
@@ -74,6 +91,7 @@ function accountStatusFr(status: string | null | undefined) {
   if (status === 'pending') return 'En attente';
   if (status === 'suspended') return 'Suspendu';
   if (status === 'rejected') return 'Refusé';
+  if (status === 'pending_deletion') return 'Suppression programmée';
   return '—';
 }
 
@@ -81,6 +99,7 @@ function teamStatusClass(status: string | null | undefined) {
   if (status === 'active') return 'bg-emerald-400/15 text-emerald-200';
   if (status === 'pending') return 'bg-sky-400/15 text-sky-200';
   if (status === 'suspended') return 'bg-rose-400/15 text-rose-200';
+  if (status === 'pending_deletion') return 'bg-rose-400/15 text-rose-100';
   return 'bg-slate-400/15 text-slate-200';
 }
 
@@ -112,6 +131,29 @@ function readInitialSettingsTab(): SettingsTab {
   return settingsTabs.includes(stored as SettingsTab) ? (stored as SettingsTab) : 'Général';
 }
 
+function formatSecurityDate(value: string | null | undefined) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleString('fr-MA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
+function sessionDeviceLabel(sessionItem: AccountSession) {
+  return sessionItem.device_label || sessionItem.device_name || sessionItem.browser || 'Appareil';
+}
+
+function sessionLocationLabel(sessionItem: AccountSession) {
+  if (sessionItem.location) return sessionItem.location;
+  return [sessionItem.location_city, sessionItem.location_country].filter(Boolean).join(', ') || 'Localisation non disponible';
+}
+
 export default function SettingsPage() {
   const { notify } = useApp();
   const { agencyId, isSupabaseEnabled, profile, signOut, deleteAccountWithPassword, refreshProfile } = useAuth();
@@ -135,6 +177,20 @@ export default function SettingsPage() {
   const contactEmail = 'younesmekki100@gmail.com';
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
+  const [emailChangeOpen, setEmailChangeOpen] = useState(false);
+  const [newAccountEmail, setNewAccountEmail] = useState('');
+  const [emailChangePassword, setEmailChangePassword] = useState('');
+  const [emailChanging, setEmailChanging] = useState(false);
+  const [passwordChangeOpen, setPasswordChangeOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [passwordChanging, setPasswordChanging] = useState(false);
+  const [securityLoading, setSecurityLoading] = useState(false);
+  const [disconnectingDevices, setDisconnectingDevices] = useState(false);
+  const [disconnectingSessionId, setDisconnectingSessionId] = useState<string | null>(null);
+  const [accountSessions, setAccountSessions] = useState<AccountSession[]>([]);
+  const [lastLoginAt, setLastLoginAt] = useState<string | null>(null);
   const [agencyName, setAgencyName] = useState(profile?.agency?.name || '');
   const [agencyEmail, setAgencyEmail] = useState(profile?.email || '');
   const [agencyPhone, setAgencyPhone] = useState(profile?.phone || '');
@@ -156,6 +212,7 @@ export default function SettingsPage() {
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'dirty' | 'saving' | 'saved'>('idle');
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [memberStatusTarget, setMemberStatusTarget] = useState<TeamMember | null>(null);
   const [teamLoading, setTeamLoading] = useState(false);
   const [teamActionLoading, setTeamActionLoading] = useState<Record<string, boolean>>({});
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -174,24 +231,22 @@ export default function SettingsPage() {
   const canManageTeam = profile?.role === 'owner' || profile?.role === 'manager' || Boolean(profile?.isSuperAdmin);
   const hasChanges = useMemo(() => {
     const baseName = profile?.agency?.name || '';
-    const baseEmail = profile?.agency?.email || profile?.email || '';
     const basePhone = profile?.agency?.phone || profile?.phone || '';
     const baseAddress = profile?.agency?.address || '';
     const baseLogo = profile?.agency?.logoUrl || '';
     const baseNotifications = getNotificationPreferences(profile?.agency?.settings);
     return (
       agencyName !== baseName ||
-      agencyEmail !== baseEmail ||
       agencyPhone !== basePhone ||
       agencyAddress !== baseAddress ||
       logoPreviewUrl !== baseLogo ||
       Boolean(pendingLogoFile) ||
       notificationPreferenceItems.some((item) => notificationPreferences[item.key] !== baseNotifications[item.key])
     );
-  }, [agencyAddress, agencyEmail, agencyName, agencyPhone, logoPreviewUrl, notificationPreferences, pendingLogoFile, profile?.agency?.address, profile?.agency?.email, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.settings, profile?.email, profile?.phone]);
+  }, [agencyAddress, agencyName, agencyPhone, logoPreviewUrl, notificationPreferences, pendingLogoFile, profile?.agency?.address, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.settings, profile?.email, profile?.phone]);
   useEffect(() => {
     setAgencyName(profile?.agency?.name || '');
-    setAgencyEmail(profile?.agency?.email || profile?.email || '');
+    setAgencyEmail(profile?.email || '');
     setAgencyPhone(profile?.agency?.phone || profile?.phone || '');
     setAgencyAddress(profile?.agency?.address || '');
     setLogoPreviewUrl(profile?.agency?.logoUrl || '');
@@ -246,6 +301,42 @@ export default function SettingsPage() {
     if (tab !== 'Équipe') return;
     void loadTeamMembers();
   }, [loadTeamMembers, tab]);
+
+  const loadSecurityCenter = useCallback(async () => {
+    if (!isSupabaseEnabled || !supabase || !profile?.id) {
+      setAccountSessions([]);
+      setLastLoginAt(null);
+      return;
+    }
+    setSecurityLoading(true);
+    try {
+      const [profileRes, sessionsRes] = await Promise.all([
+        supabase.from('users_profiles').select('last_login_at,last_seen_at').eq('id', profile.id).maybeSingle(),
+        supabase
+          .from('user_sessions')
+          .select('*')
+          .eq('user_id', profile.id)
+          .order('last_seen_at', { ascending: false }),
+      ]);
+      if (!profileRes.error) {
+        const row = profileRes.data as { last_login_at?: string | null; last_seen_at?: string | null } | null;
+        setLastLoginAt(row?.last_login_at || row?.last_seen_at || null);
+      }
+      if (!sessionsRes.error) {
+        setAccountSessions((sessionsRes.data || []) as AccountSession[]);
+      } else if (!/relation .*user_sessions.* does not exist/i.test(sessionsRes.error.message || '')) {
+        throw sessionsRes.error;
+      }
+    } catch (error) {
+      notify({ title: 'Sécurité indisponible', message: extractErrorMessage(error), type: 'warning' });
+    } finally {
+      setSecurityLoading(false);
+    }
+  }, [isSupabaseEnabled, notify, profile?.id]);
+
+  useEffect(() => {
+    void loadSecurityCenter();
+  }, [loadSecurityCenter]);
 
   function selectSettingsTab(nextTab: SettingsTab) {
     setTab(nextTab);
@@ -376,7 +467,9 @@ export default function SettingsPage() {
     });
   }
 
-  async function handleToggleMemberStatus(member: TeamMember) {
+  async function confirmToggleMemberStatus() {
+    const member = memberStatusTarget;
+    if (!member) return;
     const client = supabase;
     if (!client || !agencyId || !canManageTeam) return;
     if (member.id === profile?.id) {
@@ -418,6 +511,7 @@ export default function SettingsPage() {
         type: 'success',
       });
       await loadTeamMembers();
+      setMemberStatusTarget(null);
     });
   }
 
@@ -702,14 +796,9 @@ startxref
       const safeAgencyName = sanitizeText(agencyName, 100);
       const safeAgencyAddress = sanitizeText(agencyAddress, 220);
       const safeAgencyPhone = normalizeText(agencyPhone, 20);
-      const safeAgencyEmail = normalizeText(agencyEmail, 254).toLowerCase();
 
       if (!safeAgencyName) {
         notify({ title: 'Champ obligatoire', message: "Le nom de l’agence est obligatoire.", type: 'warning' });
-        return;
-      }
-      if (safeAgencyEmail && !validateEmail(safeAgencyEmail)) {
-        notify({ title: 'Email invalide', message: 'Veuillez vérifier votre adresse email.', type: 'warning' });
         return;
       }
       if (safeAgencyPhone && !validatePhone(safeAgencyPhone)) {
@@ -727,7 +816,6 @@ startxref
         name: safeAgencyName,
         address: safeAgencyAddress || null,
         phone: safeAgencyPhone || null,
-        email: safeAgencyEmail || null,
         settings: {
           ...(profile?.agency?.settings || {}),
           notifications: notificationPreferences,
@@ -744,7 +832,6 @@ startxref
 
       let profileErr: { message?: string } | null = null;
       const profilePayload: Record<string, unknown> = {
-        email: safeAgencyEmail,
         phone: safeAgencyPhone,
         full_name: profile.fullName,
       };
@@ -781,12 +868,153 @@ startxref
     if (!deletePassword) return;
     try {
       await deleteAccountWithPassword(deletePassword);
-      notify({ title: 'Compte supprimé', message: 'Votre compte a été supprimé avec succès.', type: 'success' });
+      notify({ title: 'Suppression programmée', message: 'Votre compte est désactivé et sera supprimé définitivement après 30 jours.', type: 'success' });
       setDeleteOpen(false);
       setDeletePassword('');
       navigate('/auth');
     } catch (error) {
       notify({ title: 'Suppression impossible', message: extractErrorMessage(error), type: 'warning' });
+    }
+  }
+
+  function openEmailChangeModal() {
+    setNewAccountEmail(profile?.email || agencyEmail || '');
+    setEmailChangePassword('');
+    setEmailChangeOpen(true);
+  }
+
+  async function handleChangeEmail() {
+    if (!supabase || !profile?.email) {
+      notify({ title: 'Session introuvable', message: 'Reconnectez-vous puis réessayez.', type: 'warning' });
+      return;
+    }
+    const safeEmail = normalizeText(newAccountEmail, 254).toLowerCase();
+    if (!safeEmail || !validateEmail(safeEmail)) {
+      notify({ title: 'Email invalide', message: 'Veuillez vérifier la nouvelle adresse email.', type: 'warning' });
+      return;
+    }
+    if (!emailChangePassword) {
+      notify({ title: 'Mot de passe requis', message: 'Entrez votre mot de passe actuel.', type: 'warning' });
+      return;
+    }
+    setEmailChanging(true);
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: profile.email,
+        password: emailChangePassword,
+      });
+      if (authError) throw new Error('Mot de passe incorrect');
+      const { error } = await supabase.auth.updateUser({ email: safeEmail });
+      if (error) throw error;
+      notify({
+        title: 'Confirmation envoyée',
+        message: 'Un email de confirmation a été envoyé. Le changement sera appliqué après validation.',
+        type: 'success',
+      });
+      setEmailChangeOpen(false);
+      setEmailChangePassword('');
+    } catch (error) {
+      notify({ title: 'Changement email impossible', message: extractErrorMessage(error), type: 'warning' });
+    } finally {
+      setEmailChanging(false);
+    }
+  }
+
+  async function handleChangePassword() {
+    if (!supabase || !profile?.email) {
+      notify({ title: 'Session introuvable', message: 'Reconnectez-vous puis réessayez.', type: 'warning' });
+      return;
+    }
+    if (!currentPassword) {
+      notify({ title: 'Mot de passe requis', message: 'Entrez votre mot de passe actuel.', type: 'warning' });
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      notify({ title: 'Les mots de passe ne correspondent pas', message: 'Confirmez le même nouveau mot de passe.', type: 'warning' });
+      return;
+    }
+    if (newPassword.length < 8) {
+      notify({ title: 'Mot de passe trop court', message: 'Utilisez au moins 8 caractères.', type: 'warning' });
+      return;
+    }
+    setPasswordChanging(true);
+    try {
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: profile.email,
+        password: currentPassword,
+      });
+      if (authError) throw new Error('Mot de passe incorrect');
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      notify({ title: 'Mot de passe modifié', message: 'Votre mot de passe a été mis à jour.', type: 'success' });
+      setPasswordChangeOpen(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+    } catch (error) {
+      notify({ title: 'Changement mot de passe impossible', message: extractErrorMessage(error), type: 'warning' });
+    } finally {
+      setPasswordChanging(false);
+    }
+  }
+
+  async function handleDisconnectAllDevices() {
+    if (!supabase || !profile?.id) return;
+    setDisconnectingDevices(true);
+    try {
+      const nowIso = new Date().toISOString();
+      const sessionsUpdate = await supabase
+        .from('user_sessions')
+        .update({ revoked_at: nowIso })
+        .eq('user_id', profile.id)
+        .is('revoked_at', null);
+      if (sessionsUpdate.error && !/relation .*user_sessions.* does not exist/i.test(sessionsUpdate.error.message || '')) {
+        throw sessionsUpdate.error;
+      }
+      const profileUpdate = await supabase
+        .from('users_profiles')
+        .update({ force_logout_at: nowIso })
+        .eq('id', profile.id);
+      if (profileUpdate.error) {
+        if (/force_logout_at|schema cache/i.test(profileUpdate.error.message || '')) {
+          throw new Error('Gestion des sessions non prête: appliquez la migration user_sessions_management_safe.sql dans Supabase.');
+        }
+        throw profileUpdate.error;
+      }
+      notify({ title: 'Appareils déconnectés', message: 'Toutes les sessions actives ont été fermées.', type: 'success' });
+      await signOut();
+      navigate('/auth?revoked=1');
+    } catch (error) {
+      notify({ title: 'Déconnexion impossible', message: extractErrorMessage(error), type: 'warning' });
+    } finally {
+      setDisconnectingDevices(false);
+    }
+  }
+
+  async function handleDisconnectSession(sessionItem: AccountSession) {
+    if (!supabase || !profile?.id) return;
+    setDisconnectingSessionId(sessionItem.id);
+    try {
+      const nowIso = new Date().toISOString();
+      const { error } = await supabase
+        .from('user_sessions')
+        .update({ revoked_at: nowIso })
+        .eq('id', sessionItem.id)
+        .eq('user_id', profile.id)
+        .is('revoked_at', null);
+      if (error) throw error;
+      notify({ title: 'Appareil déconnecté', type: 'success' });
+      const currentSessionKey = typeof window !== 'undefined' ? window.localStorage.getItem(sessionStorageKey) : null;
+      if (sessionItem.session_key && currentSessionKey && sessionItem.session_key === currentSessionKey) {
+        await signOut();
+        navigate('/auth?revoked=1');
+        return;
+      }
+      await loadSecurityCenter();
+    } catch (error) {
+      notify({ title: 'Déconnexion impossible', message: extractErrorMessage(error), type: 'warning' });
+    } finally {
+      setDisconnectingSessionId(null);
     }
   }
 
@@ -834,7 +1062,18 @@ startxref
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Nom de l’agence" value={agencyName} onChange={(e) => setAgencyName(e.target.value)} />
               <Field label="Numéro WhatsApp" value={agencyPhone} onChange={(e) => setAgencyPhone(e.target.value)} />
-              <Field label="Email" value={agencyEmail} onChange={(e) => setAgencyEmail(e.target.value)} />
+              <div className="grid gap-2">
+                <Field
+                  label="Email"
+                  value={agencyEmail}
+                  disabled
+                  readOnly
+                  className="cursor-not-allowed opacity-75"
+                />
+                <Button type="button" variant="secondary" className="h-9 w-fit px-3 text-xs" onClick={openEmailChangeModal}>
+                  Changer email
+                </Button>
+              </div>
               <Field label="Adresse" value={agencyAddress} onChange={(e) => setAgencyAddress(e.target.value)} placeholder="Adresse agence" />
             </div>
             <div className="mt-5 grid gap-4 rounded-2xl border border-dashed border-gold-300/30 bg-gradient-to-br from-gold-400/10 via-white/[0.025] to-black/10 p-5 lg:grid-cols-[1fr_auto] lg:items-center">
@@ -1144,7 +1383,7 @@ startxref
                           icon={member.account_status === 'suspended' || member.account_status === 'rejected' ? <RefreshCw className="h-4 w-4" /> : <ShieldAlert className="h-4 w-4" />}
                           loading={Boolean(teamActionLoading[`status-${member.id}`])}
                           disabled={!canManageTeam || member.id === profile?.id}
-                          onClick={() => handleToggleMemberStatus(member)}
+                          onClick={() => setMemberStatusTarget(member)}
                         >
                           {member.account_status === 'suspended' || member.account_status === 'rejected' ? 'Réactiver' : 'Suspendre'}
                         </Button>
@@ -1234,21 +1473,207 @@ startxref
         </div>
       ) : null}
 
-      <Card className="mt-6 p-5">
-        <h2 className="text-lg font-semibold text-white light:text-carbon-950">Sécurité du compte</h2>
-        <p className="mt-2 text-sm text-carbon-400">Vous pouvez vous déconnecter ou supprimer définitivement votre compte.</p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={handleLogout}>Déconnexion</Button>
-          <Button variant="danger" onClick={() => setDeleteOpen(true)}>Supprimer mon compte</Button>
+      <Card className="mt-6 overflow-hidden p-0">
+        <div className="border-b border-white/10 bg-gradient-to-br from-gold-400/12 via-white/[0.03] to-transparent p-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gold-400/12 text-gold-200">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-200">Security Center</p>
+                <h2 className="mt-1 text-xl font-black text-white light:text-carbon-950">Sécurité du compte</h2>
+                <p className="mt-1 text-sm text-carbon-400">Gérez vos accès, vos identifiants et les appareils connectés.</p>
+              </div>
+            </div>
+            <Button variant="secondary" icon={<RefreshCw className="h-4 w-4" />} loading={securityLoading} onClick={loadSecurityCenter}>
+              Actualiser
+            </Button>
+          </div>
+        </div>
+        <div className="grid gap-4 p-5 xl:grid-cols-[1fr_0.95fr]">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="premium-surface rounded-2xl p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-carbon-500">Email compte</p>
+              <p className="mt-2 break-all text-sm font-semibold text-white light:text-carbon-950">{agencyEmail || '—'}</p>
+              <Button type="button" variant="secondary" className="mt-3 h-8 px-3 text-xs" onClick={openEmailChangeModal}>Changer email</Button>
+            </div>
+            <div className="premium-surface rounded-2xl p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-carbon-500">Mot de passe</p>
+              <p className="mt-2 text-sm text-carbon-300">Dernière mise à jour sécurisée via Supabase Auth.</p>
+              <Button type="button" variant="secondary" className="mt-3 h-8 px-3 text-xs" onClick={() => setPasswordChangeOpen(true)}>Changer mot de passe</Button>
+            </div>
+            <div className="premium-surface rounded-2xl p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-carbon-500">Numéro WhatsApp</p>
+              <p className="mt-2 text-sm font-semibold text-white light:text-carbon-950">{agencyPhone || '—'}</p>
+              <Button type="button" variant="secondary" className="mt-3 h-8 px-3 text-xs" onClick={() => selectSettingsTab('Général')}>Changer numéro WhatsApp</Button>
+            </div>
+            <div className="premium-surface rounded-2xl border border-rose-300/20 p-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-rose-200">Zone sensible</p>
+              <p className="mt-2 text-sm text-carbon-300">Désactivation immédiate, suppression définitive après 30 jours.</p>
+              <Button type="button" variant="danger" className="mt-3 h-8 px-3 text-xs" onClick={() => setDeleteOpen(true)}>Supprimer mon compte</Button>
+            </div>
+          </div>
+          <div className="grid gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-white/10 bg-carbon-950/50 p-4 light:bg-white">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-carbon-500">Sessions actives</p>
+                <p className="mt-2 text-2xl font-black text-white light:text-carbon-950">{accountSessions.filter((sessionItem) => !sessionItem.revoked_at).length}</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-carbon-950/50 p-4 light:bg-white">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-carbon-500">Dernière connexion</p>
+                <p className="mt-2 text-sm font-semibold text-white light:text-carbon-950">{formatSecurityDate(lastLoginAt)}</p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-carbon-950/50 p-4 light:bg-white">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="font-semibold text-white light:text-carbon-950">Appareils connectés</p>
+                <Button
+                  type="button"
+                  variant="danger"
+                  className="h-8 px-3 text-xs"
+                  loading={disconnectingDevices}
+                  onClick={handleDisconnectAllDevices}
+                >
+                  Déconnecter tous les appareils
+                </Button>
+              </div>
+              <div className="grid gap-2">
+                {accountSessions.filter((sessionItem) => !sessionItem.revoked_at).map((sessionItem) => {
+                  const currentSessionKey = typeof window !== 'undefined' ? window.localStorage.getItem(sessionStorageKey) : null;
+                  const isCurrentSession = Boolean(sessionItem.session_key && currentSessionKey && sessionItem.session_key === currentSessionKey);
+                  return (
+                  <div key={sessionItem.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Smartphone className="h-4 w-4 shrink-0 text-gold-200" />
+                      <div className="min-w-0">
+                        <div className="flex min-w-0 flex-wrap items-center gap-2">
+                          <p className="truncate text-sm font-semibold text-white light:text-carbon-950">{sessionDeviceLabel(sessionItem)}</p>
+                          {isCurrentSession ? (
+                            <span className="rounded-full bg-gold-400/15 px-2 py-0.5 text-[10px] font-bold text-gold-100">Session actuelle</span>
+                          ) : null}
+                        </div>
+                        <p className="truncate text-xs text-carbon-400">{sessionItem.browser || 'Navigateur'} · {sessionItem.os || 'Système'}</p>
+                        <p className="truncate text-xs text-carbon-500">{sessionLocationLabel(sessionItem)}</p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <p className="text-xs text-carbon-500">{formatSecurityDate(sessionItem.last_seen_at)}</p>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="h-7 px-2 text-[11px]"
+                        loading={disconnectingSessionId === sessionItem.id}
+                        onClick={() => handleDisconnectSession(sessionItem)}
+                      >
+                        Déconnecter cet appareil
+                      </Button>
+                    </div>
+                  </div>
+                  );
+                })}
+                {accountSessions.filter((sessionItem) => !sessionItem.revoked_at).length === 0 ? (
+                  <p className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-carbon-400">Aucune session active enregistrée.</p>
+                ) : null}
+              </div>
+            </div>
+          </div>
         </div>
       </Card>
+      <Modal open={Boolean(memberStatusTarget)} onClose={() => setMemberStatusTarget(null)} title={memberStatusTarget?.account_status === 'suspended' || memberStatusTarget?.account_status === 'rejected' ? 'Réactiver le membre' : 'Suspendre le membre'}>
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
+            <p className="font-semibold text-rose-100">
+              {memberStatusTarget?.account_status === 'suspended' || memberStatusTarget?.account_status === 'rejected' ? 'Ce membre retrouvera son accès.' : 'Ce membre perdra immédiatement l’accès à l’application.'}
+            </p>
+            <p className="mt-2 text-sm text-carbon-300">
+              {memberStatusTarget?.account_status === 'suspended' || memberStatusTarget?.account_status === 'rejected'
+                ? 'Vérifiez que cette personne doit bien pouvoir accéder aux données de l’agence.'
+                : 'Ses sessions actives seront révoquées si la gestion des sessions est disponible.'}
+            </p>
+          </div>
+          <p className="text-sm text-carbon-300">Membre: <strong>{memberStatusTarget?.full_name || memberStatusTarget?.email}</strong></p>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={() => setMemberStatusTarget(null)}>Annuler</Button>
+            <Button type="button" variant={memberStatusTarget?.account_status === 'suspended' || memberStatusTarget?.account_status === 'rejected' ? 'secondary' : 'danger'} onClick={confirmToggleMemberStatus}>
+              {memberStatusTarget?.account_status === 'suspended' || memberStatusTarget?.account_status === 'rejected' ? 'Réactiver' : 'Suspendre'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+      <Modal open={emailChangeOpen} onClose={() => { if (!emailChanging) setEmailChangeOpen(false); }} title="Changer email">
+        <div className="space-y-4">
+          <p className="text-sm text-carbon-400">Le nouvel email devra être confirmé avant d’être appliqué à votre compte.</p>
+          <Field
+            label="Nouvel email"
+            name="newAccountEmail"
+            type="email"
+            value={newAccountEmail}
+            onChange={(event) => setNewAccountEmail(event.target.value)}
+            autoComplete="email"
+            required
+          />
+          <Field
+            label="Mot de passe actuel"
+            name="emailChangePassword"
+            type="password"
+            value={emailChangePassword}
+            onChange={(event) => setEmailChangePassword(event.target.value)}
+            autoComplete="current-password"
+            required
+          />
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" disabled={emailChanging} onClick={() => setEmailChangeOpen(false)}>Annuler</Button>
+            <Button type="button" loading={emailChanging} onClick={handleChangeEmail}>Envoyer confirmation</Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={passwordChangeOpen} onClose={() => { if (!passwordChanging) setPasswordChangeOpen(false); }} title="Changer mot de passe">
+        <div className="space-y-4">
+          <Field
+            label="Mot de passe actuel"
+            name="currentPassword"
+            type="password"
+            value={currentPassword}
+            onChange={(event) => setCurrentPassword(event.target.value)}
+            autoComplete="current-password"
+            required
+          />
+          <Field
+            label="Nouveau mot de passe"
+            name="newPassword"
+            type="password"
+            value={newPassword}
+            onChange={(event) => setNewPassword(event.target.value)}
+            autoComplete="new-password"
+            required
+          />
+          <Field
+            label="Confirmer nouveau mot de passe"
+            name="confirmNewPassword"
+            type="password"
+            value={confirmNewPassword}
+            onChange={(event) => setConfirmNewPassword(event.target.value)}
+            autoComplete="new-password"
+            required
+          />
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" disabled={passwordChanging} onClick={() => setPasswordChangeOpen(false)}>Annuler</Button>
+            <Button type="button" loading={passwordChanging} onClick={handleChangePassword}>Mettre à jour</Button>
+          </div>
+        </div>
+      </Modal>
       <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)} title="Supprimer mon compte">
         <div className="space-y-4">
-          <p className="text-sm text-carbon-400">Cette action est définitive. Confirmez votre mot de passe pour supprimer votre compte.</p>
+          <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
+            <p className="text-sm font-semibold text-rose-100">Votre compte sera désactivé maintenant et supprimé définitivement après 30 jours.</p>
+            <p className="mt-2 text-sm text-carbon-300">Confirmez votre mot de passe actuel pour programmer la suppression. Un administrateur peut encore annuler pendant la période de grâce.</p>
+          </div>
           <Field label="Mot de passe" name="deletePassword" type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} required />
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setDeleteOpen(false)}>Annuler</Button>
-            <Button type="button" variant="danger" onClick={handleDeleteAccount}>Confirmer la suppression</Button>
+            <Button type="button" variant="danger" onClick={handleDeleteAccount}>Programmer la suppression</Button>
           </div>
         </div>
       </Modal>

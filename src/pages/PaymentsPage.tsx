@@ -125,6 +125,7 @@ export default function PaymentsPage() {
   const [paymentDate, setPaymentDate] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
   const [savingPayment, setSavingPayment] = useState(false);
+  const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
   const paymentRows = payments;
 
   const enriched = useMemo(() => {
@@ -311,15 +312,16 @@ export default function PaymentsPage() {
     }
   }
 
-  async function handleDeletePayment(payment: Payment) {
-    if (!window.confirm(`Supprimer le paiement ${payment.invoice} ?`)) return;
+  async function confirmDeletePayment() {
+    if (!paymentToDelete) return;
     try {
-      await deletePayment(payment.id);
+      await deletePayment(paymentToDelete.id);
       notify({
         title: 'Paiement supprimé',
-        message: payment.reservationId ? 'Le paiement a été supprimé. Le solde de la réservation est recalculé.' : 'Le paiement a été supprimé.',
+        message: paymentToDelete.reservationId ? 'Le paiement a été supprimé. Le solde de la réservation est recalculé.' : 'Le paiement a été supprimé.',
         type: 'success',
       });
+      setPaymentToDelete(null);
     } catch (error) {
       if (import.meta.env.DEV) console.error('Payment delete failed', error);
       notify({ title: 'Suppression impossible', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
@@ -508,7 +510,7 @@ export default function PaymentsPage() {
               {filtered.map((item) => (
                 <tr key={item.id} className="hover:bg-white/[0.03]">
                   <td className="px-5 py-4 font-semibold">{item.invoice}</td><td className="px-5 py-4">{item.client}</td><td className="px-5 py-4">{item.vehicleLabel}</td><td className="px-5 py-4">{item.reservationCode}</td><td className="px-5 py-4">{formatMAD(item.total)}</td><td className="px-5 py-4">{formatMAD(item.paid)}</td><td className="px-5 py-4">{formatMAD(item.remaining)}</td><td className="px-5 py-4">{item.dueDate}</td><td className="px-5 py-4">{item.method}</td><td className="px-5 py-4"><Badge>{item.statusFr}</Badge></td>
-                  <td className="px-5 py-4"><div className="flex flex-wrap gap-2"><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => notify({ title: 'Détail facture', message: `${item.invoice} · ${formatMAD(item.total)}`, type: 'info' })}>Voir</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => setModalOpen(true)}>Ajouter paiement</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => downloadReceipt(item)}>Télécharger reçu</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" disabled={!notificationPreferences.paymentReminder || !item.clientPhone} onClick={() => sendWhatsappReminder(item)}>{!notificationPreferences.paymentReminder ? 'WhatsApp désactivé' : item.clientPhone ? 'Envoyer rappel' : 'Téléphone manquant'}</Button><Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => handleDeletePayment(item)}>Supprimer</Button></div></td>
+                  <td className="px-5 py-4"><div className="flex flex-wrap gap-2"><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => notify({ title: 'Détail facture', message: `${item.invoice} · ${formatMAD(item.total)}`, type: 'info' })}>Voir</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => setModalOpen(true)}>Ajouter paiement</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => downloadReceipt(item)}>Télécharger reçu</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" disabled={!notificationPreferences.paymentReminder || !item.clientPhone} onClick={() => sendWhatsappReminder(item)}>{!notificationPreferences.paymentReminder ? 'WhatsApp désactivé' : item.clientPhone ? 'Envoyer rappel' : 'Téléphone manquant'}</Button><Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setPaymentToDelete(item)}>Supprimer</Button></div></td>
                 </tr>
               ))}
             </tbody>
@@ -526,7 +528,7 @@ export default function PaymentsPage() {
               <p>Total: <strong>{formatMAD(item.total)}</strong></p><p>Payé: <strong>{formatMAD(item.paid)}</strong></p><p>Reste: <strong>{formatMAD(item.remaining)}</strong></p><p>Échéance: <strong>{item.dueDate}</strong></p>
             </div>
             <div className="mt-3 h-2 rounded-full bg-white/10"><div className={`h-2 rounded-full ${item.statusFr === 'En retard' ? 'bg-rose-400' : item.statusFr === 'Partiel' ? 'bg-gold-400' : 'bg-mint-400'}`} style={{ width: `${item.progress}%` }} /></div>
-            <div className="mt-3 grid grid-cols-2 gap-2"><Button variant="secondary" className="h-9 text-xs" onClick={() => downloadReceipt(item)}>Télécharger reçu</Button><Button variant="secondary" className="h-9 text-xs" disabled={!notificationPreferences.paymentReminder || !item.clientPhone} onClick={() => sendWhatsappReminder(item)}>{!notificationPreferences.paymentReminder ? 'WhatsApp désactivé' : item.clientPhone ? 'Envoyer rappel' : 'Téléphone manquant'}</Button><Button variant="danger" className="col-span-2 h-9 text-xs" icon={<Trash2 className="h-4 w-4" />} onClick={() => handleDeletePayment(item)}>Supprimer</Button></div>
+            <div className="mt-3 grid grid-cols-2 gap-2"><Button variant="secondary" className="h-9 text-xs" onClick={() => downloadReceipt(item)}>Télécharger reçu</Button><Button variant="secondary" className="h-9 text-xs" disabled={!notificationPreferences.paymentReminder || !item.clientPhone} onClick={() => sendWhatsappReminder(item)}>{!notificationPreferences.paymentReminder ? 'WhatsApp désactivé' : item.clientPhone ? 'Envoyer rappel' : 'Téléphone manquant'}</Button><Button variant="danger" className="col-span-2 h-9 text-xs" icon={<Trash2 className="h-4 w-4" />} onClick={() => setPaymentToDelete(item)}>Supprimer</Button></div>
           </Card>
         ))}
       </div>
@@ -575,6 +577,20 @@ export default function PaymentsPage() {
           <Field label="Justificatif" name="receipt" placeholder="URL ou nom du fichier reçu" />
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><Button type="button" variant="secondary" onClick={() => setModalOpen(false)}>Annuler</Button><Button type="submit" loading={savingPayment}>{savingPayment ? 'Enregistrement...' : 'Enregistrer'}</Button></div>
         </form>
+      </Modal>
+
+      <Modal open={Boolean(paymentToDelete)} onClose={() => setPaymentToDelete(null)} title="Supprimer le paiement">
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
+            <p className="font-semibold text-rose-100">Cette action supprimera ce paiement ou reçu.</p>
+            <p className="mt-2 text-sm text-carbon-300">Si ce paiement est lié à une réservation, le solde sera recalculé après suppression.</p>
+          </div>
+          <p className="text-sm text-carbon-300">Facture: <strong>{paymentToDelete?.invoice}</strong></p>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={() => setPaymentToDelete(null)}>Annuler</Button>
+            <Button type="button" variant="danger" onClick={confirmDeletePayment}>Supprimer</Button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
