@@ -7,6 +7,7 @@ import EmptyState from '../components/ui/EmptyState';
 import { Field, SelectField, TextAreaField } from '../components/ui/Form';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
+import PlateNumber from '../components/ui/PlateNumber';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
 import { formatMAD, type MaintenanceItem } from '../data/mockData';
@@ -288,7 +289,7 @@ export default function MaintenancePage() {
       {!filtered.length ? <EmptyState icon={ClipboardList} title="Ajouter votre premier entretien" message="Une fois ajouté, les rappels et l’historique apparaîtront ici." action="Ajouter un entretien" onAction={openCreate} /> :
       <div className="grid gap-3">{filtered.map((item) => <div key={item.id} className="premium-surface rounded-2xl p-4">
         <div className="flex items-start justify-between gap-4">
-          <div><p className="font-semibold">{item.vehicle} {item.plate ? `· ${item.plate}` : ''}</p><p className="mt-1 text-sm text-carbon-400">{item.serviceType} · Dernière intervention : {item.lastServiceDate} · Prochaine échéance : {item.nextServiceDate}</p><p className="mt-1 text-sm text-carbon-400">Kilométrage {item.currentMileage.toLocaleString()} km · Prochain contrôle {item.nextServiceMileage.toLocaleString()} km</p></div>
+          <div><p className="font-semibold">{item.vehicle} {item.plate ? <>· <PlateNumber value={item.plate} /></> : ''}</p><p className="mt-1 text-sm text-carbon-400">{item.serviceType} · Dernière intervention : {item.lastServiceDate} · Prochaine échéance : {item.nextServiceDate}</p><p className="mt-1 text-sm text-carbon-400">Kilométrage {item.currentMileage.toLocaleString()} km · Prochain contrôle {item.nextServiceMileage.toLocaleString()} km</p></div>
           <div className="text-right"><Badge>{item.status}</Badge><p className="mt-2 font-semibold text-gold-200">{formatMAD(item.cost)}</p></div>
         </div>
         {item.details && Object.keys(item.details).length ? (
@@ -324,7 +325,7 @@ export default function MaintenancePage() {
               </div>
               <div className="min-w-0">
                 <p className="truncate font-semibold text-white light:text-carbon-950">{selectedFormVehicle.brand} {selectedFormVehicle.model}</p>
-                <p className="mt-1 text-sm text-carbon-400">{selectedFormVehicle.plate} · {selectedFormVehicle.mileage.toLocaleString()} km</p>
+                <p className="mt-1 text-sm text-carbon-400"><PlateNumber value={selectedFormVehicle.plate} /> · {selectedFormVehicle.mileage.toLocaleString()} km</p>
               </div>
               <Badge>{selectedFormVehicle.status}</Badge>
             </div>

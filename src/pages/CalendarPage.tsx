@@ -16,6 +16,7 @@ import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
+import PlateNumber from '../components/ui/PlateNumber';
 import { useData } from '../context/DataContext';
 import { formatMAD, type Reservation, type ReservationStatus } from '../data/mockData';
 
@@ -316,7 +317,7 @@ export default function CalendarPage() {
                     <div key={`mobile-row-${vehicle.id}`} className="contents">
                       <div className="sticky left-0 z-10 min-h-[70px] rounded-xl border border-white/10 bg-carbon-950/95 px-3 py-2 shadow-[8px_0_18px_rgba(0,0,0,.35)]">
                         <p className="truncate text-sm font-bold text-white">{vehicle.brand} {vehicle.model}</p>
-                        <p className="mt-0.5 truncate text-[11px] text-carbon-400">{vehicle.plate}</p>
+                        <p className="mt-0.5 truncate text-[11px] text-carbon-400"><PlateNumber value={vehicle.plate} /></p>
                         <div className="mt-1 flex items-center gap-1 text-[10px] text-carbon-500">
                           <MapPin className="h-3 w-3" />
                           <span className="truncate">{vehicle.city || '—'}</span>
@@ -398,7 +399,7 @@ export default function CalendarPage() {
                       <p className="truncate text-sm font-semibold text-white">
                         {vehicle.brand} {vehicle.model}
                       </p>
-                      <p className="mt-1 text-xs text-carbon-400">{vehicle.plate}</p>
+                      <p className="mt-1 text-xs text-carbon-400"><PlateNumber value={vehicle.plate} /></p>
                       <div className="mt-2 flex items-center gap-2 text-[11px] text-carbon-300">
                         <MapPin className="h-3.5 w-3.5" />
                         {vehicle.city || 'Ville non renseignée'}

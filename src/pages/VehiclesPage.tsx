@@ -8,6 +8,7 @@ import EmptyState from '../components/ui/EmptyState';
 import { Field, SelectField } from '../components/ui/Form';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
+import PlateNumber from '../components/ui/PlateNumber';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -39,6 +40,7 @@ const vehicleBrandModels: Record<string, string[]> = {
   Jeep: ['Renegade', 'Compass', 'Wrangler'],
 };
 const vehicleBrands = Object.keys(vehicleBrandModels);
+const moroccanPlateLetters = ['أ', 'ب', 'د', 'ه', 'و', 'ط', 'ي'];
 
 type FormErrors = Partial<Record<'brand' | 'model' | 'plate' | 'year' | 'mileage' | 'dailyPrice', string>>;
 const accessoryItems: Array<{ key: keyof VehicleAccessories; label: string }> = [
@@ -111,7 +113,7 @@ function normalizeVehicleForm(form: FormData, base?: Vehicle): Vehicle {
     id: base?.id || `veh-${Date.now()}`,
     brand: String(form.get('brand') || '').trim(),
     model: String(form.get('model') || '').trim(),
-    plate: String(form.get('plate') || '').trim().toUpperCase(),
+    plate: String(form.get('plate') || '').trim(),
     year: Number(form.get('year') || 0),
     mileage: Number(form.get('mileage') || 0),
     fuel: String(form.get('fuel') || ''),
@@ -163,6 +165,7 @@ export default function VehiclesPage() {
   const [damageNote, setDamageNote] = useState('');
   const [vehicleBrandDraft, setVehicleBrandDraft] = useState('');
   const [vehicleModelDraft, setVehicleModelDraft] = useState('');
+  const [vehiclePlateDraft, setVehiclePlateDraft] = useState('');
   const selectedBrandModels = vehicleBrandModels[vehicleBrandDraft] || [];
 
   const filteredVehicles = useMemo(
@@ -209,6 +212,7 @@ export default function VehiclesPage() {
     setDamageNote('');
     setVehicleBrandDraft('');
     setVehicleModelDraft('');
+    setVehiclePlateDraft('');
     setModalOpen(true);
   }
 
@@ -223,7 +227,20 @@ export default function VehiclesPage() {
     setDamageNote('');
     setVehicleBrandDraft(vehicle.brand);
     setVehicleModelDraft(vehicle.model);
+    setVehiclePlateDraft(vehicle.plate);
     setModalOpen(true);
+  }
+
+  function insertPlateLetter(letter: string) {
+    setVehiclePlateDraft((current) => {
+      const value = current.trim();
+      const parts = value.split('-');
+      if (parts.length >= 3) return `${parts[0]}-${letter}-${parts.slice(2).join('-')}`;
+      const numberGroups = value.match(/\d+/g);
+      if (numberGroups && numberGroups.length >= 2) return `${numberGroups[0]}-${letter}-${numberGroups[1]}`;
+      if (numberGroups?.[0]) return `${numberGroups[0]}-${letter}-`;
+      return letter;
+    });
   }
 
   async function uploadVehicleImage(vehicleId: string, file: File) {
@@ -404,7 +421,7 @@ export default function VehiclesPage() {
                     <Badge>{vehicle.archivedAt ? 'Archivé' : vehicle.status}</Badge>
                   </div>
                   <span className="absolute right-4 top-4 z-10 max-w-[46%] truncate rounded-full border border-gold-300/30 bg-carbon-950/85 px-3 py-1 text-xs font-bold text-gold-200 shadow-lg backdrop-blur">
-                    {vehicle.plate}
+                    <PlateNumber value={vehicle.plate} />
                   </span>
                   {vehicle.imageUrl ? (
                     <img
@@ -499,7 +516,7 @@ export default function VehiclesPage() {
                         <Link to={`/vehicles/${vehicle.id}`} className="font-semibold hover:text-gold-200">{vehicle.brand} {vehicle.model}</Link>
                       </div>
                     </td>
-                    <td className="px-5 py-4 text-carbon-300">{vehicle.plate}</td>
+                    <td className="px-5 py-4 text-carbon-300"><PlateNumber value={vehicle.plate} /></td>
                     <td className="px-5 py-4 text-carbon-300">{vehicle.city}</td>
                     <td className="px-5 py-4 text-carbon-300">{vehicle.year}</td>
                     <td className="px-5 py-4 text-carbon-300">{vehicle.mileage.toLocaleString()} km</td>
@@ -566,7 +583,30 @@ export default function VehiclesPage() {
                 {errors.model ? <p className="mt-1 text-xs text-red-300">{errors.model}</p> : null}
               </div>
               <div>
-                <Field label="Immatriculation *" name="plate" defaultValue={editingVehicle?.plate || ''} required />
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-carbon-200 light:text-carbon-700">Immatriculation *</span>
+                  <input
+                    className="form-control plate-number w-full"
+                    dir="ltr"
+                    name="plate"
+                    value={vehiclePlateDraft}
+                    onChange={(event) => setVehiclePlateDraft(event.target.value)}
+                    placeholder="23-ه-26727"
+                    required
+                  />
+                </label>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {moroccanPlateLetters.map((letter) => (
+                    <button
+                      key={letter}
+                      type="button"
+                      className="grid h-8 min-w-8 place-items-center rounded-lg border border-white/10 bg-white/[0.04] px-2 text-sm font-bold text-carbon-100 transition hover:border-gold-300/40 hover:bg-gold-400/15 hover:text-gold-100"
+                      onClick={() => insertPlateLetter(letter)}
+                    >
+                      {letter}
+                    </button>
+                  ))}
+                </div>
                 {errors.plate ? <p className="mt-1 text-xs text-red-300">{errors.plate}</p> : null}
               </div>
               <div>

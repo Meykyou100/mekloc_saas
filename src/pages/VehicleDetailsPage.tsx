@@ -5,6 +5,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import PageHeader from '../components/ui/PageHeader';
+import PlateNumber from '../components/ui/PlateNumber';
 import { formatMAD } from '../data/mockData';
 import { useData } from '../context/DataContext';
 
@@ -41,7 +42,7 @@ export default function VehicleDetailsPage() {
       <PageHeader
         eyebrow="Vehicle profile"
         title={`${vehicle.brand} ${vehicle.model}`}
-        description={`${vehicle.plate} · ${vehicle.city} · ${vehicle.year}`}
+        description={`${vehicle.city} · ${vehicle.year}`}
         action={<Button variant="secondary" icon={<FileText className="h-4 w-4" />}>Open contract history</Button>}
       />
       <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
@@ -64,6 +65,11 @@ export default function VehicleDetailsPage() {
             </div>
           </div>
           <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+              <Car className="mb-3 h-5 w-5 text-gold-300" />
+              <p className="text-xs uppercase tracking-wide text-carbon-500">Immatriculation</p>
+              <p className="mt-1 font-bold text-white light:text-carbon-950"><PlateNumber value={vehicle.plate} /></p>
+            </div>
             {vehicleStats.map(({ label, value, icon: Icon }) => (
               <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
                 <Icon className="mb-3 h-5 w-5 text-gold-300" />

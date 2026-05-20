@@ -27,6 +27,7 @@ import Card from '../components/ui/Card';
 import EmptyState from '../components/ui/EmptyState';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
+import PlateNumber from '../components/ui/PlateNumber';
 import StatCard from '../components/ui/StatCard';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -707,7 +708,7 @@ export default function ReservationsPage() {
                                 <p className="text-lg font-semibold text-white">{selectedVehicle.brand} {selectedVehicle.model}</p>
                                 <Badge>{selectedVehicle.status}</Badge>
                               </div>
-                              <p className="mt-1 text-sm text-carbon-400">{selectedVehicle.plate} · {selectedVehicle.city}</p>
+                              <p className="mt-1 text-sm text-carbon-400"><PlateNumber value={selectedVehicle.plate} /> · {selectedVehicle.city}</p>
                               <p className="mt-3 text-sm text-carbon-300">{selectedVehicle.mileage.toLocaleString()} km · {formatMAD(selectedVehicle.dailyPrice)} / jour</p>
                             </div>
                           </div>
@@ -806,7 +807,7 @@ export default function ReservationsPage() {
                         </div>
                         <div className="premium-surface rounded-3xl p-5">
                           <p className="text-lg font-semibold text-white">{selectedClient?.fullName || 'Client non sélectionné'}</p>
-                          <p className="mt-1 text-sm text-carbon-400">{selectedVehicle?.brand} {selectedVehicle?.model} · {selectedVehicle?.plate}</p>
+                          <p className="mt-1 text-sm text-carbon-400">{selectedVehicle?.brand} {selectedVehicle?.model} · <PlateNumber value={selectedVehicle?.plate} /></p>
                           <p className="mt-2 text-sm text-carbon-300">{formatReservationDateTime(draftPickupDate, draftPickupTime)} → {formatReservationDateTime(draftReturnDate, draftReturnTime)} · {rentalDays} jours</p>
                           <p className="mt-2 text-sm text-carbon-300">{draftPickupLocation || 'Lieu départ non renseigné'} → {draftReturnLocation || 'Lieu retour non renseigné'}</p>
                           <p className="mt-4 text-2xl font-semibold text-white">{formatMAD(totalEstimate)}</p>
@@ -880,7 +881,7 @@ export default function ReservationsPage() {
                           </div>
                           <div>
                             <p className="font-semibold text-white">{selectedVehicle.brand} {selectedVehicle.model}</p>
-                            <p className="mt-1 text-sm text-carbon-400">{selectedVehicle.plate} · {selectedVehicle.city}</p>
+                            <p className="mt-1 text-sm text-carbon-400"><PlateNumber value={selectedVehicle.plate} /> · {selectedVehicle.city}</p>
                           </div>
                         </div>
                       ) : (

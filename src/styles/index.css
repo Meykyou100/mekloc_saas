@@ -155,6 +155,13 @@ option {
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.20);
   }
 
+  .plate-number {
+    direction: ltr;
+    text-align: left;
+    unicode-bidi: isolate;
+    display: inline-block;
+  }
+
   .vehicle-visual {
     background:
       linear-gradient(145deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.015)),

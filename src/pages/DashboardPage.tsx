@@ -16,6 +16,7 @@ import { Link } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
 import PageHeader from '../components/ui/PageHeader';
+import PlateNumber from '../components/ui/PlateNumber';
 import {
   formatMAD,
 } from '../data/mockData';
@@ -455,7 +456,7 @@ export default function DashboardPage() {
                     <div key={`veh-alert-${item.source}-${item.vehicle.id}-${item.date}`} className="rounded-2xl border border-white/10 bg-white/[0.02] p-3">
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm font-semibold text-white">
-                          {item.vehicle.brand} {item.vehicle.model} · {item.vehicle.plate}
+                          {item.vehicle.brand} {item.vehicle.model} · <PlateNumber value={item.vehicle.plate} />
                         </p>
                         <PriorityBadge priority={item.priority} />
                       </div>

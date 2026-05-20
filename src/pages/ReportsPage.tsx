@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import PageHeader from '../components/ui/PageHeader';
+import PlateNumber from '../components/ui/PlateNumber';
 import { formatMAD } from '../data/mockData';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
@@ -352,7 +353,7 @@ startxref
               </thead>
               <tbody className="divide-y divide-white/10">
                 {report.revenueByVehicle.slice(0, 8).map((item) => (
-                  <tr key={item.id}><td className="px-5 py-3 font-semibold">{item.label}</td><td className="px-5 py-3 text-carbon-400">{item.plate}</td><td className="px-5 py-3 text-right font-semibold text-gold-200">{formatMAD(item.revenue)}</td></tr>
+                  <tr key={item.id}><td className="px-5 py-3 font-semibold">{item.label}</td><td className="px-5 py-3 text-carbon-400"><PlateNumber value={item.plate} /></td><td className="px-5 py-3 text-right font-semibold text-gold-200">{formatMAD(item.revenue)}</td></tr>
                 ))}
                 {report.revenueByVehicle.length === 0 ? <tr><td colSpan={3} className="px-5 py-4 text-carbon-400">Aucune donnée.</td></tr> : null}
               </tbody>
