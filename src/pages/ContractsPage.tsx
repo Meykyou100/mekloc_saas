@@ -232,6 +232,10 @@ async function loadLogoForPdf(logoUrl: string): Promise<PdfLogoAsset | null> {
 const A4_SOURCE_WIDTH = 794;
 const A4_SOURCE_HEIGHT = 1123;
 
+function secondDriverValue(value: string) {
+  return value.trim() || '—';
+}
+
 function createPdfCaptureSource(source: HTMLElement, logoDataUrl?: string | null) {
   const host = document.createElement('div');
   host.style.position = 'fixed';
@@ -283,6 +287,17 @@ export default function ContractsPage() {
   const [vehicleId, setVehicleId] = useState('');
   const [reservationId, setReservationId] = useState('');
   const [terms, setTerms] = useState(defaultTerms.join('\n'));
+  const [showSecondDriver, setShowSecondDriver] = useState(false);
+  const [secondDriver, setSecondDriver] = useState({
+    lastName: '',
+    firstName: '',
+    birthDate: '',
+    nationality: '',
+    cin: '',
+    license: '',
+    address: '',
+    phone: '',
+  });
   const [generating, setGenerating] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [, setIsMobilePreview] = useState(false);
@@ -767,35 +782,15 @@ export default function ContractsPage() {
                 <Wand2 className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="font-semibold text-white light:text-carbon-950">Contract Studio</h2>
-                <p className="text-sm leading-5 text-carbon-400">Assistant compact de génération.</p>
+                <h2 className="font-semibold text-white light:text-carbon-950">Préparation contrat</h2>
+                <p className="text-sm leading-5 text-carbon-400">Choisissez une réservation, vérifiez, exportez.</p>
               </div>
             </div>
           </div>
 
           <div className="max-h-none space-y-4 overflow-y-auto p-5 xl:max-h-[calc(100vh-18rem)]">
             <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
-              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">1. Modèle</p>
-              <SelectField label="Type de modèle" value={template} onChange={(event) => setTemplate(event.target.value)}>
-                {templates.map((item) => <option key={item}>{item}</option>)}
-              </SelectField>
-              <p className="mt-2 text-xs text-carbon-500">Langue: Français · Format: A4 portrait</p>
-            </section>
-
-            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
-              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">2. Client & véhicule</p>
-              <div className="grid gap-3">
-                <SelectField label="Client" value={clientId} onChange={(event) => setClientId(event.target.value)}>
-                  {clients.map((item) => <option key={item.id} value={item.id}>{item.fullName}</option>)}
-                </SelectField>
-                <SelectField label="Véhicule" value={vehicleId} onChange={(event) => setVehicleId(event.target.value)}>
-                  {vehicles.map((item) => <option key={item.id} value={item.id}>{item.brand} {item.model}</option>)}
-                </SelectField>
-              </div>
-            </section>
-
-            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
-              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">3. Réservation</p>
+              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">1. Réservation</p>
               <SelectField label="Réservation" value={reservationId} onChange={(event) => setReservationId(event.target.value)}>
                 {reservations.map((item) => (
                   <option key={item.id} value={item.id}>
@@ -803,31 +798,68 @@ export default function ContractsPage() {
                   </option>
                 ))}
               </SelectField>
-              <p className="mt-2 text-xs text-carbon-500">Le contrat reprend automatiquement les dates, lieux et tarifs.</p>
+              {selectedReservation ? (
+                <div className="mt-3 rounded-2xl border border-white/10 bg-black/15 p-3 text-xs text-carbon-300">
+                  <p className="font-semibold text-white">{selectedReservation.client}</p>
+                  <p className="mt-1">{selectedReservation.vehicle}</p>
+                  <p className="mt-1">{formatDateFr(pickupDate)} → {formatDateFr(returnDate)} · {formatMAD(totalAmount)}</p>
+                  <p className="mt-1">Caution: {formatMAD(deposit)}</p>
+                </div>
+              ) : null}
+              <p className="mt-2 text-xs text-carbon-500">Client, véhicule, dates, lieux, prix et caution sont repris automatiquement.</p>
+            </section>
+
+            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
+              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">2. Infos contrat</p>
+              <div className="grid gap-3">
+                <SelectField label="Modèle" value={template} onChange={(event) => setTemplate(event.target.value)}>
+                  {templates.map((item) => <option key={item}>{item}</option>)}
+                </SelectField>
+                <SelectField label="Client" value={clientId} onChange={(event) => setClientId(event.target.value)}>
+                  {clients.map((item) => <option key={item.id} value={item.id}>{item.fullName}</option>)}
+                </SelectField>
+                <SelectField label="Véhicule" value={vehicleId} onChange={(event) => setVehicleId(event.target.value)}>
+                  {vehicles.map((item) => <option key={item.id} value={item.id}>{item.brand} {item.model}</option>)}
+                </SelectField>
+              </div>
+              <p className="mt-2 text-xs text-carbon-500">Ces champs sont auto-remplis depuis la réservation. Modifiez seulement si nécessaire.</p>
+            </section>
+
+            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">3. 2ème conducteur</p>
+                <Button type="button" variant="secondary" className="h-8 px-3 text-xs" onClick={() => setShowSecondDriver((value) => !value)}>
+                  {showSecondDriver ? 'Masquer' : 'Ajouter'}
+                </Button>
+              </div>
+              {showSecondDriver ? (
+                <div className="grid gap-3">
+                  <input className="form-control text-base sm:text-sm" placeholder="Nom" value={secondDriver.lastName} onChange={(event) => setSecondDriver((current) => ({ ...current, lastName: event.target.value }))} />
+                  <input className="form-control text-base sm:text-sm" placeholder="Prénom" value={secondDriver.firstName} onChange={(event) => setSecondDriver((current) => ({ ...current, firstName: event.target.value }))} />
+                  <input className="form-control text-base sm:text-sm" type="date" value={secondDriver.birthDate} onChange={(event) => setSecondDriver((current) => ({ ...current, birthDate: event.target.value }))} />
+                  <input className="form-control text-base sm:text-sm" placeholder="Nationalité" value={secondDriver.nationality} onChange={(event) => setSecondDriver((current) => ({ ...current, nationality: event.target.value }))} />
+                  <input className="form-control text-base sm:text-sm" placeholder="CIN / Passport" value={secondDriver.cin} onChange={(event) => setSecondDriver((current) => ({ ...current, cin: event.target.value }))} />
+                  <input className="form-control text-base sm:text-sm" placeholder="Permis" value={secondDriver.license} onChange={(event) => setSecondDriver((current) => ({ ...current, license: event.target.value }))} />
+                  <input className="form-control text-base sm:text-sm" placeholder="Adresse" value={secondDriver.address} onChange={(event) => setSecondDriver((current) => ({ ...current, address: event.target.value }))} />
+                  <input className="form-control text-base sm:text-sm" placeholder="Téléphone" value={secondDriver.phone} onChange={(event) => setSecondDriver((current) => ({ ...current, phone: event.target.value }))} />
+                </div>
+              ) : (
+                <p className="text-sm text-carbon-400">Optionnel. Ajoutez un conducteur secondaire si le contrat doit le mentionner.</p>
+              )}
             </section>
 
             <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
               <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">4. Conditions</p>
-              <TextAreaField
-                label="Texte des conditions"
-                value={terms}
-                onChange={(event) => setTerms(event.target.value)}
-                className="min-h-28"
-              />
-              <p className="mt-2 text-xs text-carbon-500">Laissez ce texte clair et précis. Il sera inclus dans le PDF final.</p>
+              <TextAreaField label="Texte des conditions" value={terms} onChange={(event) => setTerms(event.target.value)} className="min-h-28" />
             </section>
 
             <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
-              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">5. Génération</p>
+              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">5. Actions</p>
               <div className="grid gap-2">
                 {checklist.map((item) => (
                   <div key={item.label} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/15 px-3 py-2 text-xs">
                     <span className="text-carbon-200">{item.label}</span>
-                    {item.ok ? (
-                      <span className="inline-flex items-center gap-1 font-semibold text-emerald-300"><CheckCircle2 className="h-3.5 w-3.5" /> OK</span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 font-semibold text-amber-200"><CircleAlert className="h-3.5 w-3.5" /> À vérifier</span>
-                    )}
+                    {item.ok ? <span className="inline-flex items-center gap-1 font-semibold text-emerald-300"><CheckCircle2 className="h-3.5 w-3.5" /> OK</span> : <span className="inline-flex items-center gap-1 font-semibold text-amber-200"><CircleAlert className="h-3.5 w-3.5" /> À vérifier</span>}
                   </div>
                 ))}
               </div>
@@ -964,10 +996,10 @@ export default function ContractsPage() {
               <section className="mt-3 rounded-xl border p-3.5" style={{ borderColor: contractBorder }}>
                 <p className="text-[11px] font-bold uppercase tracking-[.12em]" style={{ color: contractBorder }}>2ème conducteur</p>
                 <div className="mt-2 grid gap-1.5 text-[13px] text-[#334155] md:grid-cols-2">
-                  <p>Nom: —</p><p>Prénom: —</p>
-                  <p>Date de naissance: —</p><p>Nationalité: —</p>
-                  <p>CIN/Passport: —</p><p>Permis N°: —</p>
-                  <p>Adresse: —</p><p>Téléphone: —</p>
+                  <p>Nom: {secondDriverValue(secondDriver.lastName)}</p><p>Prénom: {secondDriverValue(secondDriver.firstName)}</p>
+                  <p>Date de naissance: {secondDriverValue(secondDriver.birthDate)}</p><p>Nationalité: {secondDriverValue(secondDriver.nationality)}</p>
+                  <p>CIN/Passport: {secondDriverValue(secondDriver.cin)}</p><p>Permis N°: {secondDriverValue(secondDriver.license)}</p>
+                  <p>Adresse: {secondDriverValue(secondDriver.address)}</p><p>Téléphone: {secondDriverValue(secondDriver.phone)}</p>
                 </div>
               </section>
 
