@@ -336,13 +336,12 @@ export default function ContractsPage() {
       if (!viewport) return;
       const isMobile = window.innerWidth < 768;
       setIsMobilePreview(isMobile);
-      const nextMaxHeight = Math.max(isMobile ? 460 : 620, window.innerHeight - 220);
+      const nextMaxHeight = Math.max(isMobile ? 520 : 720, window.innerHeight - 180);
       setPreviewMaxHeight(nextMaxHeight);
-      const availableWidth = Math.max(220, viewport.clientWidth - (isMobile ? 12 : 48));
+      const availableWidth = Math.max(260, viewport.clientWidth - (isMobile ? 16 : 32));
       const widthScale = availableWidth / A4_SOURCE_WIDTH;
-      const heightScale = (nextMaxHeight - 36) / A4_SOURCE_HEIGHT;
-      const minScale = isMobile ? 0.38 : 0.58;
-      setPreviewScale(Math.max(minScale, Math.min(1, widthScale, heightScale)));
+      const minScale = isMobile ? 0.42 : 0.7;
+      setPreviewScale(Math.max(minScale, Math.min(1.08, widthScale)));
     };
 
     updatePreviewScale();
@@ -354,13 +353,12 @@ export default function ContractsPage() {
     const viewport = previewViewportRef.current;
     if (!viewport) return;
     const isMobile = window.innerWidth < 768;
-    const nextMaxHeight = Math.max(isMobile ? 460 : 620, window.innerHeight - 220);
-    const availableWidth = Math.max(220, viewport.clientWidth - (isMobile ? 12 : 48));
+    const nextMaxHeight = Math.max(isMobile ? 520 : 720, window.innerHeight - 180);
+    const availableWidth = Math.max(260, viewport.clientWidth - (isMobile ? 16 : 32));
     const widthScale = availableWidth / A4_SOURCE_WIDTH;
-    const heightScale = (nextMaxHeight - 36) / A4_SOURCE_HEIGHT;
-    const minScale = isMobile ? 0.38 : 0.58;
+    const minScale = isMobile ? 0.42 : 0.7;
     setPreviewMaxHeight(nextMaxHeight);
-    setPreviewScale(Math.max(minScale, Math.min(1, widthScale, heightScale)));
+    setPreviewScale(Math.max(minScale, Math.min(1.08, widthScale)));
   }
 
   function nudgePreviewScale(delta: number) {
@@ -741,7 +739,7 @@ export default function ContractsPage() {
       <PageHeader
         eyebrow="DOCUMENTS"
         title="Contrats"
-        description="Contract Studio pour préparer, prévisualiser et exporter vos contrats de location."
+        description="Générez un contrat propre depuis une réservation validée."
         action={(
           <div className="hidden md:block">
             <Button icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf}>
@@ -757,41 +755,43 @@ export default function ContractsPage() {
         </Button>
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {[
           { label: 'Contrats', value: String(stats.total), helper: 'Total généré', icon: FileSignature },
           { label: 'Brouillons', value: String(stats.drafts), helper: 'En préparation', icon: FileText },
           { label: 'Ce mois', value: String(stats.thisMonth), helper: 'Période actuelle', icon: CalendarDays },
           { label: 'Dernier', value: stats.last, helper: 'Référence récente', icon: Sparkles },
         ].map(({ label, value, helper, icon: Icon }) => (
-          <div key={label} className="min-h-[82px] rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] light:bg-white sm:min-h-[104px] sm:px-4">
+          <div key={label} className="min-h-[58px] rounded-xl border border-white/10 bg-white/[0.025] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,.03)] light:bg-white">
             <div className="flex items-center justify-between gap-2 sm:gap-3">
               <p className="truncate text-[10px] font-semibold uppercase tracking-[0.1em] text-carbon-400 sm:text-xs sm:tracking-[0.14em]">{label}</p>
-              <Icon className="h-3.5 w-3.5 shrink-0 text-gold-300 sm:h-4 sm:w-4" />
+              <Icon className="h-3.5 w-3.5 shrink-0 text-gold-300" />
             </div>
-            <p className="mt-1 truncate text-lg font-black text-white light:text-carbon-950 sm:mt-2 sm:text-xl">{value}</p>
-            <p className="mt-1 truncate text-[10px] text-carbon-500 sm:text-xs">{helper}</p>
+            <div className="mt-1 flex items-end justify-between gap-2">
+              <p className="truncate text-base font-black text-white light:text-carbon-950">{value}</p>
+              <p className="hidden truncate text-[10px] text-carbon-500 md:block">{helper}</p>
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(320px,360px)_minmax(0,1fr)]">
-        <Card className="overflow-hidden border-white/10 bg-[#0c1118] p-0 shadow-[0_24px_70px_rgba(0,0,0,.32)] xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)]">
-          <div className="border-b border-white/10 bg-gradient-to-br from-gold-400/12 via-white/[0.055] to-white/[0.015] p-5">
+      <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
+        <Card className="overflow-hidden border-white/10 bg-[#0b0f15] p-0 shadow-[0_24px_70px_rgba(0,0,0,.28)] xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)]">
+          <div className="border-b border-white/10 bg-white/[0.035] p-5">
             <div className="flex items-center gap-3">
-              <div className="rounded-2xl border border-gold-300/20 bg-gold-400/10 p-3 text-gold-200">
+              <div className="rounded-xl border border-gold-300/20 bg-gold-400/10 p-2.5 text-gold-200">
                 <Wand2 className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="font-semibold text-white light:text-carbon-950">Préparation contrat</h2>
-                <p className="text-sm leading-5 text-carbon-400">Choisissez une réservation, vérifiez, exportez.</p>
+                <h2 className="font-semibold text-white light:text-carbon-950">Générateur de contrat</h2>
+                <p className="text-sm leading-5 text-carbon-400">Réservation, conditions, export.</p>
               </div>
             </div>
           </div>
 
-          <div className="max-h-none space-y-4 overflow-y-auto p-5 xl:max-h-[calc(100vh-18rem)]">
-            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
-              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">1. Réservation</p>
+          <div className="max-h-none space-y-3 overflow-y-auto p-4 xl:max-h-[calc(100vh-18rem)]">
+            <section className="rounded-2xl bg-white/[0.04] p-4">
+              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">1. Sélection réservation</p>
               <SelectField label="Réservation" value={reservationId} onChange={(event) => setReservationId(event.target.value)}>
                 {reservations.map((item) => (
                   <option key={item.id} value={item.id}>
@@ -800,37 +800,45 @@ export default function ContractsPage() {
                 ))}
               </SelectField>
               {selectedReservation ? (
-                <div className="mt-3 rounded-2xl border border-white/10 bg-black/15 p-3 text-xs text-carbon-300">
-                  <p className="font-semibold text-white">{selectedReservation.client}</p>
-                  <p className="mt-1">{selectedReservation.vehicle}</p>
-                  <p className="mt-1">{formatDateFr(pickupDate)} → {formatDateFr(returnDate)} · {formatMAD(totalAmount)}</p>
-                  <p className="mt-1">Caution: {formatMAD(deposit)}</p>
+                <div className="mt-3 grid gap-2 rounded-2xl bg-black/20 p-3 text-xs text-carbon-300">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-white">{selectedReservation.client}</p>
+                      <p className="mt-1">{selectedReservation.vehicle}</p>
+                    </div>
+                    <Badge>{selectedReservation.status}</Badge>
+                  </div>
+                  <div className="grid gap-1 border-t border-white/10 pt-2">
+                    <p>{formatDateFr(pickupDate)} → {formatDateFr(returnDate)}</p>
+                    <p>{selectedReservation.pickupLocation || 'Départ non renseigné'} → {selectedReservation.returnLocation || 'Retour non renseigné'}</p>
+                    <p>{formatMAD(totalAmount)} · Caution {formatMAD(deposit)}</p>
+                  </div>
                 </div>
               ) : null}
-              <p className="mt-2 text-xs text-carbon-500">Client, véhicule, dates, lieux, prix et caution sont repris automatiquement.</p>
             </section>
 
-            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
+            <section className="rounded-2xl bg-white/[0.04] p-4">
               <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">2. Infos contrat</p>
               <div className="grid gap-3">
                 <SelectField label="Modèle" value={template} onChange={(event) => setTemplate(event.target.value)}>
                   {templates.map((item) => <option key={item}>{item}</option>)}
                 </SelectField>
-                <SelectField label="Client" value={clientId} onChange={(event) => setClientId(event.target.value)}>
-                  {clients.map((item) => <option key={item.id} value={item.id}>{item.fullName}</option>)}
+                <SelectField label="Langue" defaultValue="fr">
+                  <option value="fr">Français</option>
                 </SelectField>
-                <SelectField label="Véhicule" value={vehicleId} onChange={(event) => setVehicleId(event.target.value)}>
-                  {vehicles.map((item) => <option key={item.id} value={item.id}>{item.brand} {item.model}</option>)}
-                </SelectField>
+                <div className="rounded-xl bg-black/20 px-3 py-2 text-xs text-carbon-300">
+                  <p><span className="text-carbon-500">Client:</span> <span className="font-semibold text-white">{client.fullName || 'Non renseigné'}</span></p>
+                  <p className="mt-1"><span className="text-carbon-500">Véhicule:</span> <span className="font-semibold text-white">{vehicle.brand || '—'} {vehicle.model || ''}</span></p>
+                </div>
+                <TextAreaField label="Conditions" value={terms} onChange={(event) => setTerms(event.target.value)} className="min-h-24" />
               </div>
-              <p className="mt-2 text-xs text-carbon-500">Ces champs sont auto-remplis depuis la réservation. Modifiez seulement si nécessaire.</p>
             </section>
 
-            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
+            <section className="rounded-2xl bg-white/[0.04] p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">3. 2ème conducteur</p>
                 <Button type="button" variant="secondary" className="h-8 px-3 text-xs" onClick={() => setShowSecondDriver((value) => !value)}>
-                  {showSecondDriver ? 'Masquer' : 'Ajouter'}
+                  {showSecondDriver ? 'Masquer' : 'Ajouter 2ème conducteur'}
                 </Button>
               </div>
               {showSecondDriver ? (
@@ -849,26 +857,19 @@ export default function ContractsPage() {
               )}
             </section>
 
-            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
-              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">4. Conditions</p>
-              <TextAreaField label="Texte des conditions" value={terms} onChange={(event) => setTerms(event.target.value)} className="min-h-28" />
-            </section>
-
-            <section className="rounded-2xl border border-white/10 bg-white/[0.045] p-4">
-              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">5. Actions</p>
-              <div className="grid gap-2">
-                {checklist.map((item) => (
-                  <div key={item.label} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/15 px-3 py-2 text-xs">
-                    <span className="text-carbon-200">{item.label}</span>
-                    {item.ok ? <span className="inline-flex items-center gap-1 font-semibold text-emerald-300"><CheckCircle2 className="h-3.5 w-3.5" /> OK</span> : <span className="inline-flex items-center gap-1 font-semibold text-amber-200"><CircleAlert className="h-3.5 w-3.5" /> À vérifier</span>}
-                  </div>
-                ))}
-              </div>
-            </section>
           </div>
 
           <div className="sticky bottom-0 border-t border-white/10 bg-carbon-950/95 p-5 backdrop-blur-xl light:bg-white/95">
-            <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1">
+            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">4. Actions</p>
+            <div className="mb-3 grid gap-1.5">
+              {checklist.map((item) => (
+                <div key={item.label} className="flex items-center justify-between rounded-lg bg-white/[0.035] px-3 py-1.5 text-[11px]">
+                  <span className="text-carbon-300">{item.label}</span>
+                  {item.ok ? <span className="inline-flex items-center gap-1 font-semibold text-emerald-300"><CheckCircle2 className="h-3 w-3" /> OK</span> : <span className="inline-flex items-center gap-1 font-semibold text-amber-200"><CircleAlert className="h-3 w-3" /> À vérifier</span>}
+                </div>
+              ))}
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
               {!notificationPreferences.contractSending ? (
                 <Button type="button" variant="secondary" disabled>
                   WhatsApp désactivé
@@ -897,15 +898,15 @@ export default function ContractsPage() {
           </div>
         </Card>
 
-        <div className="min-w-0 rounded-3xl border border-white/10 bg-[#070b10] p-3 shadow-[0_24px_80px_rgba(0,0,0,.45)] sm:p-5">
-          <div className="mb-3 flex flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0 rounded-3xl border border-white/10 bg-[#080c11] p-2 shadow-[0_24px_80px_rgba(0,0,0,.38)] sm:p-3">
+          <div className="mb-2 flex flex-col gap-3 rounded-2xl bg-white/[0.04] px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3 text-sm text-carbon-300">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-gold-400/12 text-gold-200">
+              <div className="grid h-9 w-9 place-items-center rounded-xl bg-gold-400/12 text-gold-200">
                 <FileText className="h-4 w-4" />
               </div>
               <div>
-                <p className="font-semibold text-white light:text-carbon-950">Studio aperçu A4</p>
-                <p className="text-xs text-carbon-500">Prévisualisation centrée avec logo agence.</p>
+                <p className="font-semibold text-white light:text-carbon-950">Aperçu A4</p>
+                <p className="text-xs text-carbon-500">Document final avec logo agence.</p>
               </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -929,7 +930,7 @@ export default function ContractsPage() {
 
           <div
             ref={previewViewportRef}
-            className="overflow-auto rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top,rgba(212,160,23,.12),transparent_34%),#10151d] p-3 sm:p-6"
+            className="overflow-auto rounded-2xl bg-[radial-gradient(circle_at_top,rgba(212,160,23,.10),transparent_28%),#111722] p-2 sm:p-3"
             style={{ maxHeight: `${previewMaxHeight}px` }}
           >
             <div
