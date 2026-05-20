@@ -73,6 +73,7 @@ type AuthContextValue = {
   signOut: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   deleteAccountWithPassword: (password: string) => Promise<void>;
+  recoverActivationSession: () => Promise<boolean>;
   updatePassword: (password: string) => Promise<void>;
   getAccessRequestStatusByEmail: (email: string) => Promise<{ status: string; agencyName: string; plan: string; createdAt: string } | null>;
 };
@@ -930,14 +931,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setProfile(null);
         setProfileLoadError(null);
       },
+      recoverActivationSession: async () => {
+        if (!supabase) return false;
+        const recoveredSession = await waitForRecoveredSession();
+        if (!recoveredSession) return false;
+        setSession(recoveredSession);
+        setUser(recoveredSession.user);
+        setProfileLoadError(null);
+        return true;
+      },
       updatePassword: async (password: string) => {
         if (!supabase) throw new Error('Supabase non configuré.');
         const recoveredSession = await waitForRecoveredSession();
         if (!recoveredSession) {
           throw new Error("Session d’activation introuvable. Ouvrez le lien le plus récent ou demandez un nouveau lien d’activation.");
         }
+        setSession(recoveredSession);
+        setUser(recoveredSession.user);
+        const { data: userData, error: userError } = await supabase.auth.getUser();
+        if (userError || !userData.user) {
+          throw new Error("Session d’activation introuvable. Ouvrez le lien le plus récent ou demandez un nouveau lien d’activation.");
+        }
         const { error } = await supabase.auth.updateUser({ password });
-        if (error) throw error;
+        if (error) {
+          if (/auth session missing|session.*missing/i.test(error.message)) {
+            throw new Error("Session d’activation introuvable. Ouvrez le lien le plus récent ou demandez un nouveau lien d’activation.");
+          }
+          throw error;
+        }
       },
       getAccessRequestStatusByEmail: async (email: string) => {
         if (!supabase || !email) return null;
