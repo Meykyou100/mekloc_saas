@@ -144,13 +144,13 @@ export default function AuthPage() {
     setEmailSuggestionsOpen(true);
   }
 
-  function RememberedEmailField() {
+  function renderRememberedEmailField() {
     const showSuggestions = emailSuggestionsOpen && rememberedEmails.length > 0;
     return (
       <label className="relative grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
         <span>Email</span>
         <input
-          className="form-control focus-ring w-full"
+          className="form-control focus-ring w-full text-base sm:text-sm"
           name="email"
           type="email"
           placeholder="admin@agency.ma"
@@ -168,6 +168,7 @@ export default function AuthPage() {
                 key={email}
                 type="button"
                 className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm text-carbon-200 transition hover:bg-white/[0.06] light:text-carbon-800 light:hover:bg-carbon-950/5"
+                onPointerDown={(event) => event.preventDefault()}
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={() => {
                   setLoginEmail(email);
@@ -180,6 +181,7 @@ export default function AuthPage() {
                   role="button"
                   tabIndex={-1}
                   className="grid h-7 w-7 shrink-0 place-items-center rounded-lg text-carbon-400 hover:bg-white/10 hover:text-white light:hover:bg-carbon-950/10 light:hover:text-carbon-950"
+                  onPointerDown={(event) => event.preventDefault()}
                   onClick={(event) => {
                     event.stopPropagation();
                     removeRememberedEmail(email);
@@ -475,7 +477,7 @@ export default function AuthPage() {
                 <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
                   <span>Nouveau mot de passe</span>
                   <div className="relative">
-                    <input className="form-control focus-ring w-full pr-12" name="newPassword" type={showResetPassword ? 'text' : 'password'} placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+                    <input className="form-control focus-ring w-full pr-12 text-base sm:text-sm" name="newPassword" type={showResetPassword ? 'text' : 'password'} placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
                     <button type="button" className="absolute inset-y-0 right-2 my-auto grid h-8 w-8 place-items-center rounded-lg text-carbon-300 hover:bg-white/10 hover:text-white" onClick={() => setShowResetPassword((v) => !v)} aria-label={showResetPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
                       {showResetPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -490,16 +492,16 @@ export default function AuthPage() {
                 <p className="mt-2 text-sm text-carbon-400 light:text-carbon-600">Accédez à votre espace MekLoc.</p>
                 {loginStep === 'email' ? (
                   <form className="mt-7 grid gap-4" onSubmit={handleEmailStep}>
-                    <RememberedEmailField />
+                    {renderRememberedEmailField()}
                     <Button type="submit" loading={loading} icon={<Mail className="h-4 w-4" />}>Suivant</Button>
                   </form>
                 ) : (
                   <form className="mt-7 grid gap-4" onSubmit={handleSubmit}>
-                  <RememberedEmailField />
+                  {renderRememberedEmailField()}
                   <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
                     <span>Mot de passe</span>
                     <div className="relative">
-                      <input className="form-control focus-ring w-full pr-12" name="password" type={showLoginPassword ? 'text' : 'password'} placeholder="••••••••" required />
+                      <input className="form-control focus-ring w-full pr-12 text-base sm:text-sm" name="password" type={showLoginPassword ? 'text' : 'password'} placeholder="••••••••" required />
                       <button type="button" className="absolute inset-y-0 right-2 my-auto grid h-8 w-8 place-items-center rounded-lg text-carbon-300 hover:bg-white/10 hover:text-white" onClick={() => setShowLoginPassword((v) => !v)} aria-label={showLoginPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
                         {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>

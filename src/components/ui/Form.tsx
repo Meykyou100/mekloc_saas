@@ -9,7 +9,7 @@ export function Field({
     <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
       <span>{label}</span>
       <input
-        className={`form-control focus-ring w-full ${className}`}
+        className={`form-control focus-ring w-full text-base sm:text-sm ${className}`}
         {...props}
       />
     </label>
@@ -26,7 +26,7 @@ export function SelectField({
     <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
       <span>{label}</span>
       <select
-        className={`form-control focus-ring w-full ${className}`}
+        className={`form-control focus-ring w-full text-base sm:text-sm ${className}`}
         {...props}
       >
         {children}
@@ -44,7 +44,7 @@ export function TextAreaField({
     <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
       <span>{label}</span>
       <textarea
-        className={`form-control focus-ring min-h-28 w-full ${className}`}
+        className={`form-control focus-ring min-h-28 w-full text-base sm:text-sm ${className}`}
         {...props}
       />
     </label>
