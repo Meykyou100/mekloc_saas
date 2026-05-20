@@ -306,19 +306,23 @@ function toVehicleRow(vehicle: Vehicle, agencyId: string, withImage = true) {
   if (!validatePositiveNumber(vehicle.dailyPrice) || !validatePositiveNumber(vehicle.mileage, true)) {
     throw new Error('Montant invalide');
   }
+  const toDateOrNull = (value?: string) => {
+    const trimmed = String(value || '').trim();
+    return trimmed ? trimmed : null;
+  };
   const base = {
     agency_id: agencyId,
     brand: sanitizeText(vehicle.brand, 80),
     model: sanitizeText(vehicle.model, 80),
-    plate_number: sanitizeText(vehicle.plate, 24).toUpperCase(),
+    plate_number: sanitizeText(vehicle.plate, 24),
     year: vehicle.year,
     mileage: vehicle.mileage,
     fuel_type: sanitizeText(vehicle.fuel, 40),
     transmission: sanitizeText(vehicle.transmission, 40),
     daily_price: vehicle.dailyPrice,
     status: vehicle.status,
-    insurance_expiry: vehicle.insuranceExpiry,
-    technical_inspection_date: vehicle.inspectionDate,
+    insurance_expiry: toDateOrNull(vehicle.insuranceExpiry),
+    technical_inspection_date: toDateOrNull(vehicle.inspectionDate),
     city: sanitizeText(vehicle.city, 80),
     revenue: vehicle.revenue,
     vehicle_color: sanitizeText(vehicle.vehicleColor || '', 30) || null,

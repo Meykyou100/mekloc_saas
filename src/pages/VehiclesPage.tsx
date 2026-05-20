@@ -1,5 +1,5 @@
 import { AlertTriangle, Car, CheckCircle2, Edit3, Eye, Grid3X3, ImagePlus, List, Plus, Search, Trash2, Wrench } from 'lucide-react';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, type KeyboardEvent, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -41,8 +41,21 @@ const vehicleBrandModels: Record<string, string[]> = {
 };
 const vehicleBrands = Object.keys(vehicleBrandModels);
 const moroccanPlateLetters = ['أ', 'ب', 'د', 'ه', 'و', 'ط', 'ي'];
+const vehicleColorOptions = [
+  { name: 'Rouge', swatch: '#c62828' },
+  { name: 'Blanc', swatch: '#f8fafc' },
+  { name: 'Noir', swatch: '#050505' },
+  { name: 'Gris', swatch: '#8a8f98' },
+  { name: 'Bleu', swatch: '#2563eb' },
+  { name: 'Argent', swatch: '#c0c7d1' },
+  { name: 'Beige', swatch: '#d6c3a5' },
+  { name: 'Marron', swatch: '#7a4a2f' },
+  { name: 'Vert', swatch: '#16803c' },
+  { name: 'Orange', swatch: '#f97316' },
+];
+const quickVehicleColors = vehicleColorOptions.slice(0, 7);
 
-type FormErrors = Partial<Record<'brand' | 'model' | 'plate' | 'year' | 'mileage' | 'dailyPrice', string>>;
+type FormErrors = Partial<Record<'brand' | 'model' | 'plate' | 'year' | 'mileage' | 'dailyPrice' | 'insuranceExpiry' | 'inspectionDate', string>>;
 const accessoryItems: Array<{ key: keyof VehicleAccessories; label: string }> = [
   { key: 'roue_secours', label: 'Roue de secours' },
   { key: 'cric', label: 'Cric' },
@@ -136,12 +149,17 @@ function normalizeVehicleForm(form: FormData, base?: Vehicle): Vehicle {
 function validateVehicle(vehicle: Vehicle): FormErrors {
   const errors: FormErrors = {};
   const currentYear = new Date().getFullYear();
+  const isValidDate = (value: string) => !Number.isNaN(new Date(`${value}T00:00:00`).getTime());
   if (!vehicle.brand) errors.brand = 'La marque est obligatoire.';
   if (!vehicle.model) errors.model = 'Le modèle est obligatoire.';
   if (!vehicle.plate) errors.plate = "L'immatriculation est obligatoire.";
   if (!vehicle.year || vehicle.year < 1980 || vehicle.year > currentYear + 1) errors.year = 'Année invalide.';
   if (!vehicle.mileage || vehicle.mileage < 0) errors.mileage = 'Le kilométrage doit être positif.';
   if (!vehicle.dailyPrice || vehicle.dailyPrice <= 0) errors.dailyPrice = 'Le prix / jour doit être supérieur à 0.';
+  if (!vehicle.insuranceExpiry) errors.insuranceExpiry = "Date d’assurance obligatoire";
+  else if (!isValidDate(vehicle.insuranceExpiry)) errors.insuranceExpiry = "Date d’assurance invalide";
+  if (!vehicle.inspectionDate) errors.inspectionDate = 'Date de visite technique obligatoire';
+  else if (!isValidDate(vehicle.inspectionDate)) errors.inspectionDate = 'Date de visite technique invalide';
   return errors;
 }
 
@@ -166,7 +184,15 @@ export default function VehiclesPage() {
   const [vehicleBrandDraft, setVehicleBrandDraft] = useState('');
   const [vehicleModelDraft, setVehicleModelDraft] = useState('');
   const [vehiclePlateDraft, setVehiclePlateDraft] = useState('');
+  const [vehicleColorDraft, setVehicleColorDraft] = useState('');
+  const [colorSuggestionsOpen, setColorSuggestionsOpen] = useState(false);
+  const [highlightedColorIndex, setHighlightedColorIndex] = useState(0);
   const selectedBrandModels = vehicleBrandModels[vehicleBrandDraft] || [];
+  const colorSuggestions = useMemo(() => {
+    const q = vehicleColorDraft.trim().toLowerCase();
+    if (!q) return vehicleColorOptions;
+    return vehicleColorOptions.filter((color) => color.name.toLowerCase().includes(q));
+  }, [vehicleColorDraft]);
 
   const filteredVehicles = useMemo(
     () =>
@@ -213,6 +239,9 @@ export default function VehiclesPage() {
     setVehicleBrandDraft('');
     setVehicleModelDraft('');
     setVehiclePlateDraft('');
+    setVehicleColorDraft('');
+    setColorSuggestionsOpen(false);
+    setHighlightedColorIndex(0);
     setModalOpen(true);
   }
 
@@ -228,6 +257,9 @@ export default function VehiclesPage() {
     setVehicleBrandDraft(vehicle.brand);
     setVehicleModelDraft(vehicle.model);
     setVehiclePlateDraft(vehicle.plate);
+    setVehicleColorDraft(vehicle.vehicleColor || '');
+    setColorSuggestionsOpen(false);
+    setHighlightedColorIndex(0);
     setModalOpen(true);
   }
 
@@ -241,6 +273,32 @@ export default function VehiclesPage() {
       if (numberGroups?.[0]) return `${numberGroups[0]}-${letter}-`;
       return letter;
     });
+  }
+
+  function selectVehicleColor(color: string) {
+    setVehicleColorDraft(color);
+    setColorSuggestionsOpen(false);
+    setHighlightedColorIndex(0);
+  }
+
+  function handleColorKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (!colorSuggestionsOpen && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
+      setColorSuggestionsOpen(true);
+      return;
+    }
+    if (!colorSuggestions.length) return;
+    if (event.key === 'ArrowDown') {
+      event.preventDefault();
+      setHighlightedColorIndex((current) => (current + 1) % colorSuggestions.length);
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault();
+      setHighlightedColorIndex((current) => (current - 1 + colorSuggestions.length) % colorSuggestions.length);
+    } else if (event.key === 'Enter' && colorSuggestionsOpen) {
+      event.preventDefault();
+      selectVehicleColor(colorSuggestions[highlightedColorIndex]?.name || vehicleColorDraft);
+    } else if (event.key === 'Escape') {
+      setColorSuggestionsOpen(false);
+    }
   }
 
   async function uploadVehicleImage(vehicleId: string, file: File) {
@@ -267,7 +325,11 @@ export default function VehiclesPage() {
     const vehicle = normalizeVehicleForm(form, editingVehicle || undefined);
     const nextErrors = validateVehicle(vehicle);
     setErrors(nextErrors);
-    if (Object.keys(nextErrors).length > 0) return;
+    if (Object.keys(nextErrors).length > 0) {
+      const firstError = Object.values(nextErrors)[0];
+      notify({ title: 'Champ obligatoire', message: firstError || 'Vérifiez les informations du véhicule.', type: 'warning' });
+      return;
+    }
 
     setSaving(true);
     try {
@@ -633,7 +695,68 @@ export default function VehiclesPage() {
                 <option>Available</option><option>Rented</option><option>Maintenance</option><option>Unavailable</option>
               </SelectField>
               <Field label="Ville" name="city" defaultValue={editingVehicle?.city || ''} required />
-              <Field label="Couleur du véhicule" name="vehicleColor" defaultValue={editingVehicle?.vehicleColor || ''} placeholder="Ex: Blanc, Noir, Gris" />
+              <div className="relative">
+                <label className="block">
+                  <span className="mb-2 block text-sm font-semibold text-carbon-200 light:text-carbon-700">Couleur du véhicule</span>
+                  <div className="relative">
+                    <span
+                      className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-white/25"
+                      style={{ backgroundColor: vehicleColorOptions.find((color) => color.name.toLowerCase() === vehicleColorDraft.trim().toLowerCase())?.swatch || 'transparent' }}
+                    />
+                    <input
+                      className="form-control w-full pl-10"
+                      name="vehicleColor"
+                      value={vehicleColorDraft}
+                      onChange={(event) => {
+                        setVehicleColorDraft(event.target.value);
+                        setColorSuggestionsOpen(true);
+                        setHighlightedColorIndex(0);
+                      }}
+                      onFocus={() => setColorSuggestionsOpen(true)}
+                      onBlur={() => window.setTimeout(() => setColorSuggestionsOpen(false), 140)}
+                      onKeyDown={handleColorKeyDown}
+                      placeholder="Ex: Blanc, Noir, Gris"
+                      autoComplete="off"
+                    />
+                  </div>
+                </label>
+                {colorSuggestionsOpen && colorSuggestions.length ? (
+                  <div className="absolute left-0 right-0 top-[74px] z-40 overflow-hidden rounded-2xl border border-white/10 bg-carbon-950/98 shadow-2xl backdrop-blur">
+                    {colorSuggestions.slice(0, 8).map((color, index) => (
+                      <button
+                        key={color.name}
+                        type="button"
+                        className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition ${
+                          highlightedColorIndex === index ? 'bg-gold-400/15 text-gold-100' : 'text-carbon-200 hover:bg-white/[0.06]'
+                        }`}
+                        onMouseDown={(event) => event.preventDefault()}
+                        onMouseEnter={() => setHighlightedColorIndex(index)}
+                        onClick={() => selectVehicleColor(color.name)}
+                      >
+                        <span className="h-4 w-4 rounded-full border border-white/25" style={{ backgroundColor: color.swatch }} />
+                        <span className="font-semibold">{color.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {quickVehicleColors.map((color) => (
+                    <button
+                      key={color.name}
+                      type="button"
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition ${
+                        vehicleColorDraft.trim().toLowerCase() === color.name.toLowerCase()
+                          ? 'border-gold-300/45 bg-gold-400/15 text-gold-100'
+                          : 'border-white/10 bg-white/[0.04] text-carbon-200 hover:border-white/20 hover:bg-white/[0.08]'
+                      }`}
+                      onClick={() => selectVehicleColor(color.name)}
+                    >
+                      <span className="h-3 w-3 rounded-full border border-white/25" style={{ backgroundColor: color.swatch }} />
+                      {color.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
             </div>
           </section>
 
@@ -691,8 +814,14 @@ export default function VehiclesPage() {
                 <Field label="Prix / jour *" name="dailyPrice" type="number" defaultValue={editingVehicle?.dailyPrice || 0} required />
                 {errors.dailyPrice ? <p className="mt-1 text-xs text-red-300">{errors.dailyPrice}</p> : null}
               </div>
-              <Field label="Expiration assurance" name="insuranceExpiry" type="date" defaultValue={editingVehicle?.insuranceExpiry || ''} />
-              <Field label="Visite technique" name="inspectionDate" type="date" defaultValue={editingVehicle?.inspectionDate || ''} />
+              <div>
+                <Field label="Expiration assurance *" name="insuranceExpiry" type="date" defaultValue={editingVehicle?.insuranceExpiry || ''} required />
+                {errors.insuranceExpiry ? <p className="mt-1 text-xs text-red-300">{errors.insuranceExpiry}</p> : null}
+              </div>
+              <div>
+                <Field label="Visite technique *" name="inspectionDate" type="date" defaultValue={editingVehicle?.inspectionDate || ''} required />
+                {errors.inspectionDate ? <p className="mt-1 text-xs text-red-300">{errors.inspectionDate}</p> : null}
+              </div>
             </div>
           </section>
 
