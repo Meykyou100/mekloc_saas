@@ -202,22 +202,23 @@ export default function CalendarPage() {
         title="Calendrier"
         description="Visualisez votre flotte par jour, suivez les réservations et créez rapidement une nouvelle location."
         action={
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
             <Button
               variant="secondary"
               icon={<RefreshCcw className="h-4 w-4" />}
+              className="w-full sm:w-auto"
               onClick={() => setWindowStart(toDateOnly(new Date()))}
             >
               Aujourd’hui
             </Button>
-            <Button icon={<Plus className="h-4 w-4" />} onClick={() => navigate('/reservations')}>
+            <Button className="w-full sm:w-auto" icon={<Plus className="h-4 w-4" />} onClick={() => navigate('/reservations')}>
               Nouvelle réservation
             </Button>
           </div>
         }
       />
 
-      <Card className="space-y-4 p-4 sm:p-5">
+      <Card className="space-y-4 p-3 sm:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gold-300">Vue flotte</p>
@@ -250,7 +251,7 @@ export default function CalendarPage() {
           ) : null}
         </div>
 
-        <div className="grid gap-2 rounded-xl border border-white/10 bg-carbon-950/55 p-3 text-xs sm:grid-cols-5 sm:text-sm">
+        <div className="grid grid-cols-2 gap-2 rounded-xl border border-white/10 bg-carbon-950/55 p-3 text-xs sm:grid-cols-5 sm:text-sm">
           <div className="flex items-center gap-2 text-emerald-200">
             <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
             Disponible
@@ -288,7 +289,71 @@ export default function CalendarPage() {
             onAction={() => navigate('/vehicles')}
           />
         ) : (
-          <div className="overflow-x-auto pb-2">
+          <>
+          <div className="space-y-3 md:hidden">
+            <div className="no-scrollbar overflow-x-auto pb-1">
+              <div className="grid min-w-max gap-2" style={{ gridTemplateColumns: `132px repeat(${days.length}, 34px)` }}>
+                <div className="sticky left-0 z-10 rounded-xl border border-white/10 bg-carbon-950/95 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-carbon-400">
+                  Véhicule
+                </div>
+                {days.map((day) => {
+                  const dayIso = isoDate(day);
+                  const isToday = dayIso === todayIso;
+                  return (
+                    <div
+                      key={`mobile-head-${dayIso}`}
+                      className={`rounded-xl border px-1 py-2 text-center ${isToday ? 'border-gold-300/45 bg-gold-400 text-carbon-950' : 'border-white/10 bg-white/[0.04] text-carbon-300'}`}
+                    >
+                      <p className="text-[9px] font-bold uppercase">{day.toLocaleDateString('fr-FR', { weekday: 'short' }).slice(0, 3)}</p>
+                      <p className="text-xs font-black">{String(day.getDate()).padStart(2, '0')}</p>
+                    </div>
+                  );
+                })}
+
+                {visibleVehicles.map((vehicle) => {
+                  const blocks = reservationBlocksByVehicle.get(vehicle.id) || [];
+                  return (
+                    <div key={`mobile-row-${vehicle.id}`} className="contents">
+                      <div className="sticky left-0 z-10 min-h-[70px] rounded-xl border border-white/10 bg-carbon-950/95 px-3 py-2 shadow-[8px_0_18px_rgba(0,0,0,.35)]">
+                        <p className="truncate text-sm font-bold text-white">{vehicle.brand} {vehicle.model}</p>
+                        <p className="mt-0.5 truncate text-[11px] text-carbon-400">{vehicle.plate}</p>
+                        <div className="mt-1 flex items-center gap-1 text-[10px] text-carbon-500">
+                          <MapPin className="h-3 w-3" />
+                          <span className="truncate">{vehicle.city || '—'}</span>
+                        </div>
+                      </div>
+                      {days.map((day) => {
+                        const dayIso = isoDate(day);
+                        const cellState = getCellState(vehicle.id, dayIso, blocks);
+                        const isToday = dayIso === todayIso;
+                        const canCreate = cellState === 'available';
+                        const dotClass =
+                          cellState === 'maintenance' ? 'bg-sky-300' :
+                          cellState === 'departure_today' ? 'bg-amber-300' :
+                          cellState === 'return_today' ? 'bg-cyan-300' :
+                          cellState === 'reserved' ? 'bg-white' : 'bg-emerald-300';
+                        return (
+                          <button
+                            key={`mobile-${vehicle.id}-${dayIso}`}
+                            className={`grid min-h-[70px] place-items-center rounded-xl border transition ${isToday ? 'border-gold-300/50 bg-gold-400/12' : 'border-white/10 bg-white/[0.035]'} ${canCreate ? 'active:scale-95' : ''}`}
+                            onClick={() => {
+                              if (!canCreate) return;
+                              goToReservationCreate(vehicle.id, dayIso);
+                            }}
+                            title={stateLabel(cellState)}
+                          >
+                            <span className={`h-2.5 w-2.5 rounded-full shadow-[0_0_12px_rgba(255,255,255,.18)] ${dotClass}`} />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="hidden overflow-x-auto pb-2 md:block">
             <div className="min-w-max">
               <div className="sticky top-0 z-20 flex">
                 <div
@@ -409,6 +474,7 @@ export default function CalendarPage() {
               })}
             </div>
           </div>
+          </>
         )}
       </Card>
 
