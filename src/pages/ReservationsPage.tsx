@@ -62,7 +62,17 @@ function formatReservationDateTime(date: string, time?: string) {
 }
 
 function parseOptionalNumber(value: string) {
-  return value.trim() === '' ? null : Number(value);
+  if (value.trim() === '') return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeTimeInput(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  const match = trimmed.match(/^(\d{1,2}):(\d{2})/);
+  if (!match) return trimmed;
+  return `${match[1].padStart(2, '0')}:${match[2]}`;
 }
 
 function isDateOverlap(startA: string, endA: string, startB: string, endB: string) {
@@ -107,7 +117,7 @@ function ReservationField({ label, hint, children }: { label: string; hint?: str
 }
 
 export default function ReservationsPage() {
-  const { clients, vehicles, reservations, payments, createReservation, updateReservation, deleteReservation } = useData();
+  const { clients, vehicles, reservations, payments, refreshData, createReservation, updateReservation, deleteReservation } = useData();
   const { notify } = useApp();
   const { profile } = useAuth();
   const navigate = useNavigate();
@@ -347,8 +357,8 @@ export default function ReservationsPage() {
       vehicleId: selectedVehicle.id,
       pickupDate: draftPickupDate,
       returnDate: draftReturnDate,
-      pickupTime: draftPickupTime,
-      returnTime: draftReturnTime,
+      pickupTime: normalizeTimeInput(draftPickupTime),
+      returnTime: normalizeTimeInput(draftReturnTime),
       dailyPrice: dailyPriceNumber,
       deposit: depositNumber ?? 0,
       totalAmount: totalEstimate,
@@ -365,14 +375,17 @@ export default function ReservationsPage() {
       setSaving(true);
       if (editingReservation) {
         await updateReservation(payload);
+        await refreshData();
         notify({ title: 'Réservation modifiée', message: `${payload.id} mise à jour avec succès.`, type: 'success' });
       } else {
         await createReservation(payload);
+        await refreshData();
         notify({ title: 'Réservation ajoutée', message: `${selectedClient.fullName} réservé(e) pour ${selectedVehicle.model}.`, type: 'success' });
       }
       setModalOpen(false);
       setEditingReservation(null);
     } catch (error) {
+      if (import.meta.env.DEV) console.error('Reservation save failed', error);
       notify({
         title: 'Enregistrement impossible',
         message: error instanceof Error ? error.message : 'Réessayez dans quelques instants.',

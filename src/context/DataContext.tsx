@@ -445,6 +445,15 @@ function toReservationRow(reservation: Reservation, agencyId: string) {
   };
 }
 
+function removeMissingColumnFromPayload(error: Error | null, payload: Record<string, unknown>) {
+  const missingColumn = getMissingColumnName(error);
+  if (missingColumn && missingColumn in payload) {
+    delete payload[missingColumn];
+    return true;
+  }
+  return false;
+}
+
 async function assertNoReservationOverlap(
   reservation: Reservation,
   agencyId: string,
@@ -1005,14 +1014,31 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           return reservation;
         }
         await assertNoReservationOverlap(reservation, agencyId!);
-        const { data, error } = await supabase!
-          .from('reservations')
-          .insert(toReservationRow(reservation, agencyId!))
-          .select('*')
-          .single();
+        let data: unknown = null;
+        let error: Error | null = null;
+        const payload = toReservationRow(reservation, agencyId!) as Record<string, unknown>;
+        for (let attempt = 0; attempt < 8; attempt += 1) {
+          const result = await supabase!
+            .from('reservations')
+            .insert(payload)
+            .select('*')
+            .single();
+          data = result.data;
+          error = result.error as Error | null;
+          if (!error) break;
+          if (import.meta.env.DEV) console.error('Supabase reservation insert failed', { error, payload });
+          if (removeMissingColumnFromPayload(error, payload)) continue;
+          break;
+        }
         if (error) {
           if (error.message?.includes('overlap_reservation') || error.message?.includes('chevauche')) {
             throw new Error("Ce véhicule est déjà réservé sur cette période.");
+          }
+          if (/violates foreign key|foreign key constraint/i.test(error.message || '')) {
+            throw new Error('Client ou véhicule introuvable dans la base. Rechargez la page puis réessayez.');
+          }
+          if (/row-level security|permission denied/i.test(error.message || '')) {
+            throw new Error('Permission Supabase refusée pour créer la réservation.');
           }
           throw error;
         }
