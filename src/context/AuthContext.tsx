@@ -294,6 +294,8 @@ function getUrlAuthParams() {
   const hash = new URLSearchParams(url.hash.replace(/^#/, ''));
   return {
     code: url.searchParams.get('code'),
+    tokenHash: hash.get('token_hash') || url.searchParams.get('token_hash'),
+    type: hash.get('type') || url.searchParams.get('type'),
     accessToken: hash.get('access_token') || url.searchParams.get('access_token'),
     refreshToken: hash.get('refresh_token') || url.searchParams.get('refresh_token'),
     errorDescription: hash.get('error_description') || url.searchParams.get('error_description'),
@@ -306,7 +308,7 @@ async function waitForRecoveredSession() {
   const initial = await supabase.auth.getSession();
   if (initial.data.session) return initial.data.session;
 
-  const { code, accessToken, refreshToken, errorDescription } = getUrlAuthParams();
+  const { code, tokenHash, type, accessToken, refreshToken, errorDescription } = getUrlAuthParams();
   if (errorDescription) throw new Error(decodeURIComponent(errorDescription.replace(/\+/g, ' ')));
 
   if (code) {
@@ -322,6 +324,15 @@ async function waitForRecoveredSession() {
     });
     if (restored.error) throw restored.error;
     if (restored.data.session) return restored.data.session;
+  }
+
+  if (tokenHash && (type === 'recovery' || type === 'invite')) {
+    const verified = await supabase.auth.verifyOtp({
+      token_hash: tokenHash,
+      type,
+    });
+    if (verified.error) throw verified.error;
+    if (verified.data.session) return verified.data.session;
   }
 
   const startedAt = Date.now();

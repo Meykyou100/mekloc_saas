@@ -1,5 +1,5 @@
 import { Eye, EyeOff, LockKeyhole, ShieldCheck } from 'lucide-react';
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -15,28 +15,6 @@ export default function SetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const hasNotifiedInvalidLink = useRef(false);
-
-  useEffect(() => {
-    if (hasNotifiedInvalidLink.current) return;
-    const hash = window.location.hash || '';
-    const search = window.location.search || '';
-    const hasRecovery =
-      hash.includes('type=recovery') ||
-      hash.includes('type=invite') ||
-      hash.includes('access_token=') ||
-      search.includes('type=recovery') ||
-      search.includes('type=invite') ||
-      search.includes('code=');
-    if (!hasRecovery) {
-      hasNotifiedInvalidLink.current = true;
-      notify({
-        title: 'Lien invalide ou expiré',
-        message: 'Demandez un nouveau lien de réinitialisation.',
-        type: 'warning',
-      });
-    }
-  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
