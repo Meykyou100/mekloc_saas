@@ -1,7 +1,7 @@
 import { defaultCorsHeaders as corsHeaders, getAuthUser, getSupabaseConfig, json, serviceHeaders } from '../_shared/security.ts';
 
-function slugify(name: string) {
-  return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+function slugify(value: string) {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'agence';
 }
 
 function normalizePlan(rawPlan: unknown): 'starter' | 'pro' | 'business' {
@@ -11,6 +11,16 @@ function normalizePlan(rawPlan: unknown): 'starter' | 'pro' | 'business' {
   return 'starter';
 }
 
+function normalizeEmail(value: unknown) {
+  return String(value || '').trim().toLowerCase();
+}
+
+async function readRows<T>(res: Response): Promise<T[]> {
+  const text = await res.text();
+  if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
+  return text ? JSON.parse(text) as T[] : [];
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
@@ -18,47 +28,54 @@ Deno.serve(async (req) => {
     const { projectUrl, serviceRole, anonKey } = getSupabaseConfig();
     const authUser = await getAuthUser(projectUrl, anonKey, req.headers.get('Authorization') || '');
     const userId = authUser?.id || '';
-    const email = String((authUser as { email?: string } | null)?.email || '').trim().toLowerCase();
-    if (!userId || !email) return json(corsHeaders, { success: false, error: 'Session utilisateur introuvable.' }, 401);
+    const email = normalizeEmail((authUser as { email?: string } | null)?.email);
+    if (!userId || !email) {
+      console.log('repair-approved-profile: missing auth user');
+      return json(corsHeaders, { success: false, error: 'Session utilisateur introuvable.' }, 401);
+    }
 
     const headers = serviceHeaders(serviceRole);
-    const requestRes = await fetch(
-      `${projectUrl}/rest/v1/access_requests?email=eq.${encodeURIComponent(email)}&status=eq.approved&select=*&order=created_at.desc&limit=1`,
-      { headers },
-    );
-    if (!requestRes.ok) return json(corsHeaders, { success: false, error: 'Demande approuvée introuvable.' }, 404);
-    const requestRows = await requestRes.json() as Array<Record<string, unknown>>;
-    const accessRequest = requestRows?.[0];
-    if (!accessRequest) return json(corsHeaders, { success: false, error: 'Demande approuvée introuvable.' }, 404);
+    console.log('repair-approved-profile: start', { userId, email });
 
-    const existingByIdRes = await fetch(
-      `${projectUrl}/rest/v1/users_profiles?id=eq.${encodeURIComponent(userId)}&select=id,agency_id&limit=1`,
+    const requestRes = await fetch(
+      `${projectUrl}/rest/v1/access_requests?select=*&status=eq.approved&order=created_at.desc&limit=1&email=ilike.${encodeURIComponent(email)}`,
       { headers },
     );
-    const existingById = (await existingByIdRes.json() as Array<{ id: string; agency_id: string | null }>)?.[0];
-    if (existingById?.agency_id) {
-      return json(corsHeaders, { success: true, repaired: false, reason: 'profile_already_linked' });
+    const requestRows = await readRows<Record<string, unknown>>(requestRes);
+    const accessRequest = requestRows?.[0];
+    if (!accessRequest) {
+      console.log('repair-approved-profile: approved request not found', { userId, email });
+      return json(corsHeaders, { success: false, error: 'Demande approuvée introuvable.' }, 404);
     }
+
+    const agencyName = String(accessRequest.agency_name || accessRequest.company_name || 'Agence MekLoc').trim() || 'Agence MekLoc';
+    const ownerName = String(accessRequest.owner_name || accessRequest.full_name || email).trim() || email;
+    console.log('repair-approved-profile: approved request found', { userId, email, agencyName });
+
+    const profileByIdRes = await fetch(
+      `${projectUrl}/rest/v1/users_profiles?id=eq.${encodeURIComponent(userId)}&select=id,agency_id,email,account_status&limit=1`,
+      { headers },
+    );
+    const profileById = (await readRows<{ id: string; agency_id: string | null; email: string | null; account_status: string | null }>(profileByIdRes))?.[0];
 
     const legacyProfileRes = await fetch(
-      `${projectUrl}/rest/v1/users_profiles?email=eq.${encodeURIComponent(email)}&select=id,agency_id&limit=1`,
+      `${projectUrl}/rest/v1/users_profiles?email=ilike.${encodeURIComponent(email)}&select=id,agency_id,email,account_status&limit=1`,
       { headers },
     );
-    const legacyProfile = (await legacyProfileRes.json() as Array<{ id: string; agency_id: string | null }>)?.[0];
-    let agencyId = existingById?.agency_id || legacyProfile?.agency_id || '';
+    const legacyProfile = (await readRows<{ id: string; agency_id: string | null; email: string | null; account_status: string | null }>(legacyProfileRes))?.[0];
 
+    let agencyId = profileById?.agency_id || legacyProfile?.agency_id || '';
     if (!agencyId) {
-      const agencyName = String(accessRequest.agency_name || 'Agence MekLoc');
-      const agencyRes = await fetch(
-        `${projectUrl}/rest/v1/agencies?name=eq.${encodeURIComponent(agencyName)}&select=id&order=created_at.desc&limit=1`,
+      const agencyByNameRes = await fetch(
+        `${projectUrl}/rest/v1/agencies?name=ilike.${encodeURIComponent(agencyName)}&select=id,name&order=created_at.desc&limit=1`,
         { headers },
       );
-      const agency = (await agencyRes.json() as Array<{ id: string }>)?.[0];
-      agencyId = agency?.id || '';
+      const agencyByName = (await readRows<{ id: string; name: string }>(agencyByNameRes))?.[0];
+      agencyId = agencyByName?.id || '';
+      if (agencyId) console.log('repair-approved-profile: agency found by name', { userId, agencyId });
     }
 
     if (!agencyId) {
-      const agencyName = String(accessRequest.agency_name || 'Agence MekLoc');
       const today = new Date();
       const nextDue = new Date(today);
       nextDue.setDate(nextDue.getDate() + 30);
@@ -75,9 +92,9 @@ Deno.serve(async (req) => {
           next_payment_due_date: nextDue.toISOString().slice(0, 10),
         }]),
       });
-      const createAgencyText = await createAgencyRes.text();
-      if (!createAgencyRes.ok) throw new Error(createAgencyText || 'Création agence impossible.');
-      agencyId = (JSON.parse(createAgencyText) as Array<{ id: string }>)?.[0]?.id || '';
+      const createdAgency = await readRows<{ id: string }>(createAgencyRes);
+      agencyId = createdAgency?.[0]?.id || '';
+      console.log('repair-approved-profile: agency created', { userId, agencyId });
     }
 
     if (!agencyId) throw new Error('Agence introuvable.');
@@ -86,26 +103,36 @@ Deno.serve(async (req) => {
       id: userId,
       email,
       agency_id: agencyId,
-      full_name: String(accessRequest.owner_name || email),
-      role: 'Admin',
+      full_name: ownerName,
+      role: 'owner',
       account_status: 'active',
       is_super_admin: false,
     };
 
-    if (existingById?.id) {
+    let profileId = userId;
+    let action = 'inserted';
+
+    if (profileById?.id) {
       const updateRes = await fetch(`${projectUrl}/rest/v1/users_profiles?id=eq.${encodeURIComponent(userId)}`, {
         method: 'PATCH',
         headers,
         body: JSON.stringify(profilePayload),
       });
       if (!updateRes.ok) throw new Error(await updateRes.text());
+      action = profileById.agency_id ? 'updated_existing_profile' : 'linked_existing_profile';
     } else if (legacyProfile?.id && legacyProfile.id !== userId) {
-      const updateLegacyRes = await fetch(`${projectUrl}/rest/v1/users_profiles?id=eq.${encodeURIComponent(legacyProfile.id)}`, {
-        method: 'PATCH',
+      const deleteLegacyRes = await fetch(`${projectUrl}/rest/v1/users_profiles?id=eq.${encodeURIComponent(legacyProfile.id)}`, {
+        method: 'DELETE',
         headers,
-        body: JSON.stringify(profilePayload),
       });
-      if (!updateLegacyRes.ok) throw new Error(await updateLegacyRes.text());
+      if (!deleteLegacyRes.ok) throw new Error(await deleteLegacyRes.text());
+      const insertRes = await fetch(`${projectUrl}/rest/v1/users_profiles`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify([profilePayload]),
+      });
+      if (!insertRes.ok) throw new Error(await insertRes.text());
+      action = 'replaced_legacy_profile';
     } else {
       const insertRes = await fetch(`${projectUrl}/rest/v1/users_profiles`, {
         method: 'POST',
@@ -115,9 +142,18 @@ Deno.serve(async (req) => {
       if (!insertRes.ok) throw new Error(await insertRes.text());
     }
 
-    return json(corsHeaders, { success: true, repaired: true, agencyId });
+    console.log('repair-approved-profile: complete', { userId, profileId, agencyId, action });
+    return json(corsHeaders, {
+      success: true,
+      repaired: true,
+      action,
+      agency_id: agencyId,
+      agencyId,
+      profile_id: profileId,
+      profileId,
+    });
   } catch (error) {
-    console.error('repair-approved-profile failed', error);
+    console.error('repair-approved-profile failed', error instanceof Error ? error.message : error);
     return json(corsHeaders, { success: false, error: error instanceof Error ? error.message : 'Réparation profil impossible.' }, 500);
   }
 });

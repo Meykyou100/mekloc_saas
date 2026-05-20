@@ -284,10 +284,18 @@ async function repairApprovedProfile(): Promise<UserProfile | null> {
   if (!supabase) return null;
   const { data, error } = await supabase.functions.invoke('repair-approved-profile');
   if (error) throw error;
-  const repaired = data as { success?: boolean; repaired?: boolean; error?: string };
+  const repaired = data as { success?: boolean; repaired?: boolean; agency_id?: string; agencyId?: string; profile_id?: string; profileId?: string; error?: string };
   if (!repaired?.success) throw new Error(repaired?.error || 'Réparation du profil impossible.');
+  if (import.meta.env.DEV) {
+    console.log('MekLoc repair-approved-profile response', {
+      repaired: repaired.repaired,
+      agencyId: repaired.agency_id || repaired.agencyId,
+      profileId: repaired.profile_id || repaired.profileId,
+    });
+  }
   const { data: userData, error: userError } = await supabase.auth.getUser();
   if (userError || !userData.user) throw userError || new Error('Session utilisateur introuvable.');
+  await new Promise((resolve) => window.setTimeout(resolve, 250));
   return fetchProfile(userData.user.id);
 }
 
