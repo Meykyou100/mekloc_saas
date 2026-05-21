@@ -40,28 +40,29 @@ Deno.serve(async (req) => {
     const { projectUrl, serviceRole } = getSupabaseConfig();
     const headers = serviceHeaders(serviceRole);
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    const emailTestMode = Deno.env.get('EMAIL_TEST_MODE') === 'true' || !resendApiKey;
     const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'MekLoc <no-reply@mekloc.app>';
     const otpSecret = Deno.env.get('OTP_SECRET') || serviceRole;
     const { email } = await req.json() as { email?: string };
     const normalizedEmail = normalizeEmail(email);
     const ip = getClientIp(req);
 
-    if (!normalizedEmail || !isEmail(normalizedEmail)) return json(defaultCorsHeaders, { error: 'Email invalide' }, 400);
-    if (isBlockedEmail(normalizedEmail)) return json(defaultCorsHeaders, { error: 'Domaine email non accepté.' }, 400);
+    if (!normalizedEmail || !isEmail(normalizedEmail)) return json(defaultCorsHeaders, { ok: false, error: 'Email invalide' });
+    if (isBlockedEmail(normalizedEmail)) return json(defaultCorsHeaders, { ok: false, error: 'Domaine email non accepté.' });
 
     const recentRes = await fetch(
       `${projectUrl}/rest/v1/email_verifications?email=eq.${encodeURIComponent(normalizedEmail)}&created_at=gte.${encodeURIComponent(new Date(Date.now() - 60 * 1000).toISOString())}&select=id&limit=1`,
       { headers },
     );
     const recent = recentRes.ok ? await recentRes.json() as Array<{ id: string }> : [];
-    if (recent.length) return json(defaultCorsHeaders, { error: 'Attendez une minute avant de renvoyer un code.' }, 429);
+    if (recent.length) return json(defaultCorsHeaders, { ok: false, error: 'Attendez une minute avant de renvoyer un code.' });
 
     const hourlyRes = await fetch(
       `${projectUrl}/rest/v1/email_verifications?email=eq.${encodeURIComponent(normalizedEmail)}&created_at=gte.${encodeURIComponent(new Date(Date.now() - 60 * 60 * 1000).toISOString())}&select=id`,
       { headers },
     );
     const hourly = hourlyRes.ok ? await hourlyRes.json() as Array<{ id: string }> : [];
-    if (hourly.length >= 5) return json(defaultCorsHeaders, { error: 'Trop de demandes. Réessayez plus tard.' }, 429);
+    if (hourly.length >= 5) return json(defaultCorsHeaders, { ok: false, error: 'Trop de demandes. Réessayez plus tard.' });
 
     const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000000).padStart(6, '0');
     const codeHash = await sha256(`${normalizedEmail}:${code}:${otpSecret}`);
@@ -74,9 +75,9 @@ Deno.serve(async (req) => {
     });
     if (!insertRes.ok) throw new Error(await insertRes.text() || 'Création code impossible.');
 
-    if (!resendApiKey) {
-      console.error('request-email-verification missing RESEND_API_KEY', { email: normalizedEmail, ip });
-      return json(defaultCorsHeaders, { error: 'Service email non configuré.' }, 500);
+    if (emailTestMode) {
+      console.error('request-email-verification test mode', { email: normalizedEmail, ip, reason: resendApiKey ? 'EMAIL_TEST_MODE=true' : 'RESEND_API_KEY missing' });
+      return json(defaultCorsHeaders, { ok: true, success: true, test_mode: true, otp_code: code, expiresAt });
     }
 
     const resendResponse = await fetch('https://api.resend.com/emails', {
@@ -92,9 +93,9 @@ Deno.serve(async (req) => {
     });
     if (!resendResponse.ok) throw new Error('Envoi email impossible.');
 
-    return json(defaultCorsHeaders, { success: true, expiresAt });
+    return json(defaultCorsHeaders, { ok: true, success: true, test_mode: false, expiresAt });
   } catch (error) {
     console.error('request-email-verification failed', error);
-    return json(defaultCorsHeaders, { error: error instanceof Error ? error.message : 'Envoi code impossible.' }, 400);
+    return json(defaultCorsHeaders, { ok: false, error: error instanceof Error ? error.message : 'Envoi code impossible.' });
   }
 });

@@ -118,12 +118,16 @@ export default function DemandeAccesPage() {
     try {
       const { data, error } = await supabase.functions.invoke('request-email-verification', { body: { email: normalized } });
       if (error) throw error;
-      const payload = data as { error?: string };
-      if (payload?.error) throw new Error(payload.error);
+      const payload = data as { ok?: boolean; success?: boolean; test_mode?: boolean; otp_code?: string; error?: string };
+      if (payload?.ok === false || payload?.error) throw new Error(payload.error || 'Envoi code impossible.');
       setEmail(normalized);
       setEmailVerificationStatus('sent');
-      setEmailVerificationCode('');
-      notify({ title: 'Code envoyé', message: 'Vérifiez votre boîte email. Le code expire dans 10 minutes.', type: 'success' });
+      setEmailVerificationCode(payload?.test_mode && payload.otp_code ? payload.otp_code : '');
+      notify({
+        title: payload?.test_mode ? 'Code généré en test' : 'Code envoyé',
+        message: payload?.test_mode && payload.otp_code ? `Mode test: utilisez le code ${payload.otp_code}.` : 'Vérifiez votre boîte email. Le code expire dans 10 minutes.',
+        type: 'success',
+      });
     } catch (error) {
       notify({ title: 'Envoi code impossible', message: extractErrorMessage(error), type: 'warning' });
     } finally {
