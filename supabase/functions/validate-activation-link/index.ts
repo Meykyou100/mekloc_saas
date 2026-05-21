@@ -7,7 +7,7 @@ Deno.serve(async (req) => {
     const { projectUrl, serviceRole } = getSupabaseConfig();
     const { token } = await req.json() as { token?: string };
     const safeToken = String(token || '').trim();
-    if (!safeToken) return json(corsHeaders, { valid: false, reason: 'missing' }, 400);
+    if (!safeToken) return json(corsHeaders, { valid: false, reason: 'token_missing' }, 400);
 
     const res = await fetch(`${projectUrl}/rest/v1/activation_links?token=eq.${encodeURIComponent(safeToken)}&select=id,email,agency_id,role,expires_at,used_at&limit=1`, {
       headers: serviceHeaders(serviceRole),
@@ -15,9 +15,9 @@ Deno.serve(async (req) => {
     if (!res.ok) throw new Error(await res.text());
     const rows = await res.json() as Array<{ email: string; agency_id: string | null; role: string | null; expires_at: string; used_at: string | null }>;
     const link = rows?.[0];
-    if (!link) return json(corsHeaders, { valid: false, reason: 'not_found' }, 404);
-    if (link.used_at) return json(corsHeaders, { valid: false, reason: 'used' }, 410);
-    if (new Date(link.expires_at).getTime() <= Date.now()) return json(corsHeaders, { valid: false, reason: 'expired' }, 410);
+    if (!link) return json(corsHeaders, { valid: false, reason: 'token_not_found' }, 404);
+    if (link.used_at) return json(corsHeaders, { valid: false, reason: 'token_already_used' }, 410);
+    if (new Date(link.expires_at).getTime() <= Date.now()) return json(corsHeaders, { valid: false, reason: 'token_expired' }, 410);
 
     return json(corsHeaders, {
       valid: true,

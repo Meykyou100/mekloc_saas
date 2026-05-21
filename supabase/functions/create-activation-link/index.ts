@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
     if (!insertRes.ok) throw new Error(await insertRes.text());
 
     const origin = getAppOrigin(body.appOrigin, body.redirectTo);
-    const activationLink = `${origin}/activation/${token}`;
+    const activationLink = `${origin}/set-password?token=${encodeURIComponent(token)}`;
     console.log('create-activation-link: created', { email, agencyId, role, expiresAt });
     return json(corsHeaders, { success: true, activationLink, token, expiresAt, email, agencyId, role });
   } catch (error) {

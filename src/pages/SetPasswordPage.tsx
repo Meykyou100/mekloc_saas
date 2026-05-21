@@ -1,12 +1,24 @@
 import { Eye, EyeOff, LockKeyhole, ShieldCheck } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import ActivationPage from './ActivationPage';
 
 export default function SetPasswordPage() {
+  const [searchParams] = useSearchParams();
+  const shortToken = String(searchParams.get('token') || '').trim();
+
+  if (shortToken) {
+    return <ActivationPage tokenOverride={shortToken} />;
+  }
+
+  return <LegacySetPasswordPage />;
+}
+
+function LegacySetPasswordPage() {
   const { recoverActivationSession, updatePassword } = useAuth();
   const { notify } = useApp();
   const navigate = useNavigate();

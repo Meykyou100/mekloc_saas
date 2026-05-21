@@ -299,7 +299,7 @@ Deno.serve(async (req) => {
       }]),
     });
     if (!shortInsertRes.ok) throw new Error(`Erreur création lien court: ${await shortInsertRes.text()}`);
-    activationLink = `${getAppOrigin(redirectTo)}/activation/${shortToken}`;
+    activationLink = `${getAppOrigin(redirectTo)}/set-password?token=${encodeURIComponent(shortToken)}`;
 
     return new Response(JSON.stringify({ success: true, inviteInfo, activationLink, agencyId, profileId: approvedUserId }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

@@ -46,7 +46,7 @@ Deno.serve(async (req) => {
     const { token, password } = await req.json() as { token?: string; password?: string };
     const safeToken = String(token || '').trim();
     const nextPassword = String(password || '');
-    if (!safeToken) return json(corsHeaders, { success: false, error: 'Lien manquant.' }, 400);
+    if (!safeToken) return json(corsHeaders, { success: false, error: 'token_missing' }, 400);
     if (nextPassword.length < 8) return json(corsHeaders, { success: false, error: 'Mot de passe trop court.' }, 400);
 
     const headers = serviceHeaders(serviceRole);
@@ -54,9 +54,9 @@ Deno.serve(async (req) => {
     if (!linkRes.ok) throw new Error(await linkRes.text());
     const rows = await linkRes.json() as Array<{ id: string; email: string; agency_id: string | null; role: string | null; expires_at: string; used_at: string | null }>;
     const link = rows?.[0];
-    if (!link) return json(corsHeaders, { success: false, error: 'Lien introuvable.' }, 404);
-    if (link.used_at) return json(corsHeaders, { success: false, error: 'Ce lien a déjà été utilisé.' }, 410);
-    if (new Date(link.expires_at).getTime() <= Date.now()) return json(corsHeaders, { success: false, error: 'Ce lien a expiré.' }, 410);
+    if (!link) return json(corsHeaders, { success: false, error: 'token_not_found' }, 404);
+    if (link.used_at) return json(corsHeaders, { success: false, error: 'token_already_used' }, 410);
+    if (new Date(link.expires_at).getTime() <= Date.now()) return json(corsHeaders, { success: false, error: 'token_expired' }, 410);
 
     const email = normalizeEmail(link.email);
     const userId = await findOrCreateAuthUser(projectUrl, serviceRole, email);

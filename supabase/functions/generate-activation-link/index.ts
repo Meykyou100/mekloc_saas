@@ -83,7 +83,7 @@ Deno.serve(async (req) => {
         }]),
       });
       if (!insertRes.ok) throw new Error(await insertRes.text());
-      return `${appOrigin}/activation/${token}`;
+      return `${appOrigin}/set-password?token=${encodeURIComponent(token)}`;
     };
 
     const { res: genRes, txt } = await buildLink('recovery');

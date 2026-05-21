@@ -14,14 +14,17 @@ type ActivationState = {
 };
 
 function reasonMessage(reason: string) {
-  if (reason === 'used') return 'Ce lien a déjà été utilisé.';
-  if (reason === 'expired') return 'Ce lien a expiré. Demandez un nouveau lien à votre administrateur.';
-  if (reason === 'not_found') return 'Lien d’activation introuvable.';
-  return 'Lien d’activation invalide.';
+  if (reason === 'Mot de passe trop court.') return reason;
+  if (reason === 'token_missing' || reason === 'missing') return 'token_missing — Lien d’activation manquant.';
+  if (reason === 'token_already_used' || reason === 'used') return 'token_already_used — Ce lien a déjà été utilisé.';
+  if (reason === 'token_expired' || reason === 'expired') return 'token_expired — Ce lien a expiré. Demandez un nouveau lien à votre administrateur.';
+  if (reason === 'token_not_found' || reason === 'not_found') return 'token_not_found — Lien d’activation introuvable.';
+  return 'token_invalid — Lien d’activation invalide.';
 }
 
-export default function ActivationPage() {
-  const { token = '' } = useParams();
+export default function ActivationPage({ tokenOverride }: { tokenOverride?: string }) {
+  const { token: routeToken = '' } = useParams();
+  const token = String(tokenOverride || routeToken || '').trim();
   const navigate = useNavigate();
   const { notify } = useApp();
   const [state, setState] = useState<ActivationState>({ loading: true, valid: false, email: '', error: '' });
@@ -35,7 +38,7 @@ export default function ActivationPage() {
     let cancelled = false;
     async function validate() {
       if (!supabase || !token) {
-        setState({ loading: false, valid: false, email: '', error: 'Lien d’activation invalide.' });
+        setState({ loading: false, valid: false, email: '', error: reasonMessage('token_missing') });
         return;
       }
       const { data, error } = await supabase.functions.invoke('validate-activation-link', { body: { token } });
@@ -71,7 +74,7 @@ export default function ActivationPage() {
         body: { token, password },
       });
       const payload = data as { success?: boolean; error?: string; email?: string } | null;
-      if (error || !payload?.success) throw new Error(payload?.error || error?.message || 'Activation impossible.');
+      if (error || !payload?.success) throw new Error(reasonMessage(payload?.error || error?.message || ''));
       notify({ title: 'Compte activé', message: 'Votre mot de passe est défini. Connectez-vous maintenant.', type: 'success' });
       navigate(`/auth?email=${encodeURIComponent(payload.email || state.email)}&force=login`, { replace: true });
     } catch (error) {

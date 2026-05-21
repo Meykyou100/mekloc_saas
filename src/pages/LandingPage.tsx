@@ -6,6 +6,7 @@ import {
   Car,
   Check,
   ChevronDown,
+  ArrowUp,
   CircleDollarSign,
   Clock3,
   CreditCard,
@@ -15,11 +16,14 @@ import {
   Instagram,
   Linkedin,
   Mail,
+  MapPin,
+  Menu,
   MessageCircle,
   PenLine,
   Rocket,
   ShieldCheck,
   Users,
+  X,
   Zap,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -132,8 +136,13 @@ const socialLinks = [
   { label: 'Email', icon: Mail, href: `mailto:${contactEmail}` },
 ];
 
-function LogoMark({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
-  const boxSize = size === 'lg' ? 'h-16 w-48 sm:h-20 sm:w-64' : 'h-9 w-28 sm:h-10 sm:w-36';
+function LogoMark({ size = 'sm' }: { size?: 'sm' | 'lg' | 'header' }) {
+  const boxSize =
+    size === 'lg'
+      ? 'h-16 w-48 sm:h-20 sm:w-64'
+      : size === 'header'
+        ? 'h-12 w-40 md:h-14 md:w-48'
+        : 'h-9 w-28 sm:h-10 sm:w-36';
 
   return (
     <div className={`grid ${boxSize} shrink-0 place-items-center overflow-hidden`}>
@@ -143,40 +152,92 @@ function LogoMark({ size = 'sm' }: { size?: 'sm' | 'lg' }) {
 }
 
 function LandingHeader() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navItems = [
+    ['Fonctionnalités', '#fonctionnalites'],
+    ['Tarifs', '#tarifs'],
+    ['FAQ', '#faq'],
+    ['Contact', '#contact'],
+  ];
+
   return (
-    <header className="border-b border-white/[0.08] bg-[#050606]/90 backdrop-blur-xl">
-      <div className="mx-auto flex h-[72px] max-w-[1280px] items-center justify-between px-4 sm:px-6">
-        <Link to="/" className="flex items-center gap-3">
-          <LogoMark />
+    <header className="sticky top-0 z-50 border-b border-[#E3B117]/10 bg-black/85 backdrop-blur-xl">
+      <div className="mx-auto grid h-[72px] w-full max-w-[1440px] grid-cols-[1fr_auto] items-center px-4 sm:px-6 md:h-24 lg:grid-cols-[1fr_auto_1fr] lg:px-8 xl:px-10">
+        <Link to="/" className="flex min-w-0 items-center gap-3" onClick={() => setMobileMenuOpen(false)}>
+          <LogoMark size="header" />
         </Link>
 
-        <nav className="hidden items-center gap-9 text-sm font-semibold text-white/84 lg:flex">
-          <a href="#fonctionnalites" className="hover:text-[#F5C542]">Fonctionnalités</a>
-          <a href="#tarifs" className="hover:text-[#F5C542]">Tarifs</a>
-          <a href="#faq" className="hover:text-[#F5C542]">FAQ</a>
-          <a href="#contact" className="hover:text-[#F5C542]">Contact</a>
+        <nav className="hidden items-center justify-center gap-10 text-sm font-semibold text-white/84 md:text-base lg:flex">
+          {navItems.map(([label, href]) => (
+            <a
+              key={href}
+              href={href}
+              className="group relative py-2 transition hover:text-[#F5C542]"
+            >
+              {label}
+              <span className="absolute inset-x-0 -bottom-1 h-px scale-x-0 bg-[#F5C542] transition-transform duration-200 group-hover:scale-x-100" />
+            </a>
+          ))}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="hidden items-center justify-end gap-3 lg:flex">
           <Link to="/login">
-            <Button variant="secondary" className="h-10 rounded-xl border-white/20 px-3 text-xs sm:h-11 sm:px-5 sm:text-sm">
+            <Button variant="secondary" className="h-11 rounded-xl border-white/18 bg-white/[0.045] px-6 text-sm font-semibold shadow-[0_12px_34px_rgba(0,0,0,.18)] hover:border-[#E3B117]/35">
               Connexion
             </Button>
           </Link>
           <Link to="/demande-acces">
-            <Button className="h-10 rounded-xl bg-[#E3B117] px-3 text-xs text-[#070807] hover:bg-[#F5C542] sm:h-11 sm:px-5 sm:text-sm">
+            <Button className="h-11 rounded-xl bg-[#E3B117] px-6 text-sm font-semibold text-[#070807] shadow-[0_14px_32px_rgba(227,177,23,.22)] hover:bg-[#F5C542]">
               Essai gratuit
             </Button>
           </Link>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen((open) => !open)}
+          aria-label={mobileMenuOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+          className="grid h-11 w-11 place-items-center justify-self-end rounded-xl border border-white/12 bg-white/[0.05] text-white transition hover:border-[#E3B117]/35 hover:text-[#F5C542] lg:hidden"
+        >
+          {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
       </div>
+
+      {mobileMenuOpen ? (
+        <div className="border-t border-white/[0.08] bg-[#050606]/98 px-4 py-4 shadow-[0_22px_60px_rgba(0,0,0,.36)] backdrop-blur-xl lg:hidden">
+          <nav className="mx-auto flex w-full max-w-[1440px] flex-col gap-1 sm:px-2">
+            {navItems.map(([label, href]) => (
+              <a
+                key={href}
+                href={href}
+                onClick={() => setMobileMenuOpen(false)}
+                className="rounded-xl px-4 py-3 text-sm font-semibold text-white/78 transition hover:bg-[#E3B117]/10 hover:text-[#F5C542]"
+              >
+                {label}
+              </a>
+            ))}
+            <div className="mt-3 grid gap-3 sm:grid-cols-2">
+              <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                <Button variant="secondary" className="h-11 w-full rounded-xl border-white/18 bg-white/[0.045]">
+                  Connexion
+                </Button>
+              </Link>
+              <Link to="/demande-acces" onClick={() => setMobileMenuOpen(false)}>
+                <Button className="h-11 w-full rounded-xl bg-[#E3B117] font-semibold text-[#070807] hover:bg-[#F5C542]">
+                  Essai gratuit
+                </Button>
+              </Link>
+            </div>
+          </nav>
+        </div>
+      ) : null}
     </header>
   );
 }
 
 function DashboardPreview() {
   return (
-    <div className="overflow-hidden rounded-[1.65rem] border border-[#E3B117]/32 bg-[#070807] shadow-[0_30px_95px_rgba(0,0,0,.58)]">
+    <div className="w-full max-w-[720px] justify-self-end overflow-hidden rounded-[1.65rem] border border-[#E3B117]/32 bg-[#070807] shadow-[0_30px_95px_rgba(0,0,0,.58)]">
       <img
         src="/landing/luxury-dashboard.png"
         alt="Aperçu premium du tableau de bord MekLoc"
@@ -219,8 +280,8 @@ export default function LandingPage() {
 
       <main className="bg-[radial-gradient(circle_at_28%_4%,rgba(227,177,23,.08),transparent_34%),linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.02)_1px,transparent_1px)] bg-[size:auto,72px_72px,72px_72px]">
         <section className="border-b border-white/[0.08]">
-          <div className="mx-auto grid max-w-[1280px] items-center gap-10 px-4 py-9 sm:px-6 lg:grid-cols-[0.76fr_1.24fr] lg:py-8">
-            <div className="max-w-[520px]">
+          <div className="mx-auto grid w-full max-w-[1440px] items-center gap-8 px-4 py-9 sm:px-6 lg:grid-cols-[0.95fr_1.05fr] lg:gap-12 lg:px-8 lg:py-8 xl:gap-16 xl:px-10">
+            <div className="max-w-[620px]">
               <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#E3B117]/28 bg-[#E3B117]/10 px-4 py-2 text-sm font-semibold text-[#F5C542]">
                 <Gauge className="h-4 w-4" />
                 SaaS de gestion pour agences de location au Maroc
@@ -274,7 +335,7 @@ export default function LandingPage() {
         </section>
 
         <section id="fonctionnalites" className="border-b border-white/[0.08] py-16 sm:py-20">
-          <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
+          <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-10">
             <h2 className="mb-5 text-xl font-black text-white">Pourquoi MekLoc ?</h2>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
               {benefits.map(({ title, text, icon: Icon }) => (
@@ -291,14 +352,14 @@ export default function LandingPage() {
         </section>
 
         <section className="border-b border-white/[0.08] bg-[#050606]/55 py-14 sm:py-20">
-          <div className="mx-auto max-w-[1200px] px-4 sm:px-6">
+          <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-10">
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="text-3xl font-black text-white sm:text-4xl">Comment ça marche ?</h2>
               <p className="mt-3 text-sm leading-6 text-white/58">
                 Un lancement simple pour passer rapidement de la demande d’accès à la gestion quotidienne.
               </p>
             </div>
-            <div className="mx-auto mt-12 grid max-w-[1120px] gap-5 md:grid-cols-3">
+            <div className="mx-auto mt-12 grid max-w-[1200px] gap-5 md:grid-cols-3">
               {[
                 ['Demandez l’accès', 'Remplissez le formulaire d’accès en quelques secondes.'],
                 ['Configurez votre agence', 'Ajoutez vos véhicules, tarifs, documents et préférences.'],
@@ -337,14 +398,14 @@ export default function LandingPage() {
         </section>
 
         <section id="tarifs" className="border-b border-white/[0.08] py-14 sm:py-20">
-          <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
+          <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-10">
             <div className="mx-auto max-w-2xl text-center">
               <h2 className="text-3xl font-black text-white sm:text-4xl">Tarifs simples et transparents</h2>
               <p className="mt-3 text-sm leading-6 text-white/58">
                 Deux offres claires pour gérer votre agence avec le niveau de puissance adapté.
               </p>
             </div>
-            <div className="mx-auto mt-10 grid max-w-[920px] gap-6 md:grid-cols-2">
+            <div className="mx-auto mt-10 grid max-w-[960px] gap-6 md:grid-cols-2">
               {plans.map((plan) => {
                 const Icon = plan.icon;
                 return (
@@ -393,7 +454,7 @@ export default function LandingPage() {
         </section>
 
         <section id="faq" className="border-b border-white/[0.08] bg-[#050606]/55 py-14 sm:py-20">
-          <div className="mx-auto max-w-[760px] px-4 sm:px-6">
+          <div className="mx-auto w-full max-w-[760px] px-4 sm:px-6 lg:px-8 xl:px-10">
             <h2 className="text-center text-3xl font-black text-white sm:text-4xl">Questions fréquentes</h2>
             <div className="mt-10 space-y-3">
               {faqs.map(([question, answer]) => (
@@ -410,7 +471,7 @@ export default function LandingPage() {
         </section>
 
         <section id="contact" className="border-b border-white/[0.08] bg-[#050606] py-16 sm:py-24">
-          <div className="mx-auto max-w-[1280px] px-4 sm:px-6">
+          <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-10">
             <div className="grid gap-10 lg:grid-cols-[360px_1fr] lg:items-start">
               <div className="flex min-h-[540px] flex-col justify-between gap-10 rounded-[1.75rem] border border-white/[0.08] bg-[linear-gradient(135deg,rgba(255,255,255,.045),rgba(255,255,255,.015))] p-6 sm:p-8">
                 <div>
@@ -543,33 +604,115 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="bg-[#050606] px-4 pb-8 sm:px-6">
-        <div className="mx-auto flex max-w-[1280px] flex-col gap-8 rounded-t-[1.75rem] border border-white/[0.08] border-b-0 bg-[linear-gradient(135deg,rgba(255,255,255,.04),rgba(255,255,255,.015))] px-6 py-8 text-sm text-white/54 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3">
-            <LogoMark size="lg" />
+      <footer className="relative overflow-hidden border-t border-[#E3B117]/10 bg-gradient-to-b from-[#050606] to-[#0b0b08]">
+        <div className="pointer-events-none absolute inset-x-0 top-40 h-80 bg-[radial-gradient(circle_at_center,rgba(227,177,23,.1),transparent_62%)]" />
+        <div className="relative mx-auto w-full max-w-[1440px] px-4 py-16 sm:px-6 lg:px-8 xl:px-10">
+          <div className="grid gap-8 lg:grid-cols-[1.45fr_0.8fr_0.95fr_1fr] lg:gap-12">
+            <div>
+              <LogoMark />
+              <p className="mt-6 max-w-md text-base leading-8 text-white/62">
+                La solution SaaS complète pour gérer votre agence de location automobile :
+                réservations, véhicules, contrats PDF, paiements et alertes.
+              </p>
+              <div className="mt-7 flex flex-wrap gap-3">
+                {socialLinks.map(({ label, icon: Icon, href }) => (
+                  <a
+                    key={label}
+                    href={label === 'WhatsApp' ? baseWhatsappUrl : href}
+                    target={href.startsWith('http') || label === 'WhatsApp' ? '_blank' : undefined}
+                    rel={href.startsWith('http') || label === 'WhatsApp' ? 'noreferrer' : undefined}
+                    aria-label={label}
+                    className="grid h-11 w-11 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.035] text-white/76 transition hover:border-[#E3B117]/45 hover:bg-[#E3B117]/10 hover:text-[#F5C542]"
+                  >
+                    <Icon className="h-5 w-5" />
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black text-white/92">Produit</h3>
+              <div className="mt-6 space-y-4 text-sm font-medium text-white/56">
+                <a href="#fonctionnalites" className="block transition hover:text-[#F5C542]">Fonctionnalités</a>
+                <a href="#tarifs" className="block transition hover:text-[#F5C542]">Tarifs</a>
+                <a href="#contact" className="block transition hover:text-[#F5C542]">Demander une démo</a>
+                <Link to="/demande-acces" className="block transition hover:text-[#F5C542]">Essai gratuit</Link>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black text-white/92">Entreprise</h3>
+              <div className="mt-6 space-y-4 text-sm font-medium text-white/56">
+                <a href="#fonctionnalites" className="block transition hover:text-[#F5C542]">À propos</a>
+                <a href="#contact" className="block transition hover:text-[#F5C542]">Contact</a>
+                <Link to="/conditions-utilisation" className="block transition hover:text-[#F5C542]">Conditions</Link>
+                <Link to="/politique-confidentialite" className="block transition hover:text-[#F5C542]">Confidentialité</Link>
+                <Link to="/annulation-remboursement" className="block transition hover:text-[#F5C542]">Annulation & remboursement</Link>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-base font-black text-white/92">Contact</h3>
+              <div className="mt-6 space-y-5 text-sm font-medium text-white/62">
+                <a href={`mailto:${contactEmail}`} className="flex items-center gap-3 transition hover:text-[#F5C542]">
+                  <Mail className="h-4 w-4 text-[#F5C542]" />
+                  {contactEmail}
+                </a>
+                <a href={baseWhatsappUrl} target="_blank" rel="noreferrer" className="flex items-center gap-3 transition hover:text-[#F5C542]">
+                  <MessageCircle className="h-4 w-4 text-[#F5C542]" />
+                  +212 762-971653
+                </a>
+                <p className="flex items-center gap-3">
+                  <MapPin className="h-4 w-4 text-[#F5C542]" />
+                  Maroc
+                </p>
+              </div>
+            </div>
           </div>
-          <p>© 2026 MekLoc. Tous droits réservés.</p>
-          <div className="flex flex-wrap gap-6">
-            <a href="#fonctionnalites" className="hover:text-[#F5C542]">Fonctionnalités</a>
-            <a href="#tarifs" className="hover:text-[#F5C542]">Tarifs</a>
-            <a href="#faq" className="hover:text-[#F5C542]">FAQ</a>
-            <Link to="/conditions-utilisation" className="hover:text-[#F5C542]">Conditions</Link>
-            <Link to="/politique-confidentialite" className="hover:text-[#F5C542]">Confidentialité</Link>
-            <Link to="/annulation-remboursement" className="hover:text-[#F5C542]">Annulation & remboursement</Link>
-          </div>
-          <div className="flex gap-3">
-            {socialLinks.map(({ label, icon: Icon, href }) => (
-              <a
-                key={label}
-                href={label === 'WhatsApp' ? baseWhatsappUrl : href}
-                target={href.startsWith('http') || label === 'WhatsApp' ? '_blank' : undefined}
-                rel={href.startsWith('http') || label === 'WhatsApp' ? 'noreferrer' : undefined}
-                aria-label={label}
-                className="grid h-10 w-10 place-items-center rounded-xl border border-white/[0.08] bg-white/[0.035] text-white transition hover:border-[#E3B117]/35 hover:text-[#F5C542]"
-              >
-                <Icon className="h-5 w-5" />
+
+          <div className="mt-16 rounded-3xl border border-[#E3B117]/20 bg-gradient-to-br from-[#E3B117]/15 via-zinc-950 to-zinc-950 px-6 py-12 text-center shadow-[0_0_50px_rgba(227,177,23,0.12)] sm:px-10">
+            <h2 className="text-3xl font-black leading-tight text-white sm:text-4xl">
+              Prêt à digitaliser votre agence de location ?
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-white/68">
+              Gagnez du temps sur vos réservations, contrats, paiements et alertes avec MekLoc.
+            </p>
+            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+              <Link to="/demande-acces" className="block sm:inline-block">
+                <Button className="h-12 w-full rounded-xl bg-[#E3B117] px-7 text-[#070807] hover:bg-[#F5C542] sm:w-auto" icon={<Rocket className="h-4 w-4" />}>
+                  Essai gratuit 14 jours
+                </Button>
+              </Link>
+              <a href={baseWhatsappUrl} target="_blank" rel="noreferrer" className="block sm:inline-block">
+                <Button variant="secondary" className="h-12 w-full rounded-xl border-white/18 bg-white/[0.06] px-7 sm:w-auto" icon={<CalendarDays className="h-4 w-4" />}>
+                  Réserver une démo
+                </Button>
               </a>
-            ))}
+            </div>
+          </div>
+
+          <div className="mt-10 flex flex-col items-center gap-6 border-t border-white/[0.08] pt-8 text-center text-sm text-white/48 lg:flex-row lg:justify-between lg:text-left">
+            <div className="flex flex-wrap justify-center gap-5 lg:justify-start">
+              <Link to="/conditions-utilisation" className="transition hover:text-[#F5C542]">Mentions légales</Link>
+              <Link to="/conditions-utilisation" className="transition hover:text-[#F5C542]">Conditions</Link>
+              <Link to="/politique-confidentialite" className="transition hover:text-[#F5C542]">Confidentialité</Link>
+              <a href="#contact" className="transition hover:text-[#F5C542]">Cookies</a>
+            </div>
+            <p>© 2026 MekLoc. Tous droits réservés.</p>
+            <div className="flex items-center justify-center gap-3">
+              <span className="inline-flex items-center gap-2 rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2 text-white/58">
+                <ShieldCheck className="h-4 w-4 text-[#F5C542]" />
+                Sécurisé SSL
+              </span>
+              <button
+                type="button"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                aria-label="Retour en haut"
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[#E3B117] text-[#070807] shadow-[0_14px_32px_rgba(227,177,23,.25)] transition hover:bg-[#F5C542]"
+              >
+                <ArrowUp className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
       </footer>

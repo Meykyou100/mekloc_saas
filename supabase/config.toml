@@ -3,3 +3,9 @@ verify_jwt = false
 
 [functions.verify-email-code]
 verify_jwt = false
+
+[functions.validate-activation-link]
+verify_jwt = false
+
+[functions.complete-activation]
+verify_jwt = false
