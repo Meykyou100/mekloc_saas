@@ -116,9 +116,27 @@ export default function DemandeAccesPage() {
     }
     setSendingCode(true);
     try {
-      const { data, error } = await supabase.functions.invoke('request-email-verification', { body: { email: normalized } });
-      if (error) throw error;
-      const payload = data as { ok?: boolean; success?: boolean; test_mode?: boolean; otp_code?: string; error?: string };
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+      if (!supabaseUrl || !anonKey) throw new Error('Configuration Supabase manquante.');
+      const response = await fetch(`${supabaseUrl.replace(/\/$/, '')}/functions/v1/request-email-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: anonKey,
+          Authorization: `Bearer ${anonKey}`,
+        },
+        body: JSON.stringify({ email: normalized }),
+      });
+      const rawBody = await response.text();
+      let payload: { ok?: boolean; success?: boolean; test_mode?: boolean; otp_code?: string; error?: string; details?: string } = {};
+      try {
+        payload = rawBody ? JSON.parse(rawBody) : {};
+      } catch {
+        payload = { ok: false, error: rawBody || 'Réponse Edge Function invalide.' };
+      }
+      console.log('request-email-verification response', { status: response.status, body: payload });
+      if (!response.ok) throw new Error(payload.error || payload.details || `HTTP ${response.status}`);
       if (payload?.ok === false || payload?.error) throw new Error(payload.error || 'Envoi code impossible.');
       setEmail(normalized);
       setEmailVerificationStatus('sent');

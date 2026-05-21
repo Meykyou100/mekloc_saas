@@ -34,20 +34,37 @@ function buildOtpEmail(code: string) {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: defaultCorsHeaders });
-
   try {
+    console.log('request-email-verification:start', {
+      method: req.method,
+      origin: req.headers.get('origin') || null,
+      hasBody: Boolean(req.headers.get('content-length')) || req.headers.get('transfer-encoding') === 'chunked',
+    });
+
+    if (req.method === 'OPTIONS') return json(defaultCorsHeaders, { ok: true }, 200);
+    if (req.method !== 'POST') return json(defaultCorsHeaders, { ok: false, error: 'method_not_allowed' });
+
     const { projectUrl, serviceRole } = getSupabaseConfig();
     const headers = serviceHeaders(serviceRole);
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     const emailTestMode = Deno.env.get('EMAIL_TEST_MODE') === 'true' || !resendApiKey;
     const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'MekLoc <no-reply@mekloc.app>';
     const otpSecret = Deno.env.get('OTP_SECRET') || serviceRole;
-    const { email } = await req.json() as { email?: string };
+    let body: { email?: string };
+    try {
+      const rawBody = await req.text();
+      if (!rawBody.trim()) return json(defaultCorsHeaders, { ok: false, error: 'email_required' });
+      body = JSON.parse(rawBody) as { email?: string };
+    } catch (error) {
+      console.error('request-email-verification invalid JSON body', error);
+      return json(defaultCorsHeaders, { ok: false, error: 'invalid_json_body' });
+    }
+    const { email } = body;
     const normalizedEmail = normalizeEmail(email);
     const ip = getClientIp(req);
 
-    if (!normalizedEmail || !isEmail(normalizedEmail)) return json(defaultCorsHeaders, { ok: false, error: 'Email invalide' });
+    if (!normalizedEmail) return json(defaultCorsHeaders, { ok: false, error: 'email_required' });
+    if (!isEmail(normalizedEmail)) return json(defaultCorsHeaders, { ok: false, error: 'Email invalide' });
     if (isBlockedEmail(normalizedEmail)) return json(defaultCorsHeaders, { ok: false, error: 'Domaine email non accepté.' });
 
     const recentRes = await fetch(
@@ -73,7 +90,15 @@ Deno.serve(async (req) => {
       headers: { ...headers, Prefer: 'return=minimal' },
       body: JSON.stringify({ email: normalizedEmail, code_hash: codeHash, expires_at: expiresAt }),
     });
-    if (!insertRes.ok) throw new Error(await insertRes.text() || 'Création code impossible.');
+    if (!insertRes.ok) {
+      const details = await insertRes.text();
+      console.error('request-email-verification database insert failed', { status: insertRes.status, details });
+      return json(defaultCorsHeaders, {
+        ok: false,
+        error: 'database_insert_failed',
+        details: details || `HTTP ${insertRes.status}`,
+      });
+    }
 
     if (emailTestMode) {
       console.error('request-email-verification test mode', { email: normalizedEmail, ip, reason: resendApiKey ? 'EMAIL_TEST_MODE=true' : 'RESEND_API_KEY missing' });
@@ -91,7 +116,11 @@ Deno.serve(async (req) => {
         html: buildOtpEmail(code),
       }),
     });
-    if (!resendResponse.ok) throw new Error('Envoi email impossible.');
+    if (!resendResponse.ok) {
+      const details = await resendResponse.text();
+      console.error('request-email-verification resend failed', { status: resendResponse.status, details });
+      return json(defaultCorsHeaders, { ok: false, error: 'email_send_failed', details: details || `HTTP ${resendResponse.status}` });
+    }
 
     return json(defaultCorsHeaders, { ok: true, success: true, test_mode: false, expiresAt });
   } catch (error) {
