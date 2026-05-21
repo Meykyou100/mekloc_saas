@@ -72,14 +72,89 @@ export default function DemandeAccesPage() {
   const { notify } = useApp();
   const { signOut, session } = useAuth();
   const normalizeEmail = (email: string) => normalizeText(email, 254).toLowerCase();
+  const prefilledEmail = searchParams.get('email') || '';
+  const fromLogin = searchParams.get('from') === 'login';
+  const [email, setEmail] = useState(normalizeEmail(prefilledEmail));
+  const [emailVerificationCode, setEmailVerificationCode] = useState('');
+  const [emailVerificationStatus, setEmailVerificationStatus] = useState<'idle' | 'sent' | 'verified'>('idle');
+  const [verifiedEmail, setVerifiedEmail] = useState('');
+  const [verifiedAt, setVerifiedAt] = useState('');
+  const [sendingCode, setSendingCode] = useState(false);
+  const [verifyingCode, setVerifyingCode] = useState(false);
   const [country, setCountry] = useState('Maroc');
   const [phoneCountryCode, setPhoneCountryCode] = useState(countryDialCode.Maroc);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PlanId>('pro');
   const [billingType, setBillingType] = useState<'monthly' | 'annual'>('monthly');
-  const prefilledEmail = searchParams.get('email') || '';
-  const fromLogin = searchParams.get('from') === 'login';
+
+  function isBlockedEmailDomain(value: string) {
+    const domain = value.split('@')[1] || '';
+    const blocked = new Set(['example.com', 'test.com', 'fake.com', 'mailinator.com', 'tempmail.com', '10minutemail.com', 'yopmail.com', 'invalid.com']);
+    return blocked.has(domain) || domain.endsWith('.test') || domain.endsWith('.invalid') || domain.includes('fake');
+  }
+
+  function emailStatusBadge() {
+    if (emailVerificationStatus === 'verified' && verifiedEmail === email) return 'Vérifié';
+    if (emailVerificationStatus === 'sent') return 'Code envoyé';
+    return 'Non vérifié';
+  }
+
+  async function requestEmailVerification() {
+    const normalized = normalizeEmail(email);
+    if (!validateEmail(normalized)) {
+      notify({ title: 'Email invalide', message: 'Veuillez saisir une adresse email valide.', type: 'warning' });
+      return;
+    }
+    if (isBlockedEmailDomain(normalized)) {
+      notify({ title: 'Email invalide', message: 'Ce domaine email n’est pas accepté.', type: 'warning' });
+      return;
+    }
+    if (!supabase || !isSupabaseConfigured) {
+      notify({ title: 'Supabase indisponible', message: 'Impossible d’envoyer le code.', type: 'warning' });
+      return;
+    }
+    setSendingCode(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('request-email-verification', { body: { email: normalized } });
+      if (error) throw error;
+      const payload = data as { error?: string };
+      if (payload?.error) throw new Error(payload.error);
+      setEmail(normalized);
+      setEmailVerificationStatus('sent');
+      setEmailVerificationCode('');
+      notify({ title: 'Code envoyé', message: 'Vérifiez votre boîte email. Le code expire dans 10 minutes.', type: 'success' });
+    } catch (error) {
+      notify({ title: 'Envoi code impossible', message: extractErrorMessage(error), type: 'warning' });
+    } finally {
+      setSendingCode(false);
+    }
+  }
+
+  async function verifyEmailCode() {
+    const normalized = normalizeEmail(email);
+    const code = emailVerificationCode.replace(/\D/g, '').slice(0, 6);
+    if (code.length !== 6) {
+      notify({ title: 'Code incorrect', message: 'Entrez le code à 6 chiffres.', type: 'warning' });
+      return;
+    }
+    if (!supabase || !isSupabaseConfigured) return;
+    setVerifyingCode(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-email-code', { body: { email: normalized, code } });
+      if (error) throw error;
+      const payload = data as { success?: boolean; verifiedAt?: string; error?: string };
+      if (!payload?.success) throw new Error(payload?.error || 'Code incorrect');
+      setVerifiedEmail(normalized);
+      setVerifiedAt(payload.verifiedAt || new Date().toISOString());
+      setEmailVerificationStatus('verified');
+      notify({ title: 'Email vérifié', message: 'Vous pouvez envoyer la demande d’accès.', type: 'success' });
+    } catch (error) {
+      notify({ title: 'Vérification impossible', message: extractErrorMessage(error), type: 'warning' });
+    } finally {
+      setVerifyingCode(false);
+    }
+  }
 
   async function returnToLogin() {
     if (session) {
@@ -128,6 +203,16 @@ export default function DemandeAccesPage() {
       setIsSubmitting(false);
       return;
     }
+    if (isBlockedEmailDomain(payload.email)) {
+      notify({ title: 'Email invalide', message: 'Ce domaine email n’est pas accepté.', type: 'warning' });
+      setIsSubmitting(false);
+      return;
+    }
+    if (emailVerificationStatus !== 'verified' || verifiedEmail !== payload.email) {
+      notify({ title: 'Email non vérifié', message: 'Cliquez sur “Vérifier email” puis validez le code reçu.', type: 'warning' });
+      setIsSubmitting(false);
+      return;
+    }
     if (!validatePhone(`${payload.phone_country_code}${payload.phone_number}`)) {
       notify({ title: 'Numéro invalide', message: 'Le numéro de téléphone doit contenir uniquement des chiffres.', type: 'warning' });
       setIsSubmitting(false);
@@ -167,6 +252,8 @@ export default function DemandeAccesPage() {
       const { error } = await supabase.from('access_requests').insert({
         ...payload,
         selected_plan: selectedPlanDb,
+        email_verified: true,
+        email_verified_at: verifiedAt || new Date().toISOString(),
       });
       if (error) throw error;
       navigate(`/verification-en-cours?email=${encodeURIComponent(payload.email)}&agency=${encodeURIComponent(payload.agency_name)}&plan=${encodeURIComponent(payload.selected_plan)}&status=pending`, { replace: true });
@@ -252,15 +339,62 @@ export default function DemandeAccesPage() {
             </SelectField>
             {country === 'Maroc' ? <SelectField label="Ville *" name="city" defaultValue="" required><option value="" disabled>Choisir une ville</option>{moroccoCities.map((c) => <option key={c} value={c}>{c}</option>)}</SelectField> : <Field label="Ville *" name="city" required />}
             <Field label="Site web / Instagram / Réseau social" name="website_url" />
-            <Field
-              label="Email *"
-              name="email"
-              type="email"
-              defaultValue={prefilledEmail}
-              required
-              onInvalid={(event) => event.currentTarget.setCustomValidity('Veuillez saisir une adresse email valide.')}
-              onInput={(event) => event.currentTarget.setCustomValidity('')}
-            />
+            <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm font-semibold text-white">Email *</p>
+                <span className={`rounded-full px-3 py-1 text-xs font-bold ${
+                  emailVerificationStatus === 'verified' && verifiedEmail === email
+                    ? 'bg-emerald-400/15 text-emerald-200'
+                    : emailVerificationStatus === 'sent'
+                      ? 'bg-gold-400/15 text-gold-100'
+                      : 'bg-rose-400/15 text-rose-100'
+                }`}>
+                  {emailStatusBadge()}
+                </span>
+              </div>
+              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                <input
+                  className="form-control focus-ring w-full text-base sm:text-sm"
+                  name="email"
+                  type="email"
+                  value={email}
+                  required
+                  onChange={(event) => {
+                    const nextEmail = normalizeEmail(event.target.value);
+                    setEmail(nextEmail);
+                    setEmailVerificationCode('');
+                    if (nextEmail !== verifiedEmail) setEmailVerificationStatus('idle');
+                  }}
+                  onInvalid={(event) => event.currentTarget.setCustomValidity('Veuillez saisir une adresse email valide.')}
+                  onInput={(event) => event.currentTarget.setCustomValidity('')}
+                />
+                <Button type="button" variant="secondary" loading={sendingCode} onClick={requestEmailVerification}>
+                  Vérifier email
+                </Button>
+              </div>
+              {emailVerificationStatus === 'sent' || emailVerificationStatus === 'verified' ? (
+                <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <input
+                    className="form-control focus-ring w-full text-base tracking-[0.18em] sm:text-sm"
+                    inputMode="numeric"
+                    maxLength={6}
+                    placeholder="Code de vérification"
+                    value={emailVerificationCode}
+                    disabled={emailVerificationStatus === 'verified' && verifiedEmail === email}
+                    onChange={(event) => setEmailVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  />
+                  <Button
+                    type="button"
+                    loading={verifyingCode}
+                    disabled={emailVerificationStatus === 'verified' && verifiedEmail === email}
+                    onClick={verifyEmailCode}
+                  >
+                    Valider le code
+                  </Button>
+                </div>
+              ) : null}
+              <p className="mt-2 text-xs text-carbon-500">Un code à 6 chiffres sera envoyé à cette adresse. Il expire après 10 minutes.</p>
+            </div>
             <div className="grid grid-cols-[104px_minmax(0,1fr)] gap-2.5 sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-3">
               <Field label="Indicatif" name="phone_country_code" value={phoneCountryCode} onChange={(e) => setPhoneCountryCode(e.target.value)} required />
               <Field
@@ -291,7 +425,9 @@ export default function DemandeAccesPage() {
                 <Link to="/annulation-remboursement" target="_blank" className="font-semibold text-gold-200 hover:text-gold-100">politique d’annulation et de remboursement</Link>.
               </span>
             </label>
-            <Button type="submit" className="mt-1 w-full" loading={isSubmitting}>Envoyer la demande d’accès</Button>
+            <Button type="submit" className="mt-1 w-full" loading={isSubmitting} disabled={emailVerificationStatus !== 'verified' || verifiedEmail !== email}>
+              Envoyer la demande d’accès
+            </Button>
           </form>
         </Card>
       </div>
