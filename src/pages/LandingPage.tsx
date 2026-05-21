@@ -605,16 +605,16 @@ export default function LandingPage() {
       </main>
 
       <footer className="relative overflow-hidden border-t border-[#E3B117]/10 bg-gradient-to-b from-[#050606] to-[#0b0b08]">
-        <div className="pointer-events-none absolute inset-x-0 top-40 h-80 bg-[radial-gradient(circle_at_center,rgba(227,177,23,.1),transparent_62%)]" />
-        <div className="relative mx-auto w-full max-w-[1440px] px-4 py-16 sm:px-6 lg:px-8 xl:px-10">
-          <div className="grid gap-8 lg:grid-cols-[1.45fr_0.8fr_0.95fr_1fr] lg:gap-12">
+        <div className="pointer-events-none absolute inset-x-0 top-24 h-80 bg-[radial-gradient(circle_at_center,rgba(227,177,23,.1),transparent_62%)]" />
+        <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-14 pt-10 sm:px-6 sm:pt-12 lg:px-8 xl:px-10">
+          <div className="grid gap-8 lg:grid-cols-[1.45fr_0.8fr_0.95fr_1fr] lg:items-start lg:gap-12">
             <div>
-              <LogoMark />
-              <p className="mt-6 max-w-md text-base leading-8 text-white/62">
+              <LogoMark size="header" />
+              <p className="mt-5 max-w-md text-base leading-8 text-white/62">
                 La solution SaaS complète pour gérer votre agence de location automobile :
                 réservations, véhicules, contrats PDF, paiements et alertes.
               </p>
-              <div className="mt-7 flex flex-wrap gap-3">
+              <div className="mt-6 flex flex-wrap gap-3">
                 {socialLinks.map(({ label, icon: Icon, href }) => (
                   <a
                     key={label}
@@ -670,7 +670,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="mt-16 rounded-3xl border border-[#E3B117]/20 bg-gradient-to-br from-[#E3B117]/15 via-zinc-950 to-zinc-950 px-6 py-12 text-center shadow-[0_0_50px_rgba(227,177,23,0.12)] sm:px-10">
+          <div className="mt-12 rounded-3xl border border-[#E3B117]/20 bg-gradient-to-br from-[#E3B117]/15 via-zinc-950 to-zinc-950 px-6 py-10 text-center shadow-[0_0_50px_rgba(227,177,23,0.12)] sm:px-10 sm:py-12">
             <h2 className="text-3xl font-black leading-tight text-white sm:text-4xl">
               Prêt à digitaliser votre agence de location ?
             </h2>
@@ -691,7 +691,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="mt-10 flex flex-col items-center gap-6 border-t border-white/[0.08] pt-8 text-center text-sm text-white/48 lg:flex-row lg:justify-between lg:text-left">
+          <div className="mt-9 flex flex-col items-center gap-6 border-t border-white/[0.08] pt-8 text-center text-sm text-white/48 lg:flex-row lg:justify-between lg:text-left">
             <div className="flex flex-wrap justify-center gap-5 lg:justify-start">
               <Link to="/conditions-utilisation" className="transition hover:text-[#F5C542]">Mentions légales</Link>
               <Link to="/conditions-utilisation" className="transition hover:text-[#F5C542]">Conditions</Link>

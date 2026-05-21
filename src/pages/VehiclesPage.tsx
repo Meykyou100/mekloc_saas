@@ -40,7 +40,8 @@ const vehicleBrandModels: Record<string, string[]> = {
   Jeep: ['Renegade', 'Compass', 'Wrangler'],
 };
 const vehicleBrands = Object.keys(vehicleBrandModels);
-const moroccanPlateLetters = ['أ', 'ب', 'د', 'ه', 'و', 'ط', 'ي'];
+const moroccanPlateLetters = ['أ', 'ب', 'د', 'هـ', 'ه', 'و', 'ط'];
+const plateAllowedPattern = /^[0-9A-Za-z\u0600-\u06FF\s-]+$/;
 const vehicleColorOptions = [
   { name: 'Rouge', swatch: '#c62828' },
   { name: 'Blanc', swatch: '#f8fafc' },
@@ -153,6 +154,7 @@ function validateVehicle(vehicle: Vehicle): FormErrors {
   if (!vehicle.brand) errors.brand = 'La marque est obligatoire.';
   if (!vehicle.model) errors.model = 'Le modèle est obligatoire.';
   if (!vehicle.plate) errors.plate = "L'immatriculation est obligatoire.";
+  else if (!plateAllowedPattern.test(vehicle.plate)) errors.plate = 'Format matricule invalide. Exemple: 22-ه-12345 ou WW-123456';
   if (!vehicle.year || vehicle.year < 1980 || vehicle.year > currentYear + 1) errors.year = 'Année invalide.';
   if (!vehicle.mileage || vehicle.mileage < 0) errors.mileage = 'Le kilométrage doit être positif.';
   if (!vehicle.dailyPrice || vehicle.dailyPrice <= 0) errors.dailyPrice = 'Le prix / jour doit être supérieur à 0.';
@@ -267,12 +269,28 @@ export default function VehiclesPage() {
   function insertPlateLetter(letter: string) {
     setVehiclePlateDraft((current) => {
       const value = current.trim();
-      const parts = value.split('-');
+      const parts = value.split('-').map((part) => part.trim());
+      if (/^W/i.test(parts[0] || '')) return value || letter;
       if (parts.length >= 3) return `${parts[0]}-${letter}-${parts.slice(2).join('-')}`;
       const numberGroups = value.match(/\d+/g);
       if (numberGroups && numberGroups.length >= 2) return `${numberGroups[0]}-${letter}-${numberGroups[1]}`;
       if (numberGroups?.[0]) return `${numberGroups[0]}-${letter}-`;
       return letter;
+    });
+  }
+
+  function applyPlateFormat(format: 'morocco' | 'ww') {
+    setVehiclePlateDraft((current) => {
+      const value = current.trim();
+      if (format === 'ww') {
+        const digits = value.match(/\d+/g)?.join('') || '';
+        return digits ? `WW-${digits}` : 'WW-';
+      }
+      const numberGroups = value.match(/\d+/g) || [];
+      const arabicLetter = value.match(/[\u0600-\u06FF]/)?.[0] || 'ه';
+      if (numberGroups.length >= 2) return `${numberGroups[0]}-${arabicLetter}-${numberGroups[1]}`;
+      if (numberGroups[0]) return `${numberGroups[0]}-${arabicLetter}-`;
+      return `22-${arabicLetter}-`;
     });
   }
 
@@ -651,14 +669,33 @@ export default function VehiclesPage() {
                   <input
                     className="form-control plate-number w-full"
                     dir="ltr"
+                    style={{ direction: 'ltr', unicodeBidi: 'plaintext', textAlign: 'left' }}
                     name="plate"
                     value={vehiclePlateDraft}
                     onChange={(event) => setVehiclePlateDraft(event.target.value)}
-                    placeholder="23-ه-26727"
+                    placeholder="Ex: 22-ه-12345 ou WW-123456"
                     required
                   />
                 </label>
-                <div className="mt-2 flex flex-wrap gap-1.5">
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-semibold text-carbon-500">Format</span>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-bold text-carbon-100 transition hover:border-gold-300/40 hover:bg-gold-400/15 hover:text-gold-100"
+                    onClick={() => applyPlateFormat('morocco')}
+                  >
+                    Maroc
+                  </button>
+                  <button
+                    type="button"
+                    className="rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs font-bold text-carbon-100 transition hover:border-gold-300/40 hover:bg-gold-400/15 hover:text-gold-100"
+                    onClick={() => applyPlateFormat('ww')}
+                  >
+                    WW
+                  </button>
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <span className="mr-1 text-xs font-semibold text-carbon-500">Lettre</span>
                   {moroccanPlateLetters.map((letter) => (
                     <button
                       key={letter}
