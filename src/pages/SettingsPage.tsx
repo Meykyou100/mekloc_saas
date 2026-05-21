@@ -38,9 +38,9 @@ type AccountSession = {
 };
 
 type TeamRole = 'owner' | 'manager' | 'agent' | 'accountant';
-type SettingsTab = 'Général' | 'Contrats' | 'Facturation' | 'Abonnement' | 'Équipe' | 'Notifications';
+type SettingsTab = 'Général' | 'Contrats' | 'Facturation' | 'Abonnement' | 'Équipe' | 'Notifications' | 'Sécurité';
 type ActivationLinkMember = Pick<TeamMember, 'full_name' | 'email' | 'role' | 'account_status'> & { id?: string };
-const settingsTabs: SettingsTab[] = ['Général', 'Contrats', 'Facturation', 'Abonnement', 'Équipe', 'Notifications'];
+const settingsTabs: SettingsTab[] = ['Général', 'Contrats', 'Facturation', 'Abonnement', 'Équipe', 'Notifications', 'Sécurité'];
 const settingsTabStorageKey = 'mekloc-settings-active-tab';
 const sessionStorageKey = 'mekloc_session_id';
 const notificationPreferenceItems: Array<{ key: NotificationPreferenceKey; label: string }> = [
@@ -814,7 +814,7 @@ startxref
       }
       const agencyPayload: Record<string, unknown> = {
         name: safeAgencyName,
-        address: safeAgencyAddress || null,
+        address: safeAgencyAddress,
         phone: safeAgencyPhone || null,
         settings: {
           ...(profile?.agency?.settings || {}),
@@ -825,9 +825,23 @@ startxref
         const { error: agencyErr } = await supabase.from('agencies').update(agencyPayload).eq('id', agencyId);
         if (!agencyErr) break;
         const missingColumn = extractMissingColumnName(agencyErr.message || '');
+        if (missingColumn === 'address') {
+          throw new Error('Colonne agencies.address manquante. Appliquez la migration agencies_address_safe.sql dans Supabase.');
+        }
         if (!missingColumn || !(missingColumn in agencyPayload)) throw agencyErr;
         delete agencyPayload[missingColumn];
         if (Object.keys(agencyPayload).length === 0) throw agencyErr;
+      }
+
+      const { data: updatedAgency, error: addressCheckError } = await supabase
+        .from('agencies')
+        .select('address')
+        .eq('id', agencyId)
+        .maybeSingle();
+      if (addressCheckError) throw addressCheckError;
+      const savedAddress = String((updatedAgency as { address?: string | null } | null)?.address || '');
+      if (savedAddress !== safeAgencyAddress) {
+        throw new Error('Adresse non enregistrée dans Supabase. Vérifiez la colonne agencies.address et les règles RLS.');
       }
 
       let profileErr: { message?: string } | null = null;
@@ -1473,65 +1487,78 @@ startxref
         </div>
       ) : null}
 
-      <Card className="mt-6 overflow-hidden p-0">
-        <div className="border-b border-white/10 bg-gradient-to-br from-gold-400/12 via-white/[0.03] to-transparent p-5">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-start gap-3">
-              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-gold-400/12 text-gold-200">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-200">Security Center</p>
-                <h2 className="mt-1 text-xl font-black text-white light:text-carbon-950">Sécurité du compte</h2>
-                <p className="mt-1 text-sm text-carbon-400">Gérez vos accès, vos identifiants et les appareils connectés.</p>
-              </div>
-            </div>
-            <Button variant="secondary" icon={<RefreshCw className="h-4 w-4" />} loading={securityLoading} onClick={loadSecurityCenter}>
-              Actualiser
-            </Button>
-          </div>
-        </div>
-        <div className="grid gap-4 p-5 xl:grid-cols-[1fr_0.95fr]">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="premium-surface rounded-2xl p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-carbon-500">Email compte</p>
-              <p className="mt-2 break-all text-sm font-semibold text-white light:text-carbon-950">{agencyEmail || '—'}</p>
-              <Button type="button" variant="secondary" className="mt-3 h-8 px-3 text-xs" onClick={openEmailChangeModal}>Changer email</Button>
-            </div>
-            <div className="premium-surface rounded-2xl p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-carbon-500">Mot de passe</p>
-              <p className="mt-2 text-sm text-carbon-300">Dernière mise à jour sécurisée via Supabase Auth.</p>
-              <Button type="button" variant="secondary" className="mt-3 h-8 px-3 text-xs" onClick={() => setPasswordChangeOpen(true)}>Changer mot de passe</Button>
-            </div>
-            <div className="premium-surface rounded-2xl p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-carbon-500">Numéro WhatsApp</p>
-              <p className="mt-2 text-sm font-semibold text-white light:text-carbon-950">{agencyPhone || '—'}</p>
-              <Button type="button" variant="secondary" className="mt-3 h-8 px-3 text-xs" onClick={() => selectSettingsTab('Général')}>Changer numéro WhatsApp</Button>
-            </div>
-            <div className="premium-surface rounded-2xl border border-rose-300/20 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-rose-200">Zone sensible</p>
-              <p className="mt-2 text-sm text-carbon-300">Désactivation immédiate, suppression définitive après 30 jours.</p>
-              <Button type="button" variant="danger" className="mt-3 h-8 px-3 text-xs" onClick={() => setDeleteOpen(true)}>Supprimer mon compte</Button>
-            </div>
-          </div>
-          <div className="grid gap-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-white/10 bg-carbon-950/50 p-4 light:bg-white">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-carbon-500">Sessions actives</p>
-                <p className="mt-2 text-2xl font-black text-white light:text-carbon-950">{accountSessions.filter((sessionItem) => !sessionItem.revoked_at).length}</p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-carbon-950/50 p-4 light:bg-white">
-                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-carbon-500">Dernière connexion</p>
-                <p className="mt-2 text-sm font-semibold text-white light:text-carbon-950">{formatSecurityDate(lastLoginAt)}</p>
+      {tab === 'Sécurité' ? (
+        <div className="grid gap-5">
+          <Card className="overflow-hidden p-0">
+            <div className="border-b border-white/10 bg-gradient-to-br from-gold-400/12 via-white/[0.03] to-transparent p-5">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400/12 text-gold-200">
+                    <ShieldCheck className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-200">Security Center</p>
+                    <h2 className="mt-1 text-xl font-black text-white light:text-carbon-950">Sécurité du compte</h2>
+                    <p className="mt-1 text-sm text-carbon-400">Gérez vos accès, vos identifiants et les appareils connectés.</p>
+                  </div>
+                </div>
+                <Button variant="secondary" icon={<RefreshCw className="h-4 w-4" />} loading={securityLoading} onClick={loadSecurityCenter}>
+                  Actualiser
+                </Button>
               </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-carbon-950/50 p-4 light:bg-white">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="font-semibold text-white light:text-carbon-950">Appareils connectés</p>
+            <div className="grid gap-3 p-4 sm:grid-cols-2 xl:grid-cols-4">
+              {[
+                ['Email compte', agencyEmail || '—'],
+                ['Mot de passe', 'Protégé'],
+                ['Sessions actives', String(accountSessions.filter((sessionItem) => !sessionItem.revoked_at).length)],
+                ['Dernière connexion', formatSecurityDate(lastLoginAt)],
+              ].map(([label, value]) => (
+                <div key={label} className="min-h-[92px] rounded-2xl border border-white/10 bg-carbon-950/45 p-4 light:bg-white">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-carbon-500">{label}</p>
+                  <p className="mt-2 break-words text-sm font-bold text-white light:text-carbon-950">{value}</p>
+                </div>
+              ))}
+            </div>
+          </Card>
+
+          <div className="grid gap-5 xl:grid-cols-[0.82fr_1.18fr]">
+            <Card className="p-5">
+              <div className="mb-4">
+                <h3 className="font-bold text-white light:text-carbon-950">Actions compte</h3>
+                <p className="mt-1 text-sm text-carbon-400">Modifications sensibles et accès au compte.</p>
+              </div>
+              <div className="grid gap-3">
+                <button type="button" className="focus-ring flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-gold-300/30 hover:bg-white/[0.055]" onClick={openEmailChangeModal}>
+                  <span><span className="block font-semibold text-white light:text-carbon-950">Changer email</span><span className="mt-1 block break-all text-xs text-carbon-400">{agencyEmail || 'Email non renseigné'}</span></span>
+                  <span className="text-xs font-bold text-gold-200">Modifier</span>
+                </button>
+                <button type="button" className="focus-ring flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-gold-300/30 hover:bg-white/[0.055]" onClick={() => setPasswordChangeOpen(true)}>
+                  <span><span className="block font-semibold text-white light:text-carbon-950">Changer mot de passe</span><span className="mt-1 block text-xs text-carbon-400">Revalidation du mot de passe actuel requise.</span></span>
+                  <span className="text-xs font-bold text-gold-200">Modifier</span>
+                </button>
+                <button type="button" className="focus-ring flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-gold-300/30 hover:bg-white/[0.055]" onClick={() => selectSettingsTab('Général')}>
+                  <span><span className="block font-semibold text-white light:text-carbon-950">Changer numéro WhatsApp</span><span className="mt-1 block text-xs text-carbon-400">{agencyPhone || 'Numéro non renseigné'}</span></span>
+                  <span className="text-xs font-bold text-gold-200">Général</span>
+                </button>
+                <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
+                  <p className="font-semibold text-rose-100">Zone sensible</p>
+                  <p className="mt-1 text-sm text-carbon-300">Désactivation immédiate, suppression définitive après 30 jours.</p>
+                  <Button type="button" variant="danger" className="mt-3 h-9 px-3 text-xs" onClick={() => setDeleteOpen(true)}>Supprimer mon compte</Button>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-5">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="font-bold text-white light:text-carbon-950">Sessions actives</h3>
+                  <p className="mt-1 text-sm text-carbon-400">Appareils connectés et dernière activité.</p>
+                </div>
                 <Button
                   type="button"
                   variant="danger"
-                  className="h-8 px-3 text-xs"
+                  className="h-9 px-3 text-xs"
                   loading={disconnectingDevices}
                   onClick={handleDisconnectAllDevices}
                 >
@@ -1543,43 +1570,42 @@ startxref
                   const currentSessionKey = typeof window !== 'undefined' ? window.localStorage.getItem(sessionStorageKey) : null;
                   const isCurrentSession = Boolean(sessionItem.session_key && currentSessionKey && sessionItem.session_key === currentSessionKey);
                   return (
-                  <div key={sessionItem.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <Smartphone className="h-4 w-4 shrink-0 text-gold-200" />
-                      <div className="min-w-0">
-                        <div className="flex min-w-0 flex-wrap items-center gap-2">
-                          <p className="truncate text-sm font-semibold text-white light:text-carbon-950">{sessionDeviceLabel(sessionItem)}</p>
-                          {isCurrentSession ? (
-                            <span className="rounded-full bg-gold-400/15 px-2 py-0.5 text-[10px] font-bold text-gold-100">Session actuelle</span>
-                          ) : null}
+                    <div key={sessionItem.id} className="grid gap-3 rounded-2xl border border-white/10 bg-carbon-950/45 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center light:bg-white">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gold-400/10 text-gold-200">
+                          <Smartphone className="h-4 w-4" />
                         </div>
-                        <p className="truncate text-xs text-carbon-400">{sessionItem.browser || 'Navigateur'} · {sessionItem.os || 'Système'}</p>
-                        <p className="truncate text-xs text-carbon-500">{sessionLocationLabel(sessionItem)}</p>
+                        <div className="min-w-0">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
+                            <p className="truncate text-sm font-semibold text-white light:text-carbon-950">{sessionDeviceLabel(sessionItem)}</p>
+                            {isCurrentSession ? (
+                              <span className="rounded-full bg-gold-400/15 px-2 py-0.5 text-[10px] font-bold text-gold-100">Session actuelle</span>
+                            ) : null}
+                          </div>
+                          <p className="truncate text-xs text-carbon-400">{sessionItem.browser || 'Navigateur'} · {sessionItem.os || 'Système'}</p>
+                          <p className="truncate text-xs text-carbon-500">{sessionLocationLabel(sessionItem)} · {formatSecurityDate(sessionItem.last_seen_at)}</p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex shrink-0 flex-col items-end gap-2">
-                      <p className="text-xs text-carbon-500">{formatSecurityDate(sessionItem.last_seen_at)}</p>
                       <Button
                         type="button"
                         variant="secondary"
-                        className="h-7 px-2 text-[11px]"
+                        className="h-8 px-3 text-xs sm:justify-self-end"
                         loading={disconnectingSessionId === sessionItem.id}
                         onClick={() => handleDisconnectSession(sessionItem)}
                       >
-                        Déconnecter cet appareil
+                        Déconnecter
                       </Button>
                     </div>
-                  </div>
                   );
                 })}
                 {accountSessions.filter((sessionItem) => !sessionItem.revoked_at).length === 0 ? (
-                  <p className="rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-carbon-400">Aucune session active enregistrée.</p>
+                  <p className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-carbon-400">Aucune session active enregistrée.</p>
                 ) : null}
               </div>
-            </div>
+            </Card>
           </div>
         </div>
-      </Card>
+      ) : null}
       <Modal open={Boolean(memberStatusTarget)} onClose={() => setMemberStatusTarget(null)} title={memberStatusTarget?.account_status === 'suspended' || memberStatusTarget?.account_status === 'rejected' ? 'Réactiver le membre' : 'Suspendre le membre'}>
         <div className="space-y-4">
           <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
