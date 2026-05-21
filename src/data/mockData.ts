@@ -608,29 +608,22 @@ export const features = [
 
 export const plans = [
   {
+    id: 'starter',
     name: 'Starter',
-    price: '99 MAD',
+    price: '249 MAD',
     cadence: '/mois',
-    note: 'Pour les petites agences',
-    features: ['Jusqu’à 5 véhicules', 'Réservations limitées', 'Gestion clients', 'Gestion véhicules', 'Tableau de bord simple', 'Support standard'],
+    note: 'For small agencies',
+    features: ['Jusqu’à 5 véhicules', 'Réservations', 'Clients', 'Contrats PDF', 'Paiements basic', 'Entretien basic', 'Support standard'],
   },
   {
-    name: 'Pro',
-    price: '250 MAD',
-    cadence: '/mois',
-    note: 'Pour les agences actives',
-    featured: true,
-    badge: 'Le plus populaire',
-    annualPrice: '2500 MAD/an',
-    features: ['Véhicules illimités', 'Réservations illimitées', 'Contrats PDF', 'Paiements & factures', 'Gestion entretien véhicules', 'Alertes WhatsApp', 'Rapports avancés', '3 utilisateurs', 'Sauvegarde cloud'],
-  },
-  {
+    id: 'business',
     name: 'Business',
-    price: '499 MAD',
+    price: '399 MAD',
     cadence: '/mois',
-    note: 'Pour les agences avancées',
-    annualPrice: '4990 MAD/an',
-    features: ['Tout le plan Pro', 'Multi-agences / multi-branches', 'Gestion employés', 'Analytics avancés', 'Templates contrats personnalisés', 'Support prioritaire', 'Automatisation WhatsApp avancée', 'Jusqu’à 10 utilisateurs'],
+    note: 'Recommended plan',
+    featured: true,
+    badge: 'Recommandé',
+    features: ['Véhicules illimités', 'Réservations illimitées', 'Clients illimités', 'Contrats PDF illimités', 'Paiements & factures', 'Entretien véhicules avancé', 'Alertes WhatsApp', 'Équipe / multi-utilisateurs', 'Rapports', 'Support prioritaire'],
   },
 ];
 

@@ -27,28 +27,19 @@ const plans = [
   {
     id: 'starter',
     name: 'Starter',
-    monthly: 99,
-    annual: 990,
+    monthly: 249,
+    annual: 2490,
     note: 'Pour les petites agences',
-    features: ['Jusqu’à 5 véhicules', 'Réservations limitées', 'Gestion clients'],
+    features: ['Jusqu’à 5 véhicules', 'Réservations', 'Clients', 'Contrats PDF', 'Paiements basic', 'Entretien basic', 'Support standard'],
     cta: 'Choisir Starter',
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    monthly: 250,
-    annual: 2500,
-    note: 'Pour les agences actives',
-    features: ['Véhicules illimités', 'Réservations illimitées', 'Contrats PDF'],
-    cta: 'Choisir Pro',
   },
   {
     id: 'business',
     name: 'Business',
-    monthly: 499,
-    annual: 4990,
-    note: 'Le plus populaire',
-    features: ['Tout le plan Pro', 'Multi-agences / multi-branches', 'Analytics avancés'],
+    monthly: 399,
+    annual: 3990,
+    note: 'Recommandé',
+    features: ['Véhicules illimités', 'Réservations illimitées', 'Clients illimités', 'Contrats PDF illimités', 'Paiements & factures', 'Entretien véhicules avancé', 'Alertes WhatsApp', 'Équipe / multi-utilisateurs', 'Rapports', 'Support prioritaire'],
     cta: 'Choisir Business',
   },
 ] as const;
@@ -74,6 +65,10 @@ export default function DemandeAccesPage() {
   const normalizeEmail = (email: string) => normalizeText(email, 254).toLowerCase();
   const prefilledEmail = searchParams.get('email') || '';
   const fromLogin = searchParams.get('from') === 'login';
+  const isTestMode = import.meta.env.VITE_TEST_MODE === 'true';
+  const requestedPlan = searchParams.get('plan') === 'starter' || searchParams.get('plan') === 'business'
+    ? (searchParams.get('plan') as PlanId)
+    : 'business';
   const [email, setEmail] = useState(normalizeEmail(prefilledEmail));
   const [emailVerificationCode, setEmailVerificationCode] = useState('');
   const [emailVerificationStatus, setEmailVerificationStatus] = useState<'idle' | 'sent' | 'verified'>('idle');
@@ -85,7 +80,7 @@ export default function DemandeAccesPage() {
   const [phoneCountryCode, setPhoneCountryCode] = useState(countryDialCode.Maroc);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<PlanId>('pro');
+  const [selectedPlan, setSelectedPlan] = useState<PlanId>(requestedPlan);
   const [billingType, setBillingType] = useState<'monthly' | 'annual'>('monthly');
 
   function isBlockedEmailDomain(value: string) {
@@ -213,7 +208,7 @@ export default function DemandeAccesPage() {
       promo_code: sanitizeText(String(form.get('promo_code') || ''), 60),
       status: 'pending',
     };
-    const selectedPlanDb = selectedPlan === 'pro' ? 'starter' : selectedPlan;
+    const selectedPlanDb = selectedPlan;
     if (!payload.agency_name || !payload.owner_name || !payload.address || !payload.city) {
       notify({ title: 'Champ obligatoire', message: 'Veuillez remplir les champs obligatoires.', type: 'warning' });
       setIsSubmitting(false);
@@ -302,7 +297,7 @@ export default function DemandeAccesPage() {
             <button type="button" onClick={() => setBillingType('monthly')} className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${billingType === 'monthly' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300 hover:text-white'}`}>Mensuel</button>
             <button type="button" onClick={() => setBillingType('annual')} className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${billingType === 'annual' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300 hover:text-white'}`}>Annuel</button>
           </div>
-          <div className="mt-5 grid gap-4 lg:grid-cols-3">
+          <div className="mt-5 grid gap-4 lg:grid-cols-2">
             {plans.map((plan) => {
               const active = selectedPlan === plan.id;
               const price = billingType === 'annual' ? plan.annual : plan.monthly;
@@ -414,7 +409,16 @@ export default function DemandeAccesPage() {
                   </Button>
                 </div>
               ) : null}
-              <p className="mt-2 text-xs text-carbon-500">Un code à 6 chiffres sera envoyé à cette adresse. Il expire après 10 minutes.</p>
+              <p className="mt-2 text-xs text-carbon-500">
+                {isTestMode
+                  ? 'Mode test : le code est affiché ici, aucun email n’est envoyé.'
+                  : 'Un code à 6 chiffres sera envoyé à cette adresse.'}
+              </p>
+              {isTestMode && emailVerificationStatus === 'sent' ? (
+                <p className="mt-2 rounded-xl border border-gold-300/20 bg-gold-400/10 px-3 py-2 text-xs font-semibold text-gold-100">
+                  Mode test uniquement — ne pas utiliser en production.
+                </p>
+              ) : null}
             </div>
             <div className="grid grid-cols-[104px_minmax(0,1fr)] gap-2.5 sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-3">
               <Field label="Indicatif" name="phone_country_code" value={phoneCountryCode} onChange={(e) => setPhoneCountryCode(e.target.value)} required />

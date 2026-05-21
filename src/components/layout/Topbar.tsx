@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import BrandLogo from '../ui/BrandLogo';
 
 export default function Topbar({ onMenu }: { onMenu: () => void }) {
   const { notify, t } = useApp();
@@ -44,16 +45,14 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
           />
         </div>
         <div className="mr-auto md:hidden">
-          <span className="flex items-center gap-2 text-lg font-black tracking-wide">
-            {profile?.agency?.logoUrl && !mobileLogoBroken ? (
-              <img
-                src={profile.agency.logoUrl}
-                alt="Logo agence"
-                className="h-7 w-7 rounded-lg object-contain"
-                onError={() => setMobileLogoBroken(true)}
-              />
-            ) : null}
-            MekLoc
+          <span className="flex items-center gap-2 text-lg font-black">
+            <BrandLogo
+              size="sm"
+              logoUrl={profile?.agency?.logoUrl}
+              broken={mobileLogoBroken}
+              onError={() => setMobileLogoBroken(true)}
+            />
+            <span>MekLoc</span>
           </span>
         </div>
         <div className="relative">
