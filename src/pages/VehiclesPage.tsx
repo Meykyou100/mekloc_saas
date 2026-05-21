@@ -501,8 +501,8 @@ export default function VehiclesPage() {
                   <div className="absolute left-4 top-4 z-10">
                     <Badge>{vehicle.archivedAt ? 'Archivé' : vehicle.status}</Badge>
                   </div>
-                  <span className="absolute right-4 top-4 z-10 max-w-[46%] truncate rounded-full border border-gold-300/30 bg-carbon-950/85 px-3 py-1 text-xs font-bold text-gold-200 shadow-lg backdrop-blur">
-                    <PlateNumber value={vehicle.plate} />
+                  <span className="absolute right-4 top-4 z-10 inline-flex max-w-[72%] items-center rounded-full border border-yellow-500/30 bg-carbon-950/90 px-3.5 py-1.5 text-xs font-semibold text-gold-200 shadow-lg backdrop-blur">
+                    <PlateNumber value={vehicle.plate} className="max-w-full truncate" />
                   </span>
                   {vehicle.imageUrl ? (
                     <img
@@ -733,7 +733,16 @@ export default function VehiclesPage() {
               <SelectField label="Statut" name="status" defaultValue={editingVehicle?.status || 'Available'}>
                 <option>Available</option><option>Rented</option><option>Maintenance</option><option>Unavailable</option>
               </SelectField>
-              <Field label="Ville" name="city" defaultValue={editingVehicle?.city || ''} required />
+              <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
+                <span>Ville</span>
+                <input
+                  className="form-control focus-ring h-11 w-full text-base sm:text-sm"
+                  name="city"
+                  defaultValue={editingVehicle?.city || ''}
+                  placeholder="Ex: Casablanca, Marrakech, Fès"
+                  required
+                />
+              </label>
               <div className="relative">
                 <label className="block">
                   <span className="mb-2 block text-sm font-semibold text-carbon-200 light:text-carbon-700">Couleur du véhicule</span>
