@@ -604,9 +604,10 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="relative overflow-hidden border-t border-[#E3B117]/10 bg-gradient-to-b from-[#050606] to-[#0b0b08]">
-        <div className="pointer-events-none absolute inset-x-0 top-24 h-80 bg-[radial-gradient(circle_at_center,rgba(227,177,23,.1),transparent_62%)]" />
-        <div className="relative mx-auto w-full max-w-[1440px] px-4 pb-14 pt-10 sm:px-6 sm:pt-12 lg:px-8 xl:px-10">
+      <footer className="relative overflow-hidden border-t border-[#E3B117]/10 bg-[#050606]">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(227,177,23,0.16),transparent_55%)]" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#E3B117]/5 via-transparent to-transparent" />
+        <div className="relative z-10 mx-auto w-full max-w-[1440px] px-4 py-20 sm:px-6 lg:px-8 xl:px-10">
           <div className="grid gap-8 lg:grid-cols-[1.45fr_0.8fr_0.95fr_1fr] lg:items-start lg:gap-12">
             <div>
               <LogoMark size="header" />
@@ -670,7 +671,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="mt-12 rounded-3xl border border-[#E3B117]/20 bg-gradient-to-br from-[#E3B117]/15 via-zinc-950 to-zinc-950 px-6 py-10 text-center shadow-[0_0_50px_rgba(227,177,23,0.12)] sm:px-10 sm:py-12">
+          <div className="mt-12 rounded-3xl border border-[#E3B117]/20 bg-gradient-to-br from-[#E3B117]/15 via-zinc-950/80 to-zinc-950 px-6 py-10 text-center shadow-[0_0_60px_rgba(227,177,23,0.12)] sm:px-10 sm:py-12">
             <h2 className="text-3xl font-black leading-tight text-white sm:text-4xl">
               Prêt à digitaliser votre agence de location ?
             </h2>
