@@ -154,7 +154,7 @@ function validateVehicle(vehicle: Vehicle): FormErrors {
   if (!vehicle.brand) errors.brand = 'La marque est obligatoire.';
   if (!vehicle.model) errors.model = 'Le modèle est obligatoire.';
   if (!vehicle.plate) errors.plate = "L'immatriculation est obligatoire.";
-  else if (!plateAllowedPattern.test(vehicle.plate)) errors.plate = 'Format matricule invalide. Exemple: 22-ه-12345 ou WW-123456';
+  else if (!plateAllowedPattern.test(vehicle.plate)) errors.plate = 'Format matricule invalide. Exemple: 65528-أ-8 ou WW-123456';
   if (!vehicle.year || vehicle.year < 1980 || vehicle.year > currentYear + 1) errors.year = 'Année invalide.';
   if (!vehicle.mileage || vehicle.mileage < 0) errors.mileage = 'Le kilométrage doit être positif.';
   if (!vehicle.dailyPrice || vehicle.dailyPrice <= 0) errors.dailyPrice = 'Le prix / jour doit être supérieur à 0.';
@@ -287,10 +287,10 @@ export default function VehiclesPage() {
         return digits ? `WW-${digits}` : 'WW-';
       }
       const numberGroups = value.match(/\d+/g) || [];
-      const arabicLetter = value.match(/[\u0600-\u06FF]/)?.[0] || 'ه';
+      const arabicLetter = value.match(/[\u0600-\u06FF]/)?.[0] || 'أ';
       if (numberGroups.length >= 2) return `${numberGroups[0]}-${arabicLetter}-${numberGroups[1]}`;
       if (numberGroups[0]) return `${numberGroups[0]}-${arabicLetter}-`;
-      return `22-${arabicLetter}-`;
+      return `65528-${arabicLetter}-8`;
     });
   }
 
@@ -673,10 +673,11 @@ export default function VehiclesPage() {
                     name="plate"
                     value={vehiclePlateDraft}
                     onChange={(event) => setVehiclePlateDraft(event.target.value)}
-                    placeholder="Ex: 22-ه-12345 ou WW-123456"
+                    placeholder="Ex: 65528-أ-8 ou WW-123456"
                     required
                   />
                 </label>
+                <p className="mt-1 text-xs text-carbon-500">Format Maroc : numéro - lettre arabe - code ville.</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
                   <span className="text-xs font-semibold text-carbon-500">Format</span>
                   <button
