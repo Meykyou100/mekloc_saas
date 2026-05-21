@@ -1,0 +1,5 @@
+[functions.request-email-verification]
+verify_jwt = false
+
+[functions.verify-email-code]
+verify_jwt = false

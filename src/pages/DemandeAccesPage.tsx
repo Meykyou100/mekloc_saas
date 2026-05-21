@@ -124,7 +124,6 @@ export default function DemandeAccesPage() {
         headers: {
           'Content-Type': 'application/json',
           apikey: anonKey,
-          Authorization: `Bearer ${anonKey}`,
         },
         body: JSON.stringify({ email: normalized }),
       });
