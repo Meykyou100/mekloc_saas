@@ -871,13 +871,26 @@ export default function ContractsPage() {
             </section>
 
             <section className="rounded-2xl bg-white/[0.04] p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">3. 2ème conducteur</p>
+              <div className="mb-3 grid gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">3. 2ème conducteur</p>
+                  {secondDriver.enabled ? (
+                    <Button type="button" variant="secondary" className="h-8 px-3 text-xs" onClick={() => setSecondDriver(emptySecondDriver)}>
+                      Retirer
+                    </Button>
+                  ) : (
+                    <Button type="button" className="h-8 px-3 text-xs" onClick={() => setSecondDriver((current) => ({ ...current, enabled: true }))}>
+                      Ajouter un 2ème conducteur
+                    </Button>
+                  )}
+                </div>
                 {secondDriver.enabled ? (
-                  <Button type="button" variant="secondary" className="h-8 px-3 text-xs" onClick={() => setSecondDriver(emptySecondDriver)}>
-                    Retirer
-                  </Button>
-                ) : null}
+                  <p className="text-xs text-carbon-400">Remplissez uniquement les informations disponibles.</p>
+                ) : (
+                  <p className="rounded-xl border border-gold-300/15 bg-gold-400/10 px-3 py-2 text-xs font-semibold text-gold-100">
+                    Besoin d’un conducteur secondaire ? Cliquez sur “Ajouter un 2ème conducteur”.
+                  </p>
+                )}
               </div>
               {secondDriver.enabled ? (
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -918,12 +931,7 @@ export default function ContractsPage() {
                   </Button>
                 </div>
               ) : (
-                <div className="grid gap-3">
-                  <p className="text-sm text-carbon-400">Optionnel. Ajoutez un conducteur secondaire si le contrat doit le mentionner.</p>
-                  <Button type="button" variant="secondary" className="w-full" onClick={() => setSecondDriver((current) => ({ ...current, enabled: true }))}>
-                    Ajouter un 2ème conducteur
-                  </Button>
-                </div>
+                <p className="text-sm text-carbon-400">Optionnel. Cette section est masquée dans le formulaire tant que vous ne l’ajoutez pas.</p>
               )}
             </section>
 
