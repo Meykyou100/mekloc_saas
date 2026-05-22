@@ -866,7 +866,6 @@ export default function ContractsPage() {
                   <p><span className="text-carbon-500">Client:</span> <span className="font-semibold text-white">{client.fullName || 'Non renseigné'}</span></p>
                   <p className="mt-1"><span className="text-carbon-500">Véhicule:</span> <span className="font-semibold text-white">{vehicle.brand || '—'} {vehicle.model || ''}</span></p>
                 </div>
-                <TextAreaField label="Conditions" value={terms} onChange={(event) => setTerms(event.target.value)} className="min-h-24" />
               </div>
             </section>
 
@@ -935,10 +934,15 @@ export default function ContractsPage() {
               )}
             </section>
 
+            <section className="rounded-2xl bg-white/[0.04] p-4">
+              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">4. Conditions</p>
+              <TextAreaField label="Conditions" value={terms} onChange={(event) => setTerms(event.target.value)} className="min-h-24" />
+            </section>
+
           </div>
 
           <div className="sticky bottom-0 border-t border-white/10 bg-carbon-950/95 p-5 backdrop-blur-xl light:bg-white/95">
-            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">4. Actions</p>
+            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">5. Actions</p>
             <div className="mb-3 grid gap-1.5">
               {checklist.map((item) => (
                 <div key={item.label} className="flex items-center justify-between rounded-lg bg-white/[0.035] px-3 py-1.5 text-[11px]">
