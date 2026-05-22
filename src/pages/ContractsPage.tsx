@@ -770,6 +770,29 @@ export default function ContractsPage() {
   const previewStatus = contracts[0]?.status || 'Draft';
   const notificationPreferences = getNotificationPreferences(profile?.agency?.settings);
 
+  function resumeSavedContract(contractId: string) {
+    const contract = contracts.find((item) => item.id === contractId);
+    if (!contract) return;
+    setClientId(contract.clientId);
+    setVehicleId(contract.vehicleId);
+    setTemplate(contract.template);
+    setTerms(contract.terms || defaultTerms.join('\n'));
+    const matchingReservation = reservations.find((item) =>
+      item.clientId === contract.clientId &&
+      item.vehicleId === contract.vehicleId &&
+      item.pickupDate === contract.pickupDate &&
+      item.returnDate === contract.returnDate
+    );
+    if (matchingReservation) setReservationId(matchingReservation.id);
+    notify({
+      title: 'Contrat chargé',
+      message: matchingReservation
+        ? 'Le contrat sauvegardé a été rechargé dans le générateur.'
+        : 'Les infos du contrat ont été rechargées. Sélectionnez la réservation liée si nécessaire.',
+      type: 'success',
+    });
+  }
+
   return (
     <div>
       <PageHeader
@@ -812,8 +835,8 @@ export default function ContractsPage() {
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <Card className="overflow-hidden border-white/10 bg-[#0b0f15] p-0 shadow-[0_24px_70px_rgba(0,0,0,.28)] xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)]">
-          <div className="border-b border-white/10 bg-white/[0.035] p-5">
+        <Card className="overflow-hidden border-white/10 bg-[#0b0f15] p-0 shadow-[0_24px_70px_rgba(0,0,0,.28)] xl:sticky xl:top-24 xl:flex xl:h-[calc(100vh-7rem)] xl:flex-col">
+          <div className="shrink-0 border-b border-white/10 bg-white/[0.035] p-5">
             <div className="flex items-center gap-3">
               <div className="rounded-xl border border-gold-300/20 bg-gold-400/10 p-2.5 text-gold-200">
                 <Wand2 className="h-5 w-5" />
@@ -825,7 +848,7 @@ export default function ContractsPage() {
             </div>
           </div>
 
-          <div className="max-h-none space-y-3 overflow-y-auto p-4 xl:max-h-[calc(100vh-18rem)]">
+          <div className="min-h-0 space-y-3 overflow-y-auto p-4 pb-6 xl:flex-1">
             <section className="rounded-2xl bg-white/[0.04] p-4">
               <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">1. Sélection réservation</p>
               <SelectField label="Réservation" value={reservationId} onChange={(event) => setReservationId(event.target.value)}>
@@ -941,7 +964,7 @@ export default function ContractsPage() {
 
           </div>
 
-          <div className="sticky bottom-0 border-t border-white/10 bg-carbon-950/95 p-5 backdrop-blur-xl light:bg-white/95">
+          <div className="shrink-0 border-t border-white/10 bg-carbon-950/95 p-5 backdrop-blur-xl light:bg-white/95">
             <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">5. Actions</p>
             <div className="mb-3 grid gap-1.5">
               {checklist.map((item) => (
@@ -1219,6 +1242,45 @@ export default function ContractsPage() {
           </div>
         </div>
       </div>
+
+      <Card className="mt-6 border-white/10 bg-[#0b0f15] p-5 shadow-[0_20px_70px_rgba(0,0,0,.24)]">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Archives</p>
+            <h2 className="mt-1 text-xl font-black text-white light:text-carbon-950">Contrats enregistrés</h2>
+            <p className="mt-1 text-sm text-carbon-400">Retrouvez les anciens contrats sauvegardés avec “Générer contrat”.</p>
+          </div>
+          <Badge>{contracts.length} contrat{contracts.length > 1 ? 's' : ''}</Badge>
+        </div>
+
+        {contracts.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] p-6 text-sm text-carbon-400">
+            Aucun contrat enregistré pour le moment. Remplissez le générateur puis cliquez sur “Générer contrat”.
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {contracts.map((contract) => (
+              <div key={contract.id} className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4 lg:grid-cols-[1.2fr_1fr_auto] lg:items-center">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="truncate font-black text-white light:text-carbon-950">{contract.contractNumber}</p>
+                    <Badge>{statusLabel(contract.status)}</Badge>
+                  </div>
+                  <p className="mt-1 truncate text-sm text-carbon-400">{contract.client || 'Client non renseigné'} · {contract.vehicle || 'Véhicule non renseigné'}</p>
+                </div>
+                <div className="grid gap-1 text-sm text-carbon-300 sm:grid-cols-3 lg:grid-cols-1">
+                  <p>{formatDateFr(contract.pickupDate)} → {formatDateFr(contract.returnDate)}</p>
+                  <p className="font-semibold text-gold-200">{formatMAD(contract.totalAmount || 0)}</p>
+                  <p className="text-carbon-500">{contract.template}</p>
+                </div>
+                <Button type="button" variant="secondary" className="h-10 px-4" onClick={() => resumeSavedContract(contract.id)}>
+                  Reprendre
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
