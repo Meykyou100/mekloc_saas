@@ -232,8 +232,52 @@ async function loadLogoForPdf(logoUrl: string): Promise<PdfLogoAsset | null> {
 const A4_SOURCE_WIDTH = 794;
 const A4_SOURCE_HEIGHT = 1123;
 
+type SecondDriver = {
+  enabled: boolean;
+  firstName: string;
+  lastName: string;
+  birthDate: string;
+  nationality: string;
+  idNumber: string;
+  licenseNumber: string;
+  phone: string;
+  address: string;
+};
+
+const emptySecondDriver: SecondDriver = {
+  enabled: false,
+  firstName: '',
+  lastName: '',
+  birthDate: '',
+  nationality: '',
+  idNumber: '',
+  licenseNumber: '',
+  phone: '',
+  address: '',
+};
+
 function secondDriverValue(value: string) {
   return value.trim() || '—';
+}
+
+function serializeSecondDriverForContract(secondDriver: SecondDriver) {
+  if (!secondDriver.enabled) return '';
+  const rows = [
+    ['Nom', secondDriver.lastName],
+    ['Prénom', secondDriver.firstName],
+    ['Date de naissance', secondDriver.birthDate],
+    ['Nationalité', secondDriver.nationality],
+    ['CIN/Passeport', secondDriver.idNumber],
+    ['Permis N°', secondDriver.licenseNumber],
+    ['Téléphone', secondDriver.phone],
+    ['Adresse', secondDriver.address],
+  ];
+  return [
+    '',
+    '[2EME_CONDUCTEUR]',
+    ...rows.map(([label, value]) => `${label}: ${secondDriverValue(value)}`),
+    '[/2EME_CONDUCTEUR]',
+  ].join('\n');
 }
 
 function createPdfCaptureSource(source: HTMLElement, logoDataUrl?: string | null) {
@@ -288,17 +332,7 @@ export default function ContractsPage() {
   const [vehicleId, setVehicleId] = useState('');
   const [reservationId, setReservationId] = useState('');
   const [terms, setTerms] = useState(defaultTerms.join('\n'));
-  const [showSecondDriver, setShowSecondDriver] = useState(false);
-  const [secondDriver, setSecondDriver] = useState({
-    lastName: '',
-    firstName: '',
-    birthDate: '',
-    nationality: '',
-    cin: '',
-    license: '',
-    address: '',
-    phone: '',
-  });
+  const [secondDriver, setSecondDriver] = useState<SecondDriver>(emptySecondDriver);
   const [generating, setGenerating] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [, setIsMobilePreview] = useState(false);
@@ -697,6 +731,8 @@ export default function ContractsPage() {
 
     try {
       setGenerating(true);
+      const cleanTerms = terms.trim() || defaultTerms.join('\n');
+      const secondDriverTerms = serializeSecondDriverForContract(secondDriver);
       await createContract({
         id: `ctr-${Date.now()}`,
         contractNumber: `CTR-${new Date().getFullYear()}-${Date.now().toString().slice(-4)}`,
@@ -708,7 +744,7 @@ export default function ContractsPage() {
         pickupDate,
         returnDate,
         totalAmount,
-        terms: terms.trim() || defaultTerms.join(' '),
+        terms: `${cleanTerms}${secondDriverTerms}`,
         status: 'Draft',
       });
       notify({ title: 'Contrat généré', message: 'Le contrat a été enregistré dans la base de données.', type: 'success' });
@@ -837,23 +873,57 @@ export default function ContractsPage() {
             <section className="rounded-2xl bg-white/[0.04] p-4">
               <div className="mb-3 flex items-center justify-between gap-3">
                 <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">3. 2ème conducteur</p>
-                <Button type="button" variant="secondary" className="h-8 px-3 text-xs" onClick={() => setShowSecondDriver((value) => !value)}>
-                  {showSecondDriver ? 'Masquer' : 'Ajouter 2ème conducteur'}
-                </Button>
+                {secondDriver.enabled ? (
+                  <Button type="button" variant="secondary" className="h-8 px-3 text-xs" onClick={() => setSecondDriver(emptySecondDriver)}>
+                    Retirer
+                  </Button>
+                ) : null}
               </div>
-              {showSecondDriver ? (
-                <div className="grid gap-3">
-                  <input className="form-control text-base sm:text-sm" placeholder="Nom" value={secondDriver.lastName} onChange={(event) => setSecondDriver((current) => ({ ...current, lastName: event.target.value }))} />
-                  <input className="form-control text-base sm:text-sm" placeholder="Prénom" value={secondDriver.firstName} onChange={(event) => setSecondDriver((current) => ({ ...current, firstName: event.target.value }))} />
-                  <input className="form-control text-base sm:text-sm" type="date" value={secondDriver.birthDate} onChange={(event) => setSecondDriver((current) => ({ ...current, birthDate: event.target.value }))} />
-                  <input className="form-control text-base sm:text-sm" placeholder="Nationalité" value={secondDriver.nationality} onChange={(event) => setSecondDriver((current) => ({ ...current, nationality: event.target.value }))} />
-                  <input className="form-control text-base sm:text-sm" placeholder="CIN / Passport" value={secondDriver.cin} onChange={(event) => setSecondDriver((current) => ({ ...current, cin: event.target.value }))} />
-                  <input className="form-control text-base sm:text-sm" placeholder="Permis" value={secondDriver.license} onChange={(event) => setSecondDriver((current) => ({ ...current, license: event.target.value }))} />
-                  <input className="form-control text-base sm:text-sm" placeholder="Adresse" value={secondDriver.address} onChange={(event) => setSecondDriver((current) => ({ ...current, address: event.target.value }))} />
-                  <input className="form-control text-base sm:text-sm" placeholder="Téléphone" value={secondDriver.phone} onChange={(event) => setSecondDriver((current) => ({ ...current, phone: event.target.value }))} />
+              {secondDriver.enabled ? (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="grid gap-1.5 text-xs font-semibold text-carbon-300">
+                    Nom
+                    <input className="form-control text-base sm:text-sm" placeholder="El Amrani" value={secondDriver.lastName} onChange={(event) => setSecondDriver((current) => ({ ...current, lastName: event.target.value }))} />
+                  </label>
+                  <label className="grid gap-1.5 text-xs font-semibold text-carbon-300">
+                    Prénom
+                    <input className="form-control text-base sm:text-sm" placeholder="Yassine" value={secondDriver.firstName} onChange={(event) => setSecondDriver((current) => ({ ...current, firstName: event.target.value }))} />
+                  </label>
+                  <label className="grid gap-1.5 text-xs font-semibold text-carbon-300">
+                    Date de naissance
+                    <input className="form-control text-base sm:text-sm" type="date" value={secondDriver.birthDate} onChange={(event) => setSecondDriver((current) => ({ ...current, birthDate: event.target.value }))} />
+                  </label>
+                  <label className="grid gap-1.5 text-xs font-semibold text-carbon-300">
+                    Nationalité
+                    <input className="form-control text-base sm:text-sm" placeholder="Marocaine" value={secondDriver.nationality} onChange={(event) => setSecondDriver((current) => ({ ...current, nationality: event.target.value }))} />
+                  </label>
+                  <label className="grid gap-1.5 text-xs font-semibold text-carbon-300">
+                    CIN / Passeport
+                    <input className="form-control text-base sm:text-sm" placeholder="AB123456" value={secondDriver.idNumber} onChange={(event) => setSecondDriver((current) => ({ ...current, idNumber: event.target.value }))} />
+                  </label>
+                  <label className="grid gap-1.5 text-xs font-semibold text-carbon-300">
+                    Permis N°
+                    <input className="form-control text-base sm:text-sm" placeholder="P123456" value={secondDriver.licenseNumber} onChange={(event) => setSecondDriver((current) => ({ ...current, licenseNumber: event.target.value }))} />
+                  </label>
+                  <label className="grid gap-1.5 text-xs font-semibold text-carbon-300">
+                    Téléphone
+                    <input className="form-control text-base sm:text-sm" placeholder="+212 6..." value={secondDriver.phone} onChange={(event) => setSecondDriver((current) => ({ ...current, phone: event.target.value }))} />
+                  </label>
+                  <label className="grid gap-1.5 text-xs font-semibold text-carbon-300 sm:col-span-2">
+                    Adresse
+                    <input className="form-control text-base sm:text-sm" placeholder="Adresse complète" value={secondDriver.address} onChange={(event) => setSecondDriver((current) => ({ ...current, address: event.target.value }))} />
+                  </label>
+                  <Button type="button" variant="secondary" className="sm:col-span-2" onClick={() => setSecondDriver(emptySecondDriver)}>
+                    Retirer le 2ème conducteur
+                  </Button>
                 </div>
               ) : (
-                <p className="text-sm text-carbon-400">Optionnel. Ajoutez un conducteur secondaire si le contrat doit le mentionner.</p>
+                <div className="grid gap-3">
+                  <p className="text-sm text-carbon-400">Optionnel. Ajoutez un conducteur secondaire si le contrat doit le mentionner.</p>
+                  <Button type="button" variant="secondary" className="w-full" onClick={() => setSecondDriver((current) => ({ ...current, enabled: true }))}>
+                    Ajouter un 2ème conducteur
+                  </Button>
+                </div>
               )}
             </section>
 
@@ -995,13 +1065,13 @@ export default function ContractsPage() {
                 />
               </section>
 
-              <section className="mt-3 rounded-xl border p-3.5" style={{ borderColor: contractBorder }}>
-                <p className="text-[11px] font-bold uppercase tracking-[.12em]" style={{ color: contractBorder }}>2ème conducteur</p>
+              <section className="mt-3 rounded-xl border p-3" style={{ borderColor: contractBorder }}>
+                <p className="text-[11px] font-bold uppercase tracking-[.12em]" style={{ color: contractBorder }}>2ÈME CONDUCTEUR</p>
                 <div className="mt-2 grid gap-1.5 text-[13px] text-[#334155] md:grid-cols-2">
                   <p>Nom: {secondDriverValue(secondDriver.lastName)}</p><p>Prénom: {secondDriverValue(secondDriver.firstName)}</p>
                   <p>Date de naissance: {secondDriverValue(secondDriver.birthDate)}</p><p>Nationalité: {secondDriverValue(secondDriver.nationality)}</p>
-                  <p>CIN/Passport: {secondDriverValue(secondDriver.cin)}</p><p>Permis N°: {secondDriverValue(secondDriver.license)}</p>
-                  <p>Adresse: {secondDriverValue(secondDriver.address)}</p><p>Téléphone: {secondDriverValue(secondDriver.phone)}</p>
+                  <p>CIN/Passeport: {secondDriverValue(secondDriver.idNumber)}</p><p>Permis N°: {secondDriverValue(secondDriver.licenseNumber)}</p>
+                  <p>Téléphone: {secondDriverValue(secondDriver.phone)}</p><p>Adresse: {secondDriverValue(secondDriver.address)}</p>
                 </div>
               </section>
 
