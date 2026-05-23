@@ -4,6 +4,7 @@ import {
   Car,
   CreditCard,
   FileSignature,
+  Headphones,
   LayoutDashboard,
   Settings,
   Users,
@@ -85,7 +86,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
           </NavLink>
         ))}
       </nav>
-      <div className="mt-auto p-4">
+      <div className="mt-auto space-y-3 p-4">
         <div className="rounded-3xl border border-gold-200/12 bg-[linear-gradient(180deg,rgba(212,160,23,.08),rgba(255,255,255,.025))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-gold-300" />
@@ -97,6 +98,21 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
           <div className="mt-3 h-px bg-gradient-to-r from-gold-200/30 via-white/10 to-transparent" />
           <p className="mt-3 text-[11px] font-semibold uppercase text-carbon-500">Rental Management Platform</p>
         </div>
+        <a
+          href="https://wa.me/212762971653?text=Bonjour%20MekLoc%2C%20j%27ai%20besoin%20d%27aide%20sur%20la%20plateforme."
+          target="_blank"
+          rel="noreferrer"
+          className="group flex cursor-pointer items-center gap-3 rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-900/90 to-black/70 p-3.5 transition hover:border-yellow-500/30 hover:bg-yellow-500/5 light:border-carbon-950/10 light:from-white light:to-carbon-50"
+        >
+          <span className="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-gold-300/15 bg-gold-400/10 text-gold-200 transition group-hover:border-gold-300/35 group-hover:bg-gold-400/15">
+            <Headphones className="h-5 w-5" />
+            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-carbon-950 light:ring-white" />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-bold text-white light:text-carbon-950">Besoin d’aide ?</span>
+            <span className="mt-0.5 block text-xs font-medium text-carbon-400 light:text-carbon-600">Contactez le support</span>
+          </span>
+        </a>
       </div>
     </div>
   );
