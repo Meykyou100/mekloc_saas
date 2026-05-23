@@ -359,47 +359,47 @@ export default function ContractsPage() {
     }
   }, [reservations, searchParams]);
 
+  const selectedReservation = useMemo(
+    () => reservations.find((item) => item.id === reservationId),
+    [reservationId, reservations],
+  );
+
   useEffect(() => {
     const updatePreviewScale = () => {
       const viewport = previewViewportRef.current;
       if (!viewport) return;
       const isMobile = window.innerWidth < 768;
       setIsMobilePreview(isMobile);
-      const nextMaxHeight = Math.max(isMobile ? 520 : 640, window.innerHeight - 220);
+      const nextMaxHeight = Math.max(isMobile ? 520 : 620, window.innerHeight - 260);
       setPreviewMaxHeight(nextMaxHeight);
-      const availableWidth = Math.max(260, viewport.clientWidth - (isMobile ? 24 : 48));
+      const availableWidth = Math.max(240, viewport.clientWidth - (isMobile ? 28 : 56));
       const widthScale = availableWidth / A4_SOURCE_WIDTH;
-      const minScale = isMobile ? 0.38 : 0.5;
-      const maxScale = isMobile ? 0.72 : 0.82;
+      const minScale = isMobile ? 0.34 : 0.42;
+      const maxScale = isMobile ? 0.68 : 0.74;
       setPreviewScale(Math.max(minScale, Math.min(maxScale, widthScale)));
     };
 
     updatePreviewScale();
     window.addEventListener('resize', updatePreviewScale);
     return () => window.removeEventListener('resize', updatePreviewScale);
-  }, []);
+  }, [selectedReservation]);
 
   function fitPreviewToStudio() {
     const viewport = previewViewportRef.current;
     if (!viewport) return;
     const isMobile = window.innerWidth < 768;
-    const nextMaxHeight = Math.max(isMobile ? 520 : 640, window.innerHeight - 220);
-    const availableWidth = Math.max(260, viewport.clientWidth - (isMobile ? 24 : 48));
+    const nextMaxHeight = Math.max(isMobile ? 520 : 620, window.innerHeight - 260);
+    const availableWidth = Math.max(240, viewport.clientWidth - (isMobile ? 28 : 56));
     const widthScale = availableWidth / A4_SOURCE_WIDTH;
-    const minScale = isMobile ? 0.38 : 0.5;
-    const maxScale = isMobile ? 0.72 : 0.82;
+    const minScale = isMobile ? 0.34 : 0.42;
+    const maxScale = isMobile ? 0.68 : 0.74;
     setPreviewMaxHeight(nextMaxHeight);
     setPreviewScale(Math.max(minScale, Math.min(maxScale, widthScale)));
   }
 
   function nudgePreviewScale(delta: number) {
-    setPreviewScale((current) => Math.max(0.38, Math.min(0.9, Number((current + delta).toFixed(2)))));
+    setPreviewScale((current) => Math.max(0.34, Math.min(0.82, Number((current + delta).toFixed(2)))));
   }
-
-  const selectedReservation = useMemo(
-    () => reservations.find((item) => item.id === reservationId),
-    [reservationId, reservations],
-  );
 
   useEffect(() => {
     if (!selectedReservation) return;
@@ -790,7 +790,7 @@ export default function ContractsPage() {
   }
 
   return (
-    <div className="overflow-x-hidden pb-24">
+    <div className="overflow-x-hidden pb-28">
       <PageHeader
         eyebrow="DOCUMENTS"
         title="Contrats"
@@ -829,14 +829,14 @@ export default function ContractsPage() {
         ))}
       </div>
 
-      <div className="mb-5 overflow-x-auto pb-1">
+      <div className="mb-5 max-w-full overflow-x-auto pb-1">
         <div className="flex min-w-max items-center gap-2">
           {['Réservation', 'Données', '2ème conducteur', 'Aperçu', 'Export'].map((label, index) => {
             const step = index + 1;
             const isActive = activeStep === step;
             const isDone = activeStep > step;
             return (
-              <div key={label} className={`shrink-0 rounded-2xl border px-3 py-2.5 ${isActive ? 'border-gold-300/45 bg-gold-400/12 text-gold-100' : isDone ? 'border-emerald-400/20 bg-emerald-400/5 text-carbon-200' : 'border-white/10 bg-white/[0.025] text-carbon-400'}`}>
+              <div key={label} className={`shrink-0 rounded-2xl border px-2.5 py-2 ${isActive ? 'border-gold-300/45 bg-gold-400/12 text-gold-100' : isDone ? 'border-emerald-400/20 bg-emerald-400/5 text-carbon-200' : 'border-white/10 bg-white/[0.025] text-carbon-400'}`}>
                 <div className="flex items-center gap-2.5">
                   <span className={`grid h-7 w-7 place-items-center rounded-full border text-xs font-black ${isActive ? 'border-gold-300 bg-gold-400 text-carbon-950' : 'border-white/15 bg-white/[0.04]'}`}>{step}</span>
                   <div>
@@ -850,7 +850,7 @@ export default function ContractsPage() {
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[300px_minmax(360px,1fr)] 2xl:grid-cols-[300px_minmax(360px,1fr)_minmax(520px,0.9fr)]">
+      <div className="grid gap-5 lg:grid-cols-[300px_minmax(420px,1fr)] 2xl:grid-cols-[300px_minmax(420px,1fr)_minmax(460px,0.85fr)]">
         <Card className="border-white/10 bg-[#0b0f15] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
@@ -992,7 +992,7 @@ export default function ContractsPage() {
           ) : (
             <div
               ref={previewViewportRef}
-              className="max-h-[calc(100vh-220px)] overflow-auto rounded-2xl bg-[radial-gradient(circle_at_top,rgba(212,160,23,.10),transparent_28%),#111722] p-4 sm:p-6"
+              className="max-h-[calc(100vh-260px)] overflow-auto rounded-2xl bg-[radial-gradient(circle_at_top,rgba(212,160,23,.10),transparent_28%),#111722] p-5 sm:p-6"
               style={{ maxHeight: `${previewMaxHeight}px` }}
             >
             <div

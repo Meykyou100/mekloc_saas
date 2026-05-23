@@ -34,8 +34,8 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
   const { profile } = useAuth();
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="px-5 pb-5 pt-6">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain pb-10">
+      <div className="shrink-0 px-5 pb-5 pt-6">
         <div className="flex items-center justify-between gap-3">
         <NavLink to="/" className="group flex min-w-0 items-center gap-3.5" onClick={onClose}>
           <span className="relative flex h-12 w-14 shrink-0 items-center justify-center">
@@ -64,7 +64,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
         </button>
         </div>
       </div>
-      <nav className="grid gap-1.5 px-3 py-2">
+      <nav className="grid shrink-0 gap-1.5 px-3 py-2">
         {navItems
           .filter((item) => canAccess(profile?.role, item.permission))
           .map(({ label, to, icon: Icon }) => (
@@ -87,7 +87,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
           </NavLink>
         ))}
       </nav>
-      <div className="mt-auto space-y-3 p-4">
+      <div className="mt-auto shrink-0 space-y-3 p-4 pb-6">
         <div className="rounded-3xl border border-gold-200/12 bg-[linear-gradient(180deg,rgba(212,160,23,.08),rgba(255,255,255,.025))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-gold-300" />
