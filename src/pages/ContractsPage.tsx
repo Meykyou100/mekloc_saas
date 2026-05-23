@@ -4,13 +4,16 @@ import {
   CheckCircle2,
   CircleAlert,
   Download,
+  Eye,
   FileSignature,
   FileText,
   Landmark,
   MessageCircle,
   PenLine,
   RefreshCcw,
+  Search,
   Sparkles,
+  Trash2,
   UserRound,
   Wand2,
   ZoomIn,
@@ -24,11 +27,12 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { SelectField, TextAreaField } from '../components/ui/Form';
+import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { formatMAD, type Client, type Vehicle } from '../data/mockData';
+import { formatMAD, type Client, type Contract, type Vehicle } from '../data/mockData';
 import { buildWhatsAppReminderUrl } from '../lib/assistantDuJour';
 import { getNotificationPreferences } from '../lib/notificationPreferences';
 import { supabase } from '../lib/supabase';
@@ -81,8 +85,18 @@ const zoneCoords: Record<string, { x: number; y: number }> = {
 };
 
 function statusLabel(status: string) {
-  if (status === 'Signed') return 'Finalisé';
-  if (status === 'Downloaded') return 'Téléchargé';
+  if (status === 'Signed') return 'Signé';
+  if (status === 'Downloaded') return 'Généré';
+  if (status === 'Sent') return 'Envoyé';
+  if (status === 'Cancelled') return 'Annulé';
+  return 'Brouillon';
+}
+
+function normalizeArchiveStatus(status: string) {
+  if (status === 'Signed') return 'Signé';
+  if (status === 'Downloaded') return 'Généré';
+  if (status === 'Sent') return 'Envoyé';
+  if (status === 'Cancelled') return 'Annulé';
   return 'Brouillon';
 }
 
@@ -321,7 +335,7 @@ function createPdfCaptureSource(source: HTMLElement, logoDataUrl?: string | null
 
 export default function ContractsPage() {
   const [searchParams] = useSearchParams();
-  const { clients, vehicles, reservations, contracts, createContract } = useData();
+  const { clients, vehicles, reservations, contracts, createContract, deleteContract } = useData();
   const { agencyId, profile } = useAuth();
   const { notify } = useApp();
 
@@ -332,6 +346,12 @@ export default function ContractsPage() {
   const [vehicleId, setVehicleId] = useState('');
   const [reservationId, setReservationId] = useState('');
   const [reservationSearch, setReservationSearch] = useState('');
+  const [archiveSearch, setArchiveSearch] = useState('');
+  const [archiveStatusFilter, setArchiveStatusFilter] = useState('Tous');
+  const [archivePreviewContract, setArchivePreviewContract] = useState<Contract | null>(null);
+  const [contractToDelete, setContractToDelete] = useState<Contract | null>(null);
+  const [deletingContract, setDeletingContract] = useState(false);
+  const [pendingArchiveDownloadId, setPendingArchiveDownloadId] = useState<string | null>(null);
   const [terms, setTerms] = useState(defaultTerms.join('\n'));
   const [secondDriver, setSecondDriver] = useState<SecondDriver>(emptySecondDriver);
   const [generating, setGenerating] = useState(false);
@@ -403,6 +423,7 @@ export default function ContractsPage() {
 
   useEffect(() => {
     if (!selectedReservation) return;
+    setArchivePreviewContract(null);
     setClientId(selectedReservation.clientId);
     setVehicleId(selectedReservation.vehicleId);
   }, [selectedReservation]);
@@ -531,19 +552,20 @@ export default function ContractsPage() {
   const effectiveClientId = client.id || selectedReservation?.clientId || '';
   const effectiveVehicleId = vehicle.id || selectedReservation?.vehicleId || '';
 
-  const pickupDate = selectedReservation?.pickupDate || '';
-  const returnDate = selectedReservation?.returnDate || '';
+  const pickupDate = selectedReservation?.pickupDate || archivePreviewContract?.pickupDate || '';
+  const returnDate = selectedReservation?.returnDate || archivePreviewContract?.returnDate || '';
   const pickupTime = selectedReservation?.pickupTime || '';
   const returnTime = selectedReservation?.returnTime || '';
   const rentalDays = getDiffDays(pickupDate, returnDate);
-  const totalAmount = selectedReservation?.totalAmount || vehicle.dailyPrice * rentalDays;
+  const totalAmount = selectedReservation?.totalAmount || archivePreviewContract?.totalAmount || vehicle.dailyPrice * rentalDays;
   const deposit = selectedReservation?.deposit ?? 0;
   const accessories = vehicle.accessories || {};
   const damageMarks = vehicle.damageMarks || [];
+  const hasPreviewSource = Boolean(selectedReservation || archivePreviewContract);
 
   const contractReference = useMemo(() => {
-    return selectedReservation?.id || `CONTRAT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`;
-  }, [selectedReservation?.id]);
+    return archivePreviewContract?.contractNumber || selectedReservation?.id || `CONTRAT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`;
+  }, [archivePreviewContract?.contractNumber, selectedReservation?.id]);
 
   const signatureCity = useMemo(() => {
     return extractAgencyCityFromAddress(agencyMeta.address) || 'Non renseigné';
@@ -589,8 +611,12 @@ export default function ContractsPage() {
       notify({ title: 'Données manquantes', message: 'Veuillez sélectionner un véhicule.', type: 'warning' });
       return false;
     }
-    if (!selectedReservation?.id) {
+    if (mode === 'generate' && !selectedReservation?.id) {
       notify({ title: 'Données manquantes', message: 'Veuillez sélectionner une réservation source.', type: 'warning' });
+      return false;
+    }
+    if (mode === 'preview' && !hasPreviewSource) {
+      notify({ title: 'Données manquantes', message: 'Veuillez sélectionner une réservation ou un contrat archivé.', type: 'warning' });
       return false;
     }
     if (!pickupDate || !returnDate) {
@@ -757,7 +783,7 @@ export default function ContractsPage() {
 
   const previewStatus = contracts[0]?.status || 'Draft';
   const notificationPreferences = getNotificationPreferences(profile?.agency?.settings);
-  const activeStep = selectedReservation ? (secondDriver.enabled ? 3 : 2) : 1;
+  const activeStep = hasPreviewSource ? (secondDriver.enabled ? 3 : 2) : 1;
   const filteredReservations = useMemo(() => {
     const query = reservationSearch.trim().toLowerCase();
     if (!query) return reservations;
@@ -766,9 +792,32 @@ export default function ContractsPage() {
     );
   }, [reservationSearch, reservations]);
 
+  const archiveFilters = ['Tous', 'Brouillon', 'Généré', 'Envoyé', 'Signé', 'Annulé'];
+  const filteredContracts = useMemo(() => {
+    const query = archiveSearch.trim().toLowerCase();
+    return contracts.filter((contract) => {
+      const label = normalizeArchiveStatus(contract.status);
+      const matchesStatus = archiveStatusFilter === 'Tous' || label === archiveStatusFilter;
+      const matchesQuery = !query || `${contract.contractNumber} ${contract.client} ${contract.vehicle} ${contract.template}`.toLowerCase().includes(query);
+      return matchesStatus && matchesQuery;
+    });
+  }, [archiveSearch, archiveStatusFilter, contracts]);
+
+  function getArchiveClient(contract: Contract) {
+    return clients.find((item) => item.id === contract.clientId);
+  }
+
+  function getArchiveWhatsappUrl(contract: Contract) {
+    const archiveClient = getArchiveClient(contract);
+    const phone = archiveClient?.phone?.replace(/\D/g, '');
+    if (!phone) return '';
+    return `https://wa.me/${phone}?text=${encodeURIComponent(`Bonjour, voici votre contrat de location MekLoc: ${contract.contractNumber}.`)}`;
+  }
+
   function resumeSavedContract(contractId: string) {
     const contract = contracts.find((item) => item.id === contractId);
     if (!contract) return;
+    setArchivePreviewContract(contract);
     setClientId(contract.clientId);
     setVehicleId(contract.vehicleId);
     setTemplate(contract.template);
@@ -779,14 +828,54 @@ export default function ContractsPage() {
       item.pickupDate === contract.pickupDate &&
       item.returnDate === contract.returnDate
     );
-    if (matchingReservation) setReservationId(matchingReservation.id);
+    if (matchingReservation) {
+      setReservationId(matchingReservation.id);
+    } else {
+      setReservationId('');
+    }
     notify({
       title: 'Contrat chargé',
       message: matchingReservation
         ? 'Le contrat sauvegardé a été rechargé dans le générateur.'
-        : 'Les infos du contrat ont été rechargées. Sélectionnez la réservation liée si nécessaire.',
+        : 'Le contrat archivé est chargé dans l’aperçu.',
       type: 'success',
     });
+  }
+
+  function downloadSavedContract(contractId: string) {
+    resumeSavedContract(contractId);
+    setPendingArchiveDownloadId(contractId);
+  }
+
+  useEffect(() => {
+    if (!pendingArchiveDownloadId || archivePreviewContract?.id !== pendingArchiveDownloadId) return;
+    const timer = window.setTimeout(() => {
+      downloadContractPreview().finally(() => setPendingArchiveDownloadId(null));
+    }, 150);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [archivePreviewContract, pendingArchiveDownloadId, client.id, vehicle.id]);
+
+  async function confirmDeleteContract() {
+    if (!contractToDelete) return;
+    try {
+      setDeletingContract(true);
+      await deleteContract(contractToDelete.id);
+      if (archivePreviewContract?.id === contractToDelete.id) {
+        setArchivePreviewContract(null);
+        setReservationId('');
+      }
+      notify({ title: 'Contrat supprimé', message: 'Le contrat a été retiré des archives.', type: 'success' });
+      setContractToDelete(null);
+    } catch (error) {
+      notify({
+        title: 'Suppression impossible',
+        message: error instanceof Error ? error.message : 'Réessayez dans quelques instants.',
+        type: 'warning',
+      });
+    } finally {
+      setDeletingContract(false);
+    }
   }
 
   return (
@@ -797,7 +886,7 @@ export default function ContractsPage() {
         description="Créez, vérifiez et exportez vos contrats de location."
         action={(
           <div className="hidden md:block">
-            <Button icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!selectedReservation}>
+            <Button icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!hasPreviewSource}>
               {downloadingPdf ? 'Préparation...' : 'Télécharger PDF'}
             </Button>
           </div>
@@ -805,7 +894,7 @@ export default function ContractsPage() {
       />
 
       <div className="mb-3 md:hidden">
-        <Button className="w-full" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!selectedReservation}>
+        <Button className="w-full" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!hasPreviewSource}>
           {downloadingPdf ? 'Préparation du PDF...' : 'Télécharger PDF'}
         </Button>
       </div>
@@ -971,13 +1060,13 @@ export default function ContractsPage() {
                   Fit
                 </button>
               </div>
-              <Button className="h-9 shrink-0 px-3 text-xs" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!selectedReservation}>
+              <Button className="h-9 shrink-0 px-3 text-xs" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!hasPreviewSource}>
                 Télécharger
               </Button>
             </div>
           </div>
 
-          {!selectedReservation ? (
+          {!hasPreviewSource ? (
             <div className="grid min-h-[520px] place-items-center rounded-2xl border border-dashed border-white/10 bg-[radial-gradient(circle_at_top,rgba(212,160,23,.08),transparent_30%),#111722] p-6 text-center">
               <div className="max-w-sm">
                 <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-gold-200">
@@ -1205,7 +1294,7 @@ export default function ContractsPage() {
         <Button type="button" className="h-12" icon={<FileSignature className="h-4 w-4" />} onClick={handleGenerateContract} loading={generating} disabled={!selectedReservation}>
           Générer contrat
         </Button>
-        <Button type="button" variant="secondary" className="h-12" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!selectedReservation}>
+        <Button type="button" variant="secondary" className="h-12" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!hasPreviewSource}>
           Télécharger PDF
         </Button>
         {!notificationPreferences.contractSending ? (
@@ -1225,44 +1314,123 @@ export default function ContractsPage() {
         )}
       </div>
 
-      <Card className="mt-6 border-white/10 bg-[#0b0f15] p-5 shadow-[0_20px_70px_rgba(0,0,0,.24)]">
+      <Card className="mt-6 border-white/10 bg-gradient-to-br from-[#0d1118] to-[#080b10] p-5 shadow-[0_20px_70px_rgba(0,0,0,.24)]">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Archives</p>
-            <h2 className="mt-1 text-xl font-black text-white light:text-carbon-950">Contrats enregistrés</h2>
-            <p className="mt-1 text-sm text-carbon-400">Retrouvez les anciens contrats sauvegardés avec “Générer contrat”.</p>
+            <h2 className="mt-1 text-xl font-black text-white light:text-carbon-950">Archives des contrats</h2>
+            <p className="mt-1 text-sm text-carbon-400">Retrouvez, téléchargez ou renvoyez vos anciens contrats générés.</p>
           </div>
           <Badge>{contracts.length} contrat{contracts.length > 1 ? 's' : ''}</Badge>
         </div>
 
+        <div className="mb-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <label className="relative block">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
+            <input
+              className="form-control h-11 pl-10 text-sm"
+              placeholder="Rechercher par client, véhicule, référence…"
+              value={archiveSearch}
+              onChange={(event) => setArchiveSearch(event.target.value)}
+            />
+          </label>
+          <div className="flex gap-2 overflow-x-auto pb-1 lg:pb-0">
+            {archiveFilters.map((filter) => (
+              <button
+                key={filter}
+                type="button"
+                onClick={() => setArchiveStatusFilter(filter)}
+                className={`shrink-0 rounded-full border px-3 py-2 text-xs font-bold transition ${
+                  archiveStatusFilter === filter
+                    ? 'border-gold-300/50 bg-gold-400/15 text-gold-100'
+                    : 'border-white/10 bg-white/[0.035] text-carbon-300 hover:border-gold-300/25 hover:text-white'
+                }`}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {contracts.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] p-6 text-center">
+            <p className="text-sm text-carbon-400">Aucun contrat enregistré pour le moment.</p>
+            <Button type="button" className="mt-4" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+              Créer un contrat
+            </Button>
+          </div>
+        ) : filteredContracts.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.025] p-6 text-sm text-carbon-400">
-            Aucun contrat enregistré pour le moment. Remplissez le générateur puis cliquez sur “Générer contrat”.
+            Aucun contrat ne correspond à votre recherche.
           </div>
         ) : (
           <div className="grid gap-3">
-            {contracts.map((contract) => (
-              <div key={contract.id} className="grid gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4 lg:grid-cols-[1.2fr_1fr_auto] lg:items-center">
+            {filteredContracts.map((contract) => {
+              const archiveWhatsappUrl = getArchiveWhatsappUrl(contract);
+              return (
+              <div key={contract.id} className="grid gap-4 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 transition hover:border-yellow-500/20 lg:grid-cols-[1.2fr_1fr_auto] lg:items-center">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate font-black text-white light:text-carbon-950">{contract.contractNumber}</p>
                     <Badge>{statusLabel(contract.status)}</Badge>
                   </div>
                   <p className="mt-1 truncate text-sm text-carbon-400">{contract.client || 'Client non renseigné'} · {contract.vehicle || 'Véhicule non renseigné'}</p>
+                  <p className="mt-1 text-xs text-carbon-500">Créé le {formatDateFr(contract.pickupDate)}</p>
                 </div>
                 <div className="grid gap-1 text-sm text-carbon-300 sm:grid-cols-3 lg:grid-cols-1">
                   <p>{formatDateFr(contract.pickupDate)} → {formatDateFr(contract.returnDate)}</p>
                   <p className="font-semibold text-gold-200">{formatMAD(contract.totalAmount || 0)}</p>
                   <p className="text-carbon-500">{contract.template}</p>
                 </div>
-                <Button type="button" variant="secondary" className="h-10 px-4" onClick={() => resumeSavedContract(contract.id)}>
-                  Reprendre
-                </Button>
+                <div className="flex flex-wrap gap-2 lg:justify-end">
+                  <Button type="button" variant="secondary" className="h-9 px-3 text-xs" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => resumeSavedContract(contract.id)}>
+                    Aperçu
+                  </Button>
+                  <Button type="button" variant="secondary" className="h-9 px-3 text-xs" icon={<Download className="h-3.5 w-3.5" />} onClick={() => downloadSavedContract(contract.id)} loading={pendingArchiveDownloadId === contract.id}>
+                    PDF
+                  </Button>
+                  {archiveWhatsappUrl ? (
+                    <a href={archiveWhatsappUrl} target="_blank" rel="noreferrer">
+                      <Button type="button" variant="secondary" className="h-9 px-3 text-xs" icon={<MessageCircle className="h-3.5 w-3.5" />}>
+                        WhatsApp
+                      </Button>
+                    </a>
+                  ) : (
+                    <Button type="button" variant="secondary" className="h-9 px-3 text-xs" disabled title="Téléphone manquant">
+                      Téléphone manquant
+                    </Button>
+                  )}
+                  <Button type="button" variant="danger" className="h-9 px-3 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setContractToDelete(contract)}>
+                    Supprimer
+                  </Button>
+                </div>
               </div>
-            ))}
+            );})}
           </div>
         )}
       </Card>
+
+      <Modal open={Boolean(contractToDelete)} title="Supprimer ce contrat ?" onClose={() => setContractToDelete(null)}>
+        <div className="space-y-5">
+          <p className="text-sm leading-6 text-carbon-300">
+            Cette action retirera le contrat de vos archives. Assurez-vous d’avoir téléchargé une copie si nécessaire.
+          </p>
+          {contractToDelete ? (
+            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+              <p className="font-black text-white">{contractToDelete.contractNumber}</p>
+              <p className="mt-1 text-sm text-carbon-400">{contractToDelete.client} · {contractToDelete.vehicle}</p>
+            </div>
+          ) : null}
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <Button type="button" variant="secondary" onClick={() => setContractToDelete(null)}>
+              Annuler
+            </Button>
+            <Button type="button" variant="danger" icon={<Trash2 className="h-4 w-4" />} loading={deletingContract} onClick={confirmDeleteContract}>
+              Supprimer
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
