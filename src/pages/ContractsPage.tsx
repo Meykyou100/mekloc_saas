@@ -365,12 +365,13 @@ export default function ContractsPage() {
       if (!viewport) return;
       const isMobile = window.innerWidth < 768;
       setIsMobilePreview(isMobile);
-      const nextMaxHeight = Math.max(isMobile ? 520 : 720, window.innerHeight - 180);
+      const nextMaxHeight = Math.max(isMobile ? 520 : 640, window.innerHeight - 220);
       setPreviewMaxHeight(nextMaxHeight);
-      const availableWidth = Math.max(260, viewport.clientWidth - (isMobile ? 16 : 32));
+      const availableWidth = Math.max(260, viewport.clientWidth - (isMobile ? 24 : 48));
       const widthScale = availableWidth / A4_SOURCE_WIDTH;
-      const minScale = isMobile ? 0.42 : 0.7;
-      setPreviewScale(Math.max(minScale, Math.min(1.08, widthScale)));
+      const minScale = isMobile ? 0.38 : 0.5;
+      const maxScale = isMobile ? 0.72 : 0.82;
+      setPreviewScale(Math.max(minScale, Math.min(maxScale, widthScale)));
     };
 
     updatePreviewScale();
@@ -382,16 +383,17 @@ export default function ContractsPage() {
     const viewport = previewViewportRef.current;
     if (!viewport) return;
     const isMobile = window.innerWidth < 768;
-    const nextMaxHeight = Math.max(isMobile ? 520 : 720, window.innerHeight - 180);
-    const availableWidth = Math.max(260, viewport.clientWidth - (isMobile ? 16 : 32));
+    const nextMaxHeight = Math.max(isMobile ? 520 : 640, window.innerHeight - 220);
+    const availableWidth = Math.max(260, viewport.clientWidth - (isMobile ? 24 : 48));
     const widthScale = availableWidth / A4_SOURCE_WIDTH;
-    const minScale = isMobile ? 0.42 : 0.7;
+    const minScale = isMobile ? 0.38 : 0.5;
+    const maxScale = isMobile ? 0.72 : 0.82;
     setPreviewMaxHeight(nextMaxHeight);
-    setPreviewScale(Math.max(minScale, Math.min(1.08, widthScale)));
+    setPreviewScale(Math.max(minScale, Math.min(maxScale, widthScale)));
   }
 
   function nudgePreviewScale(delta: number) {
-    setPreviewScale((current) => Math.max(0.38, Math.min(1.15, Number((current + delta).toFixed(2)))));
+    setPreviewScale((current) => Math.max(0.38, Math.min(0.9, Number((current + delta).toFixed(2)))));
   }
 
   const selectedReservation = useMemo(
@@ -788,11 +790,11 @@ export default function ContractsPage() {
   }
 
   return (
-    <div>
+    <div className="overflow-x-hidden pb-24">
       <PageHeader
         eyebrow="DOCUMENTS"
         title="Contrats"
-        description="Générez, prévisualisez et exportez vos contrats de location depuis une réservation."
+        description="Créez, vérifiez et exportez vos contrats de location."
         action={(
           <div className="hidden md:block">
             <Button icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!selectedReservation}>
@@ -827,19 +829,19 @@ export default function ContractsPage() {
         ))}
       </div>
 
-      <div className="mb-5 overflow-x-auto">
-        <div className="grid min-w-[760px] grid-cols-5 gap-3">
+      <div className="mb-5 overflow-x-auto pb-1">
+        <div className="flex min-w-max items-center gap-2">
           {['Réservation', 'Données', '2ème conducteur', 'Aperçu', 'Export'].map((label, index) => {
             const step = index + 1;
             const isActive = activeStep === step;
             const isDone = activeStep > step;
             return (
-              <div key={label} className={`rounded-2xl border px-4 py-3 ${isActive ? 'border-gold-300/45 bg-gold-400/12 text-gold-100' : isDone ? 'border-emerald-400/20 bg-emerald-400/5 text-carbon-200' : 'border-white/10 bg-white/[0.025] text-carbon-400'}`}>
-                <div className="flex items-center gap-3">
-                  <span className={`grid h-8 w-8 place-items-center rounded-full border text-sm font-black ${isActive ? 'border-gold-300 bg-gold-400 text-carbon-950' : 'border-white/15 bg-white/[0.04]'}`}>{step}</span>
+              <div key={label} className={`shrink-0 rounded-2xl border px-3 py-2.5 ${isActive ? 'border-gold-300/45 bg-gold-400/12 text-gold-100' : isDone ? 'border-emerald-400/20 bg-emerald-400/5 text-carbon-200' : 'border-white/10 bg-white/[0.025] text-carbon-400'}`}>
+                <div className="flex items-center gap-2.5">
+                  <span className={`grid h-7 w-7 place-items-center rounded-full border text-xs font-black ${isActive ? 'border-gold-300 bg-gold-400 text-carbon-950' : 'border-white/15 bg-white/[0.04]'}`}>{step}</span>
                   <div>
-                    <p className="text-sm font-black">{label}</p>
-                    <p className="text-[11px] opacity-70">{step === 1 ? 'Sélectionnez' : step === 5 ? 'Génération' : step === 3 ? 'Optionnel' : 'Vérification'}</p>
+                    <p className="whitespace-nowrap text-xs font-black sm:text-sm">{label}</p>
+                    <p className="whitespace-nowrap text-[10px] opacity-70">{step === 1 ? 'Sélectionnez' : step === 5 ? 'Génération' : step === 3 ? 'Optionnel' : 'Vérification'}</p>
                   </div>
                 </div>
               </div>
@@ -848,8 +850,8 @@ export default function ContractsPage() {
         </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[300px_minmax(330px,420px)_minmax(0,1fr)]">
-        <Card className="border-white/10 bg-[#0b0f15] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)]">
+      <div className="grid gap-5 lg:grid-cols-[300px_minmax(360px,1fr)] 2xl:grid-cols-[300px_minmax(360px,1fr)_minmax(520px,0.9fr)]">
+        <Card className="border-white/10 bg-[#0b0f15] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="font-black text-white light:text-carbon-950">Réservations validées</h2>
@@ -945,7 +947,7 @@ export default function ContractsPage() {
           </Card>
         </div>
 
-        <div className="min-w-0 rounded-3xl border border-white/10 bg-[#080c11] p-2 shadow-[0_24px_80px_rgba(0,0,0,.38)] sm:p-3 xl:sticky xl:top-24 xl:self-start">
+        <div className="min-w-0 rounded-3xl border border-white/10 bg-[#080c11] p-2 shadow-[0_24px_80px_rgba(0,0,0,.38)] sm:p-3 lg:col-span-2 2xl:sticky 2xl:top-24 2xl:col-span-1 2xl:self-start">
           <div className="mb-2 flex flex-col gap-3 rounded-2xl bg-white/[0.04] px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3 text-sm text-carbon-300">
               <div className="grid h-9 w-9 place-items-center rounded-xl bg-gold-400/12 text-gold-200">
@@ -956,9 +958,9 @@ export default function ContractsPage() {
                 <p className="text-xs text-carbon-500">Document final avec logo agence.</p>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
               <Badge>{statusLabel(previewStatus)}</Badge>
-              <div className="flex items-center rounded-xl border border-white/10 bg-black/20 p-1">
+              <div className="flex shrink-0 items-center rounded-xl border border-white/10 bg-black/20 p-1">
                 <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-carbon-300 hover:bg-white/10 hover:text-white" onClick={() => nudgePreviewScale(-0.08)} aria-label="Zoom arrière">
                   <ZoomOut className="h-4 w-4" />
                 </button>
@@ -969,7 +971,7 @@ export default function ContractsPage() {
                   Fit
                 </button>
               </div>
-              <Button className="h-9 px-3 text-xs" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!selectedReservation}>
+              <Button className="h-9 shrink-0 px-3 text-xs" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!selectedReservation}>
                 Télécharger
               </Button>
             </div>
@@ -990,14 +992,14 @@ export default function ContractsPage() {
           ) : (
             <div
               ref={previewViewportRef}
-              className="overflow-auto rounded-2xl bg-[radial-gradient(circle_at_top,rgba(212,160,23,.10),transparent_28%),#111722] p-3 sm:p-5"
+              className="max-h-[calc(100vh-220px)] overflow-auto rounded-2xl bg-[radial-gradient(circle_at_top,rgba(212,160,23,.10),transparent_28%),#111722] p-4 sm:p-6"
               style={{ maxHeight: `${previewMaxHeight}px` }}
             >
             <div
-              className="mx-auto origin-top"
-              style={{ width: A4_SOURCE_WIDTH, transform: `scale(${previewScale})`, height: A4_SOURCE_HEIGHT * previewScale }}
+              className="relative mx-auto"
+              style={{ width: A4_SOURCE_WIDTH * previewScale, height: A4_SOURCE_HEIGHT * previewScale }}
             >
-              <article ref={previewRef} className="mx-auto w-[794px] min-h-[1123px] rounded-xl border border-[#e8e8e8] bg-white px-8 py-7 text-[#1c2330] shadow-[0_16px_40px_rgba(15,23,42,.12)]">
+              <article ref={previewRef} className="absolute left-0 top-0 w-[794px] min-h-[1123px] origin-top-left rounded-xl border border-[#e8e8e8] bg-white px-8 py-7 text-[#1c2330] shadow-[0_16px_40px_rgba(15,23,42,.12)]" style={{ transform: `scale(${previewScale})` }}>
               <header className="flex items-start justify-between gap-5 border-b border-[#e8edf4] pb-4">
                 <div className="flex items-start gap-3">
                   <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-[#dce4ef] bg-white p-1.5 shadow-sm">

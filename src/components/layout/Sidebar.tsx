@@ -11,12 +11,10 @@ import {
   Wrench,
   X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { canAccess, type AppPermission } from '../../lib/permissions';
-import BrandLogo from '../ui/BrandLogo';
 
 const navItems = [
   { label: 'dashboard', to: '/dashboard', icon: LayoutDashboard, permission: 'dashboard' as AppPermission },
@@ -34,24 +32,27 @@ const navItems = [
 function SidebarContent({ onClose }: { onClose?: () => void }) {
   const { t } = useApp();
   const { profile } = useAuth();
-  const logoUrl = profile?.agency?.logoUrl;
-  const [logoBroken, setLogoBroken] = useState(false);
-
-  useEffect(() => {
-    setLogoBroken(false);
-  }, [logoUrl]);
 
   return (
     <div className="flex h-full flex-col">
-      <div className="px-4 pb-4 pt-5">
-        <div className="flex items-center justify-between rounded-3xl border border-white/[0.07] bg-white/[0.025] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.035)] light:bg-carbon-950/[0.025]">
-        <NavLink to="/" className="flex min-w-0 items-center gap-3" onClick={onClose}>
-          <BrandLogo logoUrl={logoUrl} broken={logoBroken} onError={() => setLogoBroken(true)} />
-          <span className="min-w-0">
-            <span className="block text-xl font-black leading-6 text-white light:text-carbon-950">
+      <div className="px-5 pb-5 pt-6">
+        <div className="flex items-center justify-between gap-3">
+        <NavLink to="/" className="group flex min-w-0 items-center gap-3.5" onClick={onClose}>
+          <span className="relative flex h-12 w-14 shrink-0 items-center justify-center">
+            <span className="absolute inset-0 rounded-2xl bg-gold-400/10 blur-xl opacity-70" />
+            <img
+              src="/mekloc-logo-transparent.png"
+              alt="MekLoc"
+              className="relative h-11 w-auto max-w-[56px] object-contain drop-shadow-[0_8px_18px_rgba(227,177,23,.12)]"
+            />
+          </span>
+          <span className="min-w-0 pt-0.5">
+            <span className="block text-[22px] font-black leading-6 tracking-tight text-white light:text-carbon-950">
               MekLoc
             </span>
-            <span className="block max-w-[170px] text-xs font-medium leading-4 text-carbon-400">Gestion location automobile</span>
+            <span className="mt-1 block max-w-[172px] truncate text-[11px] font-semibold leading-4 text-carbon-400 light:text-carbon-600">
+              Gestion location automobile
+            </span>
           </span>
         </NavLink>
         <button
