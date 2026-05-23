@@ -331,6 +331,7 @@ export default function ContractsPage() {
   const [clientId, setClientId] = useState('');
   const [vehicleId, setVehicleId] = useState('');
   const [reservationId, setReservationId] = useState('');
+  const [reservationSearch, setReservationSearch] = useState('');
   const [terms, setTerms] = useState(defaultTerms.join('\n'));
   const [secondDriver, setSecondDriver] = useState<SecondDriver>(emptySecondDriver);
   const [generating, setGenerating] = useState(false);
@@ -754,6 +755,14 @@ export default function ContractsPage() {
 
   const previewStatus = contracts[0]?.status || 'Draft';
   const notificationPreferences = getNotificationPreferences(profile?.agency?.settings);
+  const activeStep = selectedReservation ? (secondDriver.enabled ? 3 : 2) : 1;
+  const filteredReservations = useMemo(() => {
+    const query = reservationSearch.trim().toLowerCase();
+    if (!query) return reservations;
+    return reservations.filter((item) =>
+      `${item.id} ${item.client} ${item.vehicle} ${item.status}`.toLowerCase().includes(query)
+    );
+  }, [reservationSearch, reservations]);
 
   function resumeSavedContract(contractId: string) {
     const contract = contracts.find((item) => item.id === contractId);
@@ -818,177 +827,125 @@ export default function ContractsPage() {
         ))}
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
-        <Card className="overflow-hidden border-white/10 bg-[#0b0f15] p-0 shadow-[0_24px_70px_rgba(0,0,0,.28)] xl:sticky xl:top-24 xl:flex xl:h-[calc(100vh-7rem)] xl:flex-col">
-          <div className="shrink-0 border-b border-white/10 bg-white/[0.035] p-5">
-            <div className="flex items-center gap-3">
-              <div className="rounded-xl border border-gold-300/20 bg-gold-400/10 p-2.5 text-gold-200">
-                <Wand2 className="h-5 w-5" />
+      <div className="mb-5 overflow-x-auto">
+        <div className="grid min-w-[760px] grid-cols-5 gap-3">
+          {['Réservation', 'Données', '2ème conducteur', 'Aperçu', 'Export'].map((label, index) => {
+            const step = index + 1;
+            const isActive = activeStep === step;
+            const isDone = activeStep > step;
+            return (
+              <div key={label} className={`rounded-2xl border px-4 py-3 ${isActive ? 'border-gold-300/45 bg-gold-400/12 text-gold-100' : isDone ? 'border-emerald-400/20 bg-emerald-400/5 text-carbon-200' : 'border-white/10 bg-white/[0.025] text-carbon-400'}`}>
+                <div className="flex items-center gap-3">
+                  <span className={`grid h-8 w-8 place-items-center rounded-full border text-sm font-black ${isActive ? 'border-gold-300 bg-gold-400 text-carbon-950' : 'border-white/15 bg-white/[0.04]'}`}>{step}</span>
+                  <div>
+                    <p className="text-sm font-black">{label}</p>
+                    <p className="text-[11px] opacity-70">{step === 1 ? 'Sélectionnez' : step === 5 ? 'Génération' : step === 3 ? 'Optionnel' : 'Vérification'}</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <h2 className="font-semibold text-white light:text-carbon-950">Générateur de contrat</h2>
-                <p className="text-sm leading-5 text-carbon-400">Sélectionnez une réservation, puis exportez.</p>
-              </div>
-            </div>
-          </div>
+            );
+          })}
+        </div>
+      </div>
 
-          <div className="min-h-0 space-y-3 overflow-y-auto p-4 pb-6 xl:flex-1">
-            <section className="rounded-2xl bg-white/[0.04] p-4">
-              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">1. Réservation</p>
-              <SelectField label="Choisir une réservation" value={reservationId} onChange={(event) => setReservationId(event.target.value)}>
-                <option value="">Sélectionner une réservation</option>
-                {reservations.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.id} · {item.client} · {item.pickupDate}{item.pickupTime ? ` ${item.pickupTime}` : ''} → {item.returnDate}{item.returnTime ? ` ${item.returnTime}` : ''}
-                  </option>
-                ))}
-              </SelectField>
-              {selectedReservation ? (
-                <div className="mt-3 grid gap-2 rounded-2xl bg-black/20 p-3 text-xs text-carbon-300">
+      <div className="grid gap-5 xl:grid-cols-[300px_minmax(330px,420px)_minmax(0,1fr)]">
+        <Card className="border-white/10 bg-[#0b0f15] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] xl:sticky xl:top-24 xl:max-h-[calc(100vh-7rem)]">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-black text-white light:text-carbon-950">Réservations validées</h2>
+              <p className="text-xs text-carbon-400">{filteredReservations.length} réservation{filteredReservations.length > 1 ? 's' : ''}</p>
+            </div>
+            <Badge>{reservations.length}</Badge>
+          </div>
+          <input
+            className="form-control mb-3 h-10 text-sm"
+            placeholder="Rechercher une réservation..."
+            value={reservationSearch}
+            onChange={(event) => setReservationSearch(event.target.value)}
+          />
+          <div className="space-y-3 overflow-y-auto pr-1 xl:max-h-[calc(100vh-15rem)]">
+            {filteredReservations.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-white/10 p-4 text-sm text-carbon-400">Aucune réservation trouvée.</p>
+            ) : filteredReservations.map((item) => {
+              const selected = item.id === reservationId;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setReservationId(item.id)}
+                  className={`w-full rounded-2xl border p-4 text-left transition ${selected ? 'border-gold-300/60 bg-gold-400/10 shadow-[0_0_28px_rgba(212,160,23,.12)]' : 'border-white/10 bg-white/[0.035] hover:border-white/20 hover:bg-white/[0.055]'}`}
+                >
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-semibold text-white">{selectedReservation.client}</p>
-                      <p className="mt-1">{selectedReservation.vehicle}</p>
-                    </div>
-                    <Badge>{selectedReservation.status}</Badge>
+                    <p className="font-black text-white">{item.id}</p>
+                    <Badge>{item.status}</Badge>
                   </div>
-                  <div className="grid gap-1 border-t border-white/10 pt-2">
-                    <p>{formatDateFr(pickupDate)} → {formatDateFr(returnDate)}</p>
-                    <p>{selectedReservation.pickupLocation || 'Départ non renseigné'} → {selectedReservation.returnLocation || 'Retour non renseigné'}</p>
-                    <p>{formatMAD(totalAmount)} · Caution {formatMAD(deposit)}</p>
-                  </div>
-                </div>
-              ) : null}
-            </section>
-
-            <section className="rounded-2xl bg-white/[0.04] p-4">
-              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">2. Informations contrat</p>
-              <div className="grid gap-3">
-                <SelectField label="Modèle du contrat" value={template} onChange={(event) => setTemplate(event.target.value)}>
-                  {templates.map((item) => <option key={item}>{item}</option>)}
-                </SelectField>
-                <div className="grid gap-2 rounded-xl bg-black/20 px-3 py-2 text-xs text-carbon-300">
-                  <p><span className="text-carbon-500">Référence:</span> <span className="font-semibold text-white">{contractReference}</span></p>
-                  <p><span className="text-carbon-500">Date du contrat:</span> <span className="font-semibold text-white">{new Date().toLocaleDateString('fr-MA')}</span></p>
-                </div>
-                <div className="rounded-xl bg-black/20 px-3 py-2 text-xs text-carbon-300">
-                  <p><span className="text-carbon-500">Client:</span> <span className="font-semibold text-white">{client.fullName || 'Non renseigné'}</span></p>
-                  <p className="mt-1"><span className="text-carbon-500">Véhicule:</span> <span className="font-semibold text-white">{vehicle.brand || '—'} {vehicle.model || ''}</span></p>
-                </div>
-                <TextAreaField label="Notes / conditions" value={terms} onChange={(event) => setTerms(event.target.value)} className="min-h-24" />
-              </div>
-            </section>
-
-            <section className="rounded-2xl bg-white/[0.04] p-4">
-              <div className="mb-3 grid gap-3">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">3. 2ème conducteur</p>
-                  {secondDriver.enabled ? (
-                    <Button type="button" variant="secondary" className="h-8 px-3 text-xs" onClick={() => setSecondDriver(emptySecondDriver)}>
-                      Retirer
-                    </Button>
-                  ) : (
-                    <Button type="button" className="h-8 px-3 text-xs" onClick={() => setSecondDriver((current) => ({ ...current, enabled: true }))}>
-                      Ajouter un 2ème conducteur
-                    </Button>
-                  )}
-                </div>
-                {secondDriver.enabled ? (
-                  <p className="text-xs text-carbon-400">Remplissez uniquement les informations disponibles.</p>
-                ) : (
-                  <p className="rounded-xl border border-gold-300/15 bg-gold-400/10 px-3 py-2 text-xs font-semibold text-gold-100">
-                    Besoin d’un conducteur secondaire ? Cliquez sur “Ajouter un 2ème conducteur”.
-                  </p>
-                )}
-              </div>
-              {secondDriver.enabled ? (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="grid gap-1.5 text-xs font-semibold text-carbon-300">
-                    Nom
-                    <input className="form-control text-base sm:text-sm" placeholder="El Amrani" value={secondDriver.lastName} onChange={(event) => setSecondDriver((current) => ({ ...current, lastName: event.target.value }))} />
-                  </label>
-                  <label className="grid gap-1.5 text-xs font-semibold text-carbon-300">
-                    Prénom
-                    <input className="form-control text-base sm:text-sm" placeholder="Yassine" value={secondDriver.firstName} onChange={(event) => setSecondDriver((current) => ({ ...current, firstName: event.target.value }))} />
-                  </label>
-                  <label className="grid gap-1.5 text-xs font-semibold text-carbon-300">
-                    Date de naissance
-                    <input className="form-control text-base sm:text-sm" type="date" value={secondDriver.birthDate} onChange={(event) => setSecondDriver((current) => ({ ...current, birthDate: event.target.value }))} />
-                  </label>
-                  <label className="grid gap-1.5 text-xs font-semibold text-carbon-300">
-                    Nationalité
-                    <input className="form-control text-base sm:text-sm" placeholder="Marocaine" value={secondDriver.nationality} onChange={(event) => setSecondDriver((current) => ({ ...current, nationality: event.target.value }))} />
-                  </label>
-                  <label className="grid gap-1.5 text-xs font-semibold text-carbon-300">
-                    CIN / Passeport
-                    <input className="form-control text-base sm:text-sm" placeholder="AB123456" value={secondDriver.idNumber} onChange={(event) => setSecondDriver((current) => ({ ...current, idNumber: event.target.value }))} />
-                  </label>
-                  <label className="grid gap-1.5 text-xs font-semibold text-carbon-300">
-                    Permis N°
-                    <input className="form-control text-base sm:text-sm" placeholder="P123456" value={secondDriver.licenseNumber} onChange={(event) => setSecondDriver((current) => ({ ...current, licenseNumber: event.target.value }))} />
-                  </label>
-                  <label className="grid gap-1.5 text-xs font-semibold text-carbon-300">
-                    Téléphone
-                    <input className="form-control text-base sm:text-sm" placeholder="+212 6..." value={secondDriver.phone} onChange={(event) => setSecondDriver((current) => ({ ...current, phone: event.target.value }))} />
-                  </label>
-                  <label className="grid gap-1.5 text-xs font-semibold text-carbon-300 sm:col-span-2">
-                    Adresse
-                    <input className="form-control text-base sm:text-sm" placeholder="Adresse complète" value={secondDriver.address} onChange={(event) => setSecondDriver((current) => ({ ...current, address: event.target.value }))} />
-                  </label>
-                  <Button type="button" variant="secondary" className="sm:col-span-2" onClick={() => setSecondDriver(emptySecondDriver)}>
-                    Retirer le 2ème conducteur
-                  </Button>
-                </div>
-              ) : (
-                <p className="text-sm text-carbon-400">Optionnel. Cette section est masquée dans le formulaire tant que vous ne l’ajoutez pas.</p>
-              )}
-            </section>
-
-          </div>
-
-          <div className="shrink-0 border-t border-white/10 bg-carbon-950/95 p-5 backdrop-blur-xl light:bg-white/95">
-            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">4. Actions</p>
-            <div className="mb-3 grid gap-1.5">
-              {checklist.map((item) => (
-                <div key={item.label} className="flex items-center justify-between rounded-lg bg-white/[0.035] px-3 py-1.5 text-[11px]">
-                  <span className="text-carbon-300">{item.label}</span>
-                  {item.ok ? <span className="inline-flex items-center gap-1 font-semibold text-emerald-300"><CheckCircle2 className="h-3 w-3" /> OK</span> : <span className="inline-flex items-center gap-1 font-semibold text-amber-200"><CircleAlert className="h-3 w-3" /> À vérifier</span>}
-                </div>
-              ))}
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-              <Button type="button" icon={<FileSignature className="h-4 w-4" />} onClick={handleGenerateContract} loading={generating} disabled={!selectedReservation}>
-                {generating ? 'Génération...' : 'Générer contrat'}
-              </Button>
-              <Button type="button" variant="secondary" onClick={() => notify({ title: 'Aperçu mis à jour', message: 'Le document à droite reflète vos sélections.', type: 'info' })} disabled={!selectedReservation}>
-                Aperçu
-              </Button>
-              <Button type="button" variant="secondary" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!selectedReservation}>
-                Télécharger PDF
-              </Button>
-              {!notificationPreferences.contractSending ? (
-                <Button type="button" variant="secondary" disabled>
-                  WhatsApp désactivé
-                </Button>
-              ) : contractWhatsAppUrl ? (
-                <a href={contractWhatsAppUrl} target="_blank" rel="noreferrer" className="block">
-                  <Button type="button" variant="secondary" className="w-full" icon={<MessageCircle className="h-4 w-4" />}>
-                    Envoyer WhatsApp
-                  </Button>
-                </a>
-              ) : (
-                <Button type="button" variant="secondary" disabled>
-                  Téléphone manquant
-                </Button>
-              )}
-              <Button type="button" variant="secondary" icon={<RefreshCcw className="h-4 w-4" />} onClick={() => { setTerms(defaultTerms.join('\n')); setSecondDriver(emptySecondDriver); }}>
-                Réinitialiser
-              </Button>
-            </div>
+                  <p className="mt-2 text-sm font-semibold text-carbon-200">{item.client}</p>
+                  <p className="mt-1 text-sm text-carbon-400">{item.vehicle}</p>
+                  <p className="mt-3 text-xs text-carbon-500">{formatDateFr(item.pickupDate)} → {formatDateFr(item.returnDate)}</p>
+                </button>
+              );
+            })}
           </div>
         </Card>
 
-        <div className="min-w-0 rounded-3xl border border-white/10 bg-[#080c11] p-2 shadow-[0_24px_80px_rgba(0,0,0,.38)] sm:p-3">
+        <div className="space-y-4">
+          <Card className="border-white/10 bg-[#0b0f15] p-4">
+            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Résumé de location</p>
+            {selectedReservation ? (
+              <div className="grid gap-3">
+                <div className="rounded-2xl bg-black/20 p-3">
+                  <p className="font-black text-white">{selectedReservation.client}</p>
+                  <p className="mt-1 text-sm text-carbon-400">{selectedReservation.vehicle}</p>
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3 text-sm text-carbon-300">{formatDateFr(pickupDate)} → {formatDateFr(returnDate)}</div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3 text-sm font-semibold text-gold-200">{formatMAD(totalAmount)} · Caution {formatMAD(deposit)}</div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-carbon-400">Sélectionnez une réservation à gauche.</p>
+            )}
+          </Card>
+
+          <Card className="border-white/10 bg-[#0b0f15] p-4">
+            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Informations contrat</p>
+            <div className="grid gap-3">
+              <SelectField label="Modèle du contrat" value={template} onChange={(event) => setTemplate(event.target.value)}>
+                {templates.map((item) => <option key={item}>{item}</option>)}
+              </SelectField>
+              <div className="grid gap-2 rounded-xl bg-black/20 px-3 py-2 text-xs text-carbon-300">
+                <p><span className="text-carbon-500">Référence:</span> <span className="font-semibold text-white">{contractReference}</span></p>
+                <p><span className="text-carbon-500">Date du contrat:</span> <span className="font-semibold text-white">{new Date().toLocaleDateString('fr-MA')}</span></p>
+              </div>
+              <TextAreaField label="Notes / conditions" value={terms} onChange={(event) => setTerms(event.target.value)} className="min-h-24" />
+            </div>
+          </Card>
+
+          <Card className="border-white/10 bg-[#0b0f15] p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">2ème conducteur</p>
+              {secondDriver.enabled ? (
+                <Button type="button" variant="secondary" className="h-8 px-3 text-xs" onClick={() => setSecondDriver(emptySecondDriver)}>Retirer</Button>
+              ) : (
+                <Button type="button" className="h-8 px-3 text-xs" onClick={() => setSecondDriver((current) => ({ ...current, enabled: true }))}>Ajouter un 2ème conducteur</Button>
+              )}
+            </div>
+            {secondDriver.enabled ? (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <input className="form-control text-base sm:text-sm" placeholder="Nom" value={secondDriver.lastName} onChange={(event) => setSecondDriver((current) => ({ ...current, lastName: event.target.value }))} />
+                <input className="form-control text-base sm:text-sm" placeholder="Prénom" value={secondDriver.firstName} onChange={(event) => setSecondDriver((current) => ({ ...current, firstName: event.target.value }))} />
+                <input className="form-control text-base sm:text-sm" placeholder="CIN / Passeport" value={secondDriver.idNumber} onChange={(event) => setSecondDriver((current) => ({ ...current, idNumber: event.target.value }))} />
+                <input className="form-control text-base sm:text-sm" placeholder="Permis N°" value={secondDriver.licenseNumber} onChange={(event) => setSecondDriver((current) => ({ ...current, licenseNumber: event.target.value }))} />
+                <input className="form-control text-base sm:text-sm" placeholder="Téléphone" value={secondDriver.phone} onChange={(event) => setSecondDriver((current) => ({ ...current, phone: event.target.value }))} />
+                <input className="form-control text-base sm:text-sm" placeholder="Adresse" value={secondDriver.address} onChange={(event) => setSecondDriver((current) => ({ ...current, address: event.target.value }))} />
+              </div>
+            ) : (
+              <p className="text-sm text-carbon-400">Optionnel. Les champs vides afficheront “—” dans le contrat.</p>
+            )}
+          </Card>
+        </div>
+
+        <div className="min-w-0 rounded-3xl border border-white/10 bg-[#080c11] p-2 shadow-[0_24px_80px_rgba(0,0,0,.38)] sm:p-3 xl:sticky xl:top-24 xl:self-start">
           <div className="mb-2 flex flex-col gap-3 rounded-2xl bg-white/[0.04] px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3 text-sm text-carbon-300">
               <div className="grid h-9 w-9 place-items-center rounded-xl bg-gold-400/12 text-gold-200">
@@ -1240,6 +1197,30 @@ export default function ContractsPage() {
           </div>
           )}
         </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 rounded-3xl border border-white/10 bg-[#0b0f15] p-4 shadow-[0_20px_70px_rgba(0,0,0,.22)] md:grid-cols-3">
+        <Button type="button" className="h-12" icon={<FileSignature className="h-4 w-4" />} onClick={handleGenerateContract} loading={generating} disabled={!selectedReservation}>
+          Générer contrat
+        </Button>
+        <Button type="button" variant="secondary" className="h-12" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!selectedReservation}>
+          Télécharger PDF
+        </Button>
+        {!notificationPreferences.contractSending ? (
+          <Button type="button" variant="secondary" className="h-12" disabled>
+            WhatsApp désactivé
+          </Button>
+        ) : contractWhatsAppUrl ? (
+          <a href={contractWhatsAppUrl} target="_blank" rel="noreferrer" className="block">
+            <Button type="button" variant="secondary" className="h-12 w-full" icon={<MessageCircle className="h-4 w-4" />}>
+              Envoyer WhatsApp
+            </Button>
+          </a>
+        ) : (
+          <Button type="button" variant="secondary" className="h-12" disabled>
+            Téléphone manquant
+          </Button>
+        )}
       </div>
 
       <Card className="mt-6 border-white/10 bg-[#0b0f15] p-5 shadow-[0_20px_70px_rgba(0,0,0,.24)]">
