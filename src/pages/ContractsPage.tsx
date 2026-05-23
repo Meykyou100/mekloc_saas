@@ -352,12 +352,6 @@ export default function ContractsPage() {
   const [logoPublicUrl, setLogoPublicUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!clientId && clients[0]) setClientId(clients[0].id);
-    if (!vehicleId && vehicles[0]) setVehicleId(vehicles[0].id);
-    if (!reservationId && reservations[0]) setReservationId(reservations[0].id);
-  }, [clientId, clients, reservationId, reservations, vehicleId, vehicles]);
-
-  useEffect(() => {
     const fromReservation = searchParams.get('reservation');
     if (fromReservation && reservations.some((item) => item.id === fromReservation)) {
       setReservationId(fromReservation);
@@ -553,18 +547,9 @@ export default function ContractsPage() {
   }, [agencyMeta.address]);
 
   const stats = useMemo(() => {
-    const now = new Date();
-    const month = now.getMonth();
-    const year = now.getFullYear();
-    const thisMonth = contracts.filter((item) => {
-      const raw = item.contractNumber.split('-').slice(-1)[0];
-      if (!raw || raw.length < 4) return false;
-      return true;
-    }).length;
     return {
       total: contracts.length,
       drafts: contracts.filter((item) => item.status === 'Draft').length,
-      thisMonth,
       last: contracts[0]?.contractNumber || 'Aucun',
     };
   }, [contracts]);
@@ -798,10 +783,10 @@ export default function ContractsPage() {
       <PageHeader
         eyebrow="DOCUMENTS"
         title="Contrats"
-        description="Générez un contrat propre depuis une réservation validée."
+        description="Générez, prévisualisez et exportez vos contrats de location depuis une réservation."
         action={(
           <div className="hidden md:block">
-            <Button icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf}>
+            <Button icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!selectedReservation}>
               {downloadingPdf ? 'Préparation...' : 'Télécharger PDF'}
             </Button>
           </div>
@@ -809,17 +794,16 @@ export default function ContractsPage() {
       />
 
       <div className="mb-3 md:hidden">
-        <Button className="w-full" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf}>
+        <Button className="w-full" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!selectedReservation}>
           {downloadingPdf ? 'Préparation du PDF...' : 'Télécharger PDF'}
         </Button>
       </div>
 
-      <div className="mb-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      <div className="mb-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
         {[
-          { label: 'Contrats', value: String(stats.total), helper: 'Total généré', icon: FileSignature },
+          { label: 'Contrats générés', value: String(stats.total), helper: 'Total enregistré', icon: FileSignature },
           { label: 'Brouillons', value: String(stats.drafts), helper: 'En préparation', icon: FileText },
-          { label: 'Ce mois', value: String(stats.thisMonth), helper: 'Période actuelle', icon: CalendarDays },
-          { label: 'Dernier', value: stats.last, helper: 'Référence récente', icon: Sparkles },
+          { label: 'Dernier contrat', value: stats.last, helper: 'Référence récente', icon: Sparkles },
         ].map(({ label, value, helper, icon: Icon }) => (
           <div key={label} className="min-h-[58px] rounded-xl border border-white/10 bg-white/[0.025] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,.03)] light:bg-white">
             <div className="flex items-center justify-between gap-2 sm:gap-3">
@@ -834,7 +818,7 @@ export default function ContractsPage() {
         ))}
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
+      <div className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
         <Card className="overflow-hidden border-white/10 bg-[#0b0f15] p-0 shadow-[0_24px_70px_rgba(0,0,0,.28)] xl:sticky xl:top-24 xl:flex xl:h-[calc(100vh-7rem)] xl:flex-col">
           <div className="shrink-0 border-b border-white/10 bg-white/[0.035] p-5">
             <div className="flex items-center gap-3">
@@ -843,15 +827,16 @@ export default function ContractsPage() {
               </div>
               <div>
                 <h2 className="font-semibold text-white light:text-carbon-950">Générateur de contrat</h2>
-                <p className="text-sm leading-5 text-carbon-400">Réservation, conditions, export.</p>
+                <p className="text-sm leading-5 text-carbon-400">Sélectionnez une réservation, puis exportez.</p>
               </div>
             </div>
           </div>
 
           <div className="min-h-0 space-y-3 overflow-y-auto p-4 pb-6 xl:flex-1">
             <section className="rounded-2xl bg-white/[0.04] p-4">
-              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">1. Sélection réservation</p>
-              <SelectField label="Réservation" value={reservationId} onChange={(event) => setReservationId(event.target.value)}>
+              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">1. Réservation</p>
+              <SelectField label="Choisir une réservation" value={reservationId} onChange={(event) => setReservationId(event.target.value)}>
+                <option value="">Sélectionner une réservation</option>
                 {reservations.map((item) => (
                   <option key={item.id} value={item.id}>
                     {item.id} · {item.client} · {item.pickupDate}{item.pickupTime ? ` ${item.pickupTime}` : ''} → {item.returnDate}{item.returnTime ? ` ${item.returnTime}` : ''}
@@ -877,18 +862,20 @@ export default function ContractsPage() {
             </section>
 
             <section className="rounded-2xl bg-white/[0.04] p-4">
-              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">2. Infos contrat</p>
+              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">2. Informations contrat</p>
               <div className="grid gap-3">
-                <SelectField label="Modèle" value={template} onChange={(event) => setTemplate(event.target.value)}>
+                <SelectField label="Modèle du contrat" value={template} onChange={(event) => setTemplate(event.target.value)}>
                   {templates.map((item) => <option key={item}>{item}</option>)}
                 </SelectField>
-                <SelectField label="Langue" defaultValue="fr">
-                  <option value="fr">Français</option>
-                </SelectField>
+                <div className="grid gap-2 rounded-xl bg-black/20 px-3 py-2 text-xs text-carbon-300">
+                  <p><span className="text-carbon-500">Référence:</span> <span className="font-semibold text-white">{contractReference}</span></p>
+                  <p><span className="text-carbon-500">Date du contrat:</span> <span className="font-semibold text-white">{new Date().toLocaleDateString('fr-MA')}</span></p>
+                </div>
                 <div className="rounded-xl bg-black/20 px-3 py-2 text-xs text-carbon-300">
                   <p><span className="text-carbon-500">Client:</span> <span className="font-semibold text-white">{client.fullName || 'Non renseigné'}</span></p>
                   <p className="mt-1"><span className="text-carbon-500">Véhicule:</span> <span className="font-semibold text-white">{vehicle.brand || '—'} {vehicle.model || ''}</span></p>
                 </div>
+                <TextAreaField label="Notes / conditions" value={terms} onChange={(event) => setTerms(event.target.value)} className="min-h-24" />
               </div>
             </section>
 
@@ -957,15 +944,10 @@ export default function ContractsPage() {
               )}
             </section>
 
-            <section className="rounded-2xl bg-white/[0.04] p-4">
-              <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">4. Conditions</p>
-              <TextAreaField label="Conditions" value={terms} onChange={(event) => setTerms(event.target.value)} className="min-h-24" />
-            </section>
-
           </div>
 
           <div className="shrink-0 border-t border-white/10 bg-carbon-950/95 p-5 backdrop-blur-xl light:bg-white/95">
-            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">5. Actions</p>
+            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">4. Actions</p>
             <div className="mb-3 grid gap-1.5">
               {checklist.map((item) => (
                 <div key={item.label} className="flex items-center justify-between rounded-lg bg-white/[0.035] px-3 py-1.5 text-[11px]">
@@ -975,6 +957,15 @@ export default function ContractsPage() {
               ))}
             </div>
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+              <Button type="button" icon={<FileSignature className="h-4 w-4" />} onClick={handleGenerateContract} loading={generating} disabled={!selectedReservation}>
+                {generating ? 'Génération...' : 'Générer contrat'}
+              </Button>
+              <Button type="button" variant="secondary" onClick={() => notify({ title: 'Aperçu mis à jour', message: 'Le document à droite reflète vos sélections.', type: 'info' })} disabled={!selectedReservation}>
+                Aperçu
+              </Button>
+              <Button type="button" variant="secondary" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!selectedReservation}>
+                Télécharger PDF
+              </Button>
               {!notificationPreferences.contractSending ? (
                 <Button type="button" variant="secondary" disabled>
                   WhatsApp désactivé
@@ -990,14 +981,8 @@ export default function ContractsPage() {
                   Téléphone manquant
                 </Button>
               )}
-              <Button type="button" variant="secondary" onClick={() => notify({ title: 'Aperçu mis à jour', message: 'Le document à droite reflète vos sélections.', type: 'info' })}>
-                Aperçu
-              </Button>
-              <Button type="button" variant="secondary" icon={<RefreshCcw className="h-4 w-4" />} onClick={() => setTerms(defaultTerms.join('\n'))}>
+              <Button type="button" variant="secondary" icon={<RefreshCcw className="h-4 w-4" />} onClick={() => { setTerms(defaultTerms.join('\n')); setSecondDriver(emptySecondDriver); }}>
                 Réinitialiser
-              </Button>
-              <Button type="button" icon={<FileSignature className="h-4 w-4" />} onClick={handleGenerateContract} loading={generating}>
-                {generating ? 'Génération...' : 'Générer contrat'}
               </Button>
             </div>
           </div>
@@ -1010,7 +995,7 @@ export default function ContractsPage() {
                 <FileText className="h-4 w-4" />
               </div>
               <div>
-                <p className="font-semibold text-white light:text-carbon-950">Aperçu A4</p>
+                <p className="font-semibold text-white light:text-carbon-950">Aperçu du contrat</p>
                 <p className="text-xs text-carbon-500">Document final avec logo agence.</p>
               </div>
             </div>
@@ -1027,17 +1012,30 @@ export default function ContractsPage() {
                   Fit
                 </button>
               </div>
-              <Button className="h-9 px-3 text-xs" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf}>
+              <Button className="h-9 px-3 text-xs" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!selectedReservation}>
                 Télécharger
               </Button>
             </div>
           </div>
 
-          <div
-            ref={previewViewportRef}
-            className="overflow-auto rounded-2xl bg-[radial-gradient(circle_at_top,rgba(212,160,23,.10),transparent_28%),#111722] p-2 sm:p-3"
-            style={{ maxHeight: `${previewMaxHeight}px` }}
-          >
+          {!selectedReservation ? (
+            <div className="grid min-h-[520px] place-items-center rounded-2xl border border-dashed border-white/10 bg-[radial-gradient(circle_at_top,rgba(212,160,23,.08),transparent_30%),#111722] p-6 text-center">
+              <div className="max-w-sm">
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-gold-200">
+                  <FileSignature className="h-7 w-7" />
+                </div>
+                <h3 className="mt-5 text-lg font-black text-white">Sélectionnez une réservation</h3>
+                <p className="mt-2 text-sm leading-6 text-carbon-400">
+                  Sélectionnez une réservation pour générer un contrat.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div
+              ref={previewViewportRef}
+              className="overflow-auto rounded-2xl bg-[radial-gradient(circle_at_top,rgba(212,160,23,.10),transparent_28%),#111722] p-3 sm:p-5"
+              style={{ maxHeight: `${previewMaxHeight}px` }}
+            >
             <div
               className="mx-auto origin-top"
               style={{ width: A4_SOURCE_WIDTH, transform: `scale(${previewScale})`, height: A4_SOURCE_HEIGHT * previewScale }}
@@ -1155,15 +1153,6 @@ export default function ContractsPage() {
               </section>
 
               <section className="mt-3 rounded-xl border border-[#e8edf4] p-3.5">
-                <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#6b7280]">Conditions générales</p>
-                <div className="mt-2 space-y-1.5 text-[13px] leading-5 text-[#2f3a4b]">
-                  {(terms.trim() ? terms.split('\n').filter(Boolean) : defaultTerms).map((item, index) => (
-                    <p key={`${item}-${index}`}>{index + 1}. {item}</p>
-                  ))}
-                </div>
-              </section>
-
-              <section className="mt-3 rounded-xl border border-[#e8edf4] p-3.5">
                 <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#6b7280]">Accessoires véhicule</p>
                 <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
                   {Object.entries(accessoryLabels).map(([key, label]) => (
@@ -1221,6 +1210,15 @@ export default function ContractsPage() {
                 </div>
               </section>
 
+              <section className="mt-3 rounded-xl border border-[#e8edf4] p-3.5">
+                <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#6b7280]">Conditions générales</p>
+                <div className="mt-2 space-y-1.5 text-[13px] leading-5 text-[#2f3a4b]">
+                  {(terms.trim() ? terms.split('\n').filter(Boolean) : defaultTerms).map((item, index) => (
+                    <p key={`${item}-${index}`}>{index + 1}. {item}</p>
+                  ))}
+                </div>
+              </section>
+
               <section className="mt-4 grid gap-3 md:grid-cols-2">
                 <SignatureBox title="Signature agence" />
                 <SignatureBox title="Signature client" />
@@ -1240,6 +1238,7 @@ export default function ContractsPage() {
               </article>
             </div>
           </div>
+          )}
         </div>
       </div>
 
