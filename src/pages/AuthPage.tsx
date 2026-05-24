@@ -1,4 +1,4 @@
-import { ArrowLeft, Chrome, Eye, EyeOff, LockKeyhole, Mail, MessageCircle, X } from 'lucide-react';
+import { ArrowLeft, BarChart3, BellRing, CalendarDays, DatabaseZap, Eye, EyeOff, Globe2, HelpCircle, LockKeyhole, Mail, MessageCircle, ShieldCheck, X } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Button from '../components/ui/Button';
@@ -48,6 +48,17 @@ function buildAgencyWhatsAppUrl(member: LoginMemberLookup | null) {
   if (!phone || !member) return '';
   const text = encodeURIComponent(`Bonjour ${member.agencyName}, je n'arrive pas à activer mon compte MekLoc avec ${member.email}. Pouvez-vous m'envoyer le lien d'activation ?`);
   return `https://wa.me/${phone}?text=${text}`;
+}
+
+function GoogleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">
+      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+      <path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.84z" />
+      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z" />
+    </svg>
+  );
 }
 
 function readRememberedEmails() {
@@ -150,20 +161,23 @@ export default function AuthPage() {
   function renderRememberedEmailField() {
     const showSuggestions = emailSuggestionsOpen && rememberedEmails.length > 0;
     return (
-      <label className="relative grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
+      <label className="relative grid gap-2 text-sm font-semibold text-white">
         <span>Email</span>
-        <input
-          className="form-control focus-ring w-full text-base sm:text-sm"
-          name="email"
-          type="email"
-          placeholder="admin@agency.ma"
-          value={loginEmail}
-          autoComplete="email"
-          onFocus={() => setEmailSuggestionsOpen(true)}
-          onBlur={() => window.setTimeout(() => setEmailSuggestionsOpen(false), 140)}
-          onChange={(e) => handleEmailChange(e.target.value)}
-          required
-        />
+        <span className="relative block">
+          <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/55" />
+          <input
+            className="h-14 w-full rounded-xl border border-white/10 bg-black/40 pl-12 pr-4 text-base text-white outline-none transition placeholder:text-white/32 focus:border-yellow-500/60 focus:ring-4 focus:ring-yellow-500/20"
+            name="email"
+            type="email"
+            placeholder="votre@email.com"
+            value={loginEmail}
+            autoComplete="email"
+            onFocus={() => setEmailSuggestionsOpen(true)}
+            onBlur={() => window.setTimeout(() => setEmailSuggestionsOpen(false), 140)}
+            onChange={(e) => handleEmailChange(e.target.value)}
+            required
+          />
+        </span>
         {showSuggestions ? (
           <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-2xl border border-white/10 bg-carbon-950/98 shadow-2xl backdrop-blur light:bg-white">
             {rememberedEmails.map((email) => (
@@ -499,72 +513,180 @@ export default function AuthPage() {
   const memberAgencyWhatsAppUrl = buildAgencyWhatsAppUrl(memberLoginHint);
 
   return (
-    <div className="grid min-h-screen bg-carbon-950 text-white light:bg-carbon-50 light:text-carbon-950 lg:grid-cols-[1fr_0.85fr]">
-      <section className="hidden border-r border-white/10 bg-surface-grid bg-[length:34px_34px] px-10 py-8 lg:flex lg:flex-col">
-        <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-carbon-300 hover:text-gold-200">
-          <ArrowLeft className="h-4 w-4" />
-          Retour à l’accueil
-        </Link>
-        <div className="my-auto max-w-2xl">
-          <div className="mb-8 inline-flex rounded-3xl bg-gold-400 p-4 text-carbon-950 shadow-gold">
-            <LockKeyhole className="h-8 w-8" />
-          </div>
-          <h1 className="text-6xl font-black leading-none text-white light:text-carbon-950">
-            Pilotez toute votre activité location depuis un espace sécurisé.
-          </h1>
-          <p className="mt-6 text-lg leading-8 text-carbon-300 light:text-carbon-600">
-            Réservations, véhicules, clients, contrats, paiements, entretien et rapports sont prêts avec des données réalistes.
-          </p>
+    <div className="min-h-screen overflow-x-hidden bg-[#050606] text-white">
+      <div className="grid min-h-screen lg:grid-cols-[1.1fr_0.9fr]">
+      <section className="relative hidden overflow-hidden border-r border-yellow-500/10 bg-[#050606] px-10 py-8 lg:flex lg:flex-col xl:px-14">
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:56px_56px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_32%_74%,rgba(227,177,23,.26),transparent_42%),radial-gradient(circle_at_66%_38%,rgba(227,177,23,.14),transparent_34%)]" />
+        <img
+          src="/mekloc-hero-car.svg"
+          alt=""
+          aria-hidden="true"
+          className="pointer-events-none absolute -bottom-8 left-0 w-[92%] max-w-[920px] opacity-75 mix-blend-screen"
+        />
+        <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black via-black/45 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/72 to-black/36" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_0%,rgba(0,0,0,.58)_78%)]" />
+        <div className="relative z-10 flex items-center justify-between">
+          <img src="/mekloc-logo-transparent.png" alt="MekLoc" className="h-16 w-auto max-w-[230px] object-contain" />
         </div>
-      </section>
-      <section className="flex items-center justify-center px-4 py-10 sm:px-6">
-        <div className="w-full max-w-md">
-          <Link to="/" className="mb-8 inline-flex items-center gap-2 text-sm font-semibold text-carbon-300 hover:text-gold-200 lg:hidden">
+
+        <div className="relative z-10 mt-8">
+          <Link to="/" className="inline-flex items-center gap-2 text-sm font-black text-yellow-400 transition hover:text-yellow-300">
             <ArrowLeft className="h-4 w-4" />
             Retour à l’accueil
           </Link>
-          <Card className="p-6 sm:p-8">
+        </div>
+
+        <div className="relative z-10 my-auto max-w-3xl py-10">
+          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-yellow-400">
+            <DatabaseZap className="h-4 w-4" />
+            Plateforme sécurisée & professionnelle
+          </div>
+          <h1 className="max-w-3xl text-5xl font-black leading-[1.08] tracking-[-0.02em] text-white xl:text-6xl">
+            Pilotez toute votre activité location depuis un espace{' '}
+            <span className="bg-gradient-to-r from-yellow-300 via-yellow-500 to-amber-200 bg-clip-text text-transparent">sécurisé.</span>
+          </h1>
+          <p className="mt-7 max-w-xl text-lg leading-8 text-zinc-300">
+            Réservations, véhicules, clients, contrats, paiements, entretien et rapports sont prêts avec des données réalistes et sécurisées.
+          </p>
+
+          <div className="mt-16 grid grid-cols-4 gap-5">
+            {[
+              [CalendarDays, 'Tout centralisé', 'Gérez tout en un seul endroit'],
+              [ShieldCheck, 'Données sécurisées', 'Hébergé en Europe & sauvegarde incluse'],
+              [BellRing, 'Alertes intelligentes', 'Ne manquez aucun rappel important'],
+              [BarChart3, 'Rapports avancés', 'Analysez et développez votre agence'],
+            ].map(([Icon, title, text]) => (
+              <div key={title as string}>
+                <div className="mb-4 grid h-12 w-12 place-items-center rounded-2xl border border-yellow-500/20 bg-yellow-500/10 text-yellow-400 shadow-[0_0_30px_rgba(227,177,23,.16)]">
+                  <Icon className="h-6 w-6" />
+                </div>
+                <p className="text-sm font-black text-white">{title as string}</p>
+                <p className="mt-2 text-xs leading-5 text-zinc-400">{text as string}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative z-10 rounded-2xl border border-white/10 bg-zinc-950/70 p-5 shadow-[0_0_46px_rgba(227,177,23,.08)] backdrop-blur">
+          <div className="flex items-center gap-5">
+            <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-yellow-500/25 bg-yellow-500/10 text-yellow-400">
+              <LockKeyhole className="h-6 w-6" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="font-black text-white">Votre sécurité est notre priorité</p>
+              <p className="mt-1 text-sm text-zinc-400">Vos données sont confidentielles et ne seront jamais partagées.</p>
+            </div>
+            <span className="hidden rounded-xl border border-yellow-500/15 bg-yellow-500/10 px-4 py-3 text-sm font-semibold text-zinc-300 xl:block">
+              Hébergé en Europe — Conforme RGPD
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section className="relative flex min-h-screen items-start justify-center px-4 pb-8 pt-5 sm:px-6 lg:items-center lg:px-10 lg:py-8">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_25%,rgba(227,177,23,.18),transparent_45%),linear-gradient(rgba(255,255,255,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.03)_1px,transparent_1px)] bg-[size:auto,48px_48px,48px_48px] lg:hidden" />
+        {/* Place car image at public/images/login-car-bg.png */}
+        <div className="absolute inset-x-0 top-[120px] h-[360px] bg-[url('/images/login-car-bg.png')] bg-contain bg-right-bottom bg-no-repeat opacity-45 lg:hidden" />
+        <div className="absolute inset-x-0 top-[120px] h-[420px] bg-gradient-to-b from-black/30 via-black/60 to-[#050606] lg:hidden" />
+        <div className="absolute right-6 top-5 z-10 hidden items-center gap-5 text-sm text-zinc-300 md:flex">
+          <a href="https://wa.me/212762971653" target="_blank" rel="noreferrer" className="font-semibold transition hover:text-yellow-400">Besoin d’aide ?</a>
+          <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 font-semibold">
+            <Globe2 className="h-4 w-4" />
+            FR
+          </span>
+        </div>
+
+        <div className="relative z-10 w-full max-w-[460px]">
+          <div className="mb-7 lg:hidden">
+            <div className="flex items-center justify-between gap-3">
+              <img src="/mekloc-logo-transparent.png" alt="MekLoc" className="h-14 w-auto max-w-[170px] object-contain" />
+              <div className="flex items-center gap-2">
+                <a href="https://wa.me/212762971653" target="_blank" rel="noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-full border border-yellow-500/25 bg-black/35 px-3 text-xs font-bold text-white backdrop-blur">
+                  <HelpCircle className="h-4 w-4 text-yellow-400" />
+                  Aide
+                </a>
+                <span className="inline-flex h-10 items-center gap-1.5 rounded-full border border-white/10 bg-black/35 px-3 text-xs font-bold text-white backdrop-blur">
+                  <Globe2 className="h-4 w-4" />
+                  FR
+                </span>
+              </div>
+            </div>
+            <Link to="/" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-yellow-400 hover:text-yellow-300">
+              <ArrowLeft className="h-4 w-4" />
+              Retour à l’accueil
+            </Link>
+            <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-yellow-400">
+              <ShieldCheck className="h-4 w-4" />
+              Plateforme sécurisée & professionnelle
+            </div>
+            <h1 className="mt-8 text-4xl font-black leading-tight text-white">
+              Espace sécurisé <span className="bg-gradient-to-r from-yellow-300 via-yellow-500 to-amber-200 bg-clip-text text-transparent">MekLoc</span>
+            </h1>
+            <p className="mt-4 max-w-sm text-lg leading-8 text-zinc-300">
+              Connectez-vous pour gérer vos réservations, véhicules et contrats.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <span className="inline-flex items-center gap-2 rounded-full border border-yellow-500/20 bg-black/35 px-4 py-3 text-sm font-bold text-white backdrop-blur">
+                <ShieldCheck className="h-4 w-4 text-yellow-400" />
+                Données sécurisées
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border border-yellow-500/20 bg-black/35 px-4 py-3 text-sm font-bold text-white backdrop-blur">
+                <DatabaseZap className="h-4 w-4 text-yellow-400" />
+                100% Cloud
+              </span>
+            </div>
+          </div>
+          <div className="rounded-[32px] border border-yellow-500/30 bg-black/70 p-6 shadow-[0_0_70px_rgba(227,177,23,0.16),0_26px_90px_rgba(0,0,0,.42)] ring-1 ring-white/[0.035] backdrop-blur-xl sm:p-9 md:p-10">
             {resetMode ? (
               <form className="grid gap-4" onSubmit={handleSetNewPassword}>
-                <h2 className="text-2xl font-black">Nouveau mot de passe</h2>
-                <p className="text-sm text-carbon-400">Définissez votre nouveau mot de passe pour sécuriser votre compte.</p>
-                <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
+                <div className="mx-auto grid h-[72px] w-[72px] place-items-center rounded-full border border-yellow-500/25 bg-yellow-500/15 text-yellow-400">
+                  <LockKeyhole className="h-8 w-8" />
+                </div>
+                <h2 className="text-center text-3xl font-black">Nouveau mot de passe</h2>
+                <p className="text-center text-sm text-zinc-400">Définissez votre nouveau mot de passe pour sécuriser votre compte.</p>
+                <label className="grid gap-2 text-sm font-semibold text-white">
                   <span>Nouveau mot de passe</span>
                   <div className="relative">
-                    <input className="form-control focus-ring w-full pr-12 text-base sm:text-sm" name="newPassword" type={showResetPassword ? 'text' : 'password'} placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
-                    <button type="button" className="absolute inset-y-0 right-2 my-auto grid h-8 w-8 place-items-center rounded-lg text-carbon-300 hover:bg-white/10 hover:text-white" onClick={() => setShowResetPassword((v) => !v)} aria-label={showResetPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
+                    <input className="h-14 w-full rounded-xl border border-white/10 bg-black/40 px-4 pr-12 text-base text-white outline-none transition placeholder:text-white/32 focus:border-yellow-500/60 focus:ring-4 focus:ring-yellow-500/20" name="newPassword" type={showResetPassword ? 'text' : 'password'} placeholder="••••••••" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+                    <button type="button" className="absolute inset-y-0 right-2 my-auto grid h-9 w-9 place-items-center rounded-lg text-zinc-400 hover:bg-white/10 hover:text-white" onClick={() => setShowResetPassword((v) => !v)} aria-label={showResetPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
                       {showResetPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </label>
-                <Button type="submit" icon={<LockKeyhole className="h-4 w-4" />}>Mettre à jour le mot de passe</Button>
+                <Button type="submit" className="h-13 bg-yellow-500 text-black hover:bg-yellow-400" icon={<LockKeyhole className="h-4 w-4" />}>Mettre à jour le mot de passe</Button>
                 <Button type="button" variant="secondary" onClick={() => { setResetMode(false); window.history.replaceState(null, '', '/auth'); }}>Retour à la connexion</Button>
               </form>
             ) : (
               <>
-                <h2 className="text-2xl font-black text-white light:text-carbon-950">Se connecter</h2>
-                <p className="mt-2 text-sm text-carbon-400 light:text-carbon-600">Accédez à votre espace MekLoc.</p>
+                <div className="mx-auto grid h-[72px] w-[72px] place-items-center rounded-full border border-yellow-500/25 bg-yellow-500/15 text-yellow-400 shadow-[0_0_45px_rgba(227,177,23,.16)]">
+                  <LockKeyhole className="h-8 w-8" />
+                </div>
+                <h2 className="mt-7 text-center text-3xl font-black text-white">Se connecter</h2>
+                <p className="mt-3 text-center text-base text-zinc-400">Accédez à votre espace MekLoc.</p>
                 {loginStep === 'email' ? (
-                  <form className="mt-7 grid gap-4" onSubmit={handleEmailStep}>
+                  <form className="mt-9 grid gap-5" onSubmit={handleEmailStep}>
                     {renderRememberedEmailField()}
-                    <Button type="submit" loading={loading} icon={<Mail className="h-4 w-4" />}>Suivant</Button>
+                    <Button type="submit" loading={loading} className="h-14 w-full rounded-2xl bg-yellow-500 text-base font-black text-black shadow-[0_18px_44px_rgba(227,177,23,.22)] hover:bg-yellow-400" icon={<Mail className="h-5 w-5" />}>Suivant</Button>
                   </form>
                 ) : (
-                  <form className="mt-7 grid gap-4" onSubmit={handleSubmit}>
+                  <form className="mt-9 grid gap-5" onSubmit={handleSubmit}>
                   {renderRememberedEmailField()}
-                  <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
+                  <label className="grid gap-2 text-sm font-semibold text-white">
                     <span>Mot de passe</span>
                     <div className="relative">
-                      <input className="form-control focus-ring w-full pr-12 text-base sm:text-sm" name="password" type={showLoginPassword ? 'text' : 'password'} placeholder="••••••••" required />
-                      <button type="button" className="absolute inset-y-0 right-2 my-auto grid h-8 w-8 place-items-center rounded-lg text-carbon-300 hover:bg-white/10 hover:text-white" onClick={() => setShowLoginPassword((v) => !v)} aria-label={showLoginPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
+                      <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-white/55" />
+                      <input className="h-14 w-full rounded-xl border border-white/10 bg-black/40 pl-12 pr-12 text-base text-white outline-none transition placeholder:text-white/32 focus:border-yellow-500/60 focus:ring-4 focus:ring-yellow-500/20" name="password" type={showLoginPassword ? 'text' : 'password'} placeholder="••••••••" required />
+                      <button type="button" className="absolute inset-y-0 right-2 my-auto grid h-9 w-9 place-items-center rounded-lg text-zinc-400 hover:bg-white/10 hover:text-white" onClick={() => setShowLoginPassword((v) => !v)} aria-label={showLoginPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}>
                         {showLoginPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
                     </div>
                   </label>
                   {memberLoginHint ? (
-                    <div className="rounded-2xl border border-gold-300/25 bg-gold-400/10 p-4 text-sm text-carbon-200">
-                      <p className="font-semibold text-white light:text-carbon-950">Compte membre chez {memberLoginHint.agencyName}</p>
-                      <p className="mt-1 text-carbon-300 light:text-carbon-700">
+                    <div className="rounded-2xl border border-yellow-500/25 bg-yellow-500/10 p-4 text-sm text-zinc-200">
+                      <p className="font-semibold text-white">Compte membre chez {memberLoginHint.agencyName}</p>
+                      <p className="mt-1 text-zinc-400">
                         Si vous n’avez pas encore reçu le lien d’activation ou défini votre mot de passe, contactez votre agence.
                       </p>
                       <div className="mt-3 flex flex-wrap gap-2">
@@ -572,6 +694,7 @@ export default function AuthPage() {
                           <Button
                             type="button"
                             variant="secondary"
+                            className="border-white/10 bg-white/[0.06]"
                             icon={<MessageCircle className="h-4 w-4" />}
                             onClick={() => window.open(memberAgencyWhatsAppUrl, '_blank', 'noopener,noreferrer')}
                           >
@@ -579,43 +702,58 @@ export default function AuthPage() {
                           </Button>
                         ) : null}
                         {memberLoginHint.agencyPhone ? (
-                          <span className="inline-flex min-h-10 items-center rounded-xl border border-white/10 px-3 py-2 font-semibold text-gold-100">
+                          <span className="inline-flex min-h-10 items-center rounded-xl border border-white/10 px-3 py-2 font-semibold text-yellow-100">
                             {memberLoginHint.agencyPhone}
                           </span>
                         ) : null}
                       </div>
                     </div>
                   ) : null}
-                  <div className="flex gap-2">
-                    <Button type="button" variant="secondary" onClick={() => { setLoginStep('email'); setMemberLoginHint(null); }}>Retour</Button>
-                    <Button type="submit" loading={loading} icon={<Mail className="h-4 w-4" />}>Se connecter</Button>
+                  <div className="grid gap-3 sm:grid-cols-[0.35fr_0.65fr]">
+                    <Button type="button" variant="secondary" className="h-14 border-white/10 bg-white/[0.06]" onClick={() => { setLoginStep('email'); setMemberLoginHint(null); }}>Retour</Button>
+                    <Button type="submit" loading={loading} className="h-14 rounded-2xl bg-yellow-500 text-base font-black text-black hover:bg-yellow-400" icon={<Mail className="h-5 w-5" />}>Se connecter</Button>
                   </div>
                 </form>
                 )}
-                <div className="my-5 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-carbon-500">
+                <div className="my-7 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-zinc-500">
                   <span className="h-px flex-1 bg-white/10" />
-                  ou
+                  OU
                   <span className="h-px flex-1 bg-white/10" />
                 </div>
                 <Button
                   type="button"
                   variant="secondary"
-                  className="w-full"
-                  icon={<Chrome className="h-4 w-4" />}
+                  className="h-14 w-full rounded-2xl border-white/10 bg-zinc-900/70 text-base hover:border-yellow-500/30"
+                  icon={<GoogleIcon />}
                   loading={loading}
                   onClick={handleGoogleLogin}
                 >
                   Connexion avec Google
                 </Button>
-                <button type="button" className="mt-4 text-sm font-semibold text-gold-200 hover:text-gold-100" onClick={() => setForgotOpen(true)}>
+                <button type="button" className="mt-6 text-sm font-bold text-yellow-400 hover:text-yellow-300" onClick={() => setForgotOpen(true)}>
                   Mot de passe oublié ?
                 </button>
-                <p className="mt-4 text-sm text-carbon-400">Pas encore client ? <Link to="/demande-acces" className="font-semibold text-gold-200">Demander un accès</Link></p>
+                <p className="mt-5 text-sm text-zinc-400">Pas encore client ? <Link to="/demande-acces" className="font-bold text-yellow-400">Demander un accès</Link></p>
               </>
             )}
-          </Card>
+          </div>
+          <div className="mt-7 rounded-3xl border border-white/10 bg-white/[0.05] p-5 backdrop-blur lg:hidden">
+            <div className="flex items-center gap-4">
+              <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-yellow-500/25 bg-yellow-500/10 text-yellow-400">
+                <ShieldCheck className="h-6 w-6" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-black text-white">Votre sécurité est notre priorité</p>
+                <p className="mt-1 text-sm leading-6 text-zinc-400">Vos données sont confidentielles et ne seront jamais partagées.</p>
+              </div>
+            </div>
+            <div className="mt-4 rounded-2xl border border-yellow-500/15 bg-yellow-500/10 px-4 py-3 text-sm font-semibold text-zinc-300">
+              Hébergé en Europe — Conforme RGPD
+            </div>
+          </div>
         </div>
       </section>
+      </div>
       <Modal open={forgotOpen} onClose={() => setForgotOpen(false)} title="Réinitialiser le mot de passe">
         <div className="space-y-4">
           <p className="text-sm text-carbon-400">

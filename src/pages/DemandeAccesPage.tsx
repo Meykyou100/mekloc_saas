@@ -1,8 +1,7 @@
-import { ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, LockKeyhole, MessageCircle, Send, ShieldCheck, Sparkles, Zap } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import Button from '../components/ui/Button';
-import Card from '../components/ui/Card';
 import { Field, SelectField } from '../components/ui/Form';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -286,175 +285,278 @@ export default function DemandeAccesPage() {
   }
 
 
+  const inputClass = '!h-12 !rounded-xl !border-white/10 !bg-black/40 !text-white placeholder:!text-zinc-500 focus:!border-[#E3B117]/60 focus:!ring-[#E3B117]/20';
+  const fieldLabelClass = 'text-sm font-semibold text-zinc-200';
+
   return (
-    <div className="min-h-screen bg-carbon-950 px-4 py-6 text-white sm:px-6 sm:py-8">
-      <div className="mx-auto w-full max-w-3xl">
-        <button type="button" onClick={returnToLogin} className="inline-flex items-center gap-2 text-sm font-semibold text-carbon-300 transition hover:text-gold-200"><ArrowLeft className="h-4 w-4" />Retour à la connexion</button>
-        <Card className="mt-4 p-4 sm:mt-6 sm:p-7">
-          <h1 className="text-2xl font-black sm:text-3xl">Demande d’accès MekLoc</h1>
-          {fromLogin ? <p className="mt-2 text-sm text-gold-200">Votre compte n’est pas encore activé. Remplissez cette demande pour obtenir l’accès.</p> : null}
-          <div className="mt-5 inline-flex rounded-xl border border-white/10 bg-[#0f1115] p-1">
-            <button type="button" onClick={() => setBillingType('monthly')} className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${billingType === 'monthly' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300 hover:text-white'}`}>Mensuel</button>
-            <button type="button" onClick={() => setBillingType('annual')} className={`rounded-lg px-4 py-2 text-sm font-semibold transition ${billingType === 'annual' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300 hover:text-white'}`}>Annuel</button>
-          </div>
-          <div className="mt-5 grid gap-4 lg:grid-cols-2">
-            {plans.map((plan) => {
-              const active = selectedPlan === plan.id;
-              const price = billingType === 'annual' ? plan.annual : plan.monthly;
-              return (
-                <button
-                  key={plan.id}
-                  type="button"
-                  onClick={() => setSelectedPlan(plan.id)}
-                  className={`relative rounded-2xl border bg-[#0f1115] p-5 text-left transition ${active ? 'border-gold-300/45 bg-gold-400/[0.07] shadow-[0_0_0_1px_rgba(212,160,23,0.25)]' : 'border-white/10 hover:border-white/20'}`}
-                >
-                  {plan.id === 'business' ? (
-                    <span className="absolute right-4 top-4 rounded-full bg-gold-400 px-2.5 py-1 text-[11px] font-black text-carbon-950">
-                      Populaire
-                    </span>
-                  ) : null}
-                  <p className="text-xl font-black text-white">{plan.name}</p>
-                  <p className="mt-1 text-sm text-carbon-400">{plan.note}</p>
-                  <p className="mt-4 text-4xl font-black text-white">
-                    {price} MAD
-                    <span className="ml-1 text-base font-semibold text-carbon-400">
-                      {billingType === 'annual' ? '/an' : '/mois'}
-                    </span>
-                  </p>
-                  <div className="mt-4 space-y-2.5">
-                    {plan.features.map((feature) => (
-                      <p key={feature} className="flex items-center gap-2 text-sm text-carbon-200">
-                        <CheckCircle2 className="h-4 w-4 text-gold-300" />
-                        {feature}
+    <div className="min-h-screen overflow-x-hidden bg-[#050606] text-white">
+      <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_76%_8%,rgba(227,177,23,.17),transparent_34%),radial-gradient(circle_at_36%_44%,rgba(227,177,23,.10),transparent_36%),linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:auto,auto,64px_64px,64px_64px]" />
+
+      <div className="relative mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 md:py-10 lg:px-8">
+        <header className="flex items-center justify-between gap-4">
+          <Link to="/" className="min-w-0">
+            <img src="/mekloc-logo-transparent.png" alt="MekLoc" className="h-12 w-auto max-w-[165px] object-contain" />
+          </Link>
+          <button type="button" onClick={returnToLogin} className="inline-flex items-center gap-2 rounded-full border border-[#E3B117]/20 bg-[#E3B117]/8 px-3 py-2 text-sm font-black text-[#F5C542] transition hover:border-[#E3B117]/40 hover:bg-[#E3B117]/12">
+            <ArrowLeft className="h-4 w-4" />
+            <span className="hidden sm:inline">Retour à la connexion</span>
+            <span className="sm:hidden">Connexion</span>
+          </button>
+        </header>
+
+        <div className="mx-auto mt-9 max-w-3xl text-center sm:mt-12">
+          <span className="inline-flex rounded-full border border-[#E3B117]/30 bg-[#E3B117]/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#F5C542]">
+            Demande d’accès
+          </span>
+          <h1 className="mt-5 text-[34px] font-black leading-tight text-white sm:text-5xl">Créez votre accès MekLoc</h1>
+          <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-zinc-400">
+            Choisissez votre plan et envoyez votre demande. Notre équipe valide votre accès rapidement.
+          </p>
+          {fromLogin ? <p className="mt-3 text-sm font-semibold text-[#F5C542]">Votre compte n’est pas encore activé. Remplissez cette demande pour obtenir l’accès.</p> : null}
+        </div>
+
+        <div className="mt-9 grid gap-6 lg:grid-cols-[0.38fr_0.62fr] lg:items-start">
+          <aside className="grid gap-5">
+            <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-5 shadow-[0_24px_80px_rgba(0,0,0,.42)] backdrop-blur-xl sm:p-6">
+              <h2 className="text-lg font-black">1. Choisissez votre plan</h2>
+              <div className="mt-5 grid grid-cols-2 rounded-2xl border border-white/10 bg-black/40 p-1">
+                <button type="button" onClick={() => setBillingType('monthly')} className={`rounded-xl px-4 py-2.5 text-sm font-black transition ${billingType === 'monthly' ? 'bg-[#E3B117] text-[#070807]' : 'text-zinc-400 hover:text-white'}`}>Mensuel</button>
+                <button type="button" onClick={() => setBillingType('annual')} className={`rounded-xl px-4 py-2.5 text-sm font-black transition ${billingType === 'annual' ? 'bg-[#E3B117] text-[#070807]' : 'text-zinc-400 hover:text-white'}`}>Annuel</button>
+              </div>
+
+              <div className="mt-5 grid gap-3">
+                {plans.map((plan) => {
+                  const active = selectedPlan === plan.id;
+                  const price = billingType === 'annual' ? plan.annual : plan.monthly;
+                  return (
+                    <button
+                      key={plan.id}
+                      type="button"
+                      onClick={() => setSelectedPlan(plan.id)}
+                      className={`relative rounded-2xl border p-5 text-left transition ${
+                        active
+                          ? 'border-[#E3B117]/60 bg-[#E3B117]/5 shadow-[0_0_50px_rgba(227,177,23,0.12)]'
+                          : 'border-white/10 bg-black/30 hover:border-white/20'
+                      }`}
+                    >
+                      <span className={`absolute right-4 top-4 grid h-5 w-5 place-items-center rounded-full border ${active ? 'border-[#E3B117] bg-[#E3B117] text-[#070807]' : 'border-white/20 text-transparent'}`}>
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      </span>
+                      {plan.id === 'business' ? <span className="absolute right-12 top-4 rounded-full bg-[#E3B117] px-2.5 py-1 text-[10px] font-black text-[#070807]">Populaire</span> : null}
+                      <h3 className="text-xl font-black">{plan.name}</h3>
+                      <p className="mt-1 text-sm text-zinc-400">{plan.note}</p>
+                      <p className="mt-5 text-4xl font-black">
+                        {price} MAD
+                        <span className="ml-1 text-base font-semibold text-zinc-500">{billingType === 'annual' ? '/an' : '/mois'}</span>
                       </p>
-                    ))}
-                  </div>
-                  <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-center text-sm font-bold text-white">
-                    {plan.cta}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-          <form className="mt-6 grid gap-4" onSubmit={handleSubmit}>
-            <Field label="Nom de l’agence *" name="agency_name" required />
-            <Field label="Responsable *" name="owner_name" required />
-            <Field label="Adresse *" name="address" required />
-            <SelectField
-              label="Pays *"
-              name="country"
-              value={country}
-              onChange={(e) => {
-                const nextCountry = e.target.value;
-                setCountry(nextCountry);
-                setPhoneCountryCode(countryDialCode[nextCountry] || '+000');
-              }}
-              required
-            >
-              {countries.map((c) => <option key={c} value={c}>{c}</option>)}
-            </SelectField>
-            {country === 'Maroc' ? <SelectField label="Ville *" name="city" defaultValue="" required><option value="" disabled>Choisir une ville</option>{moroccoCities.map((c) => <option key={c} value={c}>{c}</option>)}</SelectField> : <Field label="Ville *" name="city" required />}
-            <Field label="Site web / Instagram / Réseau social" name="website_url" />
-            <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-white">Email *</p>
-                <span className={`rounded-full px-3 py-1 text-xs font-bold ${
-                  emailVerificationStatus === 'verified' && verifiedEmail === email
-                    ? 'bg-emerald-400/15 text-emerald-200'
-                    : emailVerificationStatus === 'sent'
-                      ? 'bg-gold-400/15 text-gold-100'
-                      : 'bg-rose-400/15 text-rose-100'
-                }`}>
-                  {emailStatusBadge()}
-                </span>
+                      <div className="mt-5 space-y-2.5">
+                        {plan.features.map((feature) => (
+                          <p key={feature} className="flex items-center gap-2 text-sm text-zinc-300">
+                            <CheckCircle2 className="h-4 w-4 text-[#F5C542]" />
+                            {feature}
+                          </p>
+                        ))}
+                      </div>
+                      <span className={`mt-5 block rounded-xl px-4 py-3 text-center text-sm font-black ${active ? 'bg-[#E3B117] text-[#070807]' : 'border border-white/10 bg-white/[0.04] text-white'}`}>
+                        {plan.cta}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-              <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-                <input
-                  className="form-control focus-ring w-full text-base sm:text-sm"
-                  name="email"
-                  type="email"
-                  value={email}
-                  required
-                  onChange={(event) => {
-                    const nextEmail = normalizeEmail(event.target.value);
-                    setEmail(nextEmail);
-                    setEmailVerificationCode('');
-                    if (nextEmail !== verifiedEmail) setEmailVerificationStatus('idle');
-                  }}
-                  onInvalid={(event) => event.currentTarget.setCustomValidity('Veuillez saisir une adresse email valide.')}
-                  onInput={(event) => event.currentTarget.setCustomValidity('')}
-                />
-                <Button type="button" variant="secondary" loading={sendingCode} onClick={requestEmailVerification}>
-                  Vérifier email
-                </Button>
-              </div>
-              {emailVerificationStatus === 'sent' || emailVerificationStatus === 'verified' ? (
-                <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
-                  <input
-                    className="form-control focus-ring w-full text-base tracking-[0.18em] sm:text-sm"
-                    inputMode="numeric"
-                    maxLength={6}
-                    placeholder="Code de vérification"
-                    value={emailVerificationCode}
-                    disabled={emailVerificationStatus === 'verified' && verifiedEmail === email}
-                    onChange={(event) => setEmailVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                  />
-                  <Button
-                    type="button"
-                    loading={verifyingCode}
-                    disabled={emailVerificationStatus === 'verified' && verifiedEmail === email}
-                    onClick={verifyEmailCode}
-                  >
-                    Valider le code
-                  </Button>
-                </div>
-              ) : null}
-              <p className="mt-2 text-xs text-carbon-500">
-                {isTestMode
-                  ? 'Mode test : le code est affiché ici, aucun email n’est envoyé.'
-                  : 'Un code à 6 chiffres sera envoyé à cette adresse.'}
-              </p>
-              {isTestMode && emailVerificationStatus === 'sent' ? (
-                <p className="mt-2 rounded-xl border border-gold-300/20 bg-gold-400/10 px-3 py-2 text-xs font-semibold text-gold-100">
-                  Mode test uniquement — ne pas utiliser en production.
-                </p>
-              ) : null}
             </div>
-            <div className="grid grid-cols-[104px_minmax(0,1fr)] gap-2.5 sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-3">
-              <Field label="Indicatif" name="phone_country_code" value={phoneCountryCode} onChange={(e) => setPhoneCountryCode(e.target.value)} required />
-              <Field
-                label="Numéro de téléphone *"
-                name="phone_number"
-                required
-                inputMode="numeric"
-                pattern="[0-9]{6,15}"
-                maxLength={15}
-                onInput={(event) => {
-                  const target = event.currentTarget;
-                  target.value = target.value.replace(/\D/g, '');
-                  target.setCustomValidity('');
-                }}
-                onInvalid={(event) => event.currentTarget.setCustomValidity('Le numéro doit contenir uniquement des chiffres (6 à 15).')}
-              />
-            </div>
-            <Field label="Nombre de véhicules *" name="vehicle_count" type="number" min={1} required />
-            <Field label="Code promo (optionnel)" name="promo_code" />
-            <label className="mt-1 flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-3 py-3 text-sm text-carbon-300">
-              <input type="checkbox" className="mt-0.5 h-4 w-4 rounded border border-gold-300/70 bg-transparent accent-[#D4A017]" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} required />
-              <span>
-                J’ai lu et j’accepte les{' '}
-                <Link to="/conditions-utilisation" target="_blank" className="font-semibold text-gold-200 hover:text-gold-100">conditions d’utilisation</Link>{' '}
-                et la{' '}
-                <Link to="/politique-confidentialite" target="_blank" className="font-semibold text-gold-200 hover:text-gold-100">politique de confidentialité</Link>,
-                ainsi que la{' '}
-                <Link to="/annulation-remboursement" target="_blank" className="font-semibold text-gold-200 hover:text-gold-100">politique d’annulation et de remboursement</Link>.
+
+            <div className="rounded-3xl border border-white/10 bg-zinc-950/75 p-6 shadow-[0_24px_80px_rgba(0,0,0,.34)] backdrop-blur-xl">
+              <span className="grid h-12 w-12 place-items-center rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542]">
+                <ShieldCheck className="h-6 w-6" />
               </span>
-            </label>
-            <Button type="submit" className="mt-1 w-full" loading={isSubmitting} disabled={emailVerificationStatus !== 'verified' || verifiedEmail !== email}>
-              Envoyer la demande d’accès
-            </Button>
+              <h3 className="mt-5 text-lg font-black">Validation rapide</h3>
+              <p className="mt-3 text-sm leading-6 text-zinc-400">Après l’envoi, nous vérifions votre demande et activons votre espace.</p>
+              <div className="mt-5 grid gap-3 text-sm font-semibold text-zinc-300">
+                <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#F5C542]" />Sans engagement</span>
+                <span className="flex items-center gap-2"><MessageCircle className="h-4 w-4 text-[#F5C542]" />Support WhatsApp</span>
+                <span className="flex items-center gap-2"><LockKeyhole className="h-4 w-4 text-[#F5C542]" />Données sécurisées</span>
+              </div>
+              <a href="https://wa.me/212762971653" target="_blank" rel="noreferrer" className="mt-6 inline-flex items-center gap-2 text-sm font-bold text-[#F5C542] hover:text-[#F8D766]">
+                <MessageCircle className="h-4 w-4" />
+                Besoin d’aide ? Contactez-nous sur WhatsApp
+              </a>
+            </div>
+          </aside>
+
+          <form className="rounded-3xl border border-white/10 bg-zinc-950/80 shadow-[0_0_80px_rgba(0,0,0,0.45)] backdrop-blur-xl" onSubmit={handleSubmit}>
+            <div className="border-b border-white/10 p-5 sm:p-7 md:p-8">
+              <h2 className="text-xl font-black">2. Informations de l’agence</h2>
+
+              <div className="mt-8">
+                <div className="flex items-center gap-4">
+                  <h3 className="shrink-0 text-base font-black">Agence</h3>
+                  <span className="h-px flex-1 bg-white/10" />
+                </div>
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                  <Field label="Nom de l’agence *" name="agency_name" required placeholder="Ex: MekLoc Location" className={inputClass} />
+                  <Field label="Responsable *" name="owner_name" required placeholder="Ex: Younes Mekki" className={inputClass} />
+                  <Field label="Adresse *" name="address" required placeholder="Ex: 123, Avenue Hassan II" className={`${inputClass} md:col-span-2`} />
+                  <SelectField
+                    label="Pays *"
+                    name="country"
+                    value={country}
+                    className={inputClass}
+                    onChange={(e) => {
+                      const nextCountry = e.target.value;
+                      setCountry(nextCountry);
+                      setPhoneCountryCode(countryDialCode[nextCountry] || '+000');
+                    }}
+                    required
+                  >
+                    {countries.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </SelectField>
+                  {country === 'Maroc' ? (
+                    <SelectField label="Ville *" name="city" defaultValue="" required className={inputClass}>
+                      <option value="" disabled>Choisir une ville</option>
+                      {moroccoCities.map((c) => <option key={c} value={c}>{c}</option>)}
+                    </SelectField>
+                  ) : (
+                    <Field label="Ville *" name="city" required placeholder="Ex: Casablanca" className={inputClass} />
+                  )}
+                  <Field label="Site web / Instagram / Réseau social" name="website_url" placeholder="https://votre-site.com ou @votrecompte" className={`${inputClass} md:col-span-2`} />
+                </div>
+              </div>
+
+              <div className="mt-8 rounded-3xl border border-white/10 bg-black/20 p-4 sm:p-5">
+                <div className="flex items-center gap-4">
+                  <h3 className="shrink-0 text-base font-black">Contact</h3>
+                  <span className="h-px flex-1 bg-white/10" />
+                </div>
+                <div className="mt-5">
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    <p className={fieldLabelClass}>Email *</p>
+                    <span className={`rounded-full px-3 py-1 text-xs font-black ${
+                      emailVerificationStatus === 'verified' && verifiedEmail === email
+                        ? 'bg-emerald-400/15 text-emerald-200'
+                        : emailVerificationStatus === 'sent'
+                          ? 'bg-[#E3B117]/15 text-[#F5C542]'
+                          : 'bg-rose-400/15 text-rose-100'
+                    }`}>
+                      {emailStatusBadge()}
+                    </span>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                    <input
+                      className={`form-control focus-ring w-full text-base sm:text-sm ${inputClass}`}
+                      name="email"
+                      type="email"
+                      value={email}
+                      placeholder="votre@email.com"
+                      required
+                      onChange={(event) => {
+                        const nextEmail = normalizeEmail(event.target.value);
+                        setEmail(nextEmail);
+                        setEmailVerificationCode('');
+                        if (nextEmail !== verifiedEmail) setEmailVerificationStatus('idle');
+                      }}
+                      onInvalid={(event) => event.currentTarget.setCustomValidity('Veuillez saisir une adresse email valide.')}
+                      onInput={(event) => event.currentTarget.setCustomValidity('')}
+                    />
+                    <Button type="button" variant="secondary" className="h-12 rounded-xl border-white/10 bg-white/[0.06] px-5" loading={sendingCode} onClick={requestEmailVerification}>
+                      Vérifier email
+                    </Button>
+                  </div>
+                  <p className="mt-2 text-xs text-zinc-500">
+                    {isTestMode
+                      ? 'Mode test : le code est affiché ici, aucun email n’est envoyé.'
+                      : 'Un code à 6 chiffres sera envoyé à cette adresse.'}
+                  </p>
+                  {emailVerificationStatus === 'sent' || emailVerificationStatus === 'verified' ? (
+                    <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+                      <input
+                        className={`form-control focus-ring w-full text-base tracking-[0.18em] sm:text-sm ${inputClass}`}
+                        inputMode="numeric"
+                        maxLength={6}
+                        placeholder="Code à 6 chiffres"
+                        value={emailVerificationCode}
+                        disabled={emailVerificationStatus === 'verified' && verifiedEmail === email}
+                        onChange={(event) => setEmailVerificationCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                      />
+                      <Button
+                        type="button"
+                        className="h-12 rounded-xl px-5"
+                        loading={verifyingCode}
+                        disabled={emailVerificationStatus === 'verified' && verifiedEmail === email}
+                        onClick={verifyEmailCode}
+                      >
+                        Valider le code
+                      </Button>
+                    </div>
+                  ) : null}
+                  {isTestMode && emailVerificationStatus === 'sent' ? (
+                    <p className="mt-3 rounded-xl border border-[#E3B117]/20 bg-[#E3B117]/10 px-3 py-2 text-xs font-semibold text-[#F5C542]">
+                      Mode test uniquement — ne pas utiliser en production.
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="mt-6 grid grid-cols-[104px_minmax(0,1fr)] gap-3 sm:grid-cols-[140px_minmax(0,1fr)]">
+                  <Field label="Indicatif *" name="phone_country_code" value={phoneCountryCode} onChange={(e) => setPhoneCountryCode(e.target.value)} required className={inputClass} />
+                  <Field
+                    label="Numéro de téléphone *"
+                    name="phone_number"
+                    required
+                    inputMode="numeric"
+                    pattern="[0-9]{6,15}"
+                    maxLength={15}
+                    placeholder="6 12 34 56 78"
+                    className={inputClass}
+                    onInput={(event) => {
+                      const target = event.currentTarget;
+                      target.value = target.value.replace(/\D/g, '');
+                      target.setCustomValidity('');
+                    }}
+                    onInvalid={(event) => event.currentTarget.setCustomValidity('Le numéro doit contenir uniquement des chiffres (6 à 15).')}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-8 rounded-3xl border border-white/10 bg-black/20 p-4 sm:p-5">
+                <div className="flex items-center gap-4">
+                  <h3 className="shrink-0 text-base font-black">Détails</h3>
+                  <span className="h-px flex-1 bg-white/10" />
+                </div>
+                <div className="mt-5 grid gap-4 md:grid-cols-2">
+                  <Field label="Nombre de véhicules *" name="vehicle_count" type="number" min={1} required placeholder="Ex: 10" className={inputClass} />
+                  <Field label="Code promo (optionnel)" name="promo_code" placeholder="Ex: MEKLOC10" className={inputClass} />
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 sm:p-7 md:p-8">
+              <h2 className="text-xl font-black">3. Conditions</h2>
+              <label className="mt-5 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-4 text-sm leading-6 text-zinc-300">
+                <input type="checkbox" className="mt-1 h-4 w-4 rounded border border-[#E3B117]/70 bg-transparent accent-[#E3B117]" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} required />
+                <span>
+                  J’ai lu et j’accepte les{' '}
+                  <Link to="/conditions-utilisation" target="_blank" className="font-semibold text-[#F5C542] hover:text-[#F8D766]">conditions d’utilisation</Link>, la{' '}
+                  <Link to="/politique-confidentialite" target="_blank" className="font-semibold text-[#F5C542] hover:text-[#F8D766]">politique de confidentialité</Link>,
+                  ainsi que la{' '}
+                  <Link to="/annulation-remboursement" target="_blank" className="font-semibold text-[#F5C542] hover:text-[#F8D766]">politique d’annulation et de remboursement</Link>.
+                </span>
+              </label>
+              <Button
+                type="submit"
+                className="mt-6 h-14 w-full rounded-2xl bg-[#E3B117] text-base font-black text-[#070807] shadow-[0_18px_50px_rgba(227,177,23,.18)] hover:bg-[#F5C542]"
+                loading={isSubmitting}
+                disabled={emailVerificationStatus !== 'verified' || verifiedEmail !== email}
+                icon={<Send className="h-5 w-5" />}
+              >
+                Envoyer la demande d’accès
+              </Button>
+              <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-zinc-500">
+                <LockKeyhole className="h-4 w-4" />
+                Vos données sont sécurisées et ne seront jamais partagées.
+              </p>
+            </div>
           </form>
-        </Card>
+        </div>
       </div>
     </div>
   );

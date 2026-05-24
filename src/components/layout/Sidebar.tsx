@@ -41,9 +41,9 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
           <span className="relative flex h-12 w-14 shrink-0 items-center justify-center">
             <span className="absolute inset-0 rounded-2xl bg-gold-400/10 blur-xl opacity-70" />
             <img
-              src="/mekloc-logo-transparent.png"
+              src="/mekloc-logo-mark.png"
               alt="MekLoc"
-              className="relative h-11 w-auto max-w-[56px] object-contain drop-shadow-[0_8px_18px_rgba(227,177,23,.12)]"
+              className="relative h-11 w-auto max-w-[54px] object-contain drop-shadow-[0_8px_18px_rgba(227,177,23,.12)]"
             />
           </span>
           <span className="min-w-0 pt-0.5">
