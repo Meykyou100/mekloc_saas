@@ -1,15 +1,20 @@
 import {
   AlertTriangle,
   BadgeCheck,
+  Bell,
   CalendarClock,
   Camera,
-  CreditCard,
+  Car,
   Edit3,
   Eye,
   FileImage,
-  IdCard,
+  Filter,
+  LayoutDashboard,
   Mail,
+  Menu,
   MapPin,
+  MoreHorizontal,
+  MoreVertical,
   Phone,
   Search,
   ShieldCheck,
@@ -22,7 +27,7 @@ import {
   X,
 } from 'lucide-react';
 import { ChangeEvent, FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -87,11 +92,13 @@ export default function ClientsPage() {
   const { clients, reservations, payments, createClient, updateClient, deleteClient: removeClient } = useData();
   const { profile } = useAuth();
   const { notify } = useApp();
+  const navigate = useNavigate();
 
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<ClientFilter>('all');
   const [sort, setSort] = useState<ClientSort>('recent');
   const [selectedClientId, setSelectedClientId] = useState('');
+  const [mobileClientId, setMobileClientId] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
@@ -183,6 +190,15 @@ export default function ClientsPage() {
   const selectedClient = useMemo(() => {
     return filteredClients.find((client) => client.id === selectedClientId) || filteredClients[0] || null;
   }, [filteredClients, selectedClientId]);
+
+  const mobileClientDetails = useMemo(() => {
+    return enrichedClients.find((client) => client.id === mobileClientId) || null;
+  }, [enrichedClients, mobileClientId]);
+
+  const profileInitials = useMemo(() => {
+    const source = profile?.fullName || profile?.agency?.name || 'AG';
+    return clientInitials(source).slice(0, 2) || 'AG';
+  }, [profile]);
 
   useEffect(() => {
     if (!filteredClients.length) {
@@ -460,8 +476,222 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="relative overflow-x-hidden pb-8">
+    <div className="relative overflow-x-hidden pb-32 md:pb-8">
       <div className="pointer-events-none absolute right-[-18%] top-10 h-72 w-72 rounded-full bg-[#D4A017]/10 blur-3xl" />
+      <div className="relative md:hidden">
+        <div className="-mx-4 mb-6 border-b border-white/10 bg-black/55 px-4 pb-4 pt-1 backdrop-blur-xl sm:-mx-6 sm:px-6">
+          <div className="flex h-[68px] items-center gap-3">
+            <button type="button" aria-label="Menu" className="focus-ring grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.04] text-white">
+              <Menu className="h-5 w-5" />
+            </button>
+            <div className="mr-auto flex min-w-0 items-center gap-2.5">
+              <img src="/mekloc-logo-mark.png" alt="MekLoc" className="h-10 w-auto shrink-0 object-contain" />
+              <span className="truncate text-xl font-black text-white">MekLoc</span>
+            </div>
+            <button type="button" aria-label="Notifications" className="focus-ring relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.04] text-white">
+              <Bell className="h-5 w-5" />
+              <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-[#D4A017] px-1 text-[10px] font-black text-black">3</span>
+            </button>
+            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#D4A017]/25 bg-[#D4A017]/15 text-sm font-black text-gold-100">
+              {profileInitials}
+            </div>
+          </div>
+        </div>
+
+        <section className="space-y-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-[0.28em] text-gold-200">CRM</p>
+              <h1 className="mt-2 text-4xl font-black leading-none text-white">Clients</h1>
+              <p className="mt-2 text-base leading-relaxed text-carbon-300">Gérez vos clients et leurs documents.</p>
+            </div>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                aria-label="Filtres"
+                className="focus-ring grid h-14 w-14 place-items-center rounded-2xl border border-white/10 bg-white/[0.04] text-white shadow-[0_18px_42px_rgba(0,0,0,.25)]"
+              >
+                <Filter className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                aria-label="Ajouter un client"
+                onClick={openNewClient}
+                className="focus-ring grid h-14 w-14 place-items-center rounded-2xl bg-[#D4A017] text-black shadow-[0_18px_42px_rgba(212,160,23,.25)] transition hover:bg-[#f1c232]"
+              >
+                <UserPlus className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+
+          <label className="relative block">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-carbon-500" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value.slice(0, 120))}
+              placeholder="Nom, téléphone, CIN, permis..."
+              className="form-control focus-ring h-16 w-full rounded-3xl border-white/10 bg-white/[0.045] pl-12 pr-4 text-base text-white placeholder:text-carbon-500"
+            />
+          </label>
+
+          <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6">
+            {[
+              { label: 'Total clients', value: String(clientsStats.total), icon: Users, active: true, tone: 'text-gold-200', bg: 'bg-[#D4A017]/12' },
+              { label: 'Nouveaux ce mois', value: String(clientsStats.newClients), icon: UserPlus, tone: 'text-emerald-200', bg: 'bg-emerald-500/12' },
+              { label: 'Actifs', value: String(clientsStats.withReservations), icon: BadgeCheck, tone: 'text-sky-200', bg: 'bg-sky-500/12' },
+              { label: 'Docs manquants', value: String(clientsStats.withMissingDocs), icon: AlertTriangle, tone: 'text-amber-200', bg: 'bg-amber-500/12' },
+              { label: 'Total dépensé', value: formatMAD(clientsStats.totalSpent), icon: Wallet, tone: 'text-violet-200', bg: 'bg-violet-500/12' },
+            ].map(({ label, value, icon: Icon, active, tone, bg }) => (
+              <div
+                key={label}
+                className={`min-w-[138px] rounded-3xl border p-4 shadow-[0_18px_42px_rgba(0,0,0,.24)] ${
+                  active
+                    ? 'border-[#D4A017]/70 bg-[#D4A017]/12'
+                    : 'border-white/10 bg-gradient-to-br from-zinc-950/95 to-zinc-900/60'
+                }`}
+              >
+                <span className={`grid h-12 w-12 place-items-center rounded-2xl ${bg}`}>
+                  <Icon className={`h-5 w-5 ${tone}`} />
+                </span>
+                <p className="mt-4 truncate text-2xl font-black text-white">{value}</p>
+                <p className="mt-1 text-sm font-medium leading-snug text-carbon-300">{label}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6">
+            {([
+              ['all', 'Tous'],
+              ['active', 'Actifs'],
+              ['with-docs', 'Avec docs'],
+              ['missing-docs', 'Docs manquants'],
+              ['new', 'Nouveaux'],
+            ] as const).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setFilter(value)}
+                className={`focus-ring min-h-12 whitespace-nowrap rounded-2xl border px-5 text-sm font-bold transition ${
+                  filter === value
+                    ? 'border-[#D4A017]/70 bg-[#D4A017]/18 text-gold-100'
+                    : 'border-white/10 bg-white/[0.04] text-carbon-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {clients.length === 0 ? (
+            <div className="rounded-[28px] border border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-6 text-center shadow-[0_24px_60px_rgba(0,0,0,.30)]">
+              <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-[#D4A017]/25 bg-[#D4A017]/10 text-gold-200">
+                <Users className="h-7 w-7" />
+              </div>
+              <h2 className="mt-4 text-2xl font-black text-white">Aucun client</h2>
+              <p className="mt-2 text-sm text-carbon-400">Ajoutez votre premier client pour commencer.</p>
+              <Button className="mt-5 w-full" icon={<UserPlus className="h-4 w-4" />} onClick={openNewClient}>Ajouter un client</Button>
+            </div>
+          ) : filteredClients.length === 0 ? (
+            <div className="rounded-[28px] border border-white/10 bg-white/[0.04] p-6 text-center">
+              <Search className="mx-auto h-8 w-8 text-carbon-400" />
+              <p className="mt-3 font-bold text-white">Aucun résultat</p>
+              <p className="mt-1 text-sm text-carbon-400">Essayez une autre recherche ou un autre filtre.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredClients.map((client) => {
+                const documentsReady = hasDocs(client);
+                return (
+                  <article
+                    key={client.id}
+                    className="rounded-[28px] border border-white/10 bg-gradient-to-br from-zinc-950/95 to-zinc-900/60 p-5 shadow-[0_24px_60px_rgba(0,0,0,.30)] transition active:scale-[0.99]"
+                    onClick={() => setMobileClientId(client.id)}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className="grid h-16 w-16 shrink-0 place-items-center rounded-3xl bg-gradient-to-br from-[#F5C542] to-[#B8870E] text-xl font-black text-black shadow-[0_0_30px_rgba(212,160,23,.20)]">
+                        {clientInitials(client.fullName)}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h2 className="truncate text-xl font-black text-white">{client.fullName}</h2>
+                            <p className="mt-1 flex min-w-0 items-center gap-2 text-sm text-carbon-300">
+                              <Phone className="h-4 w-4 shrink-0" />
+                              <span className="truncate">{client.phone || 'Téléphone manquant'}</span>
+                            </p>
+                            <p className="mt-1 flex min-w-0 items-center gap-2 text-sm text-carbon-300">
+                              <Mail className="h-4 w-4 shrink-0" />
+                              <span className="truncate">{client.email || 'Email non renseigné'}</span>
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            aria-label="Actions client"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setMobileClientId(client.id);
+                            }}
+                            className="focus-ring grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-carbon-200"
+                          >
+                            <MoreVertical className="h-5 w-5" />
+                          </button>
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <span className={`rounded-full border px-3 py-1 text-xs font-bold ${client.status === 'New' ? 'border-[#D4A017]/35 bg-[#D4A017]/12 text-gold-100' : 'border-emerald-300/25 bg-emerald-500/12 text-emerald-200'}`}>
+                            {client.status === 'New' ? 'New' : 'Actif'}
+                          </span>
+                          <span className={`rounded-full border px-3 py-1 text-xs font-bold ${documentsReady ? 'border-emerald-300/25 bg-emerald-500/12 text-emerald-200' : 'border-amber-300/30 bg-amber-500/12 text-amber-100'}`}>
+                            {documentsReady ? 'Docs complets' : 'Docs manquants'}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex items-center justify-between gap-4 border-t border-white/10 pt-4">
+                      <div>
+                        <p className="text-lg font-black text-white">{formatMAD(client.computedSpent)}</p>
+                        <p className="text-sm text-carbon-400">
+                          {client.computedReservations} {client.computedReservations > 1 ? 'réservations' : 'réservation'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 grid grid-cols-3 gap-2" onClick={(event) => event.stopPropagation()}>
+                      <button
+                        type="button"
+                        onClick={() => setMobileClientId(client.id)}
+                        className="focus-ring inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] text-sm font-bold text-white"
+                      >
+                        <Eye className="h-4 w-4" />
+                        Voir
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => openEditClient(client)}
+                        className="focus-ring inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] text-sm font-bold text-white"
+                      >
+                        <Edit3 className="h-4 w-4" />
+                        Modifier
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigate('/reservations')}
+                        className="focus-ring inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#D4A017]/30 bg-[#D4A017]/10 px-2 text-center text-sm font-bold text-gold-100"
+                      >
+                        <CalendarClock className="h-4 w-4" />
+                        Réserver
+                      </button>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      </div>
+
+      <div className="hidden md:block">
       <PageHeader
         eyebrow="CRM"
         title="Clients"
@@ -741,6 +971,176 @@ export default function ClientsPage() {
           </Card>
         </div>
       )}
+      </div>
+
+      {mobileClientDetails ? (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <button
+            type="button"
+            aria-label="Fermer les détails"
+            className="absolute inset-0 bg-black/75 backdrop-blur-sm"
+            onClick={() => setMobileClientId('')}
+          />
+          <div className="absolute inset-x-0 bottom-0 max-h-[88vh] overflow-y-auto rounded-t-[34px] border border-white/10 bg-gradient-to-br from-zinc-950 via-black to-zinc-950 p-5 shadow-[0_-24px_70px_rgba(0,0,0,.55)]">
+            <div className="mx-auto mb-5 h-1.5 w-12 rounded-full bg-white/20" />
+            <div className="flex items-start gap-4">
+              <div className="grid h-20 w-20 shrink-0 place-items-center rounded-3xl bg-gradient-to-br from-[#F5C542] to-[#B8870E] text-2xl font-black text-black shadow-[0_0_38px_rgba(212,160,23,0.22)]">
+                {clientInitials(mobileClientDetails.fullName)}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-2xl font-black leading-tight text-white">{mobileClientDetails.fullName}</h2>
+                <p className="mt-1 text-sm text-carbon-400">Client depuis {formatClientSince(mobileClientDetails.createdAt)}</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Badge>{mobileClientDetails.status === 'New' ? 'New' : 'Actif'}</Badge>
+                  <span className={`rounded-full border px-3 py-1 text-xs font-bold ${hasDocs(mobileClientDetails) ? 'border-emerald-300/25 bg-emerald-500/12 text-emerald-200' : 'border-amber-300/30 bg-amber-500/12 text-amber-100'}`}>
+                    {hasDocs(mobileClientDetails) ? 'Documents complets' : 'Docs manquants'}
+                  </span>
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Fermer"
+                onClick={() => setMobileClientId('')}
+                className="focus-ring grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-5 grid gap-3">
+              <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-4">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-gold-200">Coordonnées</p>
+                <div className="mt-4 space-y-3 text-sm text-carbon-200">
+                  <p className="flex min-w-0 items-center gap-2"><Phone className="h-4 w-4 shrink-0 text-gold-200" /><span className="truncate">{mobileClientDetails.phone || '—'}</span></p>
+                  <p className="flex min-w-0 items-center gap-2"><Mail className="h-4 w-4 shrink-0 text-gold-200" /><span className="truncate">{mobileClientDetails.email || '—'}</span></p>
+                  <p className="flex min-w-0 items-center gap-2"><MapPin className="h-4 w-4 shrink-0 text-gold-200" /><span className="truncate">{mobileClientDetails.address || 'Adresse non renseignée'}</span></p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-gold-200">Documents</p>
+                  <div className="mt-3 space-y-2 text-sm">
+                    <p className="text-carbon-500">CIN / Passeport</p>
+                    <p className="font-bold text-white">{mobileClientDetails.cin || '—'}</p>
+                    <p className="text-carbon-500">Permis</p>
+                    <p className="font-bold text-white">{mobileClientDetails.license || '—'}</p>
+                  </div>
+                </div>
+                <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.14em] text-gold-200">Activité</p>
+                  <div className="mt-3 space-y-2 text-sm">
+                    <p className="text-carbon-500">Réservations</p>
+                    <p className="font-bold text-white">{mobileClientDetails.computedReservations}</p>
+                    <p className="text-carbon-500">Total dépensé</p>
+                    <p className="font-bold text-white">{formatMAD(mobileClientDetails.computedSpent)}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-4">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-gold-200">Résumé rapide</p>
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  {[
+                    { label: 'Dernière réservation', value: formatReservationDate(latestReservationByClient[mobileClientDetails.id]?.pickupDate) },
+                    { label: 'Client depuis', value: formatClientSince(mobileClientDetails.createdAt) },
+                  ].map((item) => (
+                    <div key={item.label} className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                      <p className="text-sm font-black text-white">{item.value}</p>
+                      <p className="mt-1 text-xs text-carbon-500">{item.label}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-4">
+                <p className="text-xs font-black uppercase tracking-[0.18em] text-gold-200">Notes internes</p>
+                <p className="mt-3 text-sm text-carbon-300">Aucune note interne.</p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    openEditClient(mobileClientDetails);
+                    setMobileClientId('');
+                  }}
+                  className="focus-ring inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] text-sm font-bold text-white"
+                >
+                  <Edit3 className="h-4 w-4" />
+                  Modifier
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigate('/reservations')}
+                  className="focus-ring inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#D4A017]/30 bg-[#D4A017]/10 text-sm font-bold text-gold-100"
+                >
+                  <CalendarClock className="h-4 w-4" />
+                  Réserver
+                </button>
+              </div>
+              <Link
+                to={`/clients/${mobileClientDetails.id}`}
+                onClick={() => setMobileClientId('')}
+                className="focus-ring inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#D4A017] text-sm font-black text-black transition hover:bg-[#f1c232]"
+              >
+                <Eye className="h-4 w-4" />
+                Voir profil
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  setClientToDelete(mobileClientDetails);
+                  setMobileClientId('');
+                }}
+                className="focus-ring inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-rose-300/25 bg-rose-500/10 text-sm font-bold text-rose-100"
+              >
+                <Trash2 className="h-4 w-4" />
+                Supprimer client
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {clients.length > 0 ? (
+        <div className="fixed inset-x-4 bottom-24 z-40 md:hidden">
+          <button
+            type="button"
+            onClick={openNewClient}
+            className="focus-ring flex h-16 w-full items-center justify-center gap-3 rounded-3xl bg-[#D4A017] text-base font-black text-black shadow-[0_20px_50px_rgba(212,160,23,.30)] transition hover:bg-[#f1c232]"
+          >
+            <UserPlus className="h-5 w-5" />
+            Ajouter un client
+          </button>
+        </div>
+      ) : null}
+
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-black/85 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur-xl md:hidden">
+        <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
+          {[
+            { label: 'Tableau', icon: LayoutDashboard, path: '/dashboard' },
+            { label: 'Réservations', icon: CalendarClock, path: '/reservations' },
+            { label: 'Clients', icon: Users, path: '/clients', active: true },
+            { label: 'Véhicules', icon: Car, path: '/vehicles' },
+            { label: 'Plus', icon: MoreHorizontal, path: '/settings' },
+          ].map(({ label, icon: Icon, path, active }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => navigate(path)}
+              className={`focus-ring flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-[11px] font-bold transition ${
+                active ? 'text-gold-200' : 'text-carbon-400 hover:text-white'
+              }`}
+            >
+              <Icon className="h-5 w-5" />
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
 
       <Modal open={modalOpen} title={editingClient ? 'Modifier un client' : 'Ajouter un client'} onClose={closeModal}>
         <form className="relative space-y-6 pb-20" onSubmit={handleSaveClient}>
