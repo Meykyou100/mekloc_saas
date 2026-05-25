@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import {
+  Bell,
   CalendarDays,
   Car,
   ChevronLeft,
@@ -7,7 +8,10 @@ import {
   Clock3,
   Filter,
   FileSignature,
+  LayoutDashboard,
   MapPin,
+  Menu,
+  MoreHorizontal,
   Plus,
   Phone,
   RefreshCcw,
@@ -23,9 +27,13 @@ import EmptyState from '../components/ui/EmptyState';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import PlateNumber from '../components/ui/PlateNumber';
+import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { formatMAD, type Reservation, type ReservationStatus } from '../data/mockData';
 
+const MOBILE_VEHICLE_COL_WIDTH = 156;
+const MOBILE_DAY_COL_WIDTH = 78;
+const MOBILE_ROW_HEIGHT = 108;
 const VEHICLE_COL_WIDTH = 260;
 const DAY_COL_WIDTH = 118;
 const ROW_HEIGHT = 112;
@@ -134,6 +142,7 @@ function vehicleStatusClass(status: string, archived?: boolean) {
 
 export default function CalendarPage() {
   const { vehicles, reservations, maintenance, loading } = useData();
+  const { profile } = useAuth();
   const navigate = useNavigate();
   const [daysToShow, setDaysToShow] = useState(14);
   const [windowStart, setWindowStart] = useState(() => toDateOnly(new Date()));
@@ -142,6 +151,12 @@ export default function CalendarPage() {
   const [showArchived, setShowArchived] = useState(false);
 
   const todayIso = isoDate(new Date());
+  const initials = (profile?.fullName || profile?.agency?.name || 'AG')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'AG';
 
   const days = useMemo(
     () => Array.from({ length: daysToShow }, (_, index) => addDays(windowStart, index)),
@@ -267,18 +282,39 @@ export default function CalendarPage() {
   };
 
   return (
-    <section className="relative overflow-x-hidden pb-8">
+    <section className="relative overflow-x-hidden pb-28 md:pb-8">
       <div className="pointer-events-none absolute right-[-18%] top-8 h-80 w-80 rounded-full bg-[#D4A017]/10 blur-3xl" />
-      <PageHeader
-        eyebrow="PLANIFICATION"
-        title="Calendrier"
-        description="Planifiez et suivez votre flotte en temps réel. Optimisez chaque réservation, chaque kilomètre."
-        action={
-          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+      <div className="md:hidden">
+        <div className="-mx-4 mb-5 border-b border-white/10 bg-black/45 px-4 pb-4 pt-1 backdrop-blur-xl sm:-mx-6 sm:px-6">
+          <div className="flex items-center justify-between gap-3">
+            <button type="button" aria-label="Menu" className="grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-white">
+              <Menu className="h-5 w-5" />
+            </button>
+            <div className="mr-auto flex items-center gap-2.5">
+              <img src="/mekloc-logo-mark.png" alt="MekLoc" className="h-10 w-auto object-contain" />
+              <span className="text-xl font-black text-white">MekLoc</span>
+            </div>
+            <button type="button" aria-label="Notifications" className="relative grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-white">
+              <Bell className="h-5 w-5" />
+              <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-[#D4A017] text-[10px] font-black text-black">3</span>
+            </button>
+            <span className="grid h-11 w-11 place-items-center rounded-full border border-[#D4A017]/25 bg-[#D4A017]/16 text-sm font-black text-gold-100">{initials}</span>
+          </div>
+        </div>
+
+        <div className="mb-5 flex items-end justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs font-black uppercase tracking-[0.32em] text-gold-300">PLANIFICATION</p>
+            <h1 className="mt-3 text-4xl font-black tracking-tight text-white">Calendrier</h1>
+            <p className="mt-2 max-w-[320px] text-sm leading-6 text-carbon-300">
+              Planifiez et suivez votre flotte en temps réel. Optimisez chaque réservation.
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
             <Button
               variant="secondary"
               icon={<RefreshCcw className="h-4 w-4" />}
-              className="w-full rounded-2xl sm:w-auto"
+              className="h-12 rounded-2xl px-3 text-sm"
               onClick={() => {
                 const today = toDateOnly(new Date());
                 setWindowStart(today);
@@ -287,14 +323,46 @@ export default function CalendarPage() {
             >
               Aujourd’hui
             </Button>
-            <Button className="w-full rounded-2xl shadow-[0_0_34px_rgba(212,160,23,0.18)] sm:w-auto" icon={<Plus className="h-4 w-4" />} onClick={() => navigate('/reservations')}>
-              Nouvelle réservation
-            </Button>
+            <button
+              type="button"
+              aria-label="Nouvelle réservation"
+              className="grid h-12 w-12 place-items-center rounded-2xl bg-[#D4A017] text-black shadow-[0_0_34px_rgba(212,160,23,0.26)] transition active:scale-95"
+              onClick={() => navigate('/reservations')}
+            >
+              <Plus className="h-5 w-5" />
+            </button>
           </div>
-        }
-      />
+        </div>
+      </div>
 
-      <div className="relative mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="hidden md:block">
+        <PageHeader
+          eyebrow="PLANIFICATION"
+          title="Calendrier"
+          description="Planifiez et suivez votre flotte en temps réel. Optimisez chaque réservation, chaque kilomètre."
+          action={
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+              <Button
+                variant="secondary"
+                icon={<RefreshCcw className="h-4 w-4" />}
+                className="w-full rounded-2xl sm:w-auto"
+                onClick={() => {
+                  const today = toDateOnly(new Date());
+                  setWindowStart(today);
+                  setSelectedDayIso(isoDate(today));
+                }}
+              >
+                Aujourd’hui
+              </Button>
+              <Button className="w-full rounded-2xl shadow-[0_0_34px_rgba(212,160,23,0.18)] sm:w-auto" icon={<Plus className="h-4 w-4" />} onClick={() => navigate('/reservations')}>
+                Nouvelle réservation
+              </Button>
+            </div>
+          }
+        />
+      </div>
+
+      <div className="no-scrollbar relative -mx-4 mb-5 flex gap-3 overflow-x-auto px-4 pb-1 md:mx-0 md:mb-6 md:grid md:grid-cols-2 md:overflow-visible md:px-0 md:pb-0 xl:grid-cols-5">
         {[
           { label: 'Véhicules actifs', value: String(calendarStats.activeVehicles), helper: `${visibleVehicles.length} visibles`, icon: Car, tone: 'text-gold-200', glow: 'from-[#D4A017]/18' },
           { label: 'Réservations aujourd’hui', value: String(calendarStats.reservationsToday), helper: 'En cours aujourd’hui', icon: CalendarDays, tone: 'text-sky-200', glow: 'from-sky-400/14' },
@@ -302,12 +370,12 @@ export default function CalendarPage() {
           { label: 'En maintenance', value: String(calendarStats.maintenanceCount), helper: 'Véhicules immobilisés', icon: Wrench, tone: 'text-violet-200', glow: 'from-violet-400/14' },
           { label: 'Taux d’occupation', value: `${calendarStats.occupancy}%`, helper: 'Flotte réservée', icon: TrendingUp, tone: 'text-emerald-200', glow: 'from-emerald-400/14' },
         ].map(({ label, value, helper, icon: Icon, tone, glow }) => (
-          <div key={label} className="group relative min-h-[126px] overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950/90 to-black p-4 shadow-[0_18px_48px_rgba(0,0,0,.28),inset_0_1px_0_rgba(255,255,255,.05)] transition hover:border-[#D4A017]/35">
+          <div key={label} className="group relative min-h-[142px] min-w-[148px] overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950/90 to-black p-4 shadow-[0_18px_48px_rgba(0,0,0,.28),inset_0_1px_0_rgba(255,255,255,.05)] transition hover:border-[#D4A017]/35 md:min-h-[126px] md:min-w-0">
             <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${glow} to-transparent opacity-80`} />
             <div className="relative flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-[10px] font-black uppercase tracking-[0.18em] text-carbon-500">{label}</p>
-                <p className="mt-3 truncate text-3xl font-black text-white">{value}</p>
+                <p className="mt-3 truncate text-3xl font-black text-white md:text-3xl">{value}</p>
               </div>
               <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-[#D4A017]/20 bg-[#D4A017]/10 shadow-[0_0_28px_rgba(212,160,23,0.12)]">
                 <Icon className={`h-5 w-5 ${tone}`} />
@@ -396,6 +464,29 @@ export default function CalendarPage() {
         </div>
       </Card>
 
+      <div className="no-scrollbar -mx-4 mb-4 flex gap-3 overflow-x-auto px-4 pb-1 md:hidden">
+        {days.map((day) => {
+          const dayIso = isoDate(day);
+          const isToday = dayIso === todayIso;
+          const isSelected = dayIso === selectedDayIso;
+          return (
+            <button
+              type="button"
+              key={`mobile-chip-${dayIso}`}
+              onClick={() => setSelectedDayIso(dayIso)}
+              className={`min-w-[72px] rounded-2xl border px-3 py-3 text-center transition ${
+                isToday || isSelected
+                  ? 'border-gold-300/60 bg-[#D4A017]/22 text-gold-50 shadow-[0_0_24px_rgba(212,160,23,.16)]'
+                  : 'border-white/10 bg-white/[0.04] text-carbon-200'
+              }`}
+            >
+              <p className="text-xs font-bold capitalize">{day.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}</p>
+              <p className="mt-1 text-lg font-black">{String(day.getDate()).padStart(2, '0')}</p>
+            </button>
+          );
+        })}
+      </div>
+
       <div className="relative grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="overflow-hidden border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-0 shadow-[0_24px_70px_rgba(0,0,0,.30)]">
           {loading ? (
@@ -426,69 +517,113 @@ export default function CalendarPage() {
                 </div>
               </div>
 
-              <div className="space-y-3 p-3 md:hidden">
-                <div className="no-scrollbar overflow-x-auto pb-1">
-                  <div className="grid min-w-max gap-2" style={{ gridTemplateColumns: `150px repeat(${days.length}, 38px)` }}>
-                    <div className="sticky left-0 z-10 rounded-xl border border-white/10 bg-carbon-950/95 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-carbon-400">
-                      Véhicule
-                    </div>
-                    {days.map((day) => {
-                      const dayIso = isoDate(day);
-                      const isToday = dayIso === todayIso;
-                      const isSelected = dayIso === selectedDayIso;
-                      return (
-                        <button
-                          type="button"
-                          key={`mobile-head-${dayIso}`}
-                          onClick={() => setSelectedDayIso(dayIso)}
-                          className={`rounded-xl border px-1 py-2 text-center transition ${isToday || isSelected ? 'border-gold-300/55 bg-gold-400 text-carbon-950' : 'border-white/10 bg-white/[0.04] text-carbon-300'}`}
-                        >
-                          <p className="text-[9px] font-bold uppercase">{day.toLocaleDateString('fr-FR', { weekday: 'short' }).slice(0, 3)}</p>
-                          <p className="text-xs font-black">{String(day.getDate()).padStart(2, '0')}</p>
-                        </button>
-                      );
-                    })}
-
-                    {visibleVehicles.map((vehicle) => {
+              <div className="p-0 md:hidden">
+                <div className="no-scrollbar overflow-x-auto">
+                  <div className="min-w-max">
+                    {visibleVehicles.map((vehicle, rowIndex) => {
                       const blocks = reservationBlocksByVehicle.get(vehicle.id) || [];
+                      const maintenanceDays = days
+                        .map((day, dayIndex) => ({ dayIso: isoDate(day), dayIndex }))
+                        .filter(({ dayIso }) => maintenanceDatesByVehicle.get(vehicle.id)?.has(dayIso) || vehicle.status === 'Maintenance');
                       return (
-                        <div key={`mobile-row-${vehicle.id}`} className="contents">
-                          <div className="sticky left-0 z-10 min-h-[76px] rounded-xl border border-white/10 bg-carbon-950/95 px-3 py-2 shadow-[8px_0_18px_rgba(0,0,0,.35)]">
-                            <div className="flex items-center gap-2">
-                              <div className="grid h-9 w-11 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/10 bg-white/5">
-                                {vehicle.imageUrl ? <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} className="h-full w-full object-cover" /> : <Car className="h-4 w-4 text-gold-200" />}
+                        <div key={`mobile-timeline-${vehicle.id}`} className="flex border-t border-white/10 first:border-t-0">
+                          <div
+                            className="sticky left-0 z-20 shrink-0 bg-carbon-950/98 px-3 py-3 shadow-[10px_0_24px_rgba(0,0,0,.42)] backdrop-blur"
+                            style={{ width: MOBILE_VEHICLE_COL_WIDTH, minHeight: MOBILE_ROW_HEIGHT }}
+                          >
+                            <div className="flex gap-2.5">
+                              <div className="grid h-14 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+                                {vehicle.imageUrl ? (
+                                  <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} className="h-full w-full object-cover" />
+                                ) : (
+                                  <Car className="h-5 w-5 text-gold-200" />
+                                )}
                               </div>
                               <div className="min-w-0">
-                                <p className="truncate text-sm font-bold text-white">{vehicle.brand} {vehicle.model}</p>
-                                <p className="mt-0.5 truncate text-[11px] text-carbon-400"><PlateNumber value={vehicle.plate} /></p>
+                                <p className="truncate text-sm font-black text-white">{vehicle.brand} {vehicle.model}</p>
+                                <p className="mt-1 truncate text-[11px] text-carbon-400"><PlateNumber value={vehicle.plate} /></p>
+                                <span className={`mt-2 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${vehicleStatusClass(vehicle.status, isArchivedVehicle(vehicle))}`}>
+                                  {vehicleStatusLabel(vehicle.status, isArchivedVehicle(vehicle))}
+                                </span>
                               </div>
                             </div>
                           </div>
-                          {days.map((day) => {
-                            const dayIso = isoDate(day);
-                            const cellState = getCellState(vehicle.id, dayIso, blocks);
-                            const isToday = dayIso === todayIso;
-                            const canCreate = cellState === 'available';
-                            const dotClass =
-                              cellState === 'maintenance' ? 'bg-violet-300' :
-                              cellState === 'departure_today' ? 'bg-amber-300' :
-                              cellState === 'return_today' ? 'bg-cyan-300' :
-                              cellState === 'reserved' ? 'bg-sky-300' : 'bg-emerald-300';
-                            return (
+
+                          <div
+                            className="relative border-l border-white/10 bg-[linear-gradient(90deg,rgba(255,255,255,.055)_1px,transparent_1px)]"
+                            style={{
+                              width: days.length * MOBILE_DAY_COL_WIDTH,
+                              minHeight: MOBILE_ROW_HEIGHT,
+                              backgroundSize: `${MOBILE_DAY_COL_WIDTH}px 100%`,
+                            }}
+                          >
+                            {days.map((day) => {
+                              const dayIso = isoDate(day);
+                              const isToday = dayIso === todayIso;
+                              return isToday ? (
+                                <span
+                                  key={`mobile-today-${vehicle.id}-${dayIso}`}
+                                  className="absolute inset-y-0 z-0 w-px bg-[#F5C542]/80 shadow-[0_0_20px_rgba(245,197,66,.9)]"
+                                  style={{ left: days.findIndex((candidate) => isoDate(candidate) === dayIso) * MOBILE_DAY_COL_WIDTH }}
+                                />
+                              ) : null;
+                            })}
+
+                            {days.map((day, dayIndex) => {
+                              const dayIso = isoDate(day);
+                              const blocksForDay = blocks;
+                              const cellState = getCellState(vehicle.id, dayIso, blocksForDay);
+                              if (cellState !== 'available') return null;
+                              return (
+                                <button
+                                  key={`mobile-create-${vehicle.id}-${dayIso}`}
+                                  type="button"
+                                  className="absolute inset-y-0 z-0 opacity-0"
+                                  style={{ left: dayIndex * MOBILE_DAY_COL_WIDTH, width: MOBILE_DAY_COL_WIDTH }}
+                                  onClick={() => {
+                                    setSelectedDayIso(dayIso);
+                                    goToReservationCreate(vehicle.id, dayIso);
+                                  }}
+                                  aria-label={`Créer réservation ${vehicle.brand} ${vehicle.model} ${dayIso}`}
+                                />
+                              );
+                            })}
+
+                            {blocks.map((block) => {
+                              const spanDays = block.endIndex - block.startIndex + 1;
+                              const left = block.startIndex * MOBILE_DAY_COL_WIDTH + 8;
+                              const width = Math.max(142, spanDays * MOBILE_DAY_COL_WIDTH - 16);
+                              const startDayIso = isoDate(addDays(windowStart, block.startIndex));
+                              return (
+                                <button
+                                  key={`mobile-block-${vehicle.id}-${block.reservation.id}`}
+                                  className={`absolute top-4 z-10 rounded-2xl border px-3 py-2 text-left shadow-[0_14px_26px_rgba(0,0,0,.42)] transition active:scale-[0.98] ${blockClass(block.reservation, startDayIso)}`}
+                                  style={{ left, width, minHeight: 62 }}
+                                  onClick={() => {
+                                    setSelectedReservation(block.reservation);
+                                    setSelectedDayIso(block.reservation.pickupDate);
+                                  }}
+                                >
+                                  <span className="block truncate text-sm font-black">{block.reservation.id} · {block.reservation.client}</span>
+                                  <span className="mt-1 block truncate text-xs opacity-85">
+                                    {formatCalendarDate(new Date(block.reservation.pickupDate))} → {formatCalendarDate(new Date(block.reservation.returnDate))}
+                                  </span>
+                                </button>
+                              );
+                            })}
+
+                            {maintenanceDays.slice(0, 1).map(({ dayIndex, dayIso }) => (
                               <button
-                                key={`mobile-${vehicle.id}-${dayIso}`}
-                                className={`grid min-h-[76px] place-items-center rounded-xl border transition ${isToday ? 'border-gold-300/50 bg-gold-400/12' : 'border-white/10 bg-white/[0.035]'} ${canCreate ? 'active:scale-95' : ''}`}
-                                onClick={() => {
-                                  setSelectedDayIso(dayIso);
-                                  if (!canCreate) return;
-                                  goToReservationCreate(vehicle.id, dayIso);
-                                }}
-                                title={stateLabel(cellState)}
+                                key={`mobile-maintenance-${vehicle.id}-${dayIso}-${rowIndex}`}
+                                className="absolute top-4 z-10 rounded-2xl border border-violet-300/35 bg-gradient-to-r from-violet-500/30 to-sky-500/18 px-3 py-2 text-left text-violet-50 shadow-[0_14px_26px_rgba(0,0,0,.42)]"
+                                style={{ left: dayIndex * MOBILE_DAY_COL_WIDTH + 8, width: Math.max(150, MOBILE_DAY_COL_WIDTH * 2 - 16), minHeight: 62 }}
+                                onClick={() => setSelectedDayIso(dayIso)}
                               >
-                                <span className={`h-2.5 w-2.5 rounded-full shadow-[0_0_12px_rgba(255,255,255,.18)] ${dotClass}`} />
+                                <span className="block truncate text-sm font-black">Maintenance programmée</span>
+                                <span className="mt-1 block truncate text-xs opacity-85">{formatCalendarDate(new Date(dayIso))}</span>
                               </button>
-                            );
-                          })}
+                            ))}
+                          </div>
                         </div>
                       );
                     })}
@@ -742,6 +877,35 @@ export default function CalendarPage() {
           </Button>
         </Card>
       </div>
+
+      <nav className="fixed inset-x-3 bottom-3 z-40 rounded-[28px] border border-white/10 bg-black/82 px-3 py-2 shadow-[0_0_50px_rgba(0,0,0,.55),inset_0_1px_0_rgba(255,255,255,.06)] backdrop-blur-2xl md:hidden">
+        <div className="grid grid-cols-5 items-end gap-1">
+          <button type="button" onClick={() => navigate('/dashboard')} className="grid gap-1 rounded-2xl px-1 py-2 text-center text-[11px] font-semibold text-carbon-400">
+            <LayoutDashboard className="mx-auto h-5 w-5" />
+            Tableau
+          </button>
+          <button type="button" onClick={() => navigate('/calendar')} className="grid gap-1 rounded-2xl px-1 py-2 text-center text-[11px] font-bold text-gold-100">
+            <CalendarDays className="mx-auto h-5 w-5" />
+            Calendrier
+          </button>
+          <button
+            type="button"
+            aria-label="Nouvelle réservation"
+            onClick={() => navigate('/reservations')}
+            className="mx-auto -mt-7 grid h-16 w-16 place-items-center rounded-full bg-[#D4A017] text-black shadow-[0_0_38px_rgba(212,160,23,.38)] transition active:scale-95"
+          >
+            <Plus className="h-7 w-7" />
+          </button>
+          <button type="button" onClick={() => navigate('/vehicles')} className="grid gap-1 rounded-2xl px-1 py-2 text-center text-[11px] font-semibold text-carbon-400">
+            <Car className="mx-auto h-5 w-5" />
+            Véhicules
+          </button>
+          <button type="button" onClick={() => navigate('/settings')} className="grid gap-1 rounded-2xl px-1 py-2 text-center text-[11px] font-semibold text-carbon-400">
+            <MoreHorizontal className="mx-auto h-5 w-5" />
+            Plus
+          </button>
+        </div>
+      </nav>
 
       <Modal open={Boolean(selectedReservation)} title="Détails de réservation" onClose={() => setSelectedReservation(null)}>
         {selectedReservation ? (
