@@ -576,8 +576,9 @@ export default function ContractsPage() {
       total: contracts.length,
       drafts: contracts.filter((item) => item.status === 'Draft').length,
       last: contracts[0]?.contractNumber || 'Aucun',
+      readyReservations: reservations.filter((item) => item.status === 'Confirmed' || item.status === 'Active').length,
     };
-  }, [contracts]);
+  }, [contracts, reservations]);
 
   const effectiveLogoUrl = profile?.agency?.logoUrl || logoPublicUrl || null;
 
@@ -879,19 +880,23 @@ export default function ContractsPage() {
   }
 
   return (
-    <div className="overflow-x-hidden pb-28">
-      <PageHeader
-        eyebrow="DOCUMENTS"
-        title="Contrats"
-        description="Créez, vérifiez et exportez vos contrats de location."
-        action={(
-          <div className="hidden md:block">
-            <Button icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!hasPreviewSource}>
-              {downloadingPdf ? 'Préparation...' : 'Télécharger PDF'}
-            </Button>
-          </div>
-        )}
-      />
+    <div className="relative overflow-x-hidden pb-28">
+      <div className="pointer-events-none absolute -right-24 top-10 h-80 w-80 rounded-full bg-gold-400/10 blur-3xl" />
+      <div className="pointer-events-none absolute left-1/3 top-80 h-72 w-72 rounded-full bg-gold-400/5 blur-3xl" />
+      <div className="relative">
+        <PageHeader
+          eyebrow="DOCUMENTS"
+          title="Contrats"
+          description="Créez, vérifiez et exportez vos contrats de location."
+          action={(
+            <div className="hidden md:block">
+              <Button className="h-11 rounded-2xl px-5 shadow-[0_14px_34px_rgba(227,177,23,.18)]" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!hasPreviewSource}>
+                {downloadingPdf ? 'Préparation...' : 'Télécharger PDF'}
+              </Button>
+            </div>
+          )}
+        />
+      </div>
 
       <div className="mb-3 md:hidden">
         <Button className="w-full" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!hasPreviewSource}>
@@ -899,35 +904,51 @@ export default function ContractsPage() {
         </Button>
       </div>
 
-      <div className="mb-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="relative mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {[
-          { label: 'Contrats générés', value: String(stats.total), helper: 'Total enregistré', icon: FileSignature },
-          { label: 'Brouillons', value: String(stats.drafts), helper: 'En préparation', icon: FileText },
-          { label: 'Dernier contrat', value: stats.last, helper: 'Référence récente', icon: Sparkles },
-        ].map(({ label, value, helper, icon: Icon }) => (
-          <div key={label} className="min-h-[58px] rounded-xl border border-white/10 bg-white/[0.025] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,.03)] light:bg-white">
-            <div className="flex items-center justify-between gap-2 sm:gap-3">
-              <p className="truncate text-[10px] font-semibold uppercase tracking-[0.1em] text-carbon-400 sm:text-xs sm:tracking-[0.14em]">{label}</p>
-              <Icon className="h-3.5 w-3.5 shrink-0 text-gold-300" />
+          { label: 'Contrats générés', value: String(stats.total), helper: 'Total enregistré', icon: FileSignature, tone: 'gold' },
+          { label: 'Brouillons', value: String(stats.drafts), helper: 'En préparation', icon: PenLine, tone: 'violet' },
+          { label: 'Dernier contrat', value: stats.last, helper: 'Référence récente', icon: Sparkles, tone: 'teal' },
+          { label: 'Réservations prêtes', value: String(stats.readyReservations), helper: 'Confirmées ou actives', icon: CheckCircle2, tone: 'blue' },
+        ].map(({ label, value, helper, icon: Icon, tone }) => (
+          <div
+            key={label}
+            className="group min-h-[96px] rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#090d13] to-black p-4 shadow-[0_24px_70px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)] transition duration-300 hover:-translate-y-0.5 hover:border-gold-300/30 hover:shadow-[0_28px_80px_rgba(0,0,0,.34),0_0_34px_rgba(227,177,23,.08)] light:bg-white"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-carbon-500">{label}</p>
+                <p className="mt-2 truncate text-2xl font-black text-white light:text-carbon-950">{value}</p>
+              </div>
+              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl border ${
+                tone === 'violet'
+                  ? 'border-violet-300/20 bg-violet-400/10 text-violet-200'
+                  : tone === 'teal'
+                    ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-200'
+                    : tone === 'blue'
+                      ? 'border-sky-300/20 bg-sky-400/10 text-sky-200'
+                      : 'border-gold-300/25 bg-gold-400/12 text-gold-200'
+              } shadow-[0_0_24px_rgba(227,177,23,.08)]`}>
+                <Icon className="h-5 w-5" />
+              </span>
             </div>
-            <div className="mt-1 flex items-end justify-between gap-2">
-              <p className="truncate text-base font-black text-white light:text-carbon-950">{value}</p>
-              <p className="hidden truncate text-[10px] text-carbon-500 md:block">{helper}</p>
-            </div>
+            <p className="mt-2 text-xs text-carbon-500">{helper}</p>
           </div>
         ))}
       </div>
 
-      <div className="mb-5 max-w-full overflow-x-auto pb-1">
-        <div className="flex min-w-max items-center gap-2">
+      <div className="relative mb-6 max-w-full overflow-x-auto rounded-3xl border border-white/10 bg-gradient-to-r from-zinc-950/90 via-black/80 to-zinc-950/90 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+        <div className="flex min-w-max items-center gap-2 lg:min-w-0 lg:justify-between">
           {['Réservation', 'Données', '2ème conducteur', 'Aperçu', 'Export'].map((label, index) => {
             const step = index + 1;
             const isActive = activeStep === step;
             const isDone = activeStep > step;
             return (
-              <div key={label} className={`shrink-0 rounded-2xl border px-2.5 py-2 ${isActive ? 'border-gold-300/45 bg-gold-400/12 text-gold-100' : isDone ? 'border-emerald-400/20 bg-emerald-400/5 text-carbon-200' : 'border-white/10 bg-white/[0.025] text-carbon-400'}`}>
+              <div key={label} className={`relative shrink-0 rounded-2xl border px-3 py-2.5 transition duration-300 lg:flex-1 ${isActive ? 'border-gold-300/50 bg-gold-400/15 text-gold-100 shadow-[0_0_24px_rgba(227,177,23,.10)]' : isDone ? 'border-emerald-400/20 bg-emerald-400/5 text-carbon-200' : 'border-white/10 bg-white/[0.025] text-carbon-400'}`}>
                 <div className="flex items-center gap-2.5">
-                  <span className={`grid h-7 w-7 place-items-center rounded-full border text-xs font-black ${isActive ? 'border-gold-300 bg-gold-400 text-carbon-950' : 'border-white/15 bg-white/[0.04]'}`}>{step}</span>
+                  <span className={`grid h-8 w-8 place-items-center rounded-full border text-xs font-black transition ${isActive ? 'border-gold-300 bg-gold-400 text-carbon-950' : isDone ? 'border-emerald-300/30 bg-emerald-400/15 text-emerald-200' : 'border-white/15 bg-white/[0.04]'}`}>
+                    {isDone ? <CheckCircle2 className="h-4 w-4" /> : step}
+                  </span>
                   <div>
                     <p className="whitespace-nowrap text-xs font-black sm:text-sm">{label}</p>
                     <p className="whitespace-nowrap text-[10px] opacity-70">{step === 1 ? 'Sélectionnez' : step === 5 ? 'Génération' : step === 3 ? 'Optionnel' : 'Vérification'}</p>
@@ -939,8 +960,8 @@ export default function ContractsPage() {
         </div>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[300px_minmax(420px,1fr)] 2xl:grid-cols-[300px_minmax(420px,1fr)_minmax(460px,0.85fr)]">
-        <Card className="border-white/10 bg-[#0b0f15] p-4 shadow-[0_24px_70px_rgba(0,0,0,.24)] lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]">
+      <div className="relative grid gap-5 xl:grid-cols-[320px_minmax(420px,1fr)] 2xl:grid-cols-[320px_minmax(420px,1fr)_minmax(440px,0.85fr)]">
+        <Card className="border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#0b1017] to-black p-4 shadow-[0_24px_80px_rgba(0,0,0,.30),inset_0_1px_0_rgba(255,255,255,.04)] lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
               <h2 className="font-black text-white light:text-carbon-950">Réservations validées</h2>
@@ -948,12 +969,15 @@ export default function ContractsPage() {
             </div>
             <Badge>{reservations.length}</Badge>
           </div>
-          <input
-            className="form-control mb-3 h-10 text-sm"
-            placeholder="Rechercher une réservation..."
-            value={reservationSearch}
-            onChange={(event) => setReservationSearch(event.target.value)}
-          />
+          <label className="relative mb-3 block">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
+            <input
+              className="form-control h-11 rounded-2xl border-white/10 bg-black/30 pl-10 text-sm"
+              placeholder="Rechercher une réservation..."
+              value={reservationSearch}
+              onChange={(event) => setReservationSearch(event.target.value)}
+            />
+          </label>
           <div className="space-y-3 overflow-y-auto pr-1 xl:max-h-[calc(100vh-15rem)]">
             {filteredReservations.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-white/10 p-4 text-sm text-carbon-400">Aucune réservation trouvée.</p>
@@ -964,33 +988,52 @@ export default function ContractsPage() {
                   key={item.id}
                   type="button"
                   onClick={() => setReservationId(item.id)}
-                  className={`w-full rounded-2xl border p-4 text-left transition ${selected ? 'border-gold-300/60 bg-gold-400/10 shadow-[0_0_28px_rgba(212,160,23,.12)]' : 'border-white/10 bg-white/[0.035] hover:border-white/20 hover:bg-white/[0.055]'}`}
+                  className={`group w-full rounded-3xl border p-4 text-left transition duration-300 ${selected ? 'border-gold-300/60 bg-[linear-gradient(135deg,rgba(227,177,23,.14),rgba(255,255,255,.035))] shadow-[0_0_34px_rgba(212,160,23,.14)]' : 'border-white/10 bg-white/[0.035] hover:-translate-y-0.5 hover:border-gold-300/25 hover:bg-white/[0.055]'}`}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <p className="font-black text-white">{item.id}</p>
-                    <Badge>{item.status}</Badge>
+                    <p className="text-lg font-black text-white">{item.id}</p>
+                    <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${selected ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-200' : 'border-white/10 bg-white/[0.04] text-carbon-300'}`}>{item.status}</span>
                   </div>
                   <p className="mt-2 text-sm font-semibold text-carbon-200">{item.client}</p>
                   <p className="mt-1 text-sm text-carbon-400">{item.vehicle}</p>
-                  <p className="mt-3 text-xs text-carbon-500">{formatDateFr(item.pickupDate)} → {formatDateFr(item.returnDate)}</p>
+                  <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-xs text-carbon-400">
+                    <CalendarDays className="h-3.5 w-3.5 text-gold-300" />
+                    {formatDateFr(item.pickupDate)} → {formatDateFr(item.returnDate)}
+                  </p>
                 </button>
               );
             })}
           </div>
+          <a href="/reservations" className="mt-4 inline-flex w-full items-center justify-center rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2.5 text-sm font-semibold text-carbon-200 transition hover:border-gold-300/30 hover:bg-gold-400/10 hover:text-gold-100">
+            Voir toutes les réservations
+          </a>
         </Card>
 
         <div className="space-y-4">
-          <Card className="border-white/10 bg-[#0b0f15] p-4">
-            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Résumé de location</p>
+          <Card className="border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#0c1118] to-black p-5 shadow-[0_24px_80px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)]">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-gold-200">
+                <CalendarDays className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Résumé de location</p>
+                <p className="text-xs text-carbon-500">Données reprises depuis la réservation.</p>
+              </div>
+            </div>
             {selectedReservation ? (
               <div className="grid gap-3">
-                <div className="rounded-2xl bg-black/20 p-3">
-                  <p className="font-black text-white">{selectedReservation.client}</p>
-                  <p className="mt-1 text-sm text-carbon-400">{selectedReservation.vehicle}</p>
+                <div className="rounded-3xl border border-white/10 bg-black/25 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <p className="text-lg font-black text-white">{selectedReservation.client}</p>
+                      <p className="mt-1 text-sm text-carbon-400">{selectedReservation.vehicle}</p>
+                    </div>
+                    <Badge>{selectedReservation.status}</Badge>
+                  </div>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-                  <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3 text-sm text-carbon-300">{formatDateFr(pickupDate)} → {formatDateFr(returnDate)}</div>
-                  <div className="rounded-xl border border-white/10 bg-white/[0.035] p-3 text-sm font-semibold text-gold-200">{formatMAD(totalAmount)} · Caution {formatMAD(deposit)}</div>
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-3 text-sm text-carbon-300">{formatDateFr(pickupDate)} → {formatDateFr(returnDate)}</div>
+                  <div className="rounded-2xl border border-gold-300/15 bg-gold-400/[0.06] p-3 text-sm font-semibold text-gold-200">{formatMAD(totalAmount)} · Caution {formatMAD(deposit)}</div>
                 </div>
               </div>
             ) : (
@@ -998,23 +1041,39 @@ export default function ContractsPage() {
             )}
           </Card>
 
-          <Card className="border-white/10 bg-[#0b0f15] p-4">
-            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Informations contrat</p>
+          <Card className="border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#0c1118] to-black p-5 shadow-[0_24px_80px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.04)]">
+            <div className="mb-4 flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-gold-200">
+                <FileText className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Informations contrat</p>
+                <p className="text-xs text-carbon-500">Modèle, référence et conditions.</p>
+              </div>
+            </div>
             <div className="grid gap-3">
-              <SelectField label="Modèle du contrat" value={template} onChange={(event) => setTemplate(event.target.value)}>
+              <SelectField label="Modèle du contrat" className="h-12 rounded-2xl border-white/10 bg-black/35" value={template} onChange={(event) => setTemplate(event.target.value)}>
                 {templates.map((item) => <option key={item}>{item}</option>)}
               </SelectField>
-              <div className="grid gap-2 rounded-xl bg-black/20 px-3 py-2 text-xs text-carbon-300">
+              <div className="grid gap-2 rounded-2xl border border-white/10 bg-black/25 px-4 py-3 text-xs text-carbon-300 sm:grid-cols-2">
                 <p><span className="text-carbon-500">Référence:</span> <span className="font-semibold text-white">{contractReference}</span></p>
                 <p><span className="text-carbon-500">Date du contrat:</span> <span className="font-semibold text-white">{new Date().toLocaleDateString('fr-MA')}</span></p>
               </div>
-              <TextAreaField label="Notes / conditions" value={terms} onChange={(event) => setTerms(event.target.value)} className="min-h-24" />
+              <TextAreaField label="Notes / conditions" value={terms} onChange={(event) => setTerms(event.target.value)} className="min-h-28 rounded-2xl border-white/10 bg-black/35" />
             </div>
           </Card>
 
-          <Card className="border-white/10 bg-[#0b0f15] p-4">
+          <Card className="border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#0c1118] to-black p-5 shadow-[0_24px_80px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.04)]">
             <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">2ème conducteur</p>
+              <div className="flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-gold-200">
+                  <UserRound className="h-5 w-5" />
+                </span>
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">2ème conducteur</p>
+                  <p className="text-xs text-carbon-500">Optionnel, affiché dans le PDF.</p>
+                </div>
+              </div>
               {secondDriver.enabled ? (
                 <Button type="button" variant="secondary" className="h-8 px-3 text-xs" onClick={() => setSecondDriver(emptySecondDriver)}>Retirer</Button>
               ) : (
@@ -1023,12 +1082,12 @@ export default function ContractsPage() {
             </div>
             {secondDriver.enabled ? (
               <div className="grid gap-3 sm:grid-cols-2">
-                <input className="form-control text-base sm:text-sm" placeholder="Nom" value={secondDriver.lastName} onChange={(event) => setSecondDriver((current) => ({ ...current, lastName: event.target.value }))} />
-                <input className="form-control text-base sm:text-sm" placeholder="Prénom" value={secondDriver.firstName} onChange={(event) => setSecondDriver((current) => ({ ...current, firstName: event.target.value }))} />
-                <input className="form-control text-base sm:text-sm" placeholder="CIN / Passeport" value={secondDriver.idNumber} onChange={(event) => setSecondDriver((current) => ({ ...current, idNumber: event.target.value }))} />
-                <input className="form-control text-base sm:text-sm" placeholder="Permis N°" value={secondDriver.licenseNumber} onChange={(event) => setSecondDriver((current) => ({ ...current, licenseNumber: event.target.value }))} />
-                <input className="form-control text-base sm:text-sm" placeholder="Téléphone" value={secondDriver.phone} onChange={(event) => setSecondDriver((current) => ({ ...current, phone: event.target.value }))} />
-                <input className="form-control text-base sm:text-sm" placeholder="Adresse" value={secondDriver.address} onChange={(event) => setSecondDriver((current) => ({ ...current, address: event.target.value }))} />
+                <input className="form-control rounded-2xl border-white/10 bg-black/35 text-base sm:text-sm" placeholder="Nom" value={secondDriver.lastName} onChange={(event) => setSecondDriver((current) => ({ ...current, lastName: event.target.value }))} />
+                <input className="form-control rounded-2xl border-white/10 bg-black/35 text-base sm:text-sm" placeholder="Prénom" value={secondDriver.firstName} onChange={(event) => setSecondDriver((current) => ({ ...current, firstName: event.target.value }))} />
+                <input className="form-control rounded-2xl border-white/10 bg-black/35 text-base sm:text-sm" placeholder="CIN / Passeport" value={secondDriver.idNumber} onChange={(event) => setSecondDriver((current) => ({ ...current, idNumber: event.target.value }))} />
+                <input className="form-control rounded-2xl border-white/10 bg-black/35 text-base sm:text-sm" placeholder="Permis N°" value={secondDriver.licenseNumber} onChange={(event) => setSecondDriver((current) => ({ ...current, licenseNumber: event.target.value }))} />
+                <input className="form-control rounded-2xl border-white/10 bg-black/35 text-base sm:text-sm" placeholder="Téléphone" value={secondDriver.phone} onChange={(event) => setSecondDriver((current) => ({ ...current, phone: event.target.value }))} />
+                <input className="form-control rounded-2xl border-white/10 bg-black/35 text-base sm:text-sm" placeholder="Adresse" value={secondDriver.address} onChange={(event) => setSecondDriver((current) => ({ ...current, address: event.target.value }))} />
               </div>
             ) : (
               <p className="text-sm text-carbon-400">Optionnel. Les champs vides afficheront “—” dans le contrat.</p>
@@ -1036,10 +1095,10 @@ export default function ContractsPage() {
           </Card>
         </div>
 
-        <div className="min-w-0 rounded-3xl border border-white/10 bg-[#080c11] p-2 shadow-[0_24px_80px_rgba(0,0,0,.38)] sm:p-3 lg:col-span-2 2xl:sticky 2xl:top-24 2xl:col-span-1 2xl:self-start">
-          <div className="mb-2 flex flex-col gap-3 rounded-2xl bg-white/[0.04] px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0 rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950 via-[#080c11] to-black p-2 shadow-[0_30px_90px_rgba(0,0,0,.42),0_0_38px_rgba(227,177,23,.06)] sm:p-3 xl:col-span-2 2xl:sticky 2xl:top-24 2xl:col-span-1 2xl:self-start">
+          <div className="mb-2 flex flex-col gap-3 rounded-3xl border border-white/10 bg-white/[0.045] px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3 text-sm text-carbon-300">
-              <div className="grid h-9 w-9 place-items-center rounded-xl bg-gold-400/12 text-gold-200">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/12 text-gold-200 shadow-[0_0_28px_rgba(227,177,23,.10)]">
                 <FileText className="h-4 w-4" />
               </div>
               <div>
@@ -1049,27 +1108,27 @@ export default function ContractsPage() {
             </div>
             <div className="flex flex-wrap items-center gap-2 lg:justify-end">
               <Badge>{statusLabel(previewStatus)}</Badge>
-              <div className="flex shrink-0 items-center rounded-xl border border-white/10 bg-black/20 p-1">
-                <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-carbon-300 hover:bg-white/10 hover:text-white" onClick={() => nudgePreviewScale(-0.08)} aria-label="Zoom arrière">
+              <div className="flex shrink-0 items-center rounded-2xl border border-white/10 bg-black/25 p-1">
+                <button type="button" className="grid h-8 w-8 place-items-center rounded-xl text-carbon-300 transition hover:bg-white/10 hover:text-white" onClick={() => nudgePreviewScale(-0.08)} aria-label="Zoom arrière">
                   <ZoomOut className="h-4 w-4" />
                 </button>
-                <button type="button" className="grid h-8 w-8 place-items-center rounded-lg text-carbon-300 hover:bg-white/10 hover:text-white" onClick={() => nudgePreviewScale(0.08)} aria-label="Zoom avant">
+                <button type="button" className="grid h-8 w-8 place-items-center rounded-xl text-carbon-300 transition hover:bg-white/10 hover:text-white" onClick={() => nudgePreviewScale(0.08)} aria-label="Zoom avant">
                   <ZoomIn className="h-4 w-4" />
                 </button>
-                <button type="button" className="h-8 rounded-lg px-3 text-xs font-semibold text-carbon-300 hover:bg-white/10 hover:text-white" onClick={fitPreviewToStudio}>
+                <button type="button" className="h-8 rounded-xl px-3 text-xs font-semibold text-carbon-300 transition hover:bg-white/10 hover:text-white" onClick={fitPreviewToStudio}>
                   Fit
                 </button>
               </div>
-              <Button className="h-9 shrink-0 px-3 text-xs" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!hasPreviewSource}>
+              <Button className="h-9 shrink-0 rounded-2xl px-3 text-xs" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!hasPreviewSource}>
                 Télécharger
               </Button>
             </div>
           </div>
 
           {!hasPreviewSource ? (
-            <div className="grid min-h-[520px] place-items-center rounded-2xl border border-dashed border-white/10 bg-[radial-gradient(circle_at_top,rgba(212,160,23,.08),transparent_30%),#111722] p-6 text-center">
+            <div className="grid min-h-[520px] place-items-center rounded-3xl border border-dashed border-white/10 bg-[radial-gradient(circle_at_top,rgba(212,160,23,.12),transparent_34%),linear-gradient(135deg,#111722,#06090d)] p-6 text-center">
               <div className="max-w-sm">
-                <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-gold-200">
+                <div className="mx-auto grid h-16 w-16 place-items-center rounded-3xl border border-gold-300/25 bg-gold-400/12 text-gold-200 shadow-[0_0_34px_rgba(227,177,23,.14)]">
                   <FileSignature className="h-7 w-7" />
                 </div>
                 <h3 className="mt-5 text-lg font-black text-white">Sélectionnez une réservation</h3>
@@ -1081,7 +1140,7 @@ export default function ContractsPage() {
           ) : (
             <div
               ref={previewViewportRef}
-              className="max-h-[calc(100vh-260px)] overflow-auto rounded-2xl bg-[radial-gradient(circle_at_top,rgba(212,160,23,.10),transparent_28%),#111722] p-5 sm:p-6"
+              className="max-h-[calc(100vh-260px)] overflow-auto rounded-3xl bg-[radial-gradient(circle_at_top,rgba(212,160,23,.12),transparent_30%),linear-gradient(135deg,#111722,#070b10)] p-5 sm:p-6"
               style={{ maxHeight: `${previewMaxHeight}px` }}
             >
             <div
@@ -1290,7 +1349,25 @@ export default function ContractsPage() {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 rounded-3xl border border-white/10 bg-[#0b0f15] p-4 shadow-[0_20px_70px_rgba(0,0,0,.22)] md:grid-cols-3">
+      <div className="mt-5 rounded-3xl border border-gold-300/15 bg-[linear-gradient(135deg,rgba(227,177,23,.10),rgba(255,255,255,.035),rgba(0,0,0,.20))] p-4 shadow-[0_20px_70px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.04)]">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/12 text-gold-200">
+              <CircleAlert className="h-5 w-5" />
+            </span>
+            <div>
+              <p className="text-sm font-black text-white">Bon à savoir</p>
+              <p className="mt-1 text-sm leading-6 text-carbon-300">Vérifiez soigneusement toutes les informations avant de générer le contrat.</p>
+            </div>
+          </div>
+          <div className="hidden items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-xs font-semibold text-carbon-300 sm:flex">
+            <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+            PDF prêt après validation
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-3 rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#0b0f15] to-black p-4 shadow-[0_20px_70px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)] md:grid-cols-3">
         <Button type="button" className="h-12" icon={<FileSignature className="h-4 w-4" />} onClick={handleGenerateContract} loading={generating} disabled={!selectedReservation}>
           Générer contrat
         </Button>

@@ -34,7 +34,7 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
   const { profile } = useAuth();
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain pb-10">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_20%_0%,rgba(227,177,23,.08),transparent_28%)] pb-10">
       <div className="shrink-0 px-5 pb-5 pt-6">
         <div className="flex items-center justify-between gap-3">
         <NavLink to="/" className="group flex min-w-0 items-center gap-3.5" onClick={onClose}>
@@ -73,17 +73,17 @@ function SidebarContent({ onClose }: { onClose?: () => void }) {
             to={to}
             onClick={onClose}
             className={({ isActive }) =>
-              `group relative flex items-center gap-3 rounded-2xl border px-3 py-2.5 text-sm font-semibold transition ${
+              `group relative flex items-center gap-3 overflow-hidden rounded-2xl border px-3 py-2.5 text-sm font-semibold transition ${
                 isActive
-                  ? 'border-gold-200/20 bg-gold-400/[0.095] text-gold-100 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] light:text-gold-800'
+                  ? 'border-gold-200/25 bg-gradient-to-r from-gold-400/[0.18] via-gold-400/[0.08] to-white/[0.025] text-gold-100 shadow-[0_0_34px_rgba(227,177,23,.10),inset_0_1px_0_rgba(255,255,255,.04)] before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-r-full before:bg-gold-300 light:text-gold-800'
                   : 'border-transparent text-carbon-300 hover:border-white/10 hover:bg-white/[0.045] hover:text-white light:text-carbon-700 light:hover:bg-carbon-950/5'
               }`
             }
           >
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/[0.035] text-carbon-300 transition group-hover:text-gold-100 light:bg-carbon-950/[0.035]">
+            <span className="relative grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/[0.04] text-carbon-300 transition group-hover:bg-gold-400/10 group-hover:text-gold-100 light:bg-carbon-950/[0.035]">
               <Icon className="h-4 w-4" />
             </span>
-            {t(label)}
+            <span className="relative">{t(label)}</span>
           </NavLink>
         ))}
       </nav>

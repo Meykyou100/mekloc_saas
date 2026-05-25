@@ -1,4 +1,4 @@
-import { Bell, CheckCircle2, LogOut, Menu, Search, UserRound } from 'lucide-react';
+import { Bell, CheckCircle2, ChevronDown, LogOut, Menu, Search, UserRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
@@ -6,11 +6,17 @@ import { useAuth } from '../../context/AuthContext';
 import BrandLogo from '../ui/BrandLogo';
 
 export default function Topbar({ onMenu }: { onMenu: () => void }) {
-  const { notify, t } = useApp();
+  const { notify } = useApp();
   const { signOut, profile, isSupabaseEnabled } = useAuth();
   const navigate = useNavigate();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [mobileLogoBroken, setMobileLogoBroken] = useState(false);
+  const initials = (profile?.fullName || profile?.agency?.name || 'AG')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join('') || 'AG';
 
   useEffect(() => {
     setMobileLogoBroken(false);
@@ -27,7 +33,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-carbon-950/78 px-4 py-3 backdrop-blur-2xl light:bg-white/78 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 border-b border-white/10 bg-carbon-950/72 px-4 py-3 shadow-[0_12px_40px_rgba(0,0,0,.18)] backdrop-blur-2xl light:bg-white/78 sm:px-6 lg:px-8">
       <div className="flex items-center gap-3">
         <button
           aria-label="Open sidebar"
@@ -40,8 +46,8 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-400" />
           <input
             aria-label="Search"
-            placeholder={t('search')}
-            className="form-control focus-ring h-10 w-full rounded-xl pl-10 pr-4 text-sm light:bg-carbon-950/[0.04] light:text-carbon-950"
+            placeholder="Rechercher une réservation, un client, un véhicule..."
+            className="form-control focus-ring h-11 w-full rounded-2xl border-white/10 bg-zinc-950/80 pl-10 pr-4 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,.04)] placeholder:text-carbon-500 light:bg-carbon-950/[0.04] light:text-carbon-950"
           />
         </div>
         <div className="mr-auto md:hidden">
@@ -58,7 +64,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
         <div className="relative">
           <button
             aria-label="Notifications"
-            className="focus-ring relative grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.055] text-carbon-200 hover:bg-white/10 light:bg-carbon-950/[0.04] light:text-carbon-800"
+            className="focus-ring relative grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-zinc-950/70 text-carbon-200 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/25 hover:bg-gold-400/10 hover:text-white light:bg-carbon-950/[0.04] light:text-carbon-800"
             onClick={() => setNotificationsOpen((current) => !current)}
           >
             <Bell className="h-5 w-5" />
@@ -78,14 +84,20 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
         </div>
         <button
           aria-label="Profile"
-          className="focus-ring hidden h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.055] px-3 text-sm font-semibold text-white hover:bg-white/10 light:bg-carbon-950/[0.04] light:text-carbon-950 md:flex"
+          className="focus-ring hidden h-11 items-center gap-3 rounded-2xl border border-white/10 bg-zinc-950/70 px-3 text-sm font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/25 hover:bg-white/[0.08] light:bg-carbon-950/[0.04] light:text-carbon-950 md:flex"
         >
-          <UserRound className="h-5 w-5 text-gold-300" />
-          {profile?.fullName || 'Agence MekLoc'}
+          <span className="grid h-8 w-8 place-items-center rounded-full border border-gold-300/20 bg-gold-400/12 text-xs font-black text-gold-100">
+            {initials}
+          </span>
+          <span className="min-w-0 text-left">
+            <span className="block max-w-36 truncate leading-4">{profile?.fullName || 'Agence MekLoc'}</span>
+            <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-carbon-500">{profile?.role || 'Compte'}</span>
+          </span>
+          <ChevronDown className="h-4 w-4 text-carbon-500" />
         </button>
         <button
           aria-label="Logout"
-          className="focus-ring grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.055] text-carbon-200 hover:bg-white/10 light:bg-carbon-950/[0.04] light:text-carbon-800"
+          className="focus-ring grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-zinc-950/70 text-carbon-200 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-rose-300/25 hover:bg-rose-400/10 hover:text-white light:bg-carbon-950/[0.04] light:text-carbon-800"
           onClick={handleLogout}
         >
           <LogOut className="h-5 w-5" />
