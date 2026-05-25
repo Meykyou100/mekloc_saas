@@ -13,6 +13,7 @@ import {
   Phone,
   Search,
   ShieldCheck,
+  SlidersHorizontal,
   Trash2,
   Upload,
   UserPlus,
@@ -25,7 +26,6 @@ import { Link } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
-import EmptyState from '../components/ui/EmptyState';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import { useApp } from '../context/AppContext';
@@ -35,7 +35,8 @@ import { formatMAD, type Client } from '../data/mockData';
 import { normalizeText, safeStoragePath, sanitizeText, validateEmail, validateFileUpload, validatePhone } from '../lib/security';
 import { storageBuckets, supabase } from '../lib/supabase';
 
-type ClientFilter = 'all' | 'with-docs' | 'missing-docs' | 'active';
+type ClientFilter = 'all' | 'with-docs' | 'missing-docs' | 'active' | 'new';
+type ClientSort = 'recent' | 'name' | 'spent';
 
 type ClientFormState = {
   fullName: string;
@@ -70,6 +71,18 @@ function hasDocs(client: Client) {
   return Boolean(client.idCardFrontUrl && client.idCardBackUrl);
 }
 
+function clientInitials(name?: string) {
+  const parts = (name || 'Client').trim().split(/\s+/).filter(Boolean);
+  return parts.map((part) => part[0]).slice(0, 2).join('').toUpperCase() || 'CL';
+}
+
+function formatReservationDate(value?: string) {
+  if (!value) return '—';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+  return date.toLocaleDateString('fr-MA', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 export default function ClientsPage() {
   const { clients, reservations, payments, createClient, updateClient, deleteClient: removeClient } = useData();
   const { profile } = useAuth();
@@ -77,6 +90,8 @@ export default function ClientsPage() {
 
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<ClientFilter>('all');
+  const [sort, setSort] = useState<ClientSort>('recent');
+  const [selectedClientId, setSelectedClientId] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
@@ -135,7 +150,7 @@ export default function ClientsPage() {
 
   const filteredClients = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return enrichedClients.filter((client) => {
+    const filtered = enrichedClients.filter((client) => {
       const searchHit =
         !q ||
         `${client.fullName} ${client.phone} ${client.email} ${client.cin} ${client.license} ${client.address}`.toLowerCase().includes(q);
@@ -145,9 +160,39 @@ export default function ClientsPage() {
       if (filter === 'with-docs') return hasDocs(client);
       if (filter === 'missing-docs') return !hasDocs(client);
       if (filter === 'active') return client.computedReservations > 0;
+      if (filter === 'new') return client.status === 'New';
       return true;
     });
-  }, [enrichedClients, filter, query]);
+    return [...filtered].sort((a, b) => {
+      if (sort === 'name') return a.fullName.localeCompare(b.fullName, 'fr');
+      if (sort === 'spent') return b.computedSpent - a.computedSpent;
+      return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+    });
+  }, [enrichedClients, filter, query, sort]);
+
+  const latestReservationByClient = useMemo(() => {
+    return reservations.reduce<Record<string, (typeof reservations)[number]>>((acc, reservation) => {
+      const current = acc[reservation.clientId];
+      const currentTime = new Date(current?.returnDate || current?.pickupDate || 0).getTime();
+      const nextTime = new Date(reservation.returnDate || reservation.pickupDate || 0).getTime();
+      if (!current || nextTime > currentTime) acc[reservation.clientId] = reservation;
+      return acc;
+    }, {});
+  }, [reservations]);
+
+  const selectedClient = useMemo(() => {
+    return filteredClients.find((client) => client.id === selectedClientId) || filteredClients[0] || null;
+  }, [filteredClients, selectedClientId]);
+
+  useEffect(() => {
+    if (!filteredClients.length) {
+      if (selectedClientId) setSelectedClientId('');
+      return;
+    }
+    if (!filteredClients.some((client) => client.id === selectedClientId)) {
+      setSelectedClientId(filteredClients[0].id);
+    }
+  }, [filteredClients, selectedClientId]);
 
   useEffect(() => {
     if (modalOpen) {
@@ -415,41 +460,43 @@ export default function ClientsPage() {
   }
 
   return (
-    <div>
+    <div className="relative overflow-x-hidden pb-8">
+      <div className="pointer-events-none absolute right-[-18%] top-10 h-72 w-72 rounded-full bg-[#D4A017]/10 blur-3xl" />
       <PageHeader
         eyebrow="CRM"
         title="Clients"
         description="Gérez vos clients, leurs documents d’identité et leur historique de location."
-        action={<Button icon={<UserPlus className="h-4 w-4" />} onClick={openNewClient}>Ajouter un client</Button>}
+        action={<Button className="rounded-2xl shadow-[0_0_30px_rgba(212,160,23,0.18)]" icon={<UserPlus className="h-4 w-4" />} onClick={openNewClient}>Ajouter un client</Button>}
       />
 
-      <div className="mb-5 grid grid-cols-2 gap-2 sm:gap-3 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="relative mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {[
-          { label: 'Total clients', value: String(clientsStats.total), helper: 'Clients enregistrés', icon: Users, tone: 'text-sky-200' },
-          { label: 'Nouveaux clients', value: String(clientsStats.newClients), helper: 'Statut Nouveau', icon: UserPlus, tone: 'text-emerald-200' },
-          { label: 'Avec réservations', value: String(clientsStats.withReservations), helper: 'Base active', icon: BadgeCheck, tone: 'text-gold-200' },
-          { label: 'Total dépensé', value: formatMAD(clientsStats.totalSpent), helper: 'Paiements ou réservations', icon: Wallet, tone: 'text-violet-200' },
-          { label: 'Docs manquants', value: String(clientsStats.withMissingDocs), helper: 'À compléter', icon: AlertTriangle, tone: 'text-amber-200' },
+          { label: 'Total clients', value: String(clientsStats.total), helper: 'Clients enregistrés', icon: Users, tone: 'text-gold-200', glow: 'from-[#D4A017]/18' },
+          { label: 'Nouveaux clients', value: String(clientsStats.newClients), helper: 'Ce mois / statut nouveau', icon: UserPlus, tone: 'text-emerald-200', glow: 'from-emerald-400/14' },
+          { label: 'Avec réservations', value: String(clientsStats.withReservations), helper: 'Historique actif', icon: BadgeCheck, tone: 'text-teal-200', glow: 'from-teal-400/14' },
+          { label: 'Total dépensé', value: formatMAD(clientsStats.totalSpent), helper: 'Paiements ou réservations', icon: Wallet, tone: 'text-violet-200', glow: 'from-violet-400/14' },
+          { label: 'Docs manquants', value: String(clientsStats.withMissingDocs), helper: 'À compléter', icon: AlertTriangle, tone: 'text-amber-200', glow: 'from-amber-400/14' },
         ].map(({ label, value, helper, icon: Icon, tone }) => (
           <div
             key={label}
-            className="min-h-[86px] rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.07] to-white/[0.025] p-3 shadow-[0_14px_34px_rgba(0,0,0,.22),inset_0_1px_0_rgba(255,255,255,.045)] light:bg-white sm:min-h-[116px] sm:p-4"
+            className="group relative min-h-[126px] overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950/90 to-black p-4 shadow-[0_18px_48px_rgba(0,0,0,.28),inset_0_1px_0_rgba(255,255,255,.05)] transition hover:border-[#D4A017]/35 light:bg-white"
           >
-            <div className="flex items-start justify-between gap-2 sm:gap-3">
+            <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${label === 'Total clients' ? 'from-[#D4A017]/18' : label === 'Nouveaux clients' ? 'from-emerald-400/14' : label === 'Avec réservations' ? 'from-teal-400/14' : label === 'Total dépensé' ? 'from-violet-400/14' : 'from-amber-400/14'} to-transparent opacity-70`} />
+            <div className="relative flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-carbon-500 sm:text-[11px] sm:tracking-[0.16em]">{label}</p>
-                <p className="mt-1 truncate text-xl font-black text-white light:text-carbon-950 sm:mt-2 sm:text-2xl">{value}</p>
+                <p className="truncate text-[10px] font-black uppercase tracking-[0.18em] text-carbon-500">{label}</p>
+                <p className="mt-3 truncate text-2xl font-black text-white light:text-carbon-950">{value}</p>
               </div>
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-white/10 bg-black/20 sm:h-10 sm:w-10 sm:rounded-2xl">
-                <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${tone}`} />
+              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-[#D4A017]/20 bg-[#D4A017]/10 shadow-[0_0_28px_rgba(212,160,23,0.12)]">
+                <Icon className={`h-5 w-5 ${tone}`} />
               </span>
             </div>
-            <p className="mt-1 truncate text-[10px] font-medium text-carbon-400 sm:mt-2 sm:text-xs">{helper}</p>
+            <p className="relative mt-3 truncate text-xs font-medium text-carbon-400">{helper}</p>
           </div>
         ))}
       </div>
 
-      <Card className="mb-5 p-4">
+      <Card className="relative mb-5 border-white/10 bg-gradient-to-br from-zinc-950/90 to-black p-4 shadow-[0_18px_46px_rgba(0,0,0,.24)]">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <label className="relative block lg:min-w-[360px] lg:flex-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
@@ -457,7 +504,7 @@ export default function ClientsPage() {
               value={query}
               onChange={(event) => setQuery(event.target.value.slice(0, 120))}
               placeholder="Rechercher nom, téléphone, email, CIN, permis..."
-              className="form-control focus-ring h-10 w-full rounded-xl pl-10 pr-4 text-sm light:bg-white light:text-carbon-950"
+              className="form-control focus-ring h-12 w-full rounded-2xl border-white/10 bg-black/30 pl-10 pr-4 text-sm light:bg-white light:text-carbon-950"
             />
           </label>
 
@@ -467,12 +514,13 @@ export default function ClientsPage() {
               ['with-docs', 'Avec documents'],
               ['missing-docs', 'Documents manquants'],
               ['active', 'Clients actifs'],
+              ['new', 'Nouveaux'],
             ] as const).map(([value, label]) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => setFilter(value)}
-                className={`focus-ring whitespace-nowrap rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+                className={`focus-ring whitespace-nowrap rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
                   filter === value
                     ? 'border-[#D4A017]/70 bg-[#D4A017]/20 text-gold-100'
                     : 'border-white/10 bg-white/5 text-carbon-200 hover:bg-white/10'
@@ -482,82 +530,215 @@ export default function ClientsPage() {
               </button>
             ))}
           </div>
+
+          <label className="relative min-w-[170px]">
+            <SlidersHorizontal className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
+            <select
+              value={sort}
+              onChange={(event) => setSort(event.target.value as ClientSort)}
+              className="form-control focus-ring h-12 w-full appearance-none rounded-2xl border-white/10 bg-black/30 pl-10 pr-4 text-sm font-semibold text-white light:bg-white light:text-carbon-950"
+            >
+              <option value="recent">Plus récent</option>
+              <option value="name">Nom A-Z</option>
+              <option value="spent">Dépense la plus élevée</option>
+            </select>
+          </label>
         </div>
       </Card>
 
-      {filteredClients.length === 0 ? (
-        <EmptyState
-          icon={Users}
-          title="Aucun client trouvé"
-          message={clients.length ? 'Aucun résultat pour ce filtre. Essayez une autre recherche.' : 'Ajoutez votre premier client pour commencer.'}
-          action="Ajouter un client"
-          onAction={openNewClient}
-        />
+      {clients.length === 0 ? (
+        <Card className="relative overflow-hidden border-white/10 bg-gradient-to-br from-zinc-950 to-black p-10 text-center">
+          <div className="mx-auto grid h-16 w-16 place-items-center rounded-3xl border border-[#D4A017]/25 bg-[#D4A017]/10 text-gold-200">
+            <Users className="h-8 w-8" />
+          </div>
+          <h2 className="mt-5 text-2xl font-black text-white">Aucun client pour le moment</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-carbon-400">Ajoutez votre premier client ou créez une réservation pour commencer à structurer votre CRM.</p>
+          <Button className="mt-6" icon={<UserPlus className="h-4 w-4" />} onClick={openNewClient}>Ajouter un client</Button>
+        </Card>
       ) : (
-        <div className="grid gap-5 xl:grid-cols-2">
-          {filteredClients.map((client) => {
-            const documentsReady = hasDocs(client);
-            return (
-              <Card
-                key={client.id}
-                interactive
-                className="group overflow-hidden border-white/10 bg-gradient-to-br from-[#131821] to-[#0b0f15] p-5 shadow-[0_10px_30px_rgba(0,0,0,.28)] transition-all hover:border-[#D4A017]/35"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-start gap-3">
-                    <div className="premium-avatar grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-sm font-black text-carbon-950">
-                      {client.fullName.split(' ').map((part) => part[0]).slice(0, 2).join('')}
+        <div className="grid gap-5 xl:grid-cols-[minmax(360px,0.42fr)_minmax(520px,0.58fr)]">
+          <Card className="border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-0 shadow-[0_24px_70px_rgba(0,0,0,.30)]">
+            <div className="border-b border-white/10 px-5 py-4">
+              <div className="flex items-end justify-between gap-3">
+                <div>
+                  <h2 className="text-base font-black text-white">Clients ({filteredClients.length})</h2>
+                  <p className="mt-1 text-xs text-carbon-500">Liste filtrée et triée</p>
+                </div>
+                <span className="rounded-full border border-[#D4A017]/30 bg-[#D4A017]/10 px-3 py-1 text-xs font-bold text-gold-100">{clientsStats.total} total</span>
+              </div>
+            </div>
+
+            {filteredClients.length === 0 ? (
+              <div className="p-6 text-center">
+                <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-white/10 bg-white/5 text-carbon-300">
+                  <Search className="h-5 w-5" />
+                </div>
+                <p className="mt-4 font-semibold text-white">Aucun résultat</p>
+                <p className="mt-1 text-sm text-carbon-400">Essayez une autre recherche ou un autre filtre.</p>
+              </div>
+            ) : (
+              <div className="max-h-[720px] space-y-2 overflow-y-auto p-3">
+                {filteredClients.map((client) => {
+                  const documentsReady = hasDocs(client);
+                  const isSelected = selectedClient?.id === client.id;
+                  return (
+                    <button
+                      key={client.id}
+                      type="button"
+                      onClick={() => setSelectedClientId(client.id)}
+                      className={`focus-ring w-full rounded-2xl border p-4 text-left transition ${
+                        isSelected
+                          ? 'border-[#D4A017]/70 bg-[#D4A017]/10 shadow-[0_0_34px_rgba(212,160,23,0.10)]'
+                          : 'border-white/10 bg-white/[0.035] hover:border-[#D4A017]/25 hover:bg-white/[0.055]'
+                      }`}
+                    >
+                      <div className="flex gap-3">
+                        <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-sm font-black ${isSelected ? 'bg-[#D4A017] text-black' : 'bg-white/10 text-white'}`}>
+                          {clientInitials(client.fullName)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="truncate font-bold text-white">{client.fullName}</p>
+                              <p className="mt-0.5 truncate text-xs text-carbon-400">{client.phone || 'Téléphone manquant'}</p>
+                              <p className="truncate text-xs text-carbon-500">{client.email || 'Email non renseigné'}</p>
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <p className="text-sm font-black text-white">{client.computedReservations}</p>
+                              <p className="text-[11px] text-carbon-500">Réservations</p>
+                              <p className="mt-1 text-xs font-bold text-gold-100">{formatMAD(client.computedSpent)}</p>
+                            </div>
+                          </div>
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${client.status === 'New' ? 'border-[#D4A017]/35 bg-[#D4A017]/12 text-gold-100' : 'border-emerald-300/25 bg-emerald-500/12 text-emerald-200'}`}>
+                              {client.status === 'New' ? 'New' : 'Actif'}
+                            </span>
+                            <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${documentsReady ? 'border-emerald-300/25 bg-emerald-500/12 text-emerald-200' : 'border-amber-300/30 bg-amber-500/12 text-amber-100'}`}>
+                              {documentsReady ? 'Docs complets' : 'Docs manquants'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+
+          <Card className="min-h-[520px] border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141c] to-black p-5 shadow-[0_24px_70px_rgba(0,0,0,.30)]">
+            {selectedClient ? (
+              <div className="space-y-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="flex min-w-0 gap-4">
+                    <div className="grid h-20 w-20 shrink-0 place-items-center rounded-3xl bg-gradient-to-br from-[#F5C542] to-[#B8870E] text-2xl font-black text-black shadow-[0_0_38px_rgba(212,160,23,0.22)]">
+                      {clientInitials(selectedClient.fullName)}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-lg font-semibold text-white">{client.fullName}</p>
-                      <p className="mt-0.5 text-xs text-carbon-500">Client depuis {formatClientSince(client.createdAt)}</p>
+                      <h2 className="truncate text-2xl font-black text-white">{selectedClient.fullName}</h2>
+                      <p className="mt-1 text-sm text-carbon-400">Client depuis {formatClientSince(selectedClient.createdAt)}</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <Badge>{selectedClient.status === 'New' ? 'New' : 'Actif'}</Badge>
+                        <span className={`rounded-full border px-3 py-1 text-xs font-bold ${hasDocs(selectedClient) ? 'border-emerald-300/25 bg-emerald-500/12 text-emerald-200' : 'border-amber-300/30 bg-amber-500/12 text-amber-100'}`}>
+                          {hasDocs(selectedClient) ? 'Documents complets' : 'Documents manquants'}
+                        </span>
+                        {selectedClient.computedReservations > 0 ? (
+                          <span className="rounded-full border border-emerald-300/25 bg-emerald-500/12 px-3 py-1 text-xs font-bold text-emerald-200">Actif</span>
+                        ) : null}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge>{client.status}</Badge>
-                    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${
-                      documentsReady
-                        ? 'border-emerald-300/35 bg-emerald-500/15 text-emerald-200'
-                        : 'border-amber-300/35 bg-amber-500/15 text-amber-100'
-                    }`}>
-                      {documentsReady ? 'Documents complets' : 'Documents manquants'}
-                    </span>
+
+                  <div className="flex flex-wrap gap-2 lg:justify-end">
+                    <Link
+                      to={`/clients/${selectedClient.id}`}
+                      className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-[#D4A017] px-4 text-sm font-black text-black transition hover:bg-[#f1c232]"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Voir profil
+                    </Link>
+                    <Button variant="secondary" className="h-10 px-4" icon={<Edit3 className="h-4 w-4" />} onClick={() => openEditClient(selectedClient)}>Modifier</Button>
+                    <Link
+                      to="/reservations"
+                      className="focus-ring inline-flex h-10 items-center justify-center rounded-xl border border-white/10 bg-white/10 px-4 text-sm font-semibold text-white transition hover:bg-white/15"
+                    >
+                      Nouvelle réservation
+                    </Link>
+                    <Button variant="danger" className="h-10 px-4" icon={<Trash2 className="h-4 w-4" />} onClick={() => setClientToDelete(selectedClient)}>Supprimer</Button>
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-2 text-sm text-carbon-300 sm:grid-cols-2">
-                  <p className="flex min-w-0 items-center gap-2"><Phone className="h-4 w-4 shrink-0 text-gold-200" /><span className="truncate">{client.phone || '—'}</span></p>
-                  <p className="flex min-w-0 items-center gap-2"><Mail className="h-4 w-4 shrink-0 text-gold-200" /><span className="truncate">{client.email || '—'}</span></p>
-                  <p className="flex min-w-0 items-center gap-2"><CreditCard className="h-4 w-4 shrink-0 text-gold-200" /><span className="truncate">CIN/Passeport: {client.cin || '—'}</span></p>
-                  <p className="flex min-w-0 items-center gap-2"><IdCard className="h-4 w-4 shrink-0 text-gold-200" /><span className="truncate">Permis: {client.license || '—'}</span></p>
-                  <p className="sm:col-span-2 flex min-w-0 items-center gap-2"><MapPin className="h-4 w-4 shrink-0 text-gold-200" /><span className="truncate">{client.address || 'Adresse non renseignée'}</span></p>
+                <div className="grid gap-4 lg:grid-cols-3">
+                  <div className="rounded-2xl border border-white/10 bg-black/18 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-gold-200">Coordonnées</p>
+                    <div className="mt-4 space-y-3 text-sm text-carbon-200">
+                      <p className="flex min-w-0 items-center gap-2"><Phone className="h-4 w-4 shrink-0 text-gold-200" /><span className="truncate">{selectedClient.phone || '—'}</span></p>
+                      <p className="flex min-w-0 items-center gap-2"><Mail className="h-4 w-4 shrink-0 text-gold-200" /><span className="truncate">{selectedClient.email || '—'}</span></p>
+                      <p className="flex min-w-0 items-center gap-2"><MapPin className="h-4 w-4 shrink-0 text-gold-200" /><span className="truncate">{selectedClient.address || 'Adresse non renseignée'}</span></p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-black/18 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-gold-200">Documents d’identité</p>
+                    <div className="mt-4 space-y-3 text-sm text-carbon-200">
+                      <p className="flex items-center justify-between gap-3"><span className="text-carbon-500">CIN / Passeport</span><strong className="text-right text-white">{selectedClient.cin || '—'}</strong></p>
+                      <p className="flex items-center justify-between gap-3"><span className="text-carbon-500">Permis</span><strong className="text-right text-white">{selectedClient.license || '—'}</strong></p>
+                      <p className="flex items-center justify-between gap-3"><span className="text-carbon-500">Statut</span><strong className={hasDocs(selectedClient) ? 'text-emerald-200' : 'text-amber-100'}>{hasDocs(selectedClient) ? 'Complet' : 'À compléter'}</strong></p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-white/10 bg-black/18 p-4">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-gold-200">Activité</p>
+                    <div className="mt-4 space-y-3 text-sm text-carbon-200">
+                      <p className="flex items-center justify-between gap-3"><span className="text-carbon-500">Réservations</span><strong className="text-white">{selectedClient.computedReservations}</strong></p>
+                      <p className="flex items-center justify-between gap-3"><span className="text-carbon-500">Total dépensé</span><strong className="text-white">{formatMAD(selectedClient.computedSpent)}</strong></p>
+                      <p className="flex items-center justify-between gap-3"><span className="text-carbon-500">Dernière réservation</span><strong className="text-right text-white">{formatReservationDate(latestReservationByClient[selectedClient.id]?.pickupDate)}</strong></p>
+                    </div>
+                  </div>
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <p className="text-xs text-carbon-500">Réservations</p>
-                    <p className="mt-1 text-xl font-semibold text-white">{client.computedReservations}</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <p className="text-xs text-carbon-500">Total dépensé</p>
-                    <p className="mt-1 text-xl font-semibold text-white">{formatMAD(client.computedSpent)}</p>
+                <div className="rounded-2xl border border-white/10 bg-black/18 p-4">
+                  <p className="text-xs font-black uppercase tracking-[0.16em] text-gold-200">Résumé rapide</p>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    {[
+                      { label: 'Réservations totales', value: String(selectedClient.computedReservations), icon: CalendarClock },
+                      { label: 'Total dépensé', value: formatMAD(selectedClient.computedSpent), icon: Wallet },
+                      { label: 'Dernière réservation', value: formatReservationDate(latestReservationByClient[selectedClient.id]?.pickupDate), icon: CalendarClock },
+                      { label: 'Client depuis', value: formatClientSince(selectedClient.createdAt), icon: Users },
+                    ].map(({ label, value, icon: Icon }) => (
+                      <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                        <div className="flex items-center gap-3">
+                          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-white/10 text-gold-200">
+                            <Icon className="h-4 w-4" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-black text-white">{value}</p>
+                            <p className="mt-0.5 text-xs text-carbon-500">{label}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button variant="secondary" className="h-9 px-3" icon={<Edit3 className="h-4 w-4" />} onClick={() => openEditClient(client)}>Modifier</Button>
-                  <Link
-                    to={`/clients/${client.id}`}
-                    className="focus-ring inline-flex h-9 items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10 px-3 text-sm font-semibold text-white transition hover:bg-white/15"
-                  >
-                    <Eye className="h-4 w-4" />
-                    Détails
-                  </Link>
-                  <Button variant="danger" className="h-9 px-3" icon={<Trash2 className="h-4 w-4" />} onClick={() => setClientToDelete(client)}>Supprimer</Button>
+                <div className="rounded-2xl border border-white/10 bg-black/18 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-gold-200">Notes internes</p>
+                    <Edit3 className="h-4 w-4 text-gold-200" />
+                  </div>
+                  <p className="mt-3 text-sm text-carbon-300">Aucune note interne.</p>
                 </div>
-              </Card>
-            );
-          })}
+              </div>
+            ) : (
+              <div className="flex min-h-[440px] flex-col items-center justify-center text-center">
+                <div className="grid h-16 w-16 place-items-center rounded-3xl border border-[#D4A017]/25 bg-[#D4A017]/10 text-gold-200">
+                  <Users className="h-8 w-8" />
+                </div>
+                <h2 className="mt-5 text-2xl font-black text-white">Sélectionnez un client</h2>
+                <p className="mt-2 max-w-sm text-sm text-carbon-400">Choisissez un client à gauche pour voir ses coordonnées, documents et activité.</p>
+              </div>
+            )}
+          </Card>
         </div>
       )}
 
