@@ -6,6 +6,7 @@ import { Field, SelectField } from '../components/ui/Form';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { MEKLOC_PLANS, type MekLocPlanId } from '../config/pricing';
+import { sendAccessRequestAdminNotification } from '../lib/accessRequestEmail';
 import { normalizeText, sanitizeText, validateEmail, validatePhone, validatePositiveNumber } from '../lib/security';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
@@ -294,6 +295,28 @@ export default function DemandeAccesPage() {
         email_verified_at: verifiedAt || new Date().toISOString(),
       });
       if (error) throw error;
+      const selectedPlanInfo = plans.find((plan) => plan.id === selectedPlanDb);
+      sendAccessRequestAdminNotification({
+        agencyName: payload.agency_name,
+        ownerName: payload.owner_name,
+        address: payload.address,
+        city: payload.city,
+        country: payload.country,
+        email: payload.email,
+        phone: `${payload.phone_country_code} ${payload.phone_number}`,
+        websiteUrl: payload.website_url,
+        selectedPlan: selectedPlanDb,
+        planName: selectedPlanInfo?.name || selectedPlanDb,
+        billingType,
+        vehicleCount: payload.vehicle_count,
+        promoCode: payload.promo_code,
+        emailVerifiedAt: verifiedAt || new Date().toISOString(),
+        termsAccepted: acceptedTerms,
+      }).then((result) => {
+        if (!result.sent && import.meta.env.DEV) console.warn('Admin access request email not sent', result);
+      }).catch((notificationError) => {
+        if (import.meta.env.DEV) console.warn('Admin access request email failed', notificationError);
+      });
       navigate(`/verification-en-cours?email=${encodeURIComponent(payload.email)}&agency=${encodeURIComponent(payload.agency_name)}&plan=${encodeURIComponent(payload.selected_plan)}&status=pending`, { replace: true });
     } catch (error) {
       const maybePostgrest = typeof error === 'object' && error !== null ? (error as { code?: string }).code : undefined;
