@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
-import BrandLogo from '../ui/BrandLogo';
 
 export default function Topbar({ onMenu }: { onMenu: () => void }) {
   const { notify } = useApp();
@@ -11,7 +10,6 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
   const navigate = useNavigate();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const [mobileLogoBroken, setMobileLogoBroken] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const initials = (profile?.fullName || profile?.agency?.name || 'AG')
     .split(/\s+/)
@@ -28,10 +26,6 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
     if (role === 'agent' || role === 'member') return 'Membre';
     return profile?.isSuperAdmin ? 'Super Admin' : 'Compte';
   }, [profile?.isSuperAdmin, profile?.role]);
-
-  useEffect(() => {
-    setMobileLogoBroken(false);
-  }, [profile?.agency?.logoUrl]);
 
   useEffect(() => {
     if (!profileOpen) return undefined;
@@ -85,11 +79,12 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-carbon-950/72 px-4 py-3 shadow-[0_12px_40px_rgba(0,0,0,.18)] backdrop-blur-2xl light:bg-white/78 sm:px-6 lg:px-8">
-      <div className="flex items-center gap-3">
+    <header className="sticky top-0 z-30 border-b border-white/10 bg-black/82 px-4 py-3 shadow-[0_12px_40px_rgba(0,0,0,.18)] backdrop-blur-2xl light:bg-white/78 sm:px-6 md:bg-carbon-950/72 lg:px-8">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4A017]/35 to-transparent lg:hidden" />
+      <div className="relative flex min-h-12 items-center gap-3">
         <button
           aria-label="Open sidebar"
-          className="focus-ring rounded-xl p-2 text-carbon-200 hover:bg-white/10 lg:hidden"
+          className="focus-ring grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/25 hover:bg-gold-400/10 lg:hidden"
           onClick={onMenu}
         >
           <Menu className="h-5 w-5" />
@@ -103,27 +98,27 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
           />
         </div>
         <div className="mr-auto md:hidden">
-          <span className="flex items-center gap-2 text-lg font-black">
-            <BrandLogo
-              size="sm"
-              logoUrl={profile?.agency?.logoUrl}
-              broken={mobileLogoBroken}
-              onError={() => setMobileLogoBroken(true)}
-            />
+          <span className="flex items-center gap-2.5 text-lg font-black">
+            <img src="/mekloc-logo-mark.png" alt="MekLoc" className="h-10 w-auto shrink-0 object-contain" />
             <span>MekLoc</span>
           </span>
         </div>
         <div className="relative">
           <button
             aria-label="Notifications"
-            className="focus-ring relative grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-zinc-950/70 text-carbon-200 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/25 hover:bg-gold-400/10 hover:text-white light:bg-carbon-950/[0.04] light:text-carbon-800"
-            onClick={() => setNotificationsOpen((current) => !current)}
+            className="focus-ring relative grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/25 hover:bg-gold-400/10 light:bg-carbon-950/[0.04] light:text-carbon-800 md:bg-zinc-950/70 md:text-carbon-200"
+            onClick={() => {
+              setProfileOpen(false);
+              setNotificationsOpen((current) => !current);
+            }}
           >
             <Bell className="h-5 w-5" />
-            <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-gold-400" />
+            <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-[#D4A017] text-[10px] font-black text-black md:h-2 md:w-2">
+              <span className="md:hidden">3</span>
+            </span>
           </button>
           {notificationsOpen ? (
-            <div className="glass-card absolute right-0 mt-3 w-80 rounded-2xl p-3">
+            <div className="glass-card absolute right-0 z-50 mt-3 w-[min(20rem,calc(100vw-2rem))] rounded-2xl p-3">
               <div className="mb-2 flex items-center justify-between px-2">
                 <p className="font-semibold text-white light:text-carbon-950">Notifications</p>
                 <CheckCircle2 className="h-4 w-4 text-mint-400" />
@@ -138,13 +133,13 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
           <button
             aria-label="Profile"
             aria-expanded={profileOpen}
-            className="focus-ring grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-zinc-950/70 text-white shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/25 hover:bg-white/[0.08] light:bg-carbon-950/[0.04] light:text-carbon-950 md:flex md:w-auto md:items-center md:gap-3 md:px-3 md:text-sm md:font-semibold"
+            className="focus-ring grid h-11 w-11 place-items-center rounded-full border border-[#D4A017]/25 bg-[#D4A017]/16 text-white shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/40 hover:bg-gold-400/20 light:bg-carbon-950/[0.04] light:text-carbon-950 md:flex md:w-auto md:items-center md:gap-3 md:rounded-2xl md:border-white/10 md:bg-zinc-950/70 md:px-3 md:text-sm md:font-semibold"
             onClick={() => {
               setNotificationsOpen(false);
               setProfileOpen((current) => !current);
             }}
           >
-            <span className="grid h-8 w-8 place-items-center rounded-full border border-gold-300/20 bg-gold-400/12 text-xs font-black text-gold-100">
+            <span className="grid h-9 w-9 place-items-center rounded-full text-xs font-black text-gold-100 md:h-8 md:w-8 md:border md:border-gold-300/20 md:bg-gold-400/12">
               {initials}
             </span>
             <span className="hidden min-w-0 text-left md:block">
@@ -197,7 +192,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
         </div>
         <button
           aria-label="Logout"
-          className="focus-ring grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-zinc-950/70 text-carbon-200 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-rose-300/25 hover:bg-rose-400/10 hover:text-white light:bg-carbon-950/[0.04] light:text-carbon-800"
+          className="focus-ring hidden h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-zinc-950/70 text-carbon-200 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-rose-300/25 hover:bg-rose-400/10 hover:text-white light:bg-carbon-950/[0.04] light:text-carbon-800 md:grid"
           onClick={handleLogout}
         >
           <LogOut className="h-5 w-5" />

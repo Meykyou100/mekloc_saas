@@ -250,11 +250,16 @@ export default function ReservationsPage() {
     if (searchParams.get('create') !== '1') return;
 
     const vehicleId = searchParams.get('vehicleId') || '';
+    const clientId = searchParams.get('clientId') || '';
     const pickup = searchParams.get('pickup') || todayIso;
     const returnDate = searchParams.get('return') || isoPlusOne(pickup);
 
     openNewReservation();
 
+    const nextClient = clients.find((item) => item.id === clientId) || clients[0] || null;
+    if (nextClient) {
+      setDraftClientId(nextClient.id);
+    }
     const nextVehicle = vehicles.find((item) => item.id === vehicleId) || vehicles[0] || null;
     if (nextVehicle) {
       setDraftVehicleId(nextVehicle.id);
@@ -269,11 +274,12 @@ export default function ReservationsPage() {
       const next = new URLSearchParams(current);
       next.delete('create');
       next.delete('vehicleId');
+      next.delete('clientId');
       next.delete('pickup');
       next.delete('return');
       return next;
     }, { replace: true });
-  }, [clients.length, searchParams, setSearchParams, todayIso, vehicles]);
+  }, [clients, searchParams, setSearchParams, todayIso, vehicles]);
 
   function openEditReservation(reservation: Reservation) {
     setEditingReservation(reservation);

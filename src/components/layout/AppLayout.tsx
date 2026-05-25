@@ -2,7 +2,7 @@ import { Outlet } from 'react-router-dom';
 import { Suspense, useState } from 'react';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
-import { CalendarDays, Car, LayoutDashboard, Settings, Users } from 'lucide-react';
+import { CalendarDays, Car, LayoutDashboard, MoreHorizontal, Plus, Users } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 
@@ -39,22 +39,29 @@ export default function AppLayout() {
           </Suspense>
         </main>
       </div>
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-carbon-950/95 px-2 py-2 backdrop-blur lg:hidden">
-        <div className="grid grid-cols-6 gap-1">
+      <nav className="fixed inset-x-3 bottom-3 z-40 rounded-[28px] border border-white/10 bg-black/82 px-3 pb-[max(env(safe-area-inset-bottom),0.5rem)] pt-2 shadow-[0_0_50px_rgba(0,0,0,.55),inset_0_1px_0_rgba(255,255,255,.06)] backdrop-blur-2xl lg:hidden">
+        <div className="grid grid-cols-6 items-end gap-1">
           {[
             { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau' },
-            { to: '/calendar', icon: CalendarDays, label: 'Calend.' },
+            { to: '/calendar', icon: CalendarDays, label: 'Calendrier' },
             { to: '/reservations', icon: CalendarDays, label: 'Réserv.' },
             { to: '/vehicles', icon: Car, label: 'Véhicules' },
             { to: '/clients', icon: Users, label: 'Clients' },
-            { to: '/settings', icon: Settings, label: 'Réglages' },
+            { to: '/settings', icon: MoreHorizontal, label: 'Plus' },
           ].map(({ to, icon: Icon, label }) => (
-            <NavLink key={to} to={to} className={({ isActive }) => `flex flex-col items-center rounded-xl px-1.5 py-2 text-[11px] ${isActive ? 'text-gold-200' : 'text-carbon-400'}`}>
-              <Icon className="mb-1 h-4 w-4" />
+            <NavLink key={to} to={to} className={({ isActive }) => `flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 text-center text-[10px] font-bold transition ${isActive ? 'bg-[#D4A017]/12 text-gold-100 shadow-[inset_0_0_0_1px_rgba(212,160,23,.22)]' : 'text-carbon-400 hover:text-white'}`}>
+              <Icon className="h-5 w-5" />
               {label}
             </NavLink>
           ))}
         </div>
+        <NavLink
+          to="/reservations?create=1"
+          aria-label="Nouvelle réservation"
+          className="absolute left-1/2 top-0 grid h-14 w-14 -translate-x-1/2 -translate-y-6 place-items-center rounded-full bg-[#D4A017] text-black shadow-[0_0_38px_rgba(212,160,23,.38)] transition active:scale-95"
+        >
+          <Plus className="h-7 w-7" />
+        </NavLink>
       </nav>
     </div>
   );

@@ -15,6 +15,7 @@ import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
+import { MobileEmptyBlock } from '../components/ui/MobilePrimitives';
 import PageHeader from '../components/ui/PageHeader';
 import PlateNumber from '../components/ui/PlateNumber';
 import {
@@ -528,11 +529,13 @@ export default function DashboardPage() {
         </Card>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-3">
+      <section className="grid gap-4 xl:grid-cols-3">
         <Card className="p-5 sm:p-6">
-          <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Upcoming Pickups</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Départs à venir</h2>
           <div className="mt-5 grid gap-3">
-            {upcomingPickups.map((reservation) => (
+            {upcomingPickups.length === 0 ? (
+              <MobileEmptyBlock icon={CalendarClock} title="Aucun départ prévu" message="Les prochains départs apparaîtront ici." />
+            ) : upcomingPickups.map((reservation) => (
               <div key={reservation.id} className="premium-surface rounded-2xl p-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-semibold text-white light:text-carbon-950">{reservation.client}</p>
@@ -546,9 +549,11 @@ export default function DashboardPage() {
         </Card>
 
         <Card className="p-5 sm:p-6">
-          <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Upcoming Returns</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Retours à venir</h2>
           <div className="mt-5 grid gap-3">
-            {upcomingReturns.map((reservation) => (
+            {upcomingReturns.length === 0 ? (
+              <MobileEmptyBlock icon={ArrowRight} title="Aucun retour prévu" message="Les retours planifiés seront visibles ici." />
+            ) : upcomingReturns.map((reservation) => (
               <div key={reservation.id} className="premium-surface rounded-2xl p-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-semibold text-white light:text-carbon-950">{reservation.vehicle}</p>
@@ -562,9 +567,11 @@ export default function DashboardPage() {
         </Card>
 
         <Card className="p-5 sm:p-6">
-          <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Late Payments</h2>
+          <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Paiements à relancer</h2>
           <div className="mt-5 grid gap-3">
-            {latePaymentItems.map((payment) => (
+            {latePaymentItems.length === 0 ? (
+              <MobileEmptyBlock icon={Banknote} title="Aucun retard" message="Les paiements en attente ou en retard seront listés ici." />
+            ) : latePaymentItems.map((payment) => (
               <div key={payment.id} className="premium-surface rounded-2xl p-4">
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-semibold text-white light:text-carbon-950">{payment.client}</p>
@@ -582,25 +589,42 @@ export default function DashboardPage() {
         <Card className="overflow-hidden">
           <div className="flex items-center justify-between border-b border-white/10 p-5 sm:p-6">
             <div>
-              <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Recent Reservations</h2>
-              <p className="mt-1 text-sm text-carbon-400 light:text-carbon-600">Latest bookings and handoffs.</p>
+              <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Réservations récentes</h2>
+              <p className="mt-1 text-sm text-carbon-400 light:text-carbon-600">Dernières réservations et mouvements de flotte.</p>
             </div>
             <Link
               to="/reservations"
               className="focus-ring hidden min-h-10 items-center justify-center rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15 light:border-carbon-950/10 light:bg-carbon-950/5 light:text-carbon-950 sm:inline-flex"
             >
-              View all
+              Voir tout
             </Link>
           </div>
-          <div className="overflow-x-auto">
+          <div className="grid gap-3 p-4 md:hidden">
+            {reservations.slice(0, 5).length === 0 ? (
+              <MobileEmptyBlock icon={CalendarClock} title="Aucune réservation" message="Créez une réservation pour voir l’activité récente." />
+            ) : reservations.slice(0, 5).map((reservation) => (
+              <div key={reservation.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-gold-200">{reservation.id}</p>
+                    <p className="mt-1 font-semibold text-white">{reservation.client}</p>
+                  </div>
+                  <Badge>{reservation.status}</Badge>
+                </div>
+                <p className="mt-2 text-sm text-carbon-300">{reservation.vehicle}</p>
+                <p className="mt-2 text-xs text-carbon-500">{reservation.pickupDate} → {reservation.returnDate}</p>
+              </div>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[680px] text-left text-sm">
               <thead className="text-xs uppercase tracking-wide text-carbon-500">
                 <tr>
-                  <th className="px-5 py-3 sm:px-6">Reservation</th>
+                  <th className="px-5 py-3 sm:px-6">Réservation</th>
                   <th className="px-5 py-3 sm:px-6">Client</th>
-                  <th className="px-5 py-3 sm:px-6">Vehicle</th>
+                  <th className="px-5 py-3 sm:px-6">Véhicule</th>
                   <th className="px-5 py-3 sm:px-6">Dates</th>
-                  <th className="px-5 py-3 sm:px-6">Status</th>
+                  <th className="px-5 py-3 sm:px-6">Statut</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
@@ -621,8 +645,8 @@ export default function DashboardPage() {
         <Card className="p-5 sm:p-6">
           <div className="mb-5 flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Fleet Status</h2>
-              <p className="mt-1 text-sm text-carbon-400 light:text-carbon-600">Availability by operational state.</p>
+              <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">État de la flotte</h2>
+              <p className="mt-1 text-sm text-carbon-400 light:text-carbon-600">Disponibilité par statut opérationnel.</p>
             </div>
             <Car className="h-5 w-5 text-carbon-400" />
           </div>
@@ -634,7 +658,7 @@ export default function DashboardPage() {
                 <div key={status}>
                   <div className="mb-2 flex justify-between text-sm">
                     <span className="text-carbon-300 light:text-carbon-700">{status}</span>
-                    <span className="font-semibold text-white light:text-carbon-950">{count} vehicles</span>
+                    <span className="font-semibold text-white light:text-carbon-950">{count} véhicule(s)</span>
                   </div>
                   <div className="h-2 rounded-full bg-white/10 light:bg-carbon-950/10">
                     <div
@@ -653,7 +677,7 @@ export default function DashboardPage() {
         <Card className="p-5 sm:p-6">
           <div className="mb-5 flex items-center gap-3">
             <Wrench className="h-5 w-5 text-gold-200" />
-            <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Maintenance Alerts</h2>
+            <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Alertes entretien</h2>
           </div>
           <div className="grid gap-3">
             {maintenanceItems.length === 0 ? (

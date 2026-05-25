@@ -8,10 +8,8 @@ import {
   Eye,
   FileImage,
   Filter,
-  LayoutDashboard,
   Mail,
   MapPin,
-  MoreHorizontal,
   MoreVertical,
   Phone,
   Search,
@@ -1091,30 +1089,6 @@ export default function ClientsPage() {
           </button>
         </div>
       ) : null}
-
-      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-white/10 bg-black/85 px-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 backdrop-blur-xl md:hidden">
-        <div className="mx-auto grid max-w-md grid-cols-5 gap-1">
-          {[
-            { label: 'Tableau', icon: LayoutDashboard, path: '/dashboard' },
-            { label: 'Réservations', icon: CalendarClock, path: '/reservations' },
-            { label: 'Clients', icon: Users, path: '/clients', active: true },
-            { label: 'Véhicules', icon: Car, path: '/vehicles' },
-            { label: 'Plus', icon: MoreHorizontal, path: '/settings' },
-          ].map(({ label, icon: Icon, path, active }) => (
-            <button
-              key={label}
-              type="button"
-              onClick={() => navigate(path)}
-              className={`focus-ring flex min-h-14 flex-col items-center justify-center gap-1 rounded-2xl text-[11px] font-bold transition ${
-                active ? 'text-gold-200' : 'text-carbon-400 hover:text-white'
-              }`}
-            >
-              <Icon className="h-5 w-5" />
-              <span>{label}</span>
-            </button>
-          ))}
-        </div>
-      </nav>
 
       <Modal open={modalOpen} title={editingClient ? 'Modifier un client' : 'Ajouter un client'} onClose={closeModal}>
         <form className="relative space-y-6 pb-20" onSubmit={handleSaveClient}>

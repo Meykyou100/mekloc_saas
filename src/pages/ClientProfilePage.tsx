@@ -1,8 +1,10 @@
 import {
+  AlertTriangle,
   ArrowLeft,
   BadgeCheck,
   CalendarClock,
   Car,
+  Copy,
   CreditCard,
   Edit3,
   Eye,
@@ -13,17 +15,20 @@ import {
   MapPin,
   MoreHorizontal,
   Phone,
+  Save,
+  Trash2,
   UserPlus,
   Wallet,
   X,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Modal from '../components/ui/Modal';
 import { formatMAD, type Client, type Contract, type Payment, type Reservation } from '../data/mockData';
+import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
 
 function clientInitials(name?: string) {
@@ -68,15 +73,67 @@ function paymentMethodLabel(method?: string) {
   return method ? labels[method] || method : '—';
 }
 
+type ClientEditForm = Pick<Client, 'fullName' | 'phone' | 'email' | 'cin' | 'license' | 'address'>;
+
+function getClientDocumentUrl(client: Client, side: 'front' | 'back') {
+  const record = client as Client & Record<string, unknown>;
+  const keys = side === 'front'
+    ? ['idCardFrontUrl', 'id_card_front_url', 'identity_document_front_url', 'document_front_url', 'cin_front_url']
+    : ['idCardBackUrl', 'id_card_back_url', 'identity_document_back_url', 'document_back_url', 'cin_back_url'];
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+  }
+  return undefined;
+}
+
 function hasCompleteDocs(client: Client) {
-  return Boolean(client.idCardFrontUrl && client.idCardBackUrl);
+  return Boolean(getClientDocumentUrl(client, 'front') && getClientDocumentUrl(client, 'back'));
+}
+
+function buildEditForm(client: Client): ClientEditForm {
+  return {
+    fullName: client.fullName || '',
+    phone: client.phone || '',
+    email: client.email || '',
+    cin: client.cin || '',
+    license: client.license || '',
+    address: client.address || '',
+  };
 }
 
 export default function ClientProfilePage() {
   const { id } = useParams();
-  const { clients, reservations, payments, contracts } = useData();
+  const navigate = useNavigate();
+  const { notify } = useApp();
+  const { clients, reservations, payments, contracts, updateClient, deleteClient: removeClient } = useData();
   const [previewImage, setPreviewImage] = useState<{ title: string; url: string } | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editForm, setEditForm] = useState<ClientEditForm | null>(null);
+  const [savingClient, setSavingClient] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletingClient, setDeletingClient] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement | null>(null);
   const client = clients.find((item) => item.id === id);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    function handlePointerDown(event: MouseEvent) {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setMoreOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setMoreOpen(false);
+    }
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [moreOpen]);
 
   const clientReservations = useMemo(() => {
     if (!client) return [];
@@ -113,10 +170,13 @@ export default function ClientProfilePage() {
     );
   }
 
+  const selectedClient = client;
   const reservationTotal = clientReservations.reduce((sum, reservation) => sum + (reservation.totalAmount ?? 0), 0);
   const paymentTotal = clientPayments.reduce((sum, payment) => sum + payment.amount, 0);
   const totalSpent = paymentTotal || reservationTotal || client.totalSpent || 0;
   const latestReservation = clientReservations[0];
+  const frontDocumentUrl = getClientDocumentUrl(client, 'front');
+  const backDocumentUrl = getClientDocumentUrl(client, 'back');
   const docsComplete = hasCompleteDocs(client);
   const isVerified = docsComplete && Boolean(client.cin || client.license);
 
@@ -126,6 +186,73 @@ export default function ClientProfilePage() {
     { label: 'Dernière réservation', value: latestReservation ? formatDate(latestReservation.pickupDate) : '—', icon: CalendarClock, helper: latestReservation?.vehicle || 'Aucune location' },
     { label: 'Client depuis', value: formatDate(client.createdAt), icon: BadgeCheck, helper: client.createdAt ? 'Date de création' : 'Non renseigné' },
   ];
+
+  function handleNewReservation() {
+    navigate(`/reservations?create=1&clientId=${encodeURIComponent(selectedClient.id)}`);
+  }
+
+  function handleCreateContract() {
+    const contractReservation = clientReservations.find((reservation) => ['Active', 'Confirmed'].includes(reservation.status)) || clientReservations[0];
+    if (!contractReservation) {
+      notify({
+        title: 'Réservation requise',
+        message: 'Créez d’abord une réservation pour ce client avant de générer un contrat.',
+        type: 'warning',
+      });
+      return;
+    }
+    navigate(`/contracts?reservation=${encodeURIComponent(contractReservation.recordId || contractReservation.id)}`);
+  }
+
+  function handleOpenEdit() {
+    setEditForm(buildEditForm(selectedClient));
+    setEditOpen(true);
+  }
+
+  async function handleSaveClient(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editForm) return;
+    if (!editForm.fullName.trim()) {
+      notify({ title: 'Nom obligatoire', message: 'Veuillez renseigner le nom complet du client.', type: 'warning' });
+      return;
+    }
+    try {
+      setSavingClient(true);
+      await updateClient({ ...selectedClient, ...editForm });
+      setEditOpen(false);
+      notify({ title: 'Client modifié', message: 'La fiche client a été mise à jour.', type: 'success' });
+    } catch (error) {
+      notify({ title: 'Modification impossible', message: error instanceof Error ? error.message : 'Veuillez réessayer.', type: 'warning' });
+    } finally {
+      setSavingClient(false);
+    }
+  }
+
+  async function copyValue(label: string, value?: string) {
+    if (!value?.trim()) {
+      notify({ title: `${label} manquant`, message: 'Aucune valeur à copier.', type: 'warning' });
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(value);
+      notify({ title: `${label} copié`, message: value, type: 'success' });
+    } catch {
+      notify({ title: 'Copie impossible', message: 'Votre navigateur bloque la copie automatique.', type: 'warning' });
+    }
+  }
+
+  async function handleDeleteClient() {
+    try {
+      setDeletingClient(true);
+      await removeClient(selectedClient.id);
+      notify({ title: 'Client supprimé', message: `${selectedClient.fullName} a été retiré du CRM.`, type: 'warning' });
+      navigate('/clients');
+    } catch (error) {
+      notify({ title: 'Suppression impossible', message: error instanceof Error ? error.message : 'Veuillez réessayer.', type: 'warning' });
+    } finally {
+      setDeletingClient(false);
+    }
+  }
 
   return (
     <div className="relative overflow-x-hidden pb-8">
@@ -163,21 +290,44 @@ export default function ClientProfilePage() {
           </div>
 
           <div className="grid gap-2 sm:grid-cols-2 xl:flex xl:items-center xl:justify-end">
-            <Link to="/reservations" className="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#D4A017] px-4 text-sm font-black text-black transition hover:bg-[#f1c232]">
+            <button type="button" onClick={handleNewReservation} className="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-2xl bg-[#D4A017] px-4 text-sm font-black text-black transition hover:bg-[#f1c232]">
               <UserPlus className="h-4 w-4" />
               Nouvelle réservation
-            </Link>
-            <Link to="/contracts" className="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-[#D4A017]/30 bg-[#D4A017]/10 px-4 text-sm font-bold text-gold-100 transition hover:bg-[#D4A017]/16">
+            </button>
+            <button type="button" onClick={handleCreateContract} className="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-[#D4A017]/30 bg-[#D4A017]/10 px-4 text-sm font-bold text-gold-100 transition hover:bg-[#D4A017]/16">
               <FileSignature className="h-4 w-4" />
               Créer un contrat
-            </Link>
-            <Link to="/clients" className="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 text-sm font-bold text-white transition hover:bg-white/[0.08]">
+            </button>
+            <button type="button" onClick={handleOpenEdit} className="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.05] px-4 text-sm font-bold text-white transition hover:bg-white/[0.08]">
               <Edit3 className="h-4 w-4" />
               Modifier client
-            </Link>
-            <button type="button" className="focus-ring inline-flex h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] px-4 text-white transition hover:bg-white/[0.08]" aria-label="Plus d’actions">
-              <MoreHorizontal className="h-5 w-5" />
             </button>
+            <div ref={moreMenuRef} className="relative">
+              <button type="button" onClick={() => setMoreOpen((current) => !current)} className="focus-ring inline-flex h-11 w-full items-center justify-center rounded-2xl border border-white/10 bg-white/[0.05] px-4 text-white transition hover:bg-white/[0.08] sm:w-auto" aria-label="Plus d’actions" aria-expanded={moreOpen}>
+                <MoreHorizontal className="h-5 w-5" />
+              </button>
+              {moreOpen ? (
+                <div className="absolute right-0 z-30 mt-2 w-64 overflow-hidden rounded-2xl border border-white/10 bg-zinc-950/95 p-2 shadow-[0_24px_80px_rgba(0,0,0,.45)] backdrop-blur-xl">
+                  <button type="button" onClick={() => { setMoreOpen(false); navigate('/clients'); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-carbon-200 transition hover:bg-white/[0.06] hover:text-white">
+                    <ArrowLeft className="h-4 w-4 text-gold-200" />
+                    Voir dans la liste clients
+                  </button>
+                  <button type="button" onClick={() => copyValue('Téléphone', client.phone)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-carbon-200 transition hover:bg-white/[0.06] hover:text-white">
+                    <Copy className="h-4 w-4 text-gold-200" />
+                    Copier téléphone
+                  </button>
+                  <button type="button" onClick={() => copyValue('Email', client.email)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-carbon-200 transition hover:bg-white/[0.06] hover:text-white">
+                    <Mail className="h-4 w-4 text-gold-200" />
+                    Copier email
+                  </button>
+                  <div className="my-2 border-t border-white/10" />
+                  <button type="button" onClick={() => { setMoreOpen(false); setDeleteOpen(true); }} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-rose-200 transition hover:bg-rose-500/10">
+                    <Trash2 className="h-4 w-4" />
+                    Supprimer client
+                  </button>
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
       </section>
@@ -211,8 +361,8 @@ export default function ClientProfilePage() {
           <Card className="border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-5 shadow-[0_24px_70px_rgba(0,0,0,.28)]">
             <SectionTitle icon={FileImage} title="Pièces d’identité" />
             <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-              <DocumentPreview title="Recto" url={client.idCardFrontUrl} onOpen={(url) => setPreviewImage({ title: 'Pièce identité recto', url })} />
-              <DocumentPreview title="Verso" url={client.idCardBackUrl} onOpen={(url) => setPreviewImage({ title: 'Pièce identité verso', url })} />
+              <DocumentPreview title="Recto" url={frontDocumentUrl} onOpen={(url) => setPreviewImage({ title: 'Pièce identité recto', url })} />
+              <DocumentPreview title="Verso" url={backDocumentUrl} onOpen={(url) => setPreviewImage({ title: 'Pièce identité verso', url })} />
             </div>
             <div className="mt-5 grid gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm">
               <TextPair label="CIN / Passeport" value={client.cin || 'Non renseigné'} />
@@ -271,7 +421,57 @@ export default function ClientProfilePage() {
           </div>
         ) : null}
       </Modal>
+
+      <Modal open={editOpen && Boolean(editForm)} title="Modifier client" onClose={() => !savingClient && setEditOpen(false)}>
+        {editForm ? (
+          <form className="space-y-5" onSubmit={handleSaveClient}>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <ProfileInput label="Nom complet" value={editForm.fullName} onChange={(value) => setEditForm((current) => current ? { ...current, fullName: value } : current)} />
+              <ProfileInput label="Téléphone" value={editForm.phone} onChange={(value) => setEditForm((current) => current ? { ...current, phone: value } : current)} />
+              <ProfileInput label="Email" value={editForm.email} onChange={(value) => setEditForm((current) => current ? { ...current, email: value } : current)} />
+              <ProfileInput label="CIN / Passeport" value={editForm.cin} onChange={(value) => setEditForm((current) => current ? { ...current, cin: value } : current)} />
+              <ProfileInput label="Permis" value={editForm.license} onChange={(value) => setEditForm((current) => current ? { ...current, license: value } : current)} />
+              <ProfileInput label="Adresse" value={editForm.address} onChange={(value) => setEditForm((current) => current ? { ...current, address: value } : current)} className="sm:col-span-2" />
+            </div>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button type="button" variant="secondary" onClick={() => setEditOpen(false)} disabled={savingClient}>Annuler</Button>
+              <Button type="submit" icon={<Save className="h-4 w-4" />} loading={savingClient}>Enregistrer</Button>
+            </div>
+          </form>
+        ) : null}
+      </Modal>
+
+      <Modal open={deleteOpen} title="Supprimer ce client ?" onClose={() => !deletingClient && setDeleteOpen(false)}>
+        <div className="space-y-5">
+          <div className="rounded-3xl border border-rose-400/25 bg-rose-500/10 p-5">
+            <div className="flex gap-3">
+              <AlertTriangle className="h-6 w-6 shrink-0 text-rose-200" />
+              <div>
+                <p className="font-black text-white">Cette action supprimera la fiche client.</p>
+                <p className="mt-2 text-sm leading-6 text-carbon-300">Vérifiez que vous n’avez plus besoin de cette fiche avant de continuer.</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="secondary" onClick={() => setDeleteOpen(false)} disabled={deletingClient}>Annuler</Button>
+            <Button type="button" variant="danger" icon={<Trash2 className="h-4 w-4" />} loading={deletingClient} onClick={handleDeleteClient}>Supprimer client</Button>
+          </div>
+        </div>
+      </Modal>
     </div>
+  );
+}
+
+function ProfileInput({ label, value, onChange, className = '' }: { label: string; value: string; onChange: (value: string) => void; className?: string }) {
+  return (
+    <label className={`grid gap-2 ${className}`}>
+      <span className="text-sm font-semibold text-carbon-200">{label}</span>
+      <input
+        className="form-control h-12 rounded-2xl border-white/10 bg-black/35 text-base sm:text-sm"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    </label>
   );
 }
 

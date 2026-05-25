@@ -2,6 +2,7 @@ import { Download, FileSpreadsheet, Gauge, TrendingUp, WalletCards } from 'lucid
 import { useMemo, useState } from 'react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import { MobileEmptyBlock } from '../components/ui/MobilePrimitives';
 import PageHeader from '../components/ui/PageHeader';
 import PlateNumber from '../components/ui/PlateNumber';
 import { formatMAD } from '../data/mockData';
@@ -264,7 +265,7 @@ startxref
             <p className="text-sm font-semibold text-white light:text-carbon-950">Filtre de période</p>
             <p className="mt-1 text-xs text-carbon-500">Les montants sont basés sur les réservations, paiements et entretiens de la période.</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 no-scrollbar md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
             {[
               ['month', 'Ce mois'],
               ['quarter', '3 mois'],
@@ -291,7 +292,7 @@ startxref
       </Card>
 
       {!hasReportData ? (
-        <Card className="p-6 text-sm text-carbon-400">Aucune donnée réelle sur cette période.</Card>
+        <MobileEmptyBlock icon={TrendingUp} title="Aucune donnée sur cette période" message="Les revenus, réservations et dépenses apparaîtront dès que votre activité commence." />
       ) : null}
 
       <section className="grid grid-cols-2 gap-2 sm:gap-4 xl:grid-cols-4">
@@ -346,7 +347,22 @@ startxref
           <div className="border-b border-white/10 p-5">
             <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Top véhicules rentables</h2>
           </div>
-          <div className="overflow-x-auto">
+          <div className="grid gap-3 p-4 md:hidden">
+            {report.revenueByVehicle.length === 0 ? (
+              <MobileEmptyBlock icon={Gauge} title="Aucun revenu véhicule" message="Les véhicules rentables apparaîtront après vos premiers paiements." />
+            ) : report.revenueByVehicle.slice(0, 8).map((item) => (
+              <div key={item.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-white">{item.label}</p>
+                    <p className="mt-1 text-xs text-carbon-500"><PlateNumber value={item.plate} /></p>
+                  </div>
+                  <p className="font-black text-gold-200">{formatMAD(item.revenue)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[520px] text-left text-sm">
               <thead className="border-b border-white/10 text-xs uppercase tracking-wide text-carbon-500">
                 <tr><th className="px-5 py-3">Véhicule</th><th className="px-5 py-3">Immatriculation</th><th className="px-5 py-3 text-right">Revenus</th></tr>
@@ -365,7 +381,22 @@ startxref
           <div className="border-b border-white/10 p-5">
             <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Clients les plus rentables</h2>
           </div>
-          <div className="overflow-x-auto">
+          <div className="grid gap-3 p-4 md:hidden">
+            {report.profitableClients.length === 0 ? (
+              <MobileEmptyBlock icon={WalletCards} title="Aucun client rentable" message="Le classement client apparaîtra après vos premières locations." />
+            ) : report.profitableClients.slice(0, 8).map((item) => (
+              <div key={item.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-semibold text-white">{item.label}</p>
+                    <p className="mt-1 text-xs text-carbon-500">{item.reservations} réservation(s)</p>
+                  </div>
+                  <p className="font-black text-gold-200">{formatMAD(item.revenue)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[520px] text-left text-sm">
               <thead className="border-b border-white/10 text-xs uppercase tracking-wide text-carbon-500">
                 <tr><th className="px-5 py-3">Client</th><th className="px-5 py-3">Réservations</th><th className="px-5 py-3 text-right">Revenus</th></tr>

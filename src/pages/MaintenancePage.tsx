@@ -274,23 +274,23 @@ export default function MaintenancePage() {
   return <div>
     <PageHeader eyebrow="Opérations flotte" title="Entretien" description="Suivez les interventions, les coûts, les échéances et l’historique des véhicules." action={<Button onClick={openCreate}>Ajouter un entretien</Button>} />
     <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
-      <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] text-carbon-400 sm:text-xs">Rappels assurance</p><p className="mt-1 truncate text-xl font-bold sm:mt-2 sm:text-2xl">{insuranceReminders}</p></Card>
-      <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] text-carbon-400 sm:text-xs">Rappels vidange</p><p className="mt-1 truncate text-xl font-bold sm:mt-2 sm:text-2xl">{oilReminders}</p></Card>
-      <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] text-carbon-400 sm:text-xs">Visites techniques</p><p className="mt-1 truncate text-xl font-bold sm:mt-2 sm:text-2xl">{inspectionReminders}</p></Card>
-      <Card className="min-h-[76px] p-3 sm:min-h-[104px] sm:p-4"><p className="truncate text-[10px] text-carbon-400 sm:text-xs">Coût ce mois</p><p className="mt-1 truncate text-xl font-bold text-gold-200 sm:mt-2 sm:text-2xl">{formatMAD(monthlyCost)}</p></Card>
+      <Card className="min-h-[96px] bg-gradient-to-br from-zinc-950/95 to-black/70 p-3 sm:min-h-[104px] sm:p-4"><p className="line-clamp-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-carbon-400 sm:text-xs">Rappels assurance</p><p className="mt-2 truncate text-2xl font-black sm:text-2xl">{insuranceReminders}</p></Card>
+      <Card className="min-h-[96px] bg-gradient-to-br from-zinc-950/95 to-black/70 p-3 sm:min-h-[104px] sm:p-4"><p className="line-clamp-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-carbon-400 sm:text-xs">Rappels vidange</p><p className="mt-2 truncate text-2xl font-black sm:text-2xl">{oilReminders}</p></Card>
+      <Card className="min-h-[96px] bg-gradient-to-br from-zinc-950/95 to-black/70 p-3 sm:min-h-[104px] sm:p-4"><p className="line-clamp-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-carbon-400 sm:text-xs">Visites techniques</p><p className="mt-2 truncate text-2xl font-black sm:text-2xl">{inspectionReminders}</p></Card>
+      <Card className="min-h-[96px] bg-gradient-to-br from-zinc-950/95 to-black/70 p-3 sm:min-h-[104px] sm:p-4"><p className="line-clamp-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-carbon-400 sm:text-xs">Coût ce mois</p><p className="mt-2 truncate text-2xl font-black text-gold-200 sm:text-2xl">{formatMAD(monthlyCost)}</p></Card>
     </div>
-    <Card className="mt-6 p-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
+    <Card className="mt-6 p-4 sm:p-5">
+      <div className="mb-4 grid gap-3 sm:flex sm:items-center sm:justify-between">
         <h2 className="font-semibold">Registre des entretiens</h2>
-        <select className="form-control w-56" value={selectedVehicleId} onChange={(e) => setSelectedVehicleId(e.target.value)}>
+        <select className="form-control h-11 w-full sm:w-56" value={selectedVehicleId} onChange={(e) => setSelectedVehicleId(e.target.value)}>
           <option value="all">Tous les véhicules</option>{vehicles.map((v) => <option key={v.id} value={v.id}>{v.brand} {v.model}</option>)}
         </select>
       </div>
       {!filtered.length ? <EmptyState icon={ClipboardList} title="Ajouter votre premier entretien" message="Une fois ajouté, les rappels et l’historique apparaîtront ici." action="Ajouter un entretien" onAction={openCreate} /> :
       <div className="grid gap-3">{filtered.map((item) => <div key={item.id} className="premium-surface rounded-2xl p-4">
-        <div className="flex items-start justify-between gap-4">
+        <div className="grid gap-3 sm:flex sm:items-start sm:justify-between sm:gap-4">
           <div><p className="font-semibold">{item.vehicle} {item.plate ? <>· <PlateNumber value={item.plate} /></> : ''}</p><p className="mt-1 text-sm text-carbon-400">{item.serviceType} · Dernière intervention : {item.lastServiceDate} · Prochaine échéance : {item.nextServiceDate}</p><p className="mt-1 text-sm text-carbon-400">Kilométrage {item.currentMileage.toLocaleString()} km · Prochain contrôle {item.nextServiceMileage.toLocaleString()} km</p></div>
-          <div className="text-right"><Badge>{item.status}</Badge><p className="mt-2 font-semibold text-gold-200">{formatMAD(item.cost)}</p></div>
+          <div className="flex items-center justify-between gap-3 sm:block sm:text-right"><Badge>{item.status}</Badge><p className="font-semibold text-gold-200 sm:mt-2">{formatMAD(item.cost)}</p></div>
         </div>
         {item.details && Object.keys(item.details).length ? (
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -303,10 +303,10 @@ export default function MaintenancePage() {
           </div>
         ) : null}
         <p className="mt-2 text-sm text-carbon-400">{item.providerName || 'Prestataire non renseigné'}{item.notes ? ` · ${item.notes}` : ''}</p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <Button variant="ghost" icon={<CalendarClock className="h-4 w-4" />} onClick={() => openEdit(item)}>Modifier</Button>
-          <Button variant="ghost" icon={<CheckCircle2 className="h-4 w-4" />} onClick={() => updateMaintenance({ ...item, status: 'Done', lastServiceDate: new Date().toISOString().slice(0, 10) })}>Marquer terminé</Button>
-          <Button variant="ghost" icon={<Trash2 className="h-4 w-4" />} onClick={async () => { if (!window.confirm('Supprimer cette fiche entretien ?')) return; await deleteMaintenance(item.id); notify({ title: 'Supprimé', message: 'La fiche entretien a été supprimée.', type: 'success' }); }}>Supprimer</Button>
+        <div className="mt-3 grid gap-2 sm:flex sm:flex-wrap">
+          <Button variant="ghost" className="w-full sm:w-auto" icon={<CalendarClock className="h-4 w-4" />} onClick={() => openEdit(item)}>Modifier</Button>
+          <Button variant="ghost" className="w-full sm:w-auto" icon={<CheckCircle2 className="h-4 w-4" />} onClick={() => updateMaintenance({ ...item, status: 'Done', lastServiceDate: new Date().toISOString().slice(0, 10) })}>Marquer terminé</Button>
+          <Button variant="ghost" className="w-full sm:w-auto" icon={<Trash2 className="h-4 w-4" />} onClick={async () => { if (!window.confirm('Supprimer cette fiche entretien ?')) return; await deleteMaintenance(item.id); notify({ title: 'Supprimé', message: 'La fiche entretien a été supprimée.', type: 'success' }); }}>Supprimer</Button>
         </div>
       </div>)}</div>}
     </Card>

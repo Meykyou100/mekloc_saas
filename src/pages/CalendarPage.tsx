@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import {
-  Bell,
   CalendarDays,
   Car,
   ChevronLeft,
@@ -8,10 +7,7 @@ import {
   Clock3,
   Filter,
   FileSignature,
-  LayoutDashboard,
   MapPin,
-  Menu,
-  MoreHorizontal,
   Plus,
   Phone,
   RefreshCcw,
@@ -27,7 +23,6 @@ import EmptyState from '../components/ui/EmptyState';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import PlateNumber from '../components/ui/PlateNumber';
-import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { formatMAD, type Reservation, type ReservationStatus } from '../data/mockData';
 
@@ -142,7 +137,6 @@ function vehicleStatusClass(status: string, archived?: boolean) {
 
 export default function CalendarPage() {
   const { vehicles, reservations, maintenance, loading } = useData();
-  const { profile } = useAuth();
   const navigate = useNavigate();
   const [daysToShow, setDaysToShow] = useState(14);
   const [windowStart, setWindowStart] = useState(() => toDateOnly(new Date()));
@@ -151,13 +145,6 @@ export default function CalendarPage() {
   const [showArchived, setShowArchived] = useState(false);
 
   const todayIso = isoDate(new Date());
-  const initials = (profile?.fullName || profile?.agency?.name || 'AG')
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('') || 'AG';
-
   const days = useMemo(
     () => Array.from({ length: daysToShow }, (_, index) => addDays(windowStart, index)),
     [daysToShow, windowStart],
@@ -285,23 +272,6 @@ export default function CalendarPage() {
     <section className="relative overflow-x-hidden pb-28 md:pb-8">
       <div className="pointer-events-none absolute right-[-18%] top-8 h-80 w-80 rounded-full bg-[#D4A017]/10 blur-3xl" />
       <div className="md:hidden">
-        <div className="-mx-4 mb-5 border-b border-white/10 bg-black/45 px-4 pb-4 pt-1 backdrop-blur-xl sm:-mx-6 sm:px-6">
-          <div className="flex items-center justify-between gap-3">
-            <button type="button" aria-label="Menu" className="grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-white">
-              <Menu className="h-5 w-5" />
-            </button>
-            <div className="mr-auto flex items-center gap-2.5">
-              <img src="/mekloc-logo-mark.png" alt="MekLoc" className="h-10 w-auto object-contain" />
-              <span className="text-xl font-black text-white">MekLoc</span>
-            </div>
-            <button type="button" aria-label="Notifications" className="relative grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-white">
-              <Bell className="h-5 w-5" />
-              <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-[#D4A017] text-[10px] font-black text-black">3</span>
-            </button>
-            <span className="grid h-11 w-11 place-items-center rounded-full border border-[#D4A017]/25 bg-[#D4A017]/16 text-sm font-black text-gold-100">{initials}</span>
-          </div>
-        </div>
-
         <div className="mb-5 flex items-end justify-between gap-4">
           <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-[0.32em] text-gold-300">PLANIFICATION</p>
@@ -877,35 +847,6 @@ export default function CalendarPage() {
           </Button>
         </Card>
       </div>
-
-      <nav className="fixed inset-x-3 bottom-3 z-40 rounded-[28px] border border-white/10 bg-black/82 px-3 py-2 shadow-[0_0_50px_rgba(0,0,0,.55),inset_0_1px_0_rgba(255,255,255,.06)] backdrop-blur-2xl md:hidden">
-        <div className="grid grid-cols-5 items-end gap-1">
-          <button type="button" onClick={() => navigate('/dashboard')} className="grid gap-1 rounded-2xl px-1 py-2 text-center text-[11px] font-semibold text-carbon-400">
-            <LayoutDashboard className="mx-auto h-5 w-5" />
-            Tableau
-          </button>
-          <button type="button" onClick={() => navigate('/calendar')} className="grid gap-1 rounded-2xl px-1 py-2 text-center text-[11px] font-bold text-gold-100">
-            <CalendarDays className="mx-auto h-5 w-5" />
-            Calendrier
-          </button>
-          <button
-            type="button"
-            aria-label="Nouvelle réservation"
-            onClick={() => navigate('/reservations')}
-            className="mx-auto -mt-7 grid h-16 w-16 place-items-center rounded-full bg-[#D4A017] text-black shadow-[0_0_38px_rgba(212,160,23,.38)] transition active:scale-95"
-          >
-            <Plus className="h-7 w-7" />
-          </button>
-          <button type="button" onClick={() => navigate('/vehicles')} className="grid gap-1 rounded-2xl px-1 py-2 text-center text-[11px] font-semibold text-carbon-400">
-            <Car className="mx-auto h-5 w-5" />
-            Véhicules
-          </button>
-          <button type="button" onClick={() => navigate('/settings')} className="grid gap-1 rounded-2xl px-1 py-2 text-center text-[11px] font-semibold text-carbon-400">
-            <MoreHorizontal className="mx-auto h-5 w-5" />
-            Plus
-          </button>
-        </div>
-      </nav>
 
       <Modal open={Boolean(selectedReservation)} title="Détails de réservation" onClose={() => setSelectedReservation(null)}>
         {selectedReservation ? (
