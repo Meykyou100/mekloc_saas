@@ -5,6 +5,7 @@ import Button from '../components/ui/Button';
 import { Field, SelectField } from '../components/ui/Form';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { MEKLOC_PLANS, type MekLocPlanId } from '../config/pricing';
 import { normalizeText, sanitizeText, validateEmail, validatePhone, validatePositiveNumber } from '../lib/security';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
@@ -26,8 +27,9 @@ const plans = [
   {
     id: 'starter',
     name: 'Starter',
-    monthly: 249,
-    annual: 2490,
+    monthly: MEKLOC_PLANS.starter.monthlyPrice,
+    annual: MEKLOC_PLANS.starter.annualPrice,
+    annualBillingLabel: MEKLOC_PLANS.starter.annualBillingLabel,
     note: 'Pour les petites agences',
     features: ['Jusqu’à 5 véhicules', 'Réservations', 'Clients', 'Contrats PDF', 'Paiements basic', 'Entretien basic', 'Support standard'],
     cta: 'Choisir Starter',
@@ -35,14 +37,15 @@ const plans = [
   {
     id: 'business',
     name: 'Business',
-    monthly: 399,
-    annual: 3990,
+    monthly: MEKLOC_PLANS.business.monthlyPrice,
+    annual: MEKLOC_PLANS.business.annualPrice,
+    annualBillingLabel: MEKLOC_PLANS.business.annualBillingLabel,
     note: 'Recommandé',
     features: ['Véhicules illimités', 'Réservations illimitées', 'Clients illimités', 'Contrats PDF illimités', 'Paiements & factures', 'Entretien véhicules avancé', 'Alertes WhatsApp', 'Équipe / multi-utilisateurs', 'Rapports', 'Support prioritaire'],
     cta: 'Choisir Business',
   },
 ] as const;
-type PlanId = (typeof plans)[number]['id'];
+type PlanId = MekLocPlanId;
 
 function isProductionHost() {
   if (typeof window === 'undefined') return false;
@@ -81,6 +84,7 @@ export default function DemandeAccesPage() {
   const requestedPlan = searchParams.get('plan') === 'starter' || searchParams.get('plan') === 'business'
     ? (searchParams.get('plan') as PlanId)
     : 'business';
+  const requestedBilling = searchParams.get('billing') === 'annual' ? 'annual' : 'monthly';
   const [email, setEmail] = useState(normalizeEmail(prefilledEmail));
   const [emailVerificationCode, setEmailVerificationCode] = useState('');
   const [emailVerificationStatus, setEmailVerificationStatus] = useState<'idle' | 'sent' | 'verified'>('idle');
@@ -93,7 +97,7 @@ export default function DemandeAccesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PlanId>(requestedPlan);
-  const [billingType, setBillingType] = useState<'monthly' | 'annual'>('monthly');
+  const [billingType, setBillingType] = useState<'monthly' | 'annual'>(requestedBilling);
 
   function isBlockedEmailDomain(value: string) {
     const domain = value.split('@')[1] || '';
@@ -365,9 +369,10 @@ export default function DemandeAccesPage() {
                       <h3 className="text-xl font-black">{plan.name}</h3>
                       <p className="mt-1 text-sm text-zinc-400">{plan.note}</p>
                       <p className="mt-5 text-4xl font-black">
-                        {price} MAD
+                        {price.toLocaleString('fr-FR')} MAD
                         <span className="ml-1 text-base font-semibold text-zinc-500">{billingType === 'annual' ? '/an' : '/mois'}</span>
                       </p>
+                      {billingType === 'annual' ? <p className="mt-2 text-sm font-semibold text-[#F5C542]">{plan.annualBillingLabel}</p> : null}
                       <div className="mt-5 space-y-2.5">
                         {plan.features.map((feature) => (
                           <p key={feature} className="flex items-center gap-2 text-sm text-zinc-300">

@@ -610,7 +610,7 @@ export const plans = [
   {
     id: 'starter',
     name: 'Starter',
-    price: '249 MAD',
+    price: '199 MAD',
     cadence: '/mois',
     note: 'For small agencies',
     features: ['Jusqu’à 5 véhicules', 'Réservations', 'Clients', 'Contrats PDF', 'Paiements basic', 'Entretien basic', 'Support standard'],
@@ -618,7 +618,7 @@ export const plans = [
   {
     id: 'business',
     name: 'Business',
-    price: '399 MAD',
+    price: '319 MAD',
     cadence: '/mois',
     note: 'Recommended plan',
     featured: true,

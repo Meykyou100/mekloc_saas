@@ -32,6 +32,7 @@ import {
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import { SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_DISPLAY, WHATSAPP_URL } from '../config/app';
+import { MEKLOC_PLANS } from '../config/pricing';
 
 const whatsappNumber = SUPPORT_PHONE.replace(/^\+/, '');
 const contactEmail = SUPPORT_EMAIL;
@@ -89,14 +90,18 @@ const plans = [
   {
     id: 'starter',
     name: 'Starter',
-    price: '249',
+    monthlyPrice: MEKLOC_PLANS.starter.monthlyPrice,
+    annualPrice: MEKLOC_PLANS.starter.annualPrice,
+    annualBillingLabel: MEKLOC_PLANS.starter.annualBillingLabel,
     note: 'Pour les petites agences',
     features: ['Jusqu’à 15 véhicules', 'Réservations illimitées', 'Contrats PDF', 'Paiements & cautions', 'Alertes & rappels', 'Support standard'],
   },
   {
     id: 'business',
     name: 'Business',
-    price: '399',
+    monthlyPrice: MEKLOC_PLANS.business.monthlyPrice,
+    annualPrice: MEKLOC_PLANS.business.annualPrice,
+    annualBillingLabel: MEKLOC_PLANS.business.annualBillingLabel,
     note: 'Pour les agences en croissance',
     recommended: true,
     features: ['Véhicules illimités', 'Réservations illimitées', 'Contrats illimités', 'Paiements & cautions', 'Alertes & WhatsApp', 'Rapports avancés', 'Support prioritaire'],
@@ -690,9 +695,7 @@ export default function LandingPage() {
             </div>
             <div className="mt-8 grid gap-5 md:grid-cols-2 md:gap-7">
               {plans.map((plan) => {
-                const monthlyPrice = Number(plan.price);
-                const displayPrice = billingCycle === 'annual' ? Math.round(monthlyPrice * 0.8) : monthlyPrice;
-                const annualTotal = Math.round(monthlyPrice * 12 * 0.8);
+                const displayPrice = billingCycle === 'annual' ? plan.annualPrice : plan.monthlyPrice;
                 const planUrl = `/demande-acces?plan=${plan.id}&billing=${billingCycle}`;
 
                 return (
@@ -702,12 +705,12 @@ export default function LandingPage() {
                     <h3 className="mt-5 text-2xl font-black">{plan.name}</h3>
                     <p className="mt-1 text-sm text-white/50">{plan.note}</p>
                     <p className="mt-6 text-4xl font-black sm:mt-7 sm:text-5xl">
-                      {displayPrice}
+                      {displayPrice.toLocaleString('fr-FR')}
                       <span className="ml-2 text-lg">MAD</span>
-                      <span className="text-base font-medium text-white/55"> / mois</span>
+                      <span className="text-base font-medium text-white/55"> {billingCycle === 'annual' ? '/an' : '/mois'}</span>
                     </p>
                     {billingCycle === 'annual' ? (
-                      <p className="mt-2 text-sm font-semibold text-[#F5C542]">Facturé {annualTotal.toLocaleString('fr-FR')} MAD/an</p>
+                      <p className="mt-2 text-sm font-semibold text-[#F5C542]">{plan.annualBillingLabel}</p>
                     ) : (
                       <p className="mt-2 text-sm font-semibold text-white/38">Facturation mensuelle</p>
                     )}

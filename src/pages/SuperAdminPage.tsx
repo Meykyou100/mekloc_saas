@@ -95,6 +95,45 @@ function pickAgencyOwnerProfile<T extends { agency_id: string | null; role?: str
   );
 }
 
+function planLabel(plan: AgencyPlan) {
+  if (plan === 'business') return 'Plan Business';
+  if (plan === 'pro') return 'Plan Pro';
+  return 'Plan Starter';
+}
+
+function billingLabel(status: BillingStatus) {
+  if (status === 'trial') return 'Essai';
+  if (status === 'paid') return 'Payé';
+  if (status === 'unpaid') return 'Non payé';
+  if (status === 'overdue') return 'En retard';
+  if (status === 'cancelled') return 'Annulé';
+  return status;
+}
+
+function accountLabel(status: AccountStatus) {
+  if (status === 'active') return 'Actif';
+  if (status === 'suspended') return 'Suspendu';
+  if (status === 'pending_deletion') return 'Suppression planifiée';
+  if (status === 'rejected') return 'Rejeté';
+  return 'En attente';
+}
+
+function statusPillClass(kind: 'plan' | 'billing' | 'account', value: string) {
+  if (kind === 'plan') return 'border-[#E3B117]/30 bg-[#E3B117]/10 text-[#F5C542]';
+  if (kind === 'billing') {
+    if (value === 'paid') return 'border-emerald-300/30 bg-emerald-400/15 text-emerald-200';
+    if (value === 'trial') return 'border-amber-300/30 bg-amber-400/15 text-amber-200';
+    return 'border-rose-300/30 bg-rose-400/15 text-rose-200';
+  }
+  if (value === 'active') return 'border-emerald-300/30 bg-emerald-400/15 text-emerald-200';
+  if (value === 'suspended' || value === 'rejected' || value === 'pending_deletion') return 'border-rose-300/30 bg-rose-400/15 text-rose-200';
+  return 'border-amber-300/30 bg-amber-400/15 text-amber-200';
+}
+
+function StatusPill({ children, className }: { children: string; className: string }) {
+  return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}>{children}</span>;
+}
+
 
 export default function SuperAdminPage() {
   const { profile, isSupabaseEnabled, signOut } = useAuth();
@@ -113,6 +152,11 @@ export default function SuperAdminPage() {
   const [agencyUsers, setAgencyUsers] = useState<Record<string, AdminUserRow[]>>({});
   const [agencySessions, setAgencySessions] = useState<Record<string, UserSessionRow[]>>({});
   const [expandedSessionAgencyId, setExpandedSessionAgencyId] = useState<string | null>(null);
+  const [expandedAdvancedAgencyId, setExpandedAdvancedAgencyId] = useState<string | null>(null);
+  const [agencySearch, setAgencySearch] = useState('');
+  const [agencyPlanFilter, setAgencyPlanFilter] = useState<'all' | 'starter' | 'business'>('all');
+  const [agencyStatusFilter, setAgencyStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
+  const [agencyPaymentFilter, setAgencyPaymentFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
 
   const pendingDeletionAccounts = useMemo(() => {
     return Object.entries(agencyUsers).flatMap(([agencyId, users]) => {
@@ -122,6 +166,31 @@ export default function SuperAdminPage() {
         .map((user) => ({ user, agency }));
     });
   }, [agencies, agencyUsers]);
+
+  const agencySummary = useMemo(() => {
+    return {
+      active: agencies.filter((agency) => agency.accountStatus === 'active').length,
+      trial: agencies.filter((agency) => agency.billingStatus === 'trial').length,
+      paid: agencies.filter((agency) => agency.billingStatus === 'paid').length,
+      unpaid: agencies.filter((agency) => agency.billingStatus === 'unpaid' || agency.billingStatus === 'overdue').length,
+      revenue: agencies
+        .filter((agency) => agency.accountStatus === 'active' && agency.billingStatus === 'paid')
+        .reduce((sum, agency) => sum + agency.monthlyPrice, 0),
+    };
+  }, [agencies]);
+
+  const filteredAgencies = useMemo(() => {
+    const q = agencySearch.trim().toLowerCase();
+    return agencies.filter((agency) => {
+      const searchMatch = !q || `${agency.agencyName} ${agency.email}`.toLowerCase().includes(q);
+      const planMatch = agencyPlanFilter === 'all' || agency.plan === agencyPlanFilter;
+      const statusMatch = agencyStatusFilter === 'all' || agency.accountStatus === agencyStatusFilter;
+      const paymentMatch =
+        agencyPaymentFilter === 'all' ||
+        (agencyPaymentFilter === 'paid' ? agency.billingStatus === 'paid' : agency.billingStatus === 'unpaid' || agency.billingStatus === 'overdue');
+      return searchMatch && planMatch && statusMatch && paymentMatch;
+    });
+  }, [agencies, agencyPaymentFilter, agencyPlanFilter, agencySearch, agencyStatusFilter]);
 
   const loadAll = useCallback(async () => {
     if (!supabase || !isSupabaseConfigured) return;
@@ -703,25 +772,90 @@ export default function SuperAdminPage() {
         </Card>
 
         <Card className="mt-6 overflow-hidden">
-          <div className="border-b border-white/10 p-5"><h2 className="text-xl font-bold">Comptes agences approuvés</h2></div>
+          <div className="border-b border-white/10 p-5">
+            <h2 className="text-xl font-bold">Comptes agences approuvés</h2>
+            <p className="mt-1 text-sm text-carbon-400">Suivi des agences, paiements, accès et sessions.</p>
+          </div>
+          <div className="grid gap-3 border-b border-white/10 p-5 sm:grid-cols-2 xl:grid-cols-5">
+            {[
+              ['Agences actives', String(agencySummary.active)],
+              ['En essai', String(agencySummary.trial)],
+              ['Payés', String(agencySummary.paid)],
+              ['Non payés', String(agencySummary.unpaid)],
+              ['Revenu mensuel estimé', formatMAD(agencySummary.revenue)],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-carbon-500">{label}</p>
+                <p className="mt-2 text-xl font-black text-white">{value}</p>
+              </div>
+            ))}
+          </div>
+          <div className="grid gap-3 border-b border-white/10 p-5 lg:grid-cols-[1fr_auto_auto_auto]">
+            <input
+              className="form-control"
+              value={agencySearch}
+              onChange={(e) => setAgencySearch(e.target.value)}
+              placeholder="Rechercher une agence ou un email"
+            />
+            <select className="form-control min-w-36" value={agencyPlanFilter} onChange={(e) => setAgencyPlanFilter(e.target.value as typeof agencyPlanFilter)}>
+              <option value="all">Tous les plans</option>
+              <option value="starter">Starter</option>
+              <option value="business">Business</option>
+            </select>
+            <select className="form-control min-w-36" value={agencyStatusFilter} onChange={(e) => setAgencyStatusFilter(e.target.value as typeof agencyStatusFilter)}>
+              <option value="all">Tous statuts</option>
+              <option value="active">Actif</option>
+              <option value="suspended">Suspendu</option>
+            </select>
+            <select className="form-control min-w-36" value={agencyPaymentFilter} onChange={(e) => setAgencyPaymentFilter(e.target.value as typeof agencyPaymentFilter)}>
+              <option value="all">Tous paiements</option>
+              <option value="paid">Payé</option>
+              <option value="unpaid">Non payé</option>
+            </select>
+          </div>
           <div className="grid gap-4 p-5">
-            {agencies.map((agency) => (
+            {filteredAgencies.length === 0 ? <p className="text-sm text-carbon-400">Aucun compte agence ne correspond aux filtres.</p> : filteredAgencies.map((agency) => (
               <div key={agency.id} className="premium-surface rounded-2xl p-4">
-                <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold text-white">{agency.agencyName}</p><div className="flex gap-2"><Badge>{agency.plan}</Badge><Badge>{agency.billingStatus}</Badge></div></div>
-                <div className="mt-2 grid gap-2 text-sm text-carbon-300 md:grid-cols-3">
-                  <p><strong>Email:</strong> {agency.email}</p><p><strong>Prochaine échéance:</strong> {agency.nextPaymentDueDate || '-'}</p><p><strong>Véhicules:</strong> {agency.vehiclesCount}</p>
-                  <p><strong>Utilisateurs:</strong> {agency.usersCount}</p><p><strong>Statut compte:</strong> {agency.accountStatus}</p><p><strong>Prix:</strong> {formatMAD(agency.monthlyPrice)}</p>
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-lg font-black text-white">{agency.agencyName}</p>
+                    <p className="mt-1 break-all text-sm text-carbon-300">{agency.email}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <StatusPill className={statusPillClass('plan', agency.plan)}>{planLabel(agency.plan)}</StatusPill>
+                    <StatusPill className={statusPillClass('billing', agency.billingStatus)}>{billingLabel(agency.billingStatus)}</StatusPill>
+                    <StatusPill className={statusPillClass('account', agency.accountStatus)}>{accountLabel(agency.accountStatus)}</StatusPill>
+                  </div>
+                </div>
+                <div className="mt-4 grid gap-2 text-sm text-carbon-300 sm:grid-cols-2 lg:grid-cols-4">
+                  <p><strong className="text-white">Prochaine échéance:</strong> {agency.nextPaymentDueDate || '-'}</p>
+                  <p><strong className="text-white">Véhicules:</strong> {agency.vehiclesCount}</p>
+                  <p><strong className="text-white">Utilisateurs:</strong> {agency.usersCount}</p>
+                  <p><strong className="text-white">Prix:</strong> {formatMAD(agency.monthlyPrice)}</p>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <Button variant="secondary" icon={<Crown className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-plan-${agency.id}`])} onClick={() => runAction(`agency-plan-${agency.id}`, async () => changeAgencyPlan(agency, agency.plan === 'starter' ? 'pro' : agency.plan === 'pro' ? 'business' : 'starter'))}>Changer plan</Button>
                   <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-paid-${agency.id}`])} onClick={() => runAction(`agency-paid-${agency.id}`, async () => markBilling(agency, 'paid'))}>Marquer payé</Button>
                   <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-unpaid-${agency.id}`])} onClick={() => runAction(`agency-unpaid-${agency.id}`, async () => markBilling(agency, 'unpaid'))}>Marquer non payé</Button>
                   <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-extend-${agency.id}`])} onClick={() => runAction(`agency-extend-${agency.id}`, async () => extendSubscription(agency, 30))}>Prolonger abonnement</Button>
-                  <Button variant="secondary" icon={<UserPlus className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-link-${agency.id}`])} onClick={() => runAction(`agency-link-${agency.id}`, async () => generateActivationLinkForEmail(agency.email))}>Générer lien d’activation</Button>
                   <Button variant="secondary" icon={<Mail className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-resend-${agency.id}`])} onClick={() => runAction(`agency-resend-${agency.id}`, async () => resendAgencyActivationEmail(agency))}>Renvoyer l’email d’activation</Button>
-                  <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-suspend-${agency.id}`])} onClick={() => runAction(`agency-suspend-${agency.id}`, async () => suspendAgency(agency))}>Suspendre compte</Button>
-                  <Button variant="danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => { setAdminDeleteConfirmText(''); setAgencyToDelete(agency); }}>Supprimer le compte</Button>
+                  <Button variant="ghost" icon={<ChevronDown className={`h-4 w-4 transition ${expandedAdvancedAgencyId === agency.id ? 'rotate-180' : ''}`} />} onClick={() => setExpandedAdvancedAgencyId((current) => (current === agency.id ? null : agency.id))}>Actions avancées</Button>
                 </div>
+
+                {expandedAdvancedAgencyId === agency.id ? (
+                  <div className="mt-4 rounded-2xl border border-white/10 bg-carbon-950/50 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-carbon-500">Actions avancées</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <Button variant="secondary" icon={<UserPlus className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-link-${agency.id}`])} onClick={() => runAction(`agency-link-${agency.id}`, async () => generateActivationLinkForEmail(agency.email))}>Générer lien d’activation</Button>
+                      <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-suspend-${agency.id}`])} onClick={() => runAction(`agency-suspend-${agency.id}`, async () => suspendAgency(agency))}>Suspendre compte</Button>
+                    </div>
+                    <div className="mt-4 rounded-xl border border-rose-300/20 bg-rose-400/10 p-3">
+                      <p className="text-sm font-semibold text-rose-100">Zone dangereuse</p>
+                      <p className="mt-1 text-xs text-rose-100/70">La suppression retire définitivement le compte agence après confirmation.</p>
+                      <Button className="mt-3" variant="danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => { setAdminDeleteConfirmText(''); setAgencyToDelete(agency); }}>Supprimer le compte</Button>
+                    </div>
+                  </div>
+                ) : null}
 
                 <div className="mt-4 rounded-xl border border-white/10 bg-carbon-900/60 p-3">
                   <button
