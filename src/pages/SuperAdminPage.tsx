@@ -461,29 +461,42 @@ export default function SuperAdminPage() {
 
   async function deleteAgency(agency: AdminAgency) {
     if (!supabase) return;
-    const webhook = import.meta.env.VITE_DELETE_AGENCY_ACCOUNT_WEBHOOK as string | undefined;
-    if (!webhook) {
-      throw new Error('Webhook suppression manquant. Configurez VITE_DELETE_AGENCY_ACCOUNT_WEBHOOK.');
-    }
     const { data: linkedProfiles } = await supabase.from('users_profiles').select('id,email,role,agency_id').eq('agency_id', agency.id);
     const ownerProfile = pickAgencyOwnerProfile((linkedProfiles || []) as Array<{ id: string; email: string | null; role: string | null; agency_id: string | null }>, agency.id);
-    const ownerEmail = ownerProfile?.email || agency.email || null;
-    await supabase.from('deleted_access_accounts').insert({
-      agency_id: agency.id,
-      agency_name: agency.agencyName,
-      owner_email: ownerEmail,
-      owner_profile_id: ownerProfile?.id ?? null,
-      plan: agency.plan,
-      billing_status: agency.billingStatus,
-      deleted_by: profile?.id ?? null,
-      deleted_reason: 'Suppression depuis Super Admin',
-    });
-    const response = await fetchWithAdminAuth(webhook, { agencyId: agency.id });
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`Suppression définitive impossible: ${text}`);
+    if (!ownerProfile?.id) throw new Error('Profil propriétaire introuvable pour cette agence.');
+    const now = new Date();
+    const scheduledAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const nowIso = now.toISOString();
+    const { error } = await supabase
+      .from('users_profiles')
+      .update({
+        account_status: 'pending_deletion',
+        deletion_requested_at: nowIso,
+        deletion_scheduled_at: scheduledAt.toISOString(),
+        force_logout_at: nowIso,
+      })
+      .eq('agency_id', agency.id);
+    if (error) {
+      if (/account_status|deletion_requested_at|deletion_scheduled_at|schema cache/i.test(error.message)) {
+        throw new Error('Suppression différée non prête: appliquez la migration account_deletion_grace_safe.sql dans Supabase.');
+      }
+      throw error;
     }
-    setAgencies((curr) => curr.filter((a) => a.id !== agency.id));
+
+    const sessionsUpdate = await supabase
+      .from('user_sessions')
+      .update({ revoked_at: nowIso })
+      .eq('agency_id', agency.id)
+      .is('revoked_at', null);
+    if (sessionsUpdate.error && !/relation .*user_sessions.* does not exist/i.test(sessionsUpdate.error.message)) {
+      throw sessionsUpdate.error;
+    }
+
+    notify({
+      title: 'Suppression programmée',
+      message: 'Le compte est désactivé maintenant et visible dans les comptes en cours de suppression.',
+      type: 'success',
+    });
     await loadAll();
   }
 
@@ -880,7 +893,7 @@ export default function SuperAdminPage() {
                     </div>
                     <div className="mt-4 rounded-xl border border-rose-300/20 bg-rose-400/10 p-3">
                       <p className="text-sm font-semibold text-rose-100">Zone dangereuse</p>
-                      <p className="mt-1 text-xs text-rose-100/70">La suppression retire définitivement le compte agence après confirmation.</p>
+                      <p className="mt-1 text-xs text-rose-100/70">La suppression désactive le compte maintenant et programme la suppression définitive après 30 jours.</p>
                       <Button className="mt-3" variant="danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => { setAdminDeleteConfirmText(''); setAgencyToDelete(agency); }}>Supprimer le compte</Button>
                     </div>
                   </div>
@@ -1045,7 +1058,7 @@ export default function SuperAdminPage() {
 
       <Modal open={Boolean(agencyToDelete)} onClose={() => { setAgencyToDelete(null); setAdminDeleteConfirmText(''); }} title="Confirmer la suppression">
         <div className="space-y-3">
-        <p className="text-sm text-carbon-300">Cette action va supprimer l’agence et ses données associées. Tapez <strong>SUPPRIMER</strong> pour confirmer.</p>
+        <p className="text-sm text-carbon-300">Cette action désactive immédiatement le compte agence et programme sa suppression définitive après 30 jours. Il apparaîtra dans <strong>Comptes en cours de suppression</strong>. Tapez <strong>SUPPRIMER</strong> pour confirmer.</p>
         <input className="form-control" value={adminDeleteConfirmText} onChange={(e) => setAdminDeleteConfirmText(e.target.value)} placeholder="SUPPRIMER" />
         </div>
         <div className="mt-4 flex justify-end gap-2">
@@ -1060,10 +1073,9 @@ export default function SuperAdminPage() {
               await deleteAgency(agencyToDelete);
               setAgencyToDelete(null);
               setAdminDeleteConfirmText('');
-              notify({ title: 'Compte supprimé', type: 'success' });
             })}
           >
-            Supprimer le compte
+            Programmer la suppression
           </Button>
         </div>
       </Modal>
