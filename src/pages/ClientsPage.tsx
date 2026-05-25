@@ -1,7 +1,6 @@
 import {
   AlertTriangle,
   BadgeCheck,
-  Bell,
   CalendarClock,
   Camera,
   Car,
@@ -11,7 +10,6 @@ import {
   Filter,
   LayoutDashboard,
   Mail,
-  Menu,
   MapPin,
   MoreHorizontal,
   MoreVertical,
@@ -194,11 +192,6 @@ export default function ClientsPage() {
   const mobileClientDetails = useMemo(() => {
     return enrichedClients.find((client) => client.id === mobileClientId) || null;
   }, [enrichedClients, mobileClientId]);
-
-  const profileInitials = useMemo(() => {
-    const source = profile?.fullName || profile?.agency?.name || 'AG';
-    return clientInitials(source).slice(0, 2) || 'AG';
-  }, [profile]);
 
   useEffect(() => {
     if (!filteredClients.length) {
@@ -476,28 +469,9 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="relative overflow-x-hidden pb-32 md:pb-8">
+    <div className="relative overflow-x-hidden pb-44 md:pb-8">
       <div className="pointer-events-none absolute right-[-18%] top-10 h-72 w-72 rounded-full bg-[#D4A017]/10 blur-3xl" />
-      <div className="relative md:hidden">
-        <div className="-mx-4 mb-6 border-b border-white/10 bg-black/55 px-4 pb-4 pt-1 backdrop-blur-xl sm:-mx-6 sm:px-6">
-          <div className="flex h-[68px] items-center gap-3">
-            <button type="button" aria-label="Menu" className="focus-ring grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.04] text-white">
-              <Menu className="h-5 w-5" />
-            </button>
-            <div className="mr-auto flex min-w-0 items-center gap-2.5">
-              <img src="/mekloc-logo-mark.png" alt="MekLoc" className="h-10 w-auto shrink-0 object-contain" />
-              <span className="truncate text-xl font-black text-white">MekLoc</span>
-            </div>
-            <button type="button" aria-label="Notifications" className="focus-ring relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.04] text-white">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-[#D4A017] px-1 text-[10px] font-black text-black">3</span>
-            </button>
-            <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-[#D4A017]/25 bg-[#D4A017]/15 text-sm font-black text-gold-100">
-              {profileInitials}
-            </div>
-          </div>
-        </div>
-
+      <div className="relative pt-4 md:hidden">
         <section className="space-y-5">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
