@@ -33,6 +33,8 @@ type LoginMemberLookup = {
   agencyEmail: string;
 };
 
+type LoginEmailCheckStatus = 'not_found' | 'pending' | 'active' | 'suspended';
+
 const rememberedEmailsKey = 'mekloc-remembered-login-emails';
 
 function normalizeWhatsAppPhone(phone: string | null | undefined) {
@@ -85,6 +87,7 @@ export default function AuthPage() {
   const [newPassword, setNewPassword] = useState('');
   const [loginStep, setLoginStep] = useState<'email' | 'password'>('email');
   const [loginEmail, setLoginEmail] = useState(searchParams.get('email') || '');
+  const [loginEmailMessage, setLoginEmailMessage] = useState<{ type: 'warning' | 'info'; title: string; message: string } | null>(null);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [memberLoginHint, setMemberLoginHint] = useState<LoginMemberLookup | null>(null);
@@ -156,6 +159,7 @@ export default function AuthPage() {
   function handleEmailChange(value: string) {
     setLoginEmail(value);
     setMemberLoginHint(null);
+    setLoginEmailMessage(null);
     setEmailSuggestionsOpen(true);
   }
 
@@ -248,6 +252,27 @@ export default function AuthPage() {
     }
   }
 
+  async function checkLoginEmailStatus(email: string): Promise<LoginEmailCheckStatus> {
+    const normalized = email.trim().toLowerCase();
+    const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+    const configuredWebhook = import.meta.env.VITE_CHECK_LOGIN_EMAIL_WEBHOOK as string | undefined;
+    const endpoint = configuredWebhook || (supabaseUrl ? `${supabaseUrl.replace(/\/$/, '')}/functions/v1/check-login-email` : '');
+    if (!endpoint || !anonKey || !normalized) return 'not_found';
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${anonKey}`,
+        apikey: anonKey,
+      },
+      body: JSON.stringify({ email: normalized }),
+    });
+    const payload = await response.json().catch(() => null) as { status?: LoginEmailCheckStatus } | null;
+    if (!response.ok) return 'not_found';
+    return payload?.status || 'not_found';
+  }
+
   function notifyMemberNeedsActivation(member: LoginMemberLookup) {
     notify({
       title: 'Activation requise',
@@ -262,52 +287,43 @@ export default function AuthPage() {
     event.preventDefault();
     const email = loginEmail.trim().toLowerCase();
     if (!email) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setLoginEmailMessage({
+        type: 'warning',
+        title: 'Email invalide',
+        message: 'Veuillez saisir une adresse email valide.',
+      });
+      return;
+    }
     setLoading(true);
+    setLoginEmailMessage(null);
     try {
-      const request = await getAccessRequestStatusByEmail(email);
-      if (request) {
-        if (request.status === 'approved') {
-          notify({
-            title: 'Accès approuvé',
-            message: 'Votre demande est approuvée. Saisissez maintenant votre mot de passe.',
-            type: 'success',
-          });
-          setLoginStep('password');
-          return;
-        }
-        if (request.status === 'payment_pending') return navigate('/payment-required', { replace: true });
-        if (request.status === 'rejected') return navigate('/account-status', { replace: true });
-        if (['pending', 'pending_verification', 'contacted', 'verified'].includes(request.status)) {
-          notify({
-            title: 'Demande en cours',
-            message: 'Votre demande est toujours en traitement. Consultez la page de vérification pour le suivi.',
-            type: 'info',
-          });
-          return navigate(`/verification-en-cours?email=${encodeURIComponent(email)}&agency=${encodeURIComponent(request.agencyName)}&plan=${encodeURIComponent(request.plan)}&created_at=${encodeURIComponent(request.createdAt)}${request.status === 'contacted' ? `&note=${encodeURIComponent('Notre équipe vous a contacté ou vous contactera bientôt.')}` : ''}`, { replace: true });
-        }
-      }
-      const memberLookup = await lookupAgencyMemberForLogin(email);
-      if (memberLookup) {
-        setMemberLoginHint(memberLookup);
+      const status = await checkLoginEmailStatus(email);
+      if (status === 'active') {
         setLoginStep('password');
+        return;
+      }
+      if (status === 'pending') {
         notify({
-          title: 'Compte membre trouvé',
-          message: `Saisissez votre mot de passe. Si vous ne l’avez pas encore défini, contactez ${memberLookup.agencyName}.`,
+          title: 'Votre compte est en cours de vérification',
+          message: 'Consultez la page de suivi pour voir l’état de votre demande.',
           type: 'info',
+        });
+        return navigate(`/verification-en-cours?email=${encodeURIComponent(email)}`, { replace: true });
+      }
+      if (status === 'suspended') {
+        setLoginEmailMessage({
+          type: 'warning',
+          title: 'Compte suspendu',
+          message: `Votre compte est suspendu. Contactez le support MekLoc: ${SUPPORT_EMAIL}`,
         });
         return;
       }
-      if (supabase) {
-        const { data: profileRow } = await supabase
-          .from('users_profiles')
-          .select('id,email,account_status')
-          .eq('email', email)
-          .limit(1)
-          .maybeSingle();
-        if (profileRow) setMemberLoginHint(null);
-      }
-      setMemberLoginHint(null);
-      setLoginStep('password');
+      setLoginEmailMessage({
+        type: 'warning',
+        title: 'Aucun compte MekLoc n’est associé à cet email.',
+        message: 'Vous devez d’abord demander un accès.',
+      });
     } finally {
       setLoading(false);
     }
@@ -669,7 +685,18 @@ export default function AuthPage() {
                 {loginStep === 'email' ? (
                   <form className="mt-9 grid gap-5" onSubmit={handleEmailStep}>
                     {renderRememberedEmailField()}
-                    <Button type="submit" loading={loading} className="h-14 w-full rounded-2xl bg-yellow-500 text-base font-black text-black shadow-[0_18px_44px_rgba(227,177,23,.22)] hover:bg-yellow-400" icon={<Mail className="h-5 w-5" />}>Suivant</Button>
+                    {loginEmailMessage ? (
+                      <div className={`rounded-2xl border p-4 text-sm ${loginEmailMessage.type === 'warning' ? 'border-amber-300/25 bg-amber-400/10 text-amber-50' : 'border-white/10 bg-white/[0.05] text-zinc-200'}`}>
+                        <p className="font-black text-white">{loginEmailMessage.title}</p>
+                        <p className="mt-1 text-zinc-300">{loginEmailMessage.message}</p>
+                        {loginEmailMessage.title.includes('Aucun compte') ? (
+                          <Link to="/demande-acces" className="mt-3 inline-flex h-10 items-center justify-center rounded-xl bg-yellow-500 px-4 text-sm font-black text-black hover:bg-yellow-400">
+                            Demander un accès
+                          </Link>
+                        ) : null}
+                      </div>
+                    ) : null}
+                    <Button type="submit" loading={loading} className="h-14 w-full rounded-2xl bg-yellow-500 text-base font-black text-black shadow-[0_18px_44px_rgba(227,177,23,.22)] hover:bg-yellow-400" icon={<Mail className="h-5 w-5" />}>{loading ? 'Vérification de l’email...' : 'Suivant'}</Button>
                   </form>
                 ) : (
                   <form className="mt-9 grid gap-5" onSubmit={handleSubmit}>
@@ -711,7 +738,7 @@ export default function AuthPage() {
                     </div>
                   ) : null}
                   <div className="grid gap-3 sm:grid-cols-[0.35fr_0.65fr]">
-                    <Button type="button" variant="secondary" className="h-14 border-white/10 bg-white/[0.06]" onClick={() => { setLoginStep('email'); setMemberLoginHint(null); }}>Retour</Button>
+                    <Button type="button" variant="secondary" className="h-14 border-white/10 bg-white/[0.06]" onClick={() => { setLoginStep('email'); setMemberLoginHint(null); setLoginEmailMessage(null); }}>Modifier email</Button>
                     <Button type="submit" loading={loading} className="h-14 rounded-2xl bg-yellow-500 text-base font-black text-black hover:bg-yellow-400" icon={<Mail className="h-5 w-5" />}>Se connecter</Button>
                   </div>
                 </form>
@@ -731,9 +758,11 @@ export default function AuthPage() {
                 >
                   Connexion avec Google
                 </Button>
-                <button type="button" className="mt-6 text-sm font-bold text-yellow-400 hover:text-yellow-300" onClick={() => setForgotOpen(true)}>
-                  Mot de passe oublié ?
-                </button>
+                {loginStep === 'password' ? (
+                  <button type="button" className="mt-6 text-sm font-bold text-yellow-400 hover:text-yellow-300" onClick={() => setForgotOpen(true)}>
+                    Mot de passe oublié ?
+                  </button>
+                ) : null}
                 <p className="mt-5 text-sm text-zinc-400">Pas encore client ? <Link to="/demande-acces" className="font-bold text-yellow-400">Demander un accès</Link></p>
               </>
             )}

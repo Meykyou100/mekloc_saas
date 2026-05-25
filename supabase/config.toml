@@ -12,3 +12,6 @@ verify_jwt = false
 
 [functions.send-access-request-email]
 verify_jwt = false
+
+[functions.check-login-email]
+verify_jwt = false
