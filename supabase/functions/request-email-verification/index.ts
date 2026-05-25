@@ -17,20 +17,89 @@ async function sha256(value: string) {
 }
 
 function buildOtpEmail(code: string) {
+  const siteUrl = Deno.env.get('PUBLIC_SITE_URL') || Deno.env.get('APP_URL') || 'https://mekloc.com';
+  const cleanSiteUrl = siteUrl.replace(/\/$/, '');
+  const logoUrl = Deno.env.get('EMAIL_LOGO_URL') || `${cleanSiteUrl}/mekloc-logo-dark.png`;
+
   return `
-  <div style="font-family: Inter, Arial, sans-serif; background:#070909; color:#F5F5F5; padding:24px;">
-    <div style="max-width:560px; margin:0 auto; border:1px solid rgba(255,255,255,0.12); border-radius:16px; background:#0F1115; overflow:hidden;">
-      <div style="padding:18px 22px; border-bottom:1px solid rgba(255,255,255,0.08);">
-        <h2 style="margin:0; font-size:20px; color:#D4A017;">MekLoc</h2>
-        <p style="margin:6px 0 0; color:#B8BDC7; font-size:13px;">Vérification email</p>
+  <!doctype html>
+  <html lang="fr">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="color-scheme" content="light">
+      <meta name="supported-color-schemes" content="light">
+      <title>Votre code de vérification MekLoc</title>
+    </head>
+    <body style="margin:0; padding:0; background-color:#f6f4ef; font-family:Arial, Helvetica, sans-serif; color:#1f2933;">
+      <div style="display:none; max-height:0; overflow:hidden; opacity:0; color:transparent; line-height:1px; font-size:1px;">
+        Utilisez ce code pour confirmer votre adresse email MekLoc.
       </div>
-      <div style="padding:22px;">
-        <p style="margin:0 0 14px; color:#DDE2EA;">Entrez ce code pour valider votre demande d’accès MekLoc.</p>
-        <div style="letter-spacing:8px; font-size:32px; font-weight:800; color:#D4A017; padding:14px 0;">${code}</div>
-        <p style="margin:0; color:#8A8F98; font-size:13px;">Ce code expire dans 10 minutes.</p>
-      </div>
-    </div>
-  </div>`;
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%; background-color:#f6f4ef; margin:0; padding:0;">
+        <tr>
+          <td align="center" style="padding:28px 14px;">
+            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%; max-width:600px; background-color:#ffffff; border:1px solid #eadfbf; border-radius:18px; overflow:hidden;">
+              <tr>
+                <td align="center" style="padding:30px 26px 18px 26px;">
+                  <img src="${logoUrl}" width="180" alt="MekLoc" style="display:block; width:180px; max-width:72%; height:auto; border:0; outline:none; text-decoration:none;">
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:0 30px 8px 30px; text-align:center;">
+                  <p style="margin:0 0 10px 0; color:#d4a017; font-size:12px; line-height:18px; font-weight:700; letter-spacing:2.2px; text-transform:uppercase;">
+                    MekLoc
+                  </p>
+                  <h1 style="margin:0; color:#101820; font-size:28px; line-height:34px; font-weight:800;">
+                    Vérification de votre email
+                  </h1>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:12px 34px 0 34px; text-align:center;">
+                  <p style="margin:0; color:#4b5563; font-size:16px; line-height:26px;">
+                    Entrez ce code pour valider votre demande d’accès MekLoc.
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td align="center" style="padding:26px 30px 18px 30px;">
+                  <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto;">
+                    <tr>
+                      <td style="background-color:#fff8dc; border:1px solid #e3b117; border-radius:16px; padding:18px 24px; text-align:center;">
+                        <span style="display:block; color:#111827; font-size:36px; line-height:44px; font-weight:800; letter-spacing:8px; font-family:Arial, Helvetica, sans-serif;">
+                          ${code}
+                        </span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:0 34px 28px 34px; text-align:center;">
+                  <p style="margin:0; color:#6b7280; font-size:14px; line-height:22px;">
+                    Ce code expire dans 10 minutes.
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:22px 30px; background-color:#fbfaf7; border-top:1px solid #f0e7cf; text-align:center;">
+                  <p style="margin:0 0 10px 0; color:#6b7280; font-size:13px; line-height:21px;">
+                    Si vous n’êtes pas à l’origine de cette demande, ignorez cet email.
+                  </p>
+                  <p style="margin:0; color:#6b7280; font-size:13px; line-height:21px;">
+                    Support :
+                    <a href="mailto:contact@mekloc.com" style="color:#b8860b; text-decoration:none; font-weight:700;">contact@mekloc.com</a>
+                    &nbsp;·&nbsp;
+                    <a href="${cleanSiteUrl}" style="color:#b8860b; text-decoration:none; font-weight:700;">${cleanSiteUrl}</a>
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </body>
+  </html>`;
 }
 
 function getFromEmail() {
