@@ -46,7 +46,7 @@ The app now supports real email sending through a webhook/Edge Function.
 Add this environment variable:
 
 ```bash
-VITE_ACCESS_REQUEST_EMAIL_WEBHOOK=https://your-edge-function-or-webhook-url
+VITE_ACCESS_REQUEST_EMAIL_WEBHOOK=https://dmivvjxfpxrvahcottln.supabase.co/functions/v1/request-email-verification
 ```
 
 Expected POST payload:
@@ -84,7 +84,7 @@ supabase secrets set APP_URL=https://mekloc.com
 4. In `.env.local`, point frontend webhook to the function URL:
 
 ```bash
-VITE_ACCESS_REQUEST_EMAIL_WEBHOOK=https://<project-ref>.functions.supabase.co/send-access-request-email
+VITE_ACCESS_REQUEST_EMAIL_WEBHOOK=https://dmivvjxfpxrvahcottln.supabase.co/functions/v1/request-email-verification
 ```
 
 5. Restart the app and test `/demande-acces`.

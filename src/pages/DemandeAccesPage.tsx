@@ -44,6 +44,19 @@ const plans = [
 ] as const;
 type PlanId = (typeof plans)[number]['id'];
 
+function isProductionHost() {
+  if (typeof window === 'undefined') return false;
+  const hostname = window.location.hostname.toLowerCase();
+  return hostname === 'mekloc.com' || hostname === 'www.mekloc.com';
+}
+
+function canShowEmailTestCode() {
+  if (typeof window === 'undefined') return false;
+  const hostname = window.location.hostname.toLowerCase();
+  const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+  return !isProductionHost() && (import.meta.env.DEV || isLocalhost || import.meta.env.VITE_ENABLE_EMAIL_TEST_MODE === 'true');
+}
+
 function extractErrorMessage(error: unknown): string {
   if (error instanceof Error) return error.message;
   if (typeof error === 'object' && error !== null) {
@@ -64,7 +77,7 @@ export default function DemandeAccesPage() {
   const normalizeEmail = (email: string) => normalizeText(email, 254).toLowerCase();
   const prefilledEmail = searchParams.get('email') || '';
   const fromLogin = searchParams.get('from') === 'login';
-  const isTestMode = import.meta.env.VITE_TEST_MODE === 'true';
+  const isEmailTestMode = canShowEmailTestCode();
   const requestedPlan = searchParams.get('plan') === 'starter' || searchParams.get('plan') === 'business'
     ? (searchParams.get('plan') as PlanId)
     : 'business';
@@ -112,12 +125,14 @@ export default function DemandeAccesPage() {
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string | undefined;
       const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-      if (!supabaseUrl || !anonKey) throw new Error('Configuration Supabase manquante.');
-      const response = await fetch(`${supabaseUrl.replace(/\/$/, '')}/functions/v1/request-email-verification`, {
+      const webhookUrl = (import.meta.env.VITE_ACCESS_REQUEST_EMAIL_WEBHOOK as string | undefined)?.trim()
+        || (supabaseUrl ? `${supabaseUrl.replace(/\/$/, '')}/functions/v1/request-email-verification` : '');
+      if (!webhookUrl) throw new Error('Configuration email manquante.');
+      const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          apikey: anonKey,
+          ...(anonKey ? { apikey: anonKey } : {}),
         },
         body: JSON.stringify({ email: normalized }),
       });
@@ -128,15 +143,19 @@ export default function DemandeAccesPage() {
       } catch {
         payload = { ok: false, error: rawBody || 'Réponse Edge Function invalide.' };
       }
-      console.log('request-email-verification response', { status: response.status, body: payload });
-      if (!response.ok) throw new Error(payload.error || payload.details || `HTTP ${response.status}`);
-      if (payload?.ok === false || payload?.error) throw new Error(payload.error || 'Envoi code impossible.');
+      if (import.meta.env.DEV) console.log('request-email-verification response', { status: response.status, body: payload });
+      const readableError = payload.error === 'Attendez une minute avant de renvoyer un code.'
+        ? 'Un code vient déjà d’être envoyé. Patientez une minute avant de renvoyer.'
+        : payload.error;
+      if (!response.ok) throw new Error(readableError || payload.details || `HTTP ${response.status}`);
+      if (payload?.ok === false || payload?.error) throw new Error(readableError || 'Envoi code impossible.');
+      const canUseReturnedOtp = isEmailTestMode && payload?.test_mode && payload.otp_code;
       setEmail(normalized);
       setEmailVerificationStatus('sent');
-      setEmailVerificationCode(payload?.test_mode && payload.otp_code ? payload.otp_code : '');
+      setEmailVerificationCode(canUseReturnedOtp ? payload.otp_code || '' : '');
       notify({
-        title: payload?.test_mode ? 'Code généré en test' : 'Code envoyé',
-        message: payload?.test_mode && payload.otp_code ? `Mode test: utilisez le code ${payload.otp_code}.` : 'Vérifiez votre boîte email. Le code expire dans 10 minutes.',
+        title: canUseReturnedOtp ? 'Code généré en test' : 'Code envoyé',
+        message: canUseReturnedOtp ? `Mode test: utilisez le code ${payload.otp_code}.` : 'Code envoyé. Vérifiez votre boîte mail.',
         type: 'success',
       });
     } catch (error) {
@@ -463,7 +482,7 @@ export default function DemandeAccesPage() {
                     </Button>
                   </div>
                   <p className="mt-2 text-xs text-zinc-500">
-                    {isTestMode
+                    {isEmailTestMode
                       ? 'Mode test : le code est affiché ici, aucun email n’est envoyé.'
                       : 'Un code à 6 chiffres sera envoyé à cette adresse.'}
                   </p>
@@ -489,7 +508,7 @@ export default function DemandeAccesPage() {
                       </Button>
                     </div>
                   ) : null}
-                  {isTestMode && emailVerificationStatus === 'sent' ? (
+                  {isEmailTestMode && emailVerificationStatus === 'sent' && emailVerificationCode ? (
                     <p className="mt-3 rounded-xl border border-[#E3B117]/20 bg-[#E3B117]/10 px-3 py-2 text-xs font-semibold text-[#F5C542]">
                       Mode test uniquement — ne pas utiliser en production.
                     </p>

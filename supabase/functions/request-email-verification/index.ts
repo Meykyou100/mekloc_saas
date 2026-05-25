@@ -37,6 +37,30 @@ function getFromEmail() {
   return Deno.env.get('RESEND_FROM_EMAIL') || 'MekLoc <contact@mekloc.com>';
 }
 
+function isProductionRequest(req: Request) {
+  const configuredOrigins = [
+    Deno.env.get('PUBLIC_SITE_URL'),
+    Deno.env.get('APP_URL'),
+  ].filter(Boolean) as string[];
+  const origin = req.headers.get('origin') || req.headers.get('referer') || '';
+
+  try {
+    const host = new URL(origin).hostname.toLowerCase();
+    if (host === 'mekloc.com' || host === 'www.mekloc.com') return true;
+  } catch {
+    // Ignore invalid/missing origin and rely on configured production URLs below.
+  }
+
+  return configuredOrigins.some((value) => {
+    try {
+      const host = new URL(value).hostname.toLowerCase();
+      return host === 'mekloc.com' || host === 'www.mekloc.com';
+    } catch {
+      return false;
+    }
+  });
+}
+
 Deno.serve(async (req) => {
   try {
     console.log('request-email-verification:start', {
@@ -51,7 +75,8 @@ Deno.serve(async (req) => {
     const { projectUrl, serviceRole } = getSupabaseConfig();
     const headers = serviceHeaders(serviceRole);
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    const emailTestMode = Deno.env.get('EMAIL_TEST_MODE') === 'true' || !resendApiKey;
+    const productionRequest = isProductionRequest(req);
+    const emailTestMode = !productionRequest && (Deno.env.get('EMAIL_TEST_MODE') === 'true' || !resendApiKey);
     const fromEmail = getFromEmail();
     const otpSecret = Deno.env.get('OTP_SECRET') || serviceRole;
     let body: { email?: string };
@@ -76,7 +101,7 @@ Deno.serve(async (req) => {
       { headers },
     );
     const recent = recentRes.ok ? await recentRes.json() as Array<{ id: string }> : [];
-    if (recent.length) return json(defaultCorsHeaders, { ok: false, error: 'Attendez une minute avant de renvoyer un code.' });
+    if (recent.length) return json(defaultCorsHeaders, { ok: false, error: 'Un code vient déjà d’être envoyé. Patientez une minute avant de renvoyer.' });
 
     const hourlyRes = await fetch(
       `${projectUrl}/rest/v1/email_verifications?email=eq.${encodeURIComponent(normalizedEmail)}&created_at=gte.${encodeURIComponent(new Date(Date.now() - 60 * 60 * 1000).toISOString())}&select=id`,
@@ -109,6 +134,11 @@ Deno.serve(async (req) => {
       return json(defaultCorsHeaders, { ok: true, success: true, test_mode: true, otp_code: code, expiresAt });
     }
 
+    if (!resendApiKey) {
+      console.error('request-email-verification missing RESEND_API_KEY in production mode', { email: normalizedEmail, ip });
+      return json(defaultCorsHeaders, { ok: false, success: false, error: 'Service email non configuré.' }, 500);
+    }
+
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
@@ -126,7 +156,7 @@ Deno.serve(async (req) => {
       return json(defaultCorsHeaders, { ok: false, error: 'email_send_failed', details: details || `HTTP ${resendResponse.status}` });
     }
 
-    return json(defaultCorsHeaders, { ok: true, success: true, test_mode: false, expiresAt });
+    return json(defaultCorsHeaders, { ok: true, success: true, message: 'Code envoyé', test_mode: false, expiresAt });
   } catch (error) {
     console.error('request-email-verification failed', error);
     return json(defaultCorsHeaders, { ok: false, error: error instanceof Error ? error.message : 'Envoi code impossible.' });
