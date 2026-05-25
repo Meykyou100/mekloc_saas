@@ -306,6 +306,24 @@ export default function SuperAdminPage() {
     await loadAll();
   }
 
+  async function resendAgencyActivationEmail(agency: AdminAgency) {
+    if (!supabase || !isSupabaseConfigured) return;
+    if (!agency.email || agency.email === '—') throw new Error('Email agence introuvable.');
+    const { data, error } = await supabase.functions.invoke('resend-activation-email', {
+      body: {
+        agencyId: agency.id,
+        email: agency.email,
+        redirectTo: window.location.origin,
+      },
+    });
+    const payload = data as { success?: boolean; error?: string } | null;
+    if (error || !payload?.success) {
+      throw new Error(payload?.error || error?.message || "Impossible de renvoyer l’email d’activation.");
+    }
+    notify({ title: 'Email envoyé', message: "Email d’activation renvoyé avec succès.", type: 'success' });
+    await loadAll();
+  }
+
   async function deleteRequest() {
     if (!requestToDelete || !supabase) return;
     const webhook = import.meta.env.VITE_DELETE_ACCESS_REQUEST_WEBHOOK as string | undefined;
@@ -700,6 +718,7 @@ export default function SuperAdminPage() {
                   <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-unpaid-${agency.id}`])} onClick={() => runAction(`agency-unpaid-${agency.id}`, async () => markBilling(agency, 'unpaid'))}>Marquer non payé</Button>
                   <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-extend-${agency.id}`])} onClick={() => runAction(`agency-extend-${agency.id}`, async () => extendSubscription(agency, 30))}>Prolonger abonnement</Button>
                   <Button variant="secondary" icon={<UserPlus className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-link-${agency.id}`])} onClick={() => runAction(`agency-link-${agency.id}`, async () => generateActivationLinkForEmail(agency.email))}>Générer lien d’activation</Button>
+                  <Button variant="secondary" icon={<Mail className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-resend-${agency.id}`])} onClick={() => runAction(`agency-resend-${agency.id}`, async () => resendAgencyActivationEmail(agency))}>Renvoyer l’email d’activation</Button>
                   <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-suspend-${agency.id}`])} onClick={() => runAction(`agency-suspend-${agency.id}`, async () => suspendAgency(agency))}>Suspendre compte</Button>
                   <Button variant="danger" icon={<Trash2 className="h-4 w-4" />} onClick={() => { setAdminDeleteConfirmText(''); setAgencyToDelete(agency); }}>Supprimer le compte</Button>
                 </div>

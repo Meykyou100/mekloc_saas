@@ -216,8 +216,14 @@ Deno.serve(async (req) => {
     const anonKey = Deno.env.get('ANON_KEY') || Deno.env.get('SUPABASE_ANON_KEY') || '';
     if (!projectUrl || !serviceRole || !anonKey) throw new Error('PROJECT_URL, SERVICE_ROLE_KEY or ANON_KEY missing');
 
-    const { accessRequestId, redirectTo } = (await req.json()) as { accessRequestId?: string; redirectTo?: string };
-    if (!accessRequestId) throw new Error('accessRequestId required');
+    const { accessRequestId, agencyId, email: rawEmail, redirectTo } = (await req.json()) as {
+      accessRequestId?: string;
+      agencyId?: string;
+      email?: string;
+      redirectTo?: string;
+    };
+    const requestedEmail = String(rawEmail || '').trim().toLowerCase();
+    if (!accessRequestId && !agencyId && !requestedEmail) throw new Error('accessRequestId, agencyId or email required');
 
     const serviceHeaders = {
       apikey: serviceRole,
@@ -239,21 +245,43 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: 'Accès refusé. Super admin requis.' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 
-    const requestRes = await fetch(`${projectUrl}/rest/v1/access_requests?id=eq.${encodeURIComponent(accessRequestId)}&select=*`, { headers: serviceHeaders });
-    if (!requestRes.ok) throw new Error(await requestRes.text());
-    const requestRows = await requestRes.json() as Array<Record<string, unknown>>;
-    const accessRequest = requestRows?.[0];
-    if (!accessRequest) throw new Error('Demande introuvable.');
-    if (String(accessRequest.status || '') !== 'approved') throw new Error('La demande doit être approuvée avant de renvoyer l’email.');
+    let accessRequest: Record<string, unknown> | null = null;
+    if (accessRequestId) {
+      const requestRes = await fetch(`${projectUrl}/rest/v1/access_requests?id=eq.${encodeURIComponent(accessRequestId)}&select=*`, { headers: serviceHeaders });
+      if (!requestRes.ok) throw new Error(await requestRes.text());
+      const requestRows = await requestRes.json() as Array<Record<string, unknown>>;
+      accessRequest = requestRows?.[0] || null;
+      if (!accessRequest) throw new Error('Demande introuvable.');
+      if (String(accessRequest.status || '') !== 'approved') throw new Error('La demande doit être approuvée avant de renvoyer l’email.');
+    }
 
-    const email = String(accessRequest.email || '').trim().toLowerCase();
-    const agencyName = String(accessRequest.agency_name || 'Agence MekLoc');
-    const ownerName = String(accessRequest.owner_name || 'Responsable');
-    const plan = String(accessRequest.selected_plan || 'starter');
+    let email = String(accessRequest?.email || requestedEmail || '').trim().toLowerCase();
+    let agencyName = String(accessRequest?.agency_name || 'Agence MekLoc');
+    let ownerName = String(accessRequest?.owner_name || 'Responsable');
+    let plan = String(accessRequest?.selected_plan || 'starter');
     if (!email) throw new Error('Email introuvable.');
 
-    const profileRes = await fetch(`${projectUrl}/rest/v1/users_profiles?email=ilike.${encodeURIComponent(email)}&select=agency_id,role&limit=1`, { headers: serviceHeaders });
-    const profiles = profileRes.ok ? await profileRes.json() as Array<{ agency_id: string | null; role: string | null }> : [];
+    if (!accessRequest && agencyId) {
+      const agencyRes = await fetch(`${projectUrl}/rest/v1/agencies?id=eq.${encodeURIComponent(agencyId)}&select=id,name,plan&limit=1`, { headers: serviceHeaders });
+      if (!agencyRes.ok) throw new Error(await agencyRes.text());
+      const agencies = await agencyRes.json() as Array<{ id: string; name: string | null; plan: string | null }>;
+      const agency = agencies?.[0];
+      if (!agency) throw new Error('Agence introuvable.');
+      agencyName = agency.name || agencyName;
+      plan = agency.plan || plan;
+    }
+
+    const profileQuery = agencyId
+      ? `agency_id=eq.${encodeURIComponent(agencyId)}`
+      : `email=ilike.${encodeURIComponent(email)}`;
+    const profileRes = await fetch(`${projectUrl}/rest/v1/users_profiles?${profileQuery}&select=agency_id,role,email,full_name&order=created_at.asc&limit=20`, { headers: serviceHeaders });
+    const profiles = profileRes.ok ? await profileRes.json() as Array<{ agency_id: string | null; role: string | null; email: string | null; full_name: string | null }> : [];
+    const ownerProfile =
+      profiles.find((profile) => String(profile.role || '').toLowerCase() === 'owner' && profile.email) ||
+      profiles.find((profile) => profile.email) ||
+      profiles[0];
+    if (ownerProfile?.email) email = ownerProfile.email.trim().toLowerCase();
+    if (ownerProfile?.full_name) ownerName = ownerProfile.full_name;
 
     const token = randomToken();
     const expiresAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString();
@@ -263,8 +291,8 @@ Deno.serve(async (req) => {
       body: JSON.stringify([{
         token,
         email,
-        agency_id: profiles?.[0]?.agency_id || null,
-        role: profiles?.[0]?.role || 'owner',
+        agency_id: ownerProfile?.agency_id || agencyId || null,
+        role: ownerProfile?.role || 'owner',
         expires_at: expiresAt,
       }]),
     });
@@ -281,13 +309,15 @@ Deno.serve(async (req) => {
       redirectTo,
     });
 
-    await fetch(`${projectUrl}/rest/v1/access_requests?id=eq.${encodeURIComponent(accessRequestId)}`, {
-      method: 'PATCH',
-      headers: serviceHeaders,
-      body: JSON.stringify({ activation_link: activationLink }),
-    });
+    if (accessRequestId) {
+      await fetch(`${projectUrl}/rest/v1/access_requests?id=eq.${encodeURIComponent(accessRequestId)}`, {
+        method: 'PATCH',
+        headers: serviceHeaders,
+        body: JSON.stringify({ activation_link: activationLink }),
+      });
+    }
 
-    console.log('resend-activation-email sent', { email, accessRequestId });
+    console.log('resend-activation-email sent', { email, accessRequestId: accessRequestId || null, agencyId: agencyId || null });
     return new Response(JSON.stringify({ success: true, emailSent: true, activationLink }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
