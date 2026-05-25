@@ -1,4 +1,4 @@
-import { Banknote, CalendarClock, CheckCircle2, ChevronDown, Crown, FileText, Laptop2, RefreshCw, ShieldAlert, Smartphone, Trash2, UserPlus, Users, XCircle } from 'lucide-react';
+import { Banknote, CalendarClock, CheckCircle2, ChevronDown, Crown, FileText, Laptop2, Mail, RefreshCw, ShieldAlert, Smartphone, Trash2, UserPlus, Users, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
@@ -280,6 +280,29 @@ export default function SuperAdminPage() {
     } else {
       notify({ title: "Demande approuvée", message: "Compte approuvé. Email d’activation envoyé au client.", type: 'success' });
     }
+    await loadAll();
+  }
+
+  async function resendActivationEmail(request: AccessRequestRow) {
+    if (!supabase || !isSupabaseConfigured) return;
+    if (request.status !== 'approved') {
+      notify({ title: 'Demande non approuvée', message: 'Approuvez la demande avant de renvoyer l’email d’activation.', type: 'warning' });
+      return;
+    }
+    const { data, error } = await supabase.functions.invoke('resend-activation-email', {
+      body: {
+        accessRequestId: request.id,
+        redirectTo: window.location.origin,
+      },
+    });
+    const payload = data as { success?: boolean; activationLink?: string; error?: string } | null;
+    if (error || !payload?.success) {
+      throw new Error(payload?.error || error?.message || "Email d’activation non envoyé.");
+    }
+    if (payload.activationLink) {
+      await supabase.from('access_requests').update({ activation_link: payload.activationLink }).eq('id', request.id);
+    }
+    notify({ title: 'Email envoyé', message: `Email d’activation renvoyé à ${request.email}.`, type: 'success' });
     await loadAll();
   }
 
@@ -600,6 +623,9 @@ export default function SuperAdminPage() {
                       notify({ title: 'Lien affiché', message: 'Safari a bloqué la copie automatique. Copiez le lien affiché manuellement.', type: 'warning' });
                     }
                   })}>Créer compte client</Button>
+                  {req.status === 'approved' ? (
+                    <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<Mail className="h-3.5 w-3.5" />} loading={Boolean(actionLoading[`req-resend-${req.id}`])} onClick={() => runAction(`req-resend-${req.id}`, async () => resendActivationEmail(req))}>Renvoyer l’email d’activation</Button>
+                  ) : null}
                   <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => { setAdminDeleteConfirmText(''); setRequestToDelete(req); }}>Supprimer la demande</Button>
                 </div>
                 <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto]">
