@@ -33,6 +33,10 @@ function buildOtpEmail(code: string) {
   </div>`;
 }
 
+function getFromEmail() {
+  return Deno.env.get('RESEND_FROM_EMAIL') || 'MekLoc <contact@mekloc.com>';
+}
+
 Deno.serve(async (req) => {
   try {
     console.log('request-email-verification:start', {
@@ -48,7 +52,7 @@ Deno.serve(async (req) => {
     const headers = serviceHeaders(serviceRole);
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
     const emailTestMode = Deno.env.get('EMAIL_TEST_MODE') === 'true' || !resendApiKey;
-    const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'MekLoc <no-reply@mekloc.app>';
+    const fromEmail = getFromEmail();
     const otpSecret = Deno.env.get('OTP_SECRET') || serviceRole;
     let body: { email?: string };
     try {

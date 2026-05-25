@@ -6,6 +6,7 @@ import Card from '../components/ui/Card';
 import { Field, SelectField } from '../components/ui/Form';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
+import { SUPPORT_EMAIL, SUPPORT_PHONE } from '../config/app';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { normalizeText, sanitizeText, validateEmail, validateFileUpload, validatePhone } from '../lib/security';
@@ -173,8 +174,8 @@ export default function SettingsPage() {
   const now = new Date();
   const nextDiff = nextPaymentDate ? Math.ceil((new Date(nextPaymentDate).getTime() - now.getTime()) / 86400000) : null;
   const endDiff = endDate ? Math.ceil((new Date(endDate).getTime() - now.getTime()) / 86400000) : null;
-  const contactPhone = '212762971653';
-  const contactEmail = 'younesmekki100@gmail.com';
+  const contactPhone = SUPPORT_PHONE.replace(/^\+/, '');
+  const contactEmail = SUPPORT_EMAIL;
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
   const [emailChangeOpen, setEmailChangeOpen] = useState(false);

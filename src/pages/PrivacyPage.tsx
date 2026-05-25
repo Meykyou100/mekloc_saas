@@ -1,6 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Card from '../components/ui/Card';
+import { SUPPORT_EMAIL, SUPPORT_PHONE_DISPLAY, WHATSAPP_URL } from '../config/app';
 
 export default function PrivacyPage() {
   return (
@@ -22,11 +23,10 @@ export default function PrivacyPage() {
             <p><strong>5. Cookies</strong><br />Cookies techniques et de performance uniquement.</p>
             <p><strong>6. Vos droits</strong><br />Accès, correction, suppression, export de vos données selon la réglementation applicable.</p>
             <p><strong>7. Conservation</strong><br />Les données sont conservées selon la durée nécessaire au service et aux obligations légales.</p>
-            <p><strong>8. Contact</strong><br />Email : <a className="text-gold-200 hover:text-gold-100" href="mailto:younesmekki100@gmail.com">younesmekki100@gmail.com</a><br />WhatsApp : <a className="text-gold-200 hover:text-gold-100" href="https://wa.me/212762971653" target="_blank" rel="noreferrer">+212 762971653</a></p>
+            <p><strong>8. Contact</strong><br />Email : <a className="text-gold-200 hover:text-gold-100" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a><br />WhatsApp : <a className="text-gold-200 hover:text-gold-100" href={WHATSAPP_URL} target="_blank" rel="noreferrer">{SUPPORT_PHONE_DISPLAY}</a></p>
           </div>
         </Card>
       </div>
     </div>
   );
 }
-

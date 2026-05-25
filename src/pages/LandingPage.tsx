@@ -31,9 +31,10 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import { SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_DISPLAY, WHATSAPP_URL } from '../config/app';
 
-const whatsappNumber = '212762971653';
-const contactEmail = 'younesmekki100@gmail.com';
+const whatsappNumber = SUPPORT_PHONE.replace(/^\+/, '');
+const contactEmail = SUPPORT_EMAIL;
 
 const navItems = [
   ['Fonctionnalités', '#fonctionnalites'],
@@ -115,7 +116,7 @@ const socialLinks = [
   ['LinkedIn', Linkedin, 'https://www.linkedin.com/'],
   ['Instagram', Instagram, 'https://www.instagram.com/'],
   ['Facebook', Facebook, 'https://www.facebook.com/'],
-  ['WhatsApp', MessageCircle, `https://wa.me/${whatsappNumber}`],
+  ['WhatsApp', MessageCircle, WHATSAPP_URL],
   ['Email', Mail, `mailto:${contactEmail}`],
 ];
 
@@ -846,7 +847,7 @@ export default function LandingPage() {
 
             <div className="mt-7 grid gap-4 md:grid-cols-3">
               {[
-                [MessageCircle, 'WhatsApp direct', 'Réponse rapide', '+212 762-971653'],
+                [MessageCircle, 'WhatsApp direct', 'Réponse rapide', SUPPORT_PHONE_DISPLAY],
                 [Mail, 'Par email', 'Écrivez-nous', contactEmail],
                 [CalendarDays, 'Appel de cadrage', '30 minutes', 'Échange personnalisé'],
               ].map(([Icon, title, text, value]) => (

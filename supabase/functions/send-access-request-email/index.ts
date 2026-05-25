@@ -62,9 +62,16 @@ function buildAccessRequestHtml(input: { ownerName: string; email: string; selec
         <div style="margin-top:20px; font-size:12px; color:#8A8F98;">
           Cet email a été envoyé à ${input.email}
         </div>
+        <div style="margin-top:10px; font-size:12px; color:#8A8F98;">
+          Besoin d’aide ? Contactez-nous : contact@mekloc.com
+        </div>
       </div>
     </div>
   </div>`;
+}
+
+function getFromEmail() {
+  return Deno.env.get('RESEND_FROM_EMAIL') || 'MekLoc <contact@mekloc.com>';
 }
 
 Deno.serve(async (req) => {
@@ -74,7 +81,7 @@ Deno.serve(async (req) => {
 
   try {
     const resendApiKey = Deno.env.get('RESEND_API_KEY');
-    const fromEmail = Deno.env.get('RESEND_FROM_EMAIL') || 'MekLoc <no-reply@mekloc.app>';
+    const fromEmail = getFromEmail();
 
     if (!resendApiKey) {
       console.error('send-access-request-email missing RESEND_API_KEY');

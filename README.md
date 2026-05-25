@@ -76,7 +76,9 @@ supabase functions deploy send-access-request-email
 
 ```bash
 supabase secrets set RESEND_API_KEY=your_resend_api_key
-supabase secrets set RESEND_FROM_EMAIL="MekLoc <contact@yourdomain.com>"
+supabase secrets set RESEND_FROM_EMAIL="MekLoc <contact@mekloc.com>"
+supabase secrets set PUBLIC_SITE_URL=https://mekloc.com
+supabase secrets set APP_URL=https://mekloc.com
 ```
 
 4. In `.env.local`, point frontend webhook to the function URL:

@@ -5,6 +5,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { Field } from '../components/ui/Form';
 import Modal from '../components/ui/Modal';
+import { SUPPORT_EMAIL } from '../config/app';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { getPostLoginRedirect } from '../lib/authRedirect';
@@ -763,7 +764,7 @@ export default function AuthPage() {
             label="Adresse email"
             name="forgotEmail"
             type="email"
-            placeholder="younesmekki100@gmail.com"
+            placeholder={SUPPORT_EMAIL}
             value={forgotEmail}
             onChange={(e) => setForgotEmail(e.target.value)}
             required

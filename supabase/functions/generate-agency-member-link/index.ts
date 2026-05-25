@@ -50,10 +50,11 @@ function randomToken() {
 }
 
 function getAppOrigin(redirectTo?: string) {
+  const configuredOrigin = Deno.env.get('PUBLIC_SITE_URL') || Deno.env.get('APP_URL') || 'https://mekloc.com';
   try {
-    return new URL(redirectTo || 'https://mekloc-saas.vercel.app').origin;
+    return new URL(redirectTo || configuredOrigin).origin;
   } catch {
-    return 'https://mekloc-saas.vercel.app';
+    return 'https://mekloc.com';
   }
 }
 

@@ -1,6 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Card from '../components/ui/Card';
+import { SUPPORT_EMAIL, SUPPORT_PHONE_DISPLAY, WHATSAPP_URL } from '../config/app';
 
 export default function CancellationRefundPage() {
   return (
@@ -33,9 +34,9 @@ export default function CancellationRefundPage() {
               s&apos;appliquera à la période suivante.<br />
               Vous conservez l&apos;accès à la plateforme jusqu&apos;à la fin de la période payée en cours.<br />
               Pour annuler, contactez-nous à{' '}
-              <a className="text-gold-200 hover:text-gold-100" href="mailto:younesmekki100@gmail.com">younesmekki100@gmail.com</a>{' '}
+              <a className="text-gold-200 hover:text-gold-100" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>{' '}
               ou via WhatsApp au{' '}
-              <a className="text-gold-200 hover:text-gold-100" href="https://wa.me/212762971653" target="_blank" rel="noreferrer">+212 762971653</a>{' '}
+              <a className="text-gold-200 hover:text-gold-100" href={WHATSAPP_URL} target="_blank" rel="noreferrer">{SUPPORT_PHONE_DISPLAY}</a>{' '}
               avant votre date de renouvellement.<br />
               Après demande d&apos;annulation, les abonnés peuvent exporter leurs données avant la fin d&apos;accès.
             </p>
@@ -70,10 +71,10 @@ export default function CancellationRefundPage() {
               <strong>5. Comment demander un remboursement</strong><br />
               Contactez-nous dans le délai de 7 jours :<br />
               Email :{' '}
-              <a className="text-gold-200 hover:text-gold-100" href="mailto:younesmekki100@gmail.com">younesmekki100@gmail.com</a>{' '}
+              <a className="text-gold-200 hover:text-gold-100" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>{' '}
               (indiquez l&apos;email de votre compte et la raison)<br />
               WhatsApp :{' '}
-              <a className="text-gold-200 hover:text-gold-100" href="https://wa.me/212762971653" target="_blank" rel="noreferrer">+212 762971653</a><br />
+              <a className="text-gold-200 hover:text-gold-100" href={WHATSAPP_URL} target="_blank" rel="noreferrer">{SUPPORT_PHONE_DISPLAY}</a><br />
               Le traitement se fait sous 5 à 10 jours ouvrables via le mode de paiement d&apos;origine.
             </p>
 
@@ -92,8 +93,8 @@ export default function CancellationRefundPage() {
 
             <p>
               <strong>8. Contact</strong><br />
-              Email : <a className="text-gold-200 hover:text-gold-100" href="mailto:younesmekki100@gmail.com">younesmekki100@gmail.com</a><br />
-              WhatsApp : <a className="text-gold-200 hover:text-gold-100" href="https://wa.me/212762971653" target="_blank" rel="noreferrer">+212 762971653</a>
+              Email : <a className="text-gold-200 hover:text-gold-100" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a><br />
+              WhatsApp : <a className="text-gold-200 hover:text-gold-100" href={WHATSAPP_URL} target="_blank" rel="noreferrer">{SUPPORT_PHONE_DISPLAY}</a>
             </p>
           </div>
         </Card>

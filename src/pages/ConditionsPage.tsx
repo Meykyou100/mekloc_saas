@@ -1,6 +1,7 @@
 import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Card from '../components/ui/Card';
+import { SUPPORT_EMAIL, SUPPORT_PHONE_DISPLAY, WHATSAPP_URL } from '../config/app';
 
 export default function ConditionsPage() {
   return (
@@ -29,11 +30,10 @@ export default function ConditionsPage() {
             <p><strong>12. Résiliation</strong><br />MekLoc peut suspendre un compte en cas de non-respect des présentes conditions.</p>
             <p><strong>13. Modifications</strong><br />Les conditions peuvent évoluer. La date de mise à jour fera foi.</p>
             <p><strong>14. Droit applicable</strong><br />Tout litige sera traité prioritairement par voie amiable.</p>
-            <p><strong>15. Contact</strong><br />Email : <a className="text-gold-200 hover:text-gold-100" href="mailto:younesmekki100@gmail.com">younesmekki100@gmail.com</a><br />WhatsApp : <a className="text-gold-200 hover:text-gold-100" href="https://wa.me/212762971653" target="_blank" rel="noreferrer">+212 762971653</a></p>
+            <p><strong>15. Contact</strong><br />Email : <a className="text-gold-200 hover:text-gold-100" href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a><br />WhatsApp : <a className="text-gold-200 hover:text-gold-100" href={WHATSAPP_URL} target="_blank" rel="noreferrer">{SUPPORT_PHONE_DISPLAY}</a></p>
           </div>
         </Card>
       </div>
     </div>
   );
 }
-

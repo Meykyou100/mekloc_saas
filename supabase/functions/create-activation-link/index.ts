@@ -27,12 +27,13 @@ function randomToken() {
 }
 
 function getAppOrigin(rawOrigin: string | undefined, redirectTo: string | undefined) {
-  const candidate = rawOrigin || redirectTo || 'https://mekloc-saas.vercel.app';
+  const configuredOrigin = Deno.env.get('PUBLIC_SITE_URL') || Deno.env.get('APP_URL') || 'https://mekloc.com';
+  const candidate = rawOrigin || redirectTo || configuredOrigin;
   try {
     const url = new URL(candidate);
     return url.origin;
   } catch {
-    return 'https://mekloc-saas.vercel.app';
+    return 'https://mekloc.com';
   }
 }
 
