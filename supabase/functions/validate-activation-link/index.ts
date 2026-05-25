@@ -1,12 +1,35 @@
 import { defaultCorsHeaders as corsHeaders, getSupabaseConfig, json, serviceHeaders } from '../_shared/security.ts';
 
+function normalizeActivationToken(value: unknown) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  const decoded = (() => {
+    try {
+      return decodeURIComponent(raw).trim();
+    } catch {
+      return raw;
+    }
+  })();
+
+  try {
+    const url = new URL(decoded);
+    const queryToken = url.searchParams.get('token');
+    if (queryToken) return queryToken.trim();
+    const pathToken = url.pathname.split('/').filter(Boolean).pop();
+    return String(pathToken || '').trim();
+  } catch {
+    return decoded;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
     const { projectUrl, serviceRole } = getSupabaseConfig();
     const { token } = await req.json() as { token?: string };
-    const safeToken = String(token || '').trim();
+    const safeToken = normalizeActivationToken(token);
     if (!safeToken) return json(corsHeaders, { valid: false, reason: 'token_missing' }, 400);
 
     const res = await fetch(`${projectUrl}/rest/v1/activation_links?token=eq.${encodeURIComponent(safeToken)}&select=id,email,agency_id,role,expires_at,used_at&limit=1`, {

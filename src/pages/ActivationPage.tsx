@@ -19,7 +19,16 @@ function reasonMessage(reason: string) {
   if (reason === 'token_already_used' || reason === 'used') return 'token_already_used — Ce lien a déjà été utilisé.';
   if (reason === 'token_expired' || reason === 'expired') return 'token_expired — Ce lien a expiré. Demandez un nouveau lien à votre administrateur.';
   if (reason === 'token_not_found' || reason === 'not_found') return 'token_not_found — Lien d’activation introuvable.';
+  if (reason === 'server_error' || reason === 'FunctionsFetchError' || reason === 'Edge Function returned a non-2xx status code') {
+    return 'server_error — Vérification impossible pour le moment. Demandez à l’administrateur de renvoyer l’email d’activation.';
+  }
+  if (reason) return `${reason} — Activation impossible. Demandez un nouveau lien à votre administrateur.`;
   return 'token_invalid — Lien d’activation invalide.';
+}
+
+function getFunctionReason(error?: { message?: string; context?: unknown } | null, fallback = '') {
+  const context = error?.context as { error?: string; reason?: string; message?: string } | undefined;
+  return context?.reason || context?.error || context?.message || fallback || error?.message || '';
 }
 
 export default function ActivationPage({ tokenOverride }: { tokenOverride?: string }) {
@@ -45,7 +54,10 @@ export default function ActivationPage({ tokenOverride }: { tokenOverride?: stri
       if (cancelled) return;
       const payload = data as { valid?: boolean; email?: string; reason?: string } | null;
       if (error || !payload?.valid) {
-        setState({ loading: false, valid: false, email: '', error: reasonMessage(payload?.reason || '') });
+        if (import.meta.env.DEV) {
+          console.warn('Activation validation failed', { reason: payload?.reason, error });
+        }
+        setState({ loading: false, valid: false, email: '', error: reasonMessage(payload?.reason || getFunctionReason(error)) });
         return;
       }
       setState({ loading: false, valid: true, email: payload.email || '', error: '' });
@@ -74,7 +86,12 @@ export default function ActivationPage({ tokenOverride }: { tokenOverride?: stri
         body: { token, password },
       });
       const payload = data as { success?: boolean; error?: string; email?: string } | null;
-      if (error || !payload?.success) throw new Error(reasonMessage(payload?.error || error?.message || ''));
+      if (error || !payload?.success) {
+        if (import.meta.env.DEV) {
+          console.warn('Activation completion failed', { reason: payload?.error, error });
+        }
+        throw new Error(reasonMessage(payload?.error || getFunctionReason(error)));
+      }
       notify({ title: 'Compte activé', message: 'Votre mot de passe est défini. Connectez-vous maintenant.', type: 'success' });
       navigate(`/auth?email=${encodeURIComponent(payload.email || state.email)}&force=login`, { replace: true });
     } catch (error) {

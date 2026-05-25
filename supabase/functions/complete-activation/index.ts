@@ -4,6 +4,29 @@ function normalizeEmail(value: unknown) {
   return String(value || '').trim().toLowerCase();
 }
 
+function normalizeActivationToken(value: unknown) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+
+  const decoded = (() => {
+    try {
+      return decodeURIComponent(raw).trim();
+    } catch {
+      return raw;
+    }
+  })();
+
+  try {
+    const url = new URL(decoded);
+    const queryToken = url.searchParams.get('token');
+    if (queryToken) return queryToken.trim();
+    const pathToken = url.pathname.split('/').filter(Boolean).pop();
+    return String(pathToken || '').trim();
+  } catch {
+    return decoded;
+  }
+}
+
 function extractUserId(payload: unknown): string {
   if (!payload || typeof payload !== 'object') return '';
   const obj = payload as Record<string, unknown>;
@@ -44,7 +67,7 @@ Deno.serve(async (req) => {
   try {
     const { projectUrl, serviceRole } = getSupabaseConfig();
     const { token, password } = await req.json() as { token?: string; password?: string };
-    const safeToken = String(token || '').trim();
+    const safeToken = normalizeActivationToken(token);
     const nextPassword = String(password || '');
     if (!safeToken) return json(corsHeaders, { success: false, error: 'token_missing' }, 400);
     if (nextPassword.length < 8) return json(corsHeaders, { success: false, error: 'Mot de passe trop court.' }, 400);
