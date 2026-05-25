@@ -30,6 +30,208 @@ function normalizePlan(rawPlan: string): 'starter' | 'pro' | 'business' {
   return 'starter';
 }
 
+function getCleanSiteUrl(redirectTo?: string) {
+  return getAppOrigin(redirectTo).replace(/\/$/, '');
+}
+
+function getFromEmail() {
+  return Deno.env.get('RESEND_FROM_EMAIL') || 'MekLoc <contact@mekloc.com>';
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function formatPlanName(plan: string) {
+  const value = plan.trim().toLowerCase();
+  if (value === 'business') return 'Business';
+  if (value === 'pro') return 'Pro';
+  return 'Starter';
+}
+
+function buildApprovalEmail(params: {
+  activationLink: string;
+  agencyName: string;
+  email: string;
+  ownerName: string;
+  plan: string;
+  redirectTo?: string;
+}) {
+  const cleanSiteUrl = getCleanSiteUrl(params.redirectTo);
+  const logoUrl = Deno.env.get('EMAIL_LOGO_URL') || `${cleanSiteUrl}/mekloc-logo-dark.png`;
+  const safeActivationLink = escapeHtml(params.activationLink);
+  const safeAgencyName = escapeHtml(params.agencyName || 'Agence MekLoc');
+  const safeEmail = escapeHtml(params.email);
+  const safeGreetingName = escapeHtml(params.ownerName || params.agencyName || 'Bonjour');
+  const safePlanName = escapeHtml(formatPlanName(params.plan));
+  const safeLogoUrl = escapeHtml(logoUrl);
+
+  const text = [
+    'Votre accès MekLoc est prêt',
+    '',
+    `Bonjour ${params.ownerName || params.agencyName || ''},`,
+    'Votre demande d’accès à MekLoc a été validée. Vous pouvez maintenant créer votre mot de passe et accéder à votre espace.',
+    '',
+    `Créer mon mot de passe : ${params.activationLink}`,
+    '',
+    `Plan sélectionné : ${formatPlanName(params.plan)}`,
+    `Agence : ${params.agencyName}`,
+    `Email : ${params.email}`,
+    '',
+    'Pour votre sécurité, ce lien est personnel. Ne le partagez avec personne.',
+    '',
+    'Besoin d’aide ? Contactez-nous à contact@mekloc.com',
+    '© MekLoc — Gestion location automobile',
+  ].join('\n');
+
+  const html = `<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="x-apple-disable-message-reformatting">
+    <title>Votre accès MekLoc est prêt</title>
+  </head>
+  <body style="margin:0;padding:0;background:#f6f4ef;font-family:Arial,Helvetica,sans-serif;color:#151515;">
+    <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">
+      Votre espace MekLoc a été validé. Créez votre mot de passe pour commencer.
+    </div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f6f4ef;margin:0;padding:0;">
+      <tr>
+        <td align="center" style="padding:28px 14px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:640px;background:#ffffff;border:1px solid #eadfbd;border-radius:22px;overflow:hidden;">
+            <tr>
+              <td style="background:#070807;padding:26px 28px;text-align:center;">
+                <img src="${safeLogoUrl}" width="190" alt="MekLoc" style="display:block;margin:0 auto;max-width:190px;width:190px;height:auto;border:0;outline:none;text-decoration:none;">
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:34px 30px 12px;text-align:center;">
+                <div style="display:inline-block;padding:7px 12px;border-radius:999px;background:#fff7db;border:1px solid #efd47a;color:#a87400;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;">
+                  Accès validé
+                </div>
+                <h1 style="margin:18px 0 10px;font-size:30px;line-height:1.16;color:#151515;font-weight:800;">
+                  Votre accès MekLoc est prêt
+                </h1>
+                <p style="margin:0 auto;max-width:500px;font-size:16px;line-height:1.65;color:#4b5563;">
+                  Bonjour ${safeGreetingName},<br>
+                  Votre demande d’accès à MekLoc a été validée. Vous pouvez maintenant créer votre mot de passe et accéder à votre espace.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding:22px 30px 28px;">
+                <a href="${safeActivationLink}" style="display:inline-block;background:#e3b117;color:#111111;text-decoration:none;font-size:16px;font-weight:800;padding:15px 24px;border-radius:14px;border:1px solid #c9950c;">
+                  Créer mon mot de passe
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 30px 26px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#fffaf0;border:1px solid #f0dfaa;border-radius:16px;">
+                  <tr>
+                    <td style="padding:18px 20px;">
+                      <p style="margin:0 0 10px;color:#8a6409;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;">Informations d’activation</p>
+                      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                        <tr>
+                          <td style="padding:7px 0;color:#6b7280;font-size:14px;">Plan sélectionné</td>
+                          <td align="right" style="padding:7px 0;color:#111827;font-size:14px;font-weight:700;">${safePlanName}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:7px 0;color:#6b7280;font-size:14px;">Agence</td>
+                          <td align="right" style="padding:7px 0;color:#111827;font-size:14px;font-weight:700;">${safeAgencyName}</td>
+                        </tr>
+                        <tr>
+                          <td style="padding:7px 0;color:#6b7280;font-size:14px;">Email</td>
+                          <td align="right" style="padding:7px 0;color:#111827;font-size:14px;font-weight:700;">${safeEmail}</td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 30px 30px;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:16px;">
+                  <tr>
+                    <td style="padding:16px 18px;color:#4b5563;font-size:14px;line-height:1.55;">
+                      <strong style="color:#111827;">Note de sécurité :</strong>
+                      Pour votre sécurité, ce lien est personnel. Ne le partagez avec personne.
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:24px 30px;background:#fafafa;border-top:1px solid #eeeeee;text-align:center;">
+                <p style="margin:0 0 8px;color:#6b7280;font-size:13px;line-height:1.5;">
+                  Besoin d’aide ? Contactez-nous à
+                  <a href="mailto:contact@mekloc.com" style="color:#a87400;text-decoration:none;font-weight:700;">contact@mekloc.com</a>
+                </p>
+                <p style="margin:0;color:#9ca3af;font-size:12px;">
+                  © MekLoc — Gestion location automobile
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+
+  return { html, text };
+}
+
+async function sendApprovalEmail(params: {
+  activationLink: string;
+  agencyName: string;
+  email: string;
+  ownerName: string;
+  plan: string;
+  redirectTo?: string;
+}): Promise<{ sent: boolean; error?: string }> {
+  const apiKey = Deno.env.get('RESEND_API_KEY');
+  if (!apiKey) {
+    console.error('Approval email skipped: RESEND_API_KEY missing');
+    return { sent: false, error: 'missing_resend_api_key' };
+  }
+
+  const email = buildApprovalEmail(params);
+  try {
+    const response = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: getFromEmail(),
+        to: [params.email],
+        subject: 'Votre accès MekLoc est prêt',
+        html: email.html,
+        text: email.text,
+      }),
+    });
+    const body = await response.text();
+    if (!response.ok) {
+      console.error('Approval email failed', { status: response.status, body });
+      return { sent: false, error: `resend_${response.status}` };
+    }
+    console.log('Approval email sent', { to: params.email });
+    return { sent: true };
+  } catch (error) {
+    console.error('Approval email error', error);
+    return { sent: false, error: error instanceof Error ? error.message : 'email_send_failed' };
+  }
+}
+
 async function generateActivationLink(params: {
   projectUrl: string;
   serviceRole: string;
@@ -300,9 +502,27 @@ Deno.serve(async (req) => {
       }]),
     });
     if (!shortInsertRes.ok) throw new Error(`Erreur création lien court: ${await shortInsertRes.text()}`);
-    activationLink = `${getAppOrigin(redirectTo)}/set-password?token=${encodeURIComponent(shortToken)}`;
+    activationLink = `${getCleanSiteUrl(redirectTo)}/activation/${encodeURIComponent(shortToken)}`;
 
-    return new Response(JSON.stringify({ success: true, inviteInfo, activationLink, agencyId, profileId: approvedUserId }), {
+    const approvalEmail = await sendApprovalEmail({
+      activationLink,
+      agencyName,
+      email,
+      ownerName,
+      plan,
+      redirectTo,
+    });
+    inviteInfo = approvalEmail.sent ? 'activation_email_sent' : 'email_failed';
+
+    return new Response(JSON.stringify({
+      success: true,
+      inviteInfo,
+      emailSent: approvalEmail.sent,
+      ...(approvalEmail.error ? { emailError: approvalEmail.error } : {}),
+      activationLink,
+      agencyId,
+      profileId: approvedUserId,
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {

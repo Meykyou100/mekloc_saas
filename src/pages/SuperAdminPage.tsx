@@ -271,14 +271,14 @@ export default function SuperAdminPage() {
     if (payload?.activationLink) {
       await supabase.from('access_requests').update({ activation_link: payload.activationLink }).eq('id', request.id);
     }
-    if (payload?.inviteInfo === 'email_failed') {
+    if (payload?.emailSent === false || payload?.inviteInfo === 'email_failed') {
       notify({
         title: "Demande approuvée",
-        message: "Compte approuvé. Email d’activation non envoyé, utilisez “Créer compte client” pour copier le lien.",
+        message: "Compte approuvé, mais l’email d’activation n’a pas pu être envoyé.",
         type: 'warning',
       });
     } else {
-      notify({ title: "Demande approuvée", message: "Un lien d’activation a été envoyé au client.", type: 'success' });
+      notify({ title: "Demande approuvée", message: "Compte approuvé. Email d’activation envoyé au client.", type: 'success' });
     }
     await loadAll();
   }
