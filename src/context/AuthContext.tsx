@@ -84,6 +84,7 @@ type AuthContextValue = {
 const AuthContext = createContext<AuthContextValue | null>(null);
 const demoAuthKey = 'mekloc-demo-auth';
 const sessionStorageKey = 'mekloc_session_id';
+const deviceStorageKey = 'mekloc_device_id';
 const sessionStartedAtKey = 'mekloc_session_started_at';
 const demoEmail = 'demo@mekloc.ma';
 const demoPassword = 'demo123456';
@@ -476,6 +477,16 @@ function getOrCreateSessionKey() {
   return next;
 }
 
+function getOrCreateDeviceId() {
+  const existing = localStorage.getItem(deviceStorageKey);
+  if (existing) return existing;
+  const next = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `device-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+  localStorage.setItem(deviceStorageKey, next);
+  return next;
+}
+
 function getOrCreateSessionStartedAt() {
   const existing = localStorage.getItem(sessionStartedAtKey);
   if (existing) return existing;
@@ -508,19 +519,19 @@ function parseDevice(userAgent: string) {
             ? 'Linux'
             : 'Système';
 
-  const deviceName = /iphone/i.test(ua)
-    ? `iPhone • ${browser}`
+  const deviceType = /iphone/i.test(ua)
+    ? 'iPhone'
     : /ipad/i.test(ua)
-      ? `iPad • ${browser}`
+      ? 'iPad'
       : /android/i.test(ua)
-        ? `Android • ${browser}`
+        ? 'Android'
         : /macintosh|mac os x/i.test(ua)
-          ? `MacBook • ${browser}`
+          ? 'MacBook'
           : /windows/i.test(ua)
-            ? `PC Windows • ${browser}`
-            : `${os} • ${browser}`;
+            ? 'PC Windows'
+            : 'Appareil';
 
-  return { browser, os, deviceName };
+  return { browser, os, deviceName: deviceType, deviceType };
 }
 
 function createSlug(name: string) {
@@ -624,30 +635,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const ua = typeof navigator !== 'undefined' ? navigator.userAgent || '' : '';
-      const { browser, os, deviceName } = parseDevice(ua);
+      const { browser, os, deviceName, deviceType } = parseDevice(ua);
       const sessionKey = getOrCreateSessionKey();
+      const deviceId = getOrCreateDeviceId();
       const upsertPayload = {
         user_id: currentUser.id,
         agency_id: currentProfile.agencyId,
+        device_id: deviceId,
         session_key: sessionKey,
         device_name: deviceName,
+        device_label: `${deviceName} · ${browser} · ${os}`,
+        device_type: deviceType,
         browser,
         os,
         user_agent: ua,
         last_seen_at: nowIso,
+        last_activity_at: nowIso,
+        ...(options?.isLogin ? { revoked_at: null } : {}),
       };
 
       const { data: existing, error: existingError } = await supabase
         .from('user_sessions')
-        .select('id')
-        .eq('session_key', sessionKey)
+        .select('id,revoked_at')
+        .eq('user_id', currentUser.id)
+        .eq('device_id', deviceId)
         .maybeSingle();
 
       if (!existingError && existing?.id) {
+        if (existing.revoked_at && !options?.isLogin) return;
         await supabase.from('user_sessions').update(upsertPayload).eq('id', existing.id);
       } else {
         await supabase.from('user_sessions').insert({
           ...upsertPayload,
+          revoked_at: null,
           first_seen_at: nowIso,
         });
       }

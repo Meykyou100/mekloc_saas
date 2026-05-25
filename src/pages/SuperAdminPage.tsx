@@ -61,9 +61,14 @@ type UserSessionRow = {
   id: string;
   user_id: string;
   agency_id: string;
+  device_id?: string | null;
+  session_key?: string | null;
   device_name: string | null;
+  device_label?: string | null;
+  device_type?: string | null;
   browser: string | null;
   os: string | null;
+  last_activity_at?: string | null;
   last_seen_at: string | null;
   first_seen_at: string | null;
   revoked_at: string | null;
@@ -157,6 +162,7 @@ export default function SuperAdminPage() {
   const [agencyPlanFilter, setAgencyPlanFilter] = useState<'all' | 'starter' | 'business'>('all');
   const [agencyStatusFilter, setAgencyStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [agencyPaymentFilter, setAgencyPaymentFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
+  const [showSessionHistoryAgencyId, setShowSessionHistoryAgencyId] = useState<string | null>(null);
 
   const pendingDeletionAccounts = useMemo(() => {
     return Object.entries(agencyUsers).flatMap(([agencyId, users]) => {
@@ -246,7 +252,7 @@ export default function SuperAdminPage() {
       try {
         const sessionRes = await supabase
           .from('user_sessions')
-          .select('id,user_id,agency_id,device_name,browser,os,last_seen_at,first_seen_at,revoked_at')
+          .select('id,user_id,agency_id,device_id,session_key,device_name,device_label,device_type,browser,os,last_activity_at,last_seen_at,first_seen_at,revoked_at')
           .order('last_seen_at', { ascending: false });
         if (!sessionRes.error) {
           const byAgencySessions: Record<string, UserSessionRow[]> = {};
@@ -528,6 +534,30 @@ export default function SuperAdminPage() {
     });
   }
 
+  function formatActivityTime(value: string | null | undefined) {
+    if (!value) return '—';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '—';
+    const diffMs = Date.now() - date.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'À l’instant';
+    if (diffMin < 60) return `Il y a ${diffMin} min`;
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) return `Il y a ${diffHours} h`;
+    if (diffHours < 48) return 'Hier';
+    return date.toLocaleDateString('fr-MA', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  function sessionDisplayLabel(session: UserSessionRow) {
+    const browser = session.browser || 'Navigateur';
+    const os = session.os || 'Système';
+    const device = session.device_type || session.device_name || 'Appareil';
+    return [device, browser, os]
+      .map((part) => String(part).replace(/\s*•\s*/g, ' ').trim())
+      .filter((part, index, parts) => part && parts.findIndex((item) => item.toLowerCase() === part.toLowerCase()) === index)
+      .join(' · ');
+  }
+
   function daysRemaining(value: string | null | undefined) {
     if (!value) return '—';
     const target = new Date(value).getTime();
@@ -569,9 +599,8 @@ export default function SuperAdminPage() {
     if (revokedAt) return 'Déconnecté';
     if (!lastSeenAt) return 'Inactif';
     const diffMs = Date.now() - new Date(lastSeenAt).getTime();
-    if (diffMs <= 2 * 60 * 1000) return 'Actif maintenant';
-    const diffMin = Math.max(1, Math.floor(diffMs / (60 * 1000)));
-    return `Vu il y a ${diffMin} min`;
+    if (diffMs <= 2 * 60 * 1000) return 'À l’instant';
+    return formatActivityTime(lastSeenAt);
   }
 
   async function revokeSingleSession(sessionId: string) {
@@ -876,14 +905,15 @@ export default function SuperAdminPage() {
                         const users = agencyUsers[agency.id] || [];
                         const sessions = agencySessions[agency.id] || [];
                         const activeSessions = sessions.filter((s) => !s.revoked_at);
-                        const lastAgencyActivity = activeSessions[0]?.last_seen_at || null;
+                        const showHistory = showSessionHistoryAgencyId === agency.id;
+                        const lastAgencyActivity = activeSessions[0]?.last_activity_at || activeSessions[0]?.last_seen_at || null;
                         return (
                           <>
                             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                               <div className="rounded-lg border border-white/10 bg-carbon-950/60 px-3 py-2 text-xs text-carbon-300">Total utilisateurs <span className="ml-1 font-semibold text-white">{users.length}</span></div>
                               <div className="rounded-lg border border-white/10 bg-carbon-950/60 px-3 py-2 text-xs text-carbon-300">Utilisateurs actifs <span className="ml-1 font-semibold text-white">{users.filter((u) => u.account_status === 'active').length}</span></div>
                               <div className="rounded-lg border border-white/10 bg-carbon-950/60 px-3 py-2 text-xs text-carbon-300">Appareils connectés <span className="ml-1 font-semibold text-white">{activeSessions.length}</span></div>
-                              <div className="rounded-lg border border-white/10 bg-carbon-950/60 px-3 py-2 text-xs text-carbon-300">Dernière activité agence <span className="ml-1 font-semibold text-white">{formatSince(lastAgencyActivity)}</span></div>
+                              <div className="rounded-lg border border-white/10 bg-carbon-950/60 px-3 py-2 text-xs text-carbon-300">Dernière activité agence <span className="ml-1 font-semibold text-white">{formatActivityTime(lastAgencyActivity)}</span></div>
                             </div>
 
                             <div className="flex flex-wrap gap-2">
@@ -895,6 +925,13 @@ export default function SuperAdminPage() {
                               >
                                 Déconnecter toute l’agence
                               </Button>
+                              <Button
+                                variant="ghost"
+                                className="h-8 px-3 text-xs"
+                                onClick={() => setShowSessionHistoryAgencyId((current) => (current === agency.id ? null : agency.id))}
+                              >
+                                {showHistory ? 'Masquer l’historique' : 'Afficher l’historique'}
+                              </Button>
                             </div>
 
                             {users.length === 0 ? (
@@ -903,8 +940,10 @@ export default function SuperAdminPage() {
                               <div className="space-y-2">
                                 {users.map((u) => {
                                   const userSessions = sessions.filter((s) => s.user_id === u.id);
-                                  const activeCount = userSessions.filter((s) => !s.revoked_at).length;
-                                  const sessionLastSeen = userSessions.find((s) => !!s.last_seen_at)?.last_seen_at || null;
+                                  const activeUserSessions = userSessions.filter((s) => !s.revoked_at);
+                                  const displayedSessions = showHistory ? userSessions : activeUserSessions;
+                                  const activeCount = activeUserSessions.length;
+                                  const sessionLastSeen = activeUserSessions.find((s) => !!s.last_activity_at || !!s.last_seen_at)?.last_activity_at || activeUserSessions.find((s) => !!s.last_seen_at)?.last_seen_at || null;
                                   const sessionFirstSeen = userSessions.find((s) => !!s.first_seen_at)?.first_seen_at || null;
                                   const lastLogin = u.last_login_at || sessionFirstSeen || null;
                                   const lastSeen = u.last_seen_at || sessionLastSeen || null;
@@ -928,14 +967,14 @@ export default function SuperAdminPage() {
                                         </div>
                                       </div>
                                       <div className="mt-2 grid gap-1 text-xs text-carbon-300 sm:grid-cols-2">
-                                        <p><strong>Dernière connexion:</strong> {formatSince(lastLogin)}</p>
-                                        <p><strong>Dernière activité:</strong> {formatSince(lastSeen)}</p>
+                                        <p><strong>Dernière connexion:</strong> {formatActivityTime(lastLogin)}</p>
+                                        <p><strong>Dernière activité:</strong> {formatActivityTime(lastSeen)}</p>
                                       </div>
 
                                       <div className="mt-2 space-y-1.5">
-                                        {userSessions.length === 0 ? (
-                                          <p className="text-xs text-carbon-500">Aucune session enregistrée</p>
-                                        ) : userSessions.map((s) => (
+                                        {displayedSessions.length === 0 ? (
+                                          <p className="text-xs text-carbon-500">{showHistory ? 'Aucune session enregistrée' : 'Aucun appareil actif'}</p>
+                                        ) : displayedSessions.map((s) => (
                                           <div key={s.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-white/10 bg-carbon-900/60 px-2.5 py-2">
                                             <div className="flex items-center gap-2 text-xs text-carbon-200">
                                               {/iphone|android|ipad/i.test(`${s.os || ''} ${s.device_name || ''}`) ? (
@@ -943,11 +982,7 @@ export default function SuperAdminPage() {
                                               ) : (
                                                 <Laptop2 className="h-3.5 w-3.5 text-gold-200" />
                                               )}
-                                              <span>{s.device_name || 'Appareil'}</span>
-                                              <span className="text-carbon-400">•</span>
-                                              <span>{s.browser || 'Navigateur'}</span>
-                                              <span className="text-carbon-400">•</span>
-                                              <span>{s.os || 'OS'}</span>
+                                              <span>{sessionDisplayLabel(s)}</span>
                                             </div>
                                             <div className="flex flex-wrap items-center gap-2">
                                               <Badge>{activityLabel(s.last_seen_at, s.revoked_at)}</Badge>
