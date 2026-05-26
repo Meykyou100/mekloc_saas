@@ -60,10 +60,10 @@ function escapePdf(value: string) {
 
 function MetricCard({ label, value, note }: { label: string; value: string; note: string }) {
   return (
-    <Card className="flex min-h-[104px] flex-col justify-between bg-gradient-to-br from-zinc-950/95 to-black/70 p-3.5 sm:min-h-[122px] sm:p-5">
-      <p className="line-clamp-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-carbon-400 light:text-carbon-600 sm:text-xs">{label}</p>
-      <p className="mt-2 truncate text-xl font-black tracking-tight text-white light:text-carbon-950 sm:mt-3 sm:text-2xl">{value}</p>
-      <p className="mt-1 line-clamp-1 text-[11px] text-carbon-500 light:text-carbon-600 sm:mt-3 sm:text-sm">{note}</p>
+    <Card className="flex min-h-[88px] flex-col justify-between p-3 sm:min-h-[122px] sm:p-5">
+      <p className="truncate text-[11px] font-semibold uppercase tracking-[0.1em] text-carbon-400 light:text-carbon-600 sm:text-xs">{label}</p>
+      <p className="mt-1 truncate text-lg font-black tracking-tight text-white light:text-carbon-950 sm:mt-3 sm:text-2xl">{value}</p>
+      <p className="mt-1 truncate text-[10px] text-carbon-500 light:text-carbon-600 sm:mt-3 sm:text-sm">{note}</p>
     </Card>
   );
 }

@@ -492,7 +492,7 @@ export default function PaymentsPage() {
       </Card>
 
       {filtered.length === 0 ? (
-        <Card className="mt-6 p-6 text-center sm:p-10">
+        <Card className="mt-6 p-10 text-center">
           <p className="text-base font-semibold text-white">Aucun paiement trouvé</p>
           <p className="mt-2 text-sm text-carbon-400">Ajustez vos filtres ou ajoutez un nouveau paiement.</p>
         </Card>

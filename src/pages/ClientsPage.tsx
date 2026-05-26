@@ -467,14 +467,14 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="relative overflow-x-hidden pb-8 md:pb-8">
+    <div className="relative overflow-x-hidden pb-44 md:pb-8">
       <div className="pointer-events-none absolute right-[-18%] top-10 h-72 w-72 rounded-full bg-[#D4A017]/10 blur-3xl" />
       <div className="relative pt-4 md:hidden">
         <section className="space-y-5">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="text-xs font-black uppercase tracking-[0.28em] text-gold-200">CRM</p>
-              <h1 className="mt-2 text-[2rem] font-black leading-tight text-white">Clients</h1>
+              <h1 className="mt-2 text-4xl font-black leading-none text-white">Clients</h1>
               <p className="mt-2 text-base leading-relaxed text-carbon-300">Gérez vos clients et leurs documents.</p>
             </div>
             <div className="flex shrink-0 gap-2">
@@ -497,12 +497,12 @@ export default function ClientsPage() {
           </div>
 
           <label className="relative block">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-carbon-500" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value.slice(0, 120))}
               placeholder="Nom, téléphone, CIN, permis..."
-              className="form-control focus-ring h-14 w-full rounded-2xl border-white/10 bg-white/[0.045] pl-11 pr-4 text-base text-white placeholder:text-carbon-500"
+              className="form-control focus-ring h-16 w-full rounded-3xl border-white/10 bg-white/[0.045] pl-12 pr-4 text-base text-white placeholder:text-carbon-500"
             />
           </label>
 
@@ -516,17 +516,17 @@ export default function ClientsPage() {
             ].map(({ label, value, icon: Icon, active, tone, bg }) => (
               <div
                 key={label}
-                className={`min-w-[128px] rounded-2xl border p-3.5 shadow-[0_18px_42px_rgba(0,0,0,.24)] ${
+                className={`min-w-[138px] rounded-3xl border p-4 shadow-[0_18px_42px_rgba(0,0,0,.24)] ${
                   active
                     ? 'border-[#D4A017]/70 bg-[#D4A017]/12'
                     : 'border-white/10 bg-gradient-to-br from-zinc-950/95 to-zinc-900/60'
                 }`}
               >
-                <span className={`grid h-10 w-10 place-items-center rounded-xl ${bg}`}>
+                <span className={`grid h-12 w-12 place-items-center rounded-2xl ${bg}`}>
                   <Icon className={`h-5 w-5 ${tone}`} />
                 </span>
-                <p className="mt-3 truncate text-[1.35rem] font-black text-white">{value}</p>
-                <p className="mt-1 text-xs font-semibold leading-snug text-carbon-300">{label}</p>
+                <p className="mt-4 truncate text-2xl font-black text-white">{value}</p>
+                <p className="mt-1 text-sm font-medium leading-snug text-carbon-300">{label}</p>
               </div>
             ))}
           </div>
@@ -828,7 +828,7 @@ export default function ClientsPage() {
             )}
           </Card>
 
-          <Card className="min-h-[360px] border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141c] to-black p-5 shadow-[0_24px_70px_rgba(0,0,0,.30)] md:min-h-[520px]">
+          <Card className="min-h-[520px] border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141c] to-black p-5 shadow-[0_24px_70px_rgba(0,0,0,.30)]">
             {selectedClient ? (
               <div className="space-y-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -1074,6 +1074,19 @@ export default function ClientsPage() {
               </button>
             </div>
           </div>
+        </div>
+      ) : null}
+
+      {clients.length > 0 ? (
+        <div className="fixed inset-x-4 bottom-24 z-40 md:hidden">
+          <button
+            type="button"
+            onClick={openNewClient}
+            className="focus-ring flex h-16 w-full items-center justify-center gap-3 rounded-3xl bg-[#D4A017] text-base font-black text-black shadow-[0_20px_50px_rgba(212,160,23,.30)] transition hover:bg-[#f1c232]"
+          >
+            <UserPlus className="h-5 w-5" />
+            Ajouter un client
+          </button>
         </div>
       ) : null}
 

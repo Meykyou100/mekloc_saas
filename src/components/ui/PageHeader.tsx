@@ -19,7 +19,7 @@ export default function PageHeader({
             {eyebrow}
           </p>
         ) : null}
-        <h1 className="text-[2rem] font-black leading-tight text-white light:text-carbon-950 sm:text-2xl lg:text-3xl">{title}</h1>
+        <h1 className="text-[1.7rem] font-black leading-tight text-white light:text-carbon-950 sm:text-2xl lg:text-3xl">{title}</h1>
         {description ? (
           <p className="mt-2 max-w-2xl text-sm leading-6 text-carbon-300 light:text-carbon-600 sm:mt-2 sm:text-sm sm:leading-6">
             {description}

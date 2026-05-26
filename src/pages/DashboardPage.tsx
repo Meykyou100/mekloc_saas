@@ -55,13 +55,13 @@ function KpiCard({
   icon: typeof Car;
 }) {
   return (
-    <Card className="flex min-h-[104px] flex-col justify-between bg-gradient-to-br from-zinc-950/95 to-black/70 p-3.5 sm:min-h-[136px] sm:p-6">
+    <Card className="flex min-h-[92px] flex-col justify-between p-3 sm:min-h-[136px] sm:p-6">
       <div className="flex items-start justify-between gap-2 sm:gap-4">
         <div className="min-w-0">
-          <p className="line-clamp-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-carbon-400 light:text-carbon-600 sm:text-sm sm:normal-case sm:tracking-normal">{label}</p>
-          <p className="mt-2 truncate text-xl font-black tracking-tight text-white light:text-carbon-950 sm:mt-3 sm:text-3xl">{value}</p>
+          <p className="truncate text-[11px] font-medium text-carbon-400 light:text-carbon-600 sm:text-sm">{label}</p>
+          <p className="mt-1 truncate text-xl font-semibold tracking-tight text-white light:text-carbon-950 sm:mt-3 sm:text-3xl">{value}</p>
         </div>
-        <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/10 p-2 text-gold-200 light:bg-carbon-950/[0.04] light:text-carbon-700 sm:rounded-2xl sm:p-3">
+        <div className="rounded-xl border border-white/10 bg-white/[0.045] p-2 text-carbon-200 light:bg-carbon-950/[0.04] light:text-carbon-700 sm:rounded-2xl sm:p-3">
           <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
       </div>
@@ -178,7 +178,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-5 md:space-y-8">
+    <div className="space-y-8">
       <PageHeader
         eyebrow="Espace agence"
         title="Tableau de bord"
