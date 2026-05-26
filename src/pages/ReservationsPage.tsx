@@ -434,7 +434,7 @@ export default function ReservationsPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Bookings"
+        eyebrow="Réservations"
         title="Réservations"
         description="Pilotage complet des départs, retours, cautions et contrats de location."
         action={<Button icon={<Plus className="h-4 w-4" />} onClick={openNewReservation}>Ajouter une réservation</Button>}
