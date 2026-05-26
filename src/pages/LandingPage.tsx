@@ -31,8 +31,10 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
+import SEO, { baseStructuredData, faqStructuredData } from '../components/system/SEO';
 import { SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_DISPLAY, WHATSAPP_URL } from '../config/app';
 import { MEKLOC_PLANS } from '../config/pricing';
+import { DEFAULT_DESCRIPTION, DEFAULT_KEYWORDS, DEFAULT_TITLE } from '../config/seo';
 
 const whatsappNumber = SUPPORT_PHONE.replace(/^\+/, '');
 const contactEmail = SUPPORT_EMAIL;
@@ -108,7 +110,7 @@ const plans = [
   },
 ];
 
-const faqs = [
+const faqs: Array<[string, string]> = [
   ['Comment demander un accès ?', 'Cliquez sur Essai gratuit, remplissez la demande d’accès et notre équipe valide votre espace agence.'],
   ['Est-ce adapté aux agences marocaines ?', 'Oui. MekLoc est pensé pour les agences de location au Maroc avec MAD, cautions, contrats PDF et alertes véhicules.'],
   ['Puis-je gérer plusieurs utilisateurs ?', 'Oui. Le plan Business permet de travailler à plusieurs avec des rôles et accès sécurisés.'],
@@ -500,6 +502,13 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#050606] text-white">
+      <SEO
+        title={DEFAULT_TITLE}
+        description={DEFAULT_DESCRIPTION}
+        canonical="/"
+        keywords={DEFAULT_KEYWORDS}
+        jsonLd={[...baseStructuredData(), faqStructuredData(faqs)]}
+      />
       <LandingHeader />
 
       <main className="bg-[radial-gradient(circle_at_22%_3%,rgba(227,177,23,.10),transparent_34%),linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:auto,72px_72px,72px_72px]">
@@ -511,17 +520,14 @@ export default function LandingPage() {
                 <span className="lg:hidden">SaaS de gestion pour agences au Maroc</span>
                 <span className="hidden lg:inline">SaaS de gestion pour agences de location au Maroc</span>
               </div>
-              <h1 className="mt-6 text-[42px] font-black leading-[1.04] text-white sm:text-6xl lg:hidden">
-                Gérez votre agence de location <span className="text-[#E3B117]">sans stress</span>
-              </h1>
-              <h1 className="mt-6 hidden text-[42px] font-black leading-[1.05] text-white sm:text-6xl lg:block lg:text-[4.55rem]">
-                Gérez vos réservations, véhicules et contrats en <span className="text-[#E3B117]">un seul endroit</span>
+              <h1 className="mt-6 text-[42px] font-black leading-[1.04] text-white sm:text-6xl lg:text-[4.35rem] lg:leading-[1.05]">
+                Logiciel de gestion pour agences de location de voitures <span className="text-[#E3B117]">au Maroc</span>
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg sm:leading-8 lg:hidden">
                 Réservations, véhicules, contrats PDF, paiements et alertes dans une seule plateforme.
               </p>
               <p className="mt-5 hidden max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg sm:leading-8 lg:block">
-                Centralisez votre flotte, vos clients, vos contrats PDF, vos paiements et vos alertes dans une plateforme pensée pour les agences de location au Maroc.
+                MekLoc centralise la location de voitures au Maroc : réservations, véhicules, clients, contrats PDF, paiements, cautions, entretien et alertes dans une seule plateforme.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
                 <Link to="/demande-acces" className="block w-full sm:w-auto"><Button className="h-14 w-full rounded-2xl bg-[#E3B117] px-7 font-black text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.22)] hover:bg-[#F5C542] sm:w-auto" icon={<Zap className="h-4 w-4" />}>Essai gratuit 14 jours</Button></Link>
@@ -550,7 +556,7 @@ export default function LandingPage() {
 
         <section id="fonctionnalites" className="border-b border-white/10 py-12 sm:py-20">
           <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-10">
-            <SectionTitle eyebrow="Pourquoi les agences choisissent MekLoc ?" title="Moins de friction, plus de contrôle" />
+            <SectionTitle eyebrow="Pourquoi les agences choisissent MekLoc ?" title="Pourquoi choisir MekLoc ?" />
             <div className="mt-8 grid gap-4 sm:gap-6 md:grid-cols-3">
               {choiceCards.map(([title, text, Icon]) => (
                 <Card key={title as string} className="group p-6 active:border-[#E3B117]/35 hover:border-[#E3B117]/35 sm:p-8">
@@ -565,7 +571,7 @@ export default function LandingPage() {
 
         <section className="border-b border-white/10 py-12 sm:py-20">
           <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-10">
-            <SectionTitle eyebrow="Comparaison" title="Passez d’une gestion dispersée à une gestion centralisée" />
+            <SectionTitle eyebrow="Comparaison" title="Centralisez clients, paiements et cautions" />
             <Card className="mt-8 p-4 hover:border-[#E3B117]/25 sm:p-8 lg:p-10">
               <div className="grid gap-4 sm:gap-7 lg:grid-cols-[1fr_auto_1fr] lg:items-stretch">
                 <div className="rounded-2xl border border-white/10 bg-black/30 p-5 sm:p-6">
@@ -589,7 +595,8 @@ export default function LandingPage() {
 
         <section className="border-b border-white/10 py-12 sm:py-20">
           <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-10">
-            <SectionTitle eyebrow="Comment ça marche ?" title="Un workflow simple pour votre agence" />
+            <SectionTitle eyebrow="Comment ça marche ?" title="Gérez vos réservations en temps réel" />
+            <h2 className="sr-only">Générez des contrats PDF professionnels</h2>
             <div className="relative mt-8 grid gap-4 pl-5 sm:gap-6 sm:pl-0 md:grid-cols-2 xl:grid-cols-4">
               <div className="pointer-events-none absolute bottom-4 left-6 top-4 w-px bg-gradient-to-b from-transparent via-[#E3B117]/35 to-transparent sm:hidden" />
               <div className="pointer-events-none absolute left-10 right-10 top-16 hidden h-px bg-gradient-to-r from-transparent via-[#E3B117]/35 to-transparent xl:block" />
@@ -611,7 +618,7 @@ export default function LandingPage() {
             <div className="mx-auto max-w-4xl text-center">
               <p className="text-xs font-black uppercase tracking-[0.26em] text-[#F5C542] sm:text-sm">INTERFACE</p>
               <h2 className="mt-3 text-[28px] font-black leading-tight text-white sm:text-4xl lg:text-5xl">
-                Une interface simple pour gérer <span className="text-[#E3B117]">toute votre agence</span>
+                Suivez votre flotte et <span className="text-[#E3B117]">vos véhicules</span>
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-zinc-400">
                 Réservations, véhicules, clients, contrats PDF, paiements et alertes réunis dans un seul espace.
@@ -671,7 +678,7 @@ export default function LandingPage() {
 
         <section id="tarifs" className="border-b border-white/10 py-12 sm:py-20">
           <div className="mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8 xl:px-10">
-            <SectionTitle eyebrow="Tarifs simples et transparents" title="Choisissez le plan adapté" />
+            <SectionTitle eyebrow="Tarifs simples et transparents" title="Tarifs MekLoc" />
             <p className="mt-4 text-center text-sm font-semibold text-white/55">Sans engagement • Support inclus</p>
             <div className="mx-auto mt-6 flex w-max rounded-full border border-white/10 bg-white/[0.04] p-1 text-sm font-bold">
               <button
@@ -731,7 +738,7 @@ export default function LandingPage() {
 
         <section id="faq" className="border-b border-white/10 py-12 sm:py-20">
           <div className="mx-auto w-full max-w-[1180px] px-4 sm:px-6 lg:px-8 xl:px-10">
-            <SectionTitle eyebrow="Questions fréquentes" title="Vos questions avant de commencer" />
+            <SectionTitle eyebrow="Questions fréquentes" title="Questions fréquentes" />
             <div className="mt-8 grid gap-3 sm:gap-4 lg:grid-cols-2">
               {faqs.map(([question, answer]) => (
                 <details key={question} className="group rounded-2xl border border-white/10 bg-zinc-950/75 transition hover:border-[#E3B117]/28 hover:bg-zinc-900/70">

@@ -5,6 +5,7 @@ import type { ComponentType } from 'react';
 import AppLayout from './components/layout/AppLayout';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import ToastViewport from './components/ui/ToastViewport';
+import SEO from './components/system/SEO';
 import AccountStatusPage from './pages/AccountStatusPage';
 import ActivationPage from './pages/ActivationPage';
 import AuthPage from './pages/AuthPage';
@@ -33,6 +34,7 @@ const VehiclesPage = lazyWithRetry(() => import('./pages/VehiclesPage'));
 import VerificationEnCoursPage from './pages/VerificationEnCoursPage';
 import ConditionsPage from './pages/ConditionsPage';
 import CancellationRefundPage from './pages/CancellationRefundPage';
+import SeoLandingPage from './pages/SeoLandingPage';
 
 const CHUNK_RELOAD_KEY = 'mekloc-chunk-reload-attempted';
 
@@ -147,11 +149,19 @@ export default function App() {
               </AnimatedPage>
             }
           />
+          <Route path="/tarifs" element={<AnimatedPage><PricingPage /></AnimatedPage>} />
+          <Route path="/contact" element={<AnimatedPage><SeoLandingPage path="/contact" /></AnimatedPage>} />
+          <Route path="/logiciel-location-voiture-maroc" element={<AnimatedPage><SeoLandingPage path="/logiciel-location-voiture-maroc" /></AnimatedPage>} />
+          <Route path="/contrats-location-voiture-pdf" element={<AnimatedPage><SeoLandingPage path="/contrats-location-voiture-pdf" /></AnimatedPage>} />
+          <Route path="/gestion-flotte-location" element={<AnimatedPage><SeoLandingPage path="/gestion-flotte-location" /></AnimatedPage>} />
           <Route path="/demande-acces" element={<AnimatedPage><DemandeAccesPage /></AnimatedPage>} />
           <Route path="/verification-en-cours" element={<AnimatedPage><VerificationEnCoursPage /></AnimatedPage>} />
           <Route path="/conditions-utilisation" element={<AnimatedPage><ConditionsPage /></AnimatedPage>} />
           <Route path="/politique-confidentialite" element={<AnimatedPage><PrivacyPage /></AnimatedPage>} />
           <Route path="/annulation-remboursement" element={<AnimatedPage><CancellationRefundPage /></AnimatedPage>} />
+          <Route path="/conditions" element={<AnimatedPage><ConditionsPage /></AnimatedPage>} />
+          <Route path="/privacy" element={<AnimatedPage><PrivacyPage /></AnimatedPage>} />
+          <Route path="/cancellation-refund" element={<AnimatedPage><CancellationRefundPage /></AnimatedPage>} />
           <Route
             path="/public-booking-preview"
             element={
@@ -166,7 +176,7 @@ export default function App() {
             <Route path="/payment-required" element={<PaymentRequiredPage />} />
           </Route>
           <Route element={<ProtectedRoute requireAgency={false} requireSuperAdmin />}>
-            <Route path="/super-admin" element={<SuperAdminPage />} />
+            <Route path="/super-admin" element={<><SEO title="MekLoc – Super Admin" description="Espace privé administrateur MekLoc." canonical="/super-admin" noindex /><SuperAdminPage /></>} />
           </Route>
           <Route element={<ProtectedRoute />}>
             <Route element={<AppLayout />}>

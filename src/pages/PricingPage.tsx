@@ -2,11 +2,18 @@ import { ArrowLeft, CheckCircle2, Crown, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
+import SEO, { baseStructuredData } from '../components/system/SEO';
 import { plans } from '../data/mockData';
 
 export default function PricingPage() {
   return (
     <div className="min-h-screen bg-carbon-950 px-4 py-8 text-white light:bg-carbon-50 light:text-carbon-950 sm:px-6 lg:px-8">
+      <SEO
+        title="Tarifs MekLoc – Logiciel location voiture Maroc"
+        description="Consultez les tarifs MekLoc pour gérer une agence de location de voitures au Maroc : réservations, flotte, contrats PDF, paiements et entretien."
+        canonical="/tarifs"
+        jsonLd={baseStructuredData()}
+      />
       <div className="mx-auto max-w-7xl">
         <Link to="/" className="inline-flex items-center gap-2 text-sm font-semibold text-carbon-300 hover:text-gold-200 light:text-carbon-700">
           <ArrowLeft className="h-4 w-4" />

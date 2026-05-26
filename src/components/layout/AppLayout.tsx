@@ -5,6 +5,7 @@ import Topbar from './Topbar';
 import { CalendarDays, Car, LayoutDashboard, MoreHorizontal, Plus, Users } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
+import SEO from '../system/SEO';
 
 function PageLoadingHint() {
   return (
@@ -22,6 +23,7 @@ export default function AppLayout() {
 
   return (
     <div className="min-h-screen bg-carbon-950 text-white light:bg-carbon-50 light:text-carbon-950">
+      <SEO title="MekLoc – Espace agence" description="Espace privé MekLoc pour la gestion de votre agence." canonical="/dashboard" noindex />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="min-h-screen lg:pl-72">
         <Topbar onMenu={() => setSidebarOpen(true)} />
