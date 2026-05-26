@@ -79,12 +79,12 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-black/82 px-4 py-3 shadow-[0_12px_40px_rgba(0,0,0,.18)] backdrop-blur-2xl light:bg-white/78 sm:px-6 md:bg-carbon-950/72 lg:px-8">
+    <header className="sticky top-0 z-30 border-b border-white/10 bg-black/82 px-4 py-2.5 shadow-[0_12px_40px_rgba(0,0,0,.18)] backdrop-blur-2xl light:bg-white/78 sm:px-6 md:bg-carbon-950/72 md:py-3 lg:px-8">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4A017]/35 to-transparent lg:hidden" />
       <div className="relative flex min-h-12 items-center gap-3">
         <button
           aria-label="Open sidebar"
-          className="focus-ring grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/25 hover:bg-gold-400/10 lg:hidden"
+          className="focus-ring grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/25 hover:bg-gold-400/10 md:h-11 md:w-11 lg:hidden"
           onClick={onMenu}
         >
           <Menu className="h-5 w-5" />
@@ -99,14 +99,14 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
         </div>
         <div className="mr-auto md:hidden">
           <span className="flex items-center gap-2.5 text-lg font-black">
-            <img src="/mekloc-logo-mark.png" alt="MekLoc" className="h-10 w-auto shrink-0 object-contain" />
+            <img src="/mekloc-logo-mark.png" alt="MekLoc" className="h-9 w-auto shrink-0 object-contain md:h-10" />
             <span>MekLoc</span>
           </span>
         </div>
         <div className="relative">
           <button
             aria-label="Notifications"
-            className="focus-ring relative grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/25 hover:bg-gold-400/10 light:bg-carbon-950/[0.04] light:text-carbon-800 md:bg-zinc-950/70 md:text-carbon-200"
+            className="focus-ring relative grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/25 hover:bg-gold-400/10 light:bg-carbon-950/[0.04] light:text-carbon-800 md:h-11 md:w-11 md:bg-zinc-950/70 md:text-carbon-200"
             onClick={() => {
               setProfileOpen(false);
               setNotificationsOpen((current) => !current);

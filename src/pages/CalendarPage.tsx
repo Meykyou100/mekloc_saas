@@ -138,7 +138,7 @@ function vehicleStatusClass(status: string, archived?: boolean) {
 export default function CalendarPage() {
   const { vehicles, reservations, maintenance, loading } = useData();
   const navigate = useNavigate();
-  const [daysToShow, setDaysToShow] = useState(14);
+  const [daysToShow, setDaysToShow] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 768 ? 7 : 14));
   const [windowStart, setWindowStart] = useState(() => toDateOnly(new Date()));
   const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
   const [selectedDayIso, setSelectedDayIso] = useState(() => isoDate(new Date()));
@@ -272,18 +272,18 @@ export default function CalendarPage() {
     <section className="relative overflow-x-hidden pb-6 md:pb-8">
       <div className="pointer-events-none absolute right-[-24%] top-5 h-64 w-64 rounded-full bg-[#D4A017]/10 blur-3xl" />
       <div className="md:hidden">
-        <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="mb-3 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-black uppercase tracking-[0.26em] text-gold-300">PLANIFICATION</p>
-            <h1 className="mt-2 text-[2rem] font-black leading-tight tracking-tight text-white">Calendrier</h1>
-            <p className="mt-1.5 max-w-[255px] text-[15px] leading-6 text-carbon-300">
+            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-gold-300">PLANIFICATION</p>
+            <h1 className="mt-1.5 text-[1.875rem] font-black leading-tight tracking-tight text-white">Calendrier</h1>
+            <p className="mt-1 max-w-[225px] text-sm leading-5 text-carbon-300">
               Planifiez et suivez votre flotte en temps réel.
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
-              className="focus-ring inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.045] px-3 text-xs font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,.06)]"
+              className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.045] px-2.5 text-xs font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,.06)]"
               onClick={() => {
                 const today = toDateOnly(new Date());
                 setWindowStart(today);
@@ -296,7 +296,7 @@ export default function CalendarPage() {
             <button
               type="button"
               aria-label="Nouvelle réservation"
-              className="grid h-10 w-10 place-items-center rounded-xl bg-[#D4A017] text-black shadow-[0_0_24px_rgba(212,160,23,0.32)] transition active:scale-95"
+              className="grid h-9 w-9 place-items-center rounded-xl bg-[#D4A017] text-black shadow-[0_0_24px_rgba(212,160,23,0.32)] transition active:scale-95"
               onClick={() => navigate('/reservations')}
             >
               <Plus className="h-4 w-4" />
@@ -332,7 +332,7 @@ export default function CalendarPage() {
         />
       </div>
 
-      <div className="no-scrollbar relative -mx-4 mb-4 flex gap-3 overflow-x-auto px-4 pb-1 md:mx-0 md:mb-6 md:grid md:grid-cols-2 md:overflow-visible md:px-0 md:pb-0 xl:grid-cols-5">
+      <div className="no-scrollbar relative -mx-4 mb-3 flex gap-2.5 overflow-x-auto px-4 pb-1 md:mx-0 md:mb-6 md:grid md:grid-cols-2 md:overflow-visible md:px-0 md:pb-0 xl:grid-cols-5">
         {[
           { label: 'Véhicules', value: String(calendarStats.activeVehicles), helper: 'Dans votre flotte', icon: Car, tone: 'text-emerald-200', glow: 'from-emerald-400/14' },
           { label: 'Réserv.', value: String(calendarStats.reservationsToday), helper: 'Aujourd’hui', icon: CalendarDays, tone: 'text-violet-200', glow: 'from-violet-400/14' },
@@ -340,61 +340,61 @@ export default function CalendarPage() {
           { label: 'Maintenance', value: String(calendarStats.maintenanceCount), helper: 'Non disponibles', icon: Wrench, tone: 'text-amber-200', glow: 'from-amber-400/14' },
           { label: 'Occupation', value: `${calendarStats.occupancy}%`, helper: 'Cette semaine', icon: TrendingUp, tone: 'text-sky-200', glow: 'from-sky-400/14' },
         ].map(({ label, value, helper, icon: Icon, tone, glow }) => (
-          <div key={label} className="group relative min-h-[126px] min-w-[136px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-950/90 to-black p-3 shadow-[0_16px_42px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.05)] transition hover:border-[#D4A017]/35 md:min-h-[126px] md:min-w-0 md:rounded-3xl md:p-4">
+          <div key={label} className="group relative min-h-[108px] min-w-[118px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-950/90 to-black p-2.5 shadow-[0_14px_34px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.05)] transition hover:border-[#D4A017]/35 md:min-h-[126px] md:min-w-0 md:rounded-3xl md:p-4">
             <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${glow} to-transparent opacity-80`} />
             <div className="relative flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase leading-4 tracking-[0.12em] text-carbon-400">{label}</p>
-                <p className="mt-2 truncate text-[1.7rem] font-black leading-none text-white md:text-3xl">{value}</p>
+                <p className="text-[9px] font-black uppercase leading-3 tracking-[0.1em] text-carbon-400">{label}</p>
+                <p className="mt-2 truncate text-2xl font-black leading-none text-white md:text-3xl">{value}</p>
               </div>
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[16px] border border-[#D4A017]/20 bg-[#D4A017]/10 shadow-[0_0_24px_rgba(212,160,23,0.11)]">
-                <Icon className={`h-4 w-4 ${tone}`} />
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[14px] border border-[#D4A017]/20 bg-[#D4A017]/10 shadow-[0_0_20px_rgba(212,160,23,0.10)] md:h-10 md:w-10">
+                <Icon className={`h-3.5 w-3.5 md:h-4 md:w-4 ${tone}`} />
               </span>
             </div>
-            <div className="relative mt-3">
-              <p className="truncate text-[11px] font-medium text-carbon-400">{helper}</p>
-              <span className="mt-2 block h-1.5 w-16 rounded-full bg-gradient-to-r from-[#D4A017]/70 via-white/20 to-transparent" />
+            <div className="relative mt-2.5">
+              <p className="truncate text-[10px] font-medium text-carbon-400">{helper}</p>
+              <span className="mt-1.5 block h-1 w-14 rounded-full bg-gradient-to-r from-[#D4A017]/70 via-white/20 to-transparent" />
             </div>
           </div>
         ))}
       </div>
 
-      <Card className="relative mb-4 border-white/10 bg-gradient-to-br from-zinc-950/90 to-black p-3 shadow-[0_18px_46px_rgba(0,0,0,.24)] md:p-4">
-        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-          <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2 md:flex md:flex-wrap">
-            <button type="button" className="focus-ring h-10 rounded-xl border border-white/10 bg-white/[0.045] px-3 text-xs font-bold text-white md:h-11 md:rounded-2xl md:px-4 md:text-sm">
+      <Card className="relative mb-3 border-white/10 bg-gradient-to-br from-zinc-950/90 to-black p-2.5 shadow-[0_18px_46px_rgba(0,0,0,.24)] md:mb-4 md:p-4">
+        <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
+          <div className="grid grid-cols-[1fr_auto_auto] items-center gap-1.5 md:flex md:flex-wrap md:gap-2">
+            <button type="button" className="focus-ring h-9 rounded-xl border border-white/10 bg-white/[0.045] px-3 text-xs font-bold text-white md:h-11 md:rounded-2xl md:px-4 md:text-sm">
               Vue semaine
             </button>
             <button
               type="button"
-              className="focus-ring grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.045] text-carbon-200 transition hover:border-[#D4A017]/30 hover:text-gold-100 md:h-11 md:w-11 md:rounded-2xl"
+              className="focus-ring grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.045] text-carbon-200 transition hover:border-[#D4A017]/30 hover:text-gold-100 md:h-11 md:w-11 md:rounded-2xl"
               onClick={() => setWindowStart((current) => addDays(current, -daysToShow))}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               type="button"
-              className="focus-ring grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.045] text-carbon-200 transition hover:border-[#D4A017]/30 hover:text-gold-100 md:h-11 md:w-11 md:rounded-2xl"
+              className="focus-ring grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.045] text-carbon-200 transition hover:border-[#D4A017]/30 hover:text-gold-100 md:h-11 md:w-11 md:rounded-2xl"
               onClick={() => setWindowStart((current) => addDays(current, daysToShow))}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
-            <div className="col-span-3 flex h-10 items-center justify-center gap-2 rounded-xl border border-[#D4A017]/20 bg-[#D4A017]/10 px-3 text-xs font-black text-gold-100 md:col-span-1 md:h-11 md:rounded-2xl md:px-4 md:text-sm">
+            <div className="col-span-3 flex h-9 items-center justify-center gap-2 rounded-xl border border-[#D4A017]/20 bg-[#D4A017]/10 px-3 text-xs font-black text-gold-100 md:col-span-1 md:h-11 md:rounded-2xl md:px-4 md:text-sm">
               <CalendarDays className="h-3.5 w-3.5 md:h-4 md:w-4" />
               {dateRangeLabel}
             </div>
           </div>
 
           <div className="flex flex-col gap-2 xl:items-end">
-            <div className="flex flex-wrap items-center gap-2">
-              <button type="button" className="focus-ring inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.045] px-3 text-xs font-bold text-carbon-200 transition hover:border-[#D4A017]/30 md:h-10 md:rounded-2xl">
+            <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
+              <button type="button" className="focus-ring inline-flex h-8 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.045] px-2.5 text-xs font-bold text-carbon-200 transition hover:border-[#D4A017]/30 md:h-10 md:gap-2 md:rounded-2xl md:px-3">
                 <Filter className="h-3.5 w-3.5" />
                 Filtres
               </button>
               {archivedVehicleCount > 0 ? (
                 <button
                   type="button"
-                  className={`focus-ring h-9 rounded-xl border px-3 text-xs font-bold transition md:h-10 md:rounded-2xl ${
+                  className={`focus-ring h-8 rounded-xl border px-2.5 text-xs font-bold transition md:h-10 md:rounded-2xl md:px-3 ${
                     showArchived ? 'border-gold-300/40 bg-gold-400 text-carbon-950' : 'border-white/10 bg-white/[0.045] text-carbon-300 hover:bg-white/10'
                   }`}
                   onClick={() => setShowArchived((current) => !current)}
@@ -402,7 +402,7 @@ export default function CalendarPage() {
                   Afficher archivés
                 </button>
               ) : null}
-              <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.045] p-1 md:rounded-2xl">
+              <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.045] p-0.5 md:rounded-2xl md:p-1">
                 {DAY_OPTIONS.map((option) => (
                   <button
                     key={option}
@@ -416,7 +416,7 @@ export default function CalendarPage() {
                 ))}
               </div>
             </div>
-            <div className="flex flex-wrap gap-x-3 gap-y-2 text-[11px] md:text-xs">
+            <div className="flex flex-wrap gap-x-2.5 gap-y-1.5 text-[10px] md:gap-x-3 md:gap-y-2 md:text-xs">
               {[
                 ['Disponible', 'bg-emerald-400', 'text-emerald-200'],
                 ['Réservé', 'bg-sky-400', 'text-sky-200'],
@@ -434,7 +434,7 @@ export default function CalendarPage() {
         </div>
       </Card>
 
-      <div className="no-scrollbar -mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden">
+      <div className="no-scrollbar -mx-4 mb-2.5 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden">
         {days.map((day) => {
           const dayIso = isoDate(day);
           const isToday = dayIso === todayIso;
@@ -444,14 +444,14 @@ export default function CalendarPage() {
               type="button"
               key={`mobile-chip-${dayIso}`}
               onClick={() => setSelectedDayIso(dayIso)}
-              className={`min-w-[62px] rounded-xl border px-2 py-2 text-center transition ${
+              className={`min-w-[56px] rounded-xl border px-2 py-1.5 text-center transition ${
                 isToday || isSelected
                   ? 'border-gold-300/60 bg-[#D4A017]/22 text-gold-50 shadow-[0_0_24px_rgba(212,160,23,.16)]'
                   : 'border-white/10 bg-white/[0.04] text-carbon-200'
               }`}
             >
-              <p className="text-[11px] font-bold capitalize">{day.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}</p>
-              <p className="mt-0.5 text-base font-black">{String(day.getDate()).padStart(2, '0')}</p>
+              <p className="text-[10px] font-bold capitalize">{day.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}</p>
+              <p className="text-base font-black leading-5">{String(day.getDate()).padStart(2, '0')}</p>
             </button>
           );
         })}

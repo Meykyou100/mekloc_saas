@@ -27,7 +27,7 @@ export default function AppLayout() {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="min-h-screen lg:pl-72">
         <Topbar onMenu={() => setSidebarOpen(true)} />
-        <main className="relative px-4 pb-[calc(96px+env(safe-area-inset-bottom))] pt-5 sm:px-6 lg:px-8 lg:pb-10">
+        <main className="relative px-4 pb-[calc(86px+env(safe-area-inset-bottom))] pt-4 sm:px-6 lg:px-8 lg:pb-10 lg:pt-5">
           <div
             className={`pointer-events-none absolute inset-x-4 top-0 h-0.5 overflow-hidden rounded-full bg-white/5 transition-opacity duration-200 sm:inset-x-6 lg:inset-x-8 ${
               dataLoading ? 'opacity-100' : 'opacity-0'
@@ -41,7 +41,7 @@ export default function AppLayout() {
           </Suspense>
         </main>
       </div>
-      <nav className="fixed inset-x-3 bottom-3 z-40 rounded-[24px] border border-white/10 bg-black/82 px-2 pb-[max(env(safe-area-inset-bottom),0.45rem)] pt-1.5 shadow-[0_0_44px_rgba(0,0,0,.55),inset_0_1px_0_rgba(255,255,255,.06)] backdrop-blur-2xl lg:hidden">
+      <nav className="fixed inset-x-3 bottom-2 z-40 rounded-[22px] border border-white/10 bg-black/82 px-2 pb-[max(env(safe-area-inset-bottom),0.35rem)] pt-1 shadow-[0_0_38px_rgba(0,0,0,.52),inset_0_1px_0_rgba(255,255,255,.06)] backdrop-blur-2xl lg:hidden">
         <div className="grid grid-cols-6 items-center gap-1">
           {[
             { to: '/dashboard', icon: LayoutDashboard, label: 'Tableau' },
@@ -51,7 +51,7 @@ export default function AppLayout() {
             { to: '/clients', icon: Users, label: 'Clients' },
             { to: '/settings', icon: MoreHorizontal, label: 'Plus' },
           ].map(({ to, icon: Icon, label }) => (
-            <NavLink key={to} to={to} className={({ isActive }) => `flex min-h-[58px] flex-col items-center justify-center gap-1 rounded-[18px] px-1 py-1.5 text-center text-[10px] font-bold transition ${isActive ? 'bg-[#D4A017]/12 text-gold-100 shadow-[inset_0_0_0_1px_rgba(212,160,23,.22)]' : 'text-carbon-400 hover:text-white'}`}>
+            <NavLink key={to} to={to} className={({ isActive }) => `flex min-h-[50px] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1 text-center text-[9px] font-bold transition ${isActive ? 'bg-[#D4A017]/12 text-gold-100 shadow-[inset_0_0_0_1px_rgba(212,160,23,.22)]' : 'text-carbon-400 hover:text-white'}`}>
               <Icon className="h-[18px] w-[18px]" />
               {label}
             </NavLink>
