@@ -28,7 +28,7 @@ import { formatMAD, type Reservation, type ReservationStatus } from '../data/moc
 
 const MOBILE_VEHICLE_COL_WIDTH = 156;
 const MOBILE_DAY_COL_WIDTH = 78;
-const MOBILE_ROW_HEIGHT = 108;
+const MOBILE_ROW_HEIGHT = 92;
 const VEHICLE_COL_WIDTH = 260;
 const DAY_COL_WIDTH = 118;
 const ROW_HEIGHT = 112;
@@ -269,37 +269,37 @@ export default function CalendarPage() {
   };
 
   return (
-    <section className="relative overflow-x-hidden pb-28 md:pb-8">
-      <div className="pointer-events-none absolute right-[-18%] top-8 h-80 w-80 rounded-full bg-[#D4A017]/10 blur-3xl" />
+    <section className="relative overflow-x-hidden pb-6 md:pb-8">
+      <div className="pointer-events-none absolute right-[-24%] top-5 h-64 w-64 rounded-full bg-[#D4A017]/10 blur-3xl" />
       <div className="md:hidden">
-        <div className="mb-5 flex items-end justify-between gap-4">
+        <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.32em] text-gold-300">PLANIFICATION</p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight text-white">Calendrier</h1>
-            <p className="mt-2 max-w-[320px] text-sm leading-6 text-carbon-300">
-              Planifiez et suivez votre flotte en temps réel. Optimisez chaque réservation.
+            <p className="text-[11px] font-black uppercase tracking-[0.26em] text-gold-300">PLANIFICATION</p>
+            <h1 className="mt-2 text-[2rem] font-black leading-tight tracking-tight text-white">Calendrier</h1>
+            <p className="mt-1.5 max-w-[255px] text-[15px] leading-6 text-carbon-300">
+              Planifiez et suivez votre flotte en temps réel.
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <Button
-              variant="secondary"
-              icon={<RefreshCcw className="h-4 w-4" />}
-              className="h-12 rounded-2xl px-3 text-sm"
+            <button
+              type="button"
+              className="focus-ring inline-flex h-10 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.045] px-3 text-xs font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,.06)]"
               onClick={() => {
                 const today = toDateOnly(new Date());
                 setWindowStart(today);
                 setSelectedDayIso(isoDate(today));
               }}
             >
+              <RefreshCcw className="h-3.5 w-3.5 text-gold-200" />
               Aujourd’hui
-            </Button>
+            </button>
             <button
               type="button"
               aria-label="Nouvelle réservation"
-              className="grid h-12 w-12 place-items-center rounded-2xl bg-[#D4A017] text-black shadow-[0_0_34px_rgba(212,160,23,0.26)] transition active:scale-95"
+              className="grid h-10 w-10 place-items-center rounded-xl bg-[#D4A017] text-black shadow-[0_0_24px_rgba(212,160,23,0.32)] transition active:scale-95"
               onClick={() => navigate('/reservations')}
             >
-              <Plus className="h-5 w-5" />
+              <Plus className="h-4 w-4" />
             </button>
           </div>
         </div>
@@ -332,69 +332,69 @@ export default function CalendarPage() {
         />
       </div>
 
-      <div className="no-scrollbar relative -mx-4 mb-5 flex gap-3 overflow-x-auto px-4 pb-1 md:mx-0 md:mb-6 md:grid md:grid-cols-2 md:overflow-visible md:px-0 md:pb-0 xl:grid-cols-5">
+      <div className="no-scrollbar relative -mx-4 mb-4 flex gap-3 overflow-x-auto px-4 pb-1 md:mx-0 md:mb-6 md:grid md:grid-cols-2 md:overflow-visible md:px-0 md:pb-0 xl:grid-cols-5">
         {[
-          { label: 'Véhicules actifs', value: String(calendarStats.activeVehicles), helper: `${visibleVehicles.length} visibles`, icon: Car, tone: 'text-gold-200', glow: 'from-[#D4A017]/18' },
-          { label: 'Réservations aujourd’hui', value: String(calendarStats.reservationsToday), helper: 'En cours aujourd’hui', icon: CalendarDays, tone: 'text-sky-200', glow: 'from-sky-400/14' },
-          { label: 'Retours aujourd’hui', value: String(calendarStats.returnsToday), helper: `${dayDetails.returns.length} sur le jour sélectionné`, icon: RefreshCcw, tone: 'text-teal-200', glow: 'from-teal-400/14' },
-          { label: 'En maintenance', value: String(calendarStats.maintenanceCount), helper: 'Véhicules immobilisés', icon: Wrench, tone: 'text-violet-200', glow: 'from-violet-400/14' },
-          { label: 'Taux d’occupation', value: `${calendarStats.occupancy}%`, helper: 'Flotte réservée', icon: TrendingUp, tone: 'text-emerald-200', glow: 'from-emerald-400/14' },
+          { label: 'Véhicules', value: String(calendarStats.activeVehicles), helper: 'Dans votre flotte', icon: Car, tone: 'text-emerald-200', glow: 'from-emerald-400/14' },
+          { label: 'Réserv.', value: String(calendarStats.reservationsToday), helper: 'Aujourd’hui', icon: CalendarDays, tone: 'text-violet-200', glow: 'from-violet-400/14' },
+          { label: 'Retours', value: String(calendarStats.returnsToday), helper: 'Aujourd’hui', icon: RefreshCcw, tone: 'text-cyan-200', glow: 'from-cyan-400/14' },
+          { label: 'Maintenance', value: String(calendarStats.maintenanceCount), helper: 'Non disponibles', icon: Wrench, tone: 'text-amber-200', glow: 'from-amber-400/14' },
+          { label: 'Occupation', value: `${calendarStats.occupancy}%`, helper: 'Cette semaine', icon: TrendingUp, tone: 'text-sky-200', glow: 'from-sky-400/14' },
         ].map(({ label, value, helper, icon: Icon, tone, glow }) => (
-          <div key={label} className="group relative min-h-[142px] min-w-[148px] overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950/90 to-black p-4 shadow-[0_18px_48px_rgba(0,0,0,.28),inset_0_1px_0_rgba(255,255,255,.05)] transition hover:border-[#D4A017]/35 md:min-h-[126px] md:min-w-0">
+          <div key={label} className="group relative min-h-[126px] min-w-[136px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-950/90 to-black p-3 shadow-[0_16px_42px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.05)] transition hover:border-[#D4A017]/35 md:min-h-[126px] md:min-w-0 md:rounded-3xl md:p-4">
             <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${glow} to-transparent opacity-80`} />
-            <div className="relative flex items-start justify-between gap-3">
+            <div className="relative flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="truncate text-[10px] font-black uppercase tracking-[0.18em] text-carbon-500">{label}</p>
-                <p className="mt-3 truncate text-3xl font-black text-white md:text-3xl">{value}</p>
+                <p className="text-[10px] font-black uppercase leading-4 tracking-[0.12em] text-carbon-400">{label}</p>
+                <p className="mt-2 truncate text-[1.7rem] font-black leading-none text-white md:text-3xl">{value}</p>
               </div>
-              <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-[#D4A017]/20 bg-[#D4A017]/10 shadow-[0_0_28px_rgba(212,160,23,0.12)]">
-                <Icon className={`h-5 w-5 ${tone}`} />
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-[16px] border border-[#D4A017]/20 bg-[#D4A017]/10 shadow-[0_0_24px_rgba(212,160,23,0.11)]">
+                <Icon className={`h-4 w-4 ${tone}`} />
               </span>
             </div>
-            <div className="relative mt-3 flex items-center justify-between gap-3">
-              <p className="truncate text-xs font-medium text-carbon-400">{helper}</p>
-              <span className="h-1.5 w-16 rounded-full bg-gradient-to-r from-[#D4A017]/70 via-white/20 to-transparent" />
+            <div className="relative mt-3">
+              <p className="truncate text-[11px] font-medium text-carbon-400">{helper}</p>
+              <span className="mt-2 block h-1.5 w-16 rounded-full bg-gradient-to-r from-[#D4A017]/70 via-white/20 to-transparent" />
             </div>
           </div>
         ))}
       </div>
 
-      <Card className="relative mb-5 border-white/10 bg-gradient-to-br from-zinc-950/90 to-black p-4 shadow-[0_18px_46px_rgba(0,0,0,.24)]">
-        <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="flex flex-wrap items-center gap-2">
-            <button type="button" className="focus-ring h-11 rounded-2xl border border-white/10 bg-white/[0.045] px-4 text-sm font-bold text-white">
+      <Card className="relative mb-4 border-white/10 bg-gradient-to-br from-zinc-950/90 to-black p-3 shadow-[0_18px_46px_rgba(0,0,0,.24)] md:p-4">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="grid grid-cols-[1fr_auto_auto] items-center gap-2 md:flex md:flex-wrap">
+            <button type="button" className="focus-ring h-10 rounded-xl border border-white/10 bg-white/[0.045] px-3 text-xs font-bold text-white md:h-11 md:rounded-2xl md:px-4 md:text-sm">
               Vue semaine
             </button>
             <button
               type="button"
-              className="focus-ring grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-carbon-200 transition hover:border-[#D4A017]/30 hover:text-gold-100"
+              className="focus-ring grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.045] text-carbon-200 transition hover:border-[#D4A017]/30 hover:text-gold-100 md:h-11 md:w-11 md:rounded-2xl"
               onClick={() => setWindowStart((current) => addDays(current, -daysToShow))}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               type="button"
-              className="focus-ring grid h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-carbon-200 transition hover:border-[#D4A017]/30 hover:text-gold-100"
+              className="focus-ring grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.045] text-carbon-200 transition hover:border-[#D4A017]/30 hover:text-gold-100 md:h-11 md:w-11 md:rounded-2xl"
               onClick={() => setWindowStart((current) => addDays(current, daysToShow))}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
-            <div className="flex h-11 items-center gap-2 rounded-2xl border border-[#D4A017]/20 bg-[#D4A017]/10 px-4 text-sm font-black text-gold-100">
-              <CalendarDays className="h-4 w-4" />
+            <div className="col-span-3 flex h-10 items-center justify-center gap-2 rounded-xl border border-[#D4A017]/20 bg-[#D4A017]/10 px-3 text-xs font-black text-gold-100 md:col-span-1 md:h-11 md:rounded-2xl md:px-4 md:text-sm">
+              <CalendarDays className="h-3.5 w-3.5 md:h-4 md:w-4" />
               {dateRangeLabel}
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 xl:items-end">
-            <div className="flex flex-wrap gap-2">
-              <button type="button" className="focus-ring inline-flex h-10 items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.045] px-3 text-xs font-bold text-carbon-200 transition hover:border-[#D4A017]/30">
+          <div className="flex flex-col gap-2 xl:items-end">
+            <div className="flex flex-wrap items-center gap-2">
+              <button type="button" className="focus-ring inline-flex h-9 items-center gap-2 rounded-xl border border-white/10 bg-white/[0.045] px-3 text-xs font-bold text-carbon-200 transition hover:border-[#D4A017]/30 md:h-10 md:rounded-2xl">
                 <Filter className="h-3.5 w-3.5" />
                 Filtres
               </button>
               {archivedVehicleCount > 0 ? (
                 <button
                   type="button"
-                  className={`focus-ring h-10 rounded-2xl border px-3 text-xs font-bold transition ${
+                  className={`focus-ring h-9 rounded-xl border px-3 text-xs font-bold transition md:h-10 md:rounded-2xl ${
                     showArchived ? 'border-gold-300/40 bg-gold-400 text-carbon-950' : 'border-white/10 bg-white/[0.045] text-carbon-300 hover:bg-white/10'
                   }`}
                   onClick={() => setShowArchived((current) => !current)}
@@ -402,11 +402,11 @@ export default function CalendarPage() {
                   Afficher archivés
                 </button>
               ) : null}
-              <div className="flex items-center gap-1 rounded-2xl border border-white/10 bg-white/[0.045] p-1">
+              <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.045] p-1 md:rounded-2xl">
                 {DAY_OPTIONS.map((option) => (
                   <button
                     key={option}
-                    className={`rounded-xl px-3 py-2 text-xs font-black transition ${
+                    className={`rounded-lg px-3 py-1.5 text-xs font-black transition md:rounded-xl md:py-2 ${
                       daysToShow === option ? 'bg-[#D4A017] text-carbon-950' : 'text-carbon-300 hover:bg-white/10'
                     }`}
                     onClick={() => setDaysToShow(option)}
@@ -416,7 +416,7 @@ export default function CalendarPage() {
                 ))}
               </div>
             </div>
-            <div className="flex flex-wrap gap-3 text-xs">
+            <div className="flex flex-wrap gap-x-3 gap-y-2 text-[11px] md:text-xs">
               {[
                 ['Disponible', 'bg-emerald-400', 'text-emerald-200'],
                 ['Réservé', 'bg-sky-400', 'text-sky-200'],
@@ -425,7 +425,7 @@ export default function CalendarPage() {
                 ['Maintenance', 'bg-violet-400', 'text-violet-200'],
               ].map(([label, dot, text]) => (
                 <span key={label} className={`inline-flex items-center gap-2 ${text}`}>
-                  <span className={`h-2.5 w-2.5 rounded-full ${dot}`} />
+                  <span className={`h-2 w-2 rounded-full ${dot} md:h-2.5 md:w-2.5`} />
                   {label}
                 </span>
               ))}
@@ -434,7 +434,7 @@ export default function CalendarPage() {
         </div>
       </Card>
 
-      <div className="no-scrollbar -mx-4 mb-4 flex gap-3 overflow-x-auto px-4 pb-1 md:hidden">
+      <div className="no-scrollbar -mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden">
         {days.map((day) => {
           const dayIso = isoDate(day);
           const isToday = dayIso === todayIso;
@@ -444,14 +444,14 @@ export default function CalendarPage() {
               type="button"
               key={`mobile-chip-${dayIso}`}
               onClick={() => setSelectedDayIso(dayIso)}
-              className={`min-w-[72px] rounded-2xl border px-3 py-3 text-center transition ${
+              className={`min-w-[62px] rounded-xl border px-2 py-2 text-center transition ${
                 isToday || isSelected
                   ? 'border-gold-300/60 bg-[#D4A017]/22 text-gold-50 shadow-[0_0_24px_rgba(212,160,23,.16)]'
                   : 'border-white/10 bg-white/[0.04] text-carbon-200'
               }`}
             >
-              <p className="text-xs font-bold capitalize">{day.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}</p>
-              <p className="mt-1 text-lg font-black">{String(day.getDate()).padStart(2, '0')}</p>
+              <p className="text-[11px] font-bold capitalize">{day.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}</p>
+              <p className="mt-0.5 text-base font-black">{String(day.getDate()).padStart(2, '0')}</p>
             </button>
           );
         })}
@@ -477,13 +477,13 @@ export default function CalendarPage() {
             </div>
           ) : (
             <>
-              <div className="border-b border-white/10 bg-white/[0.025] px-5 py-4">
+              <div className="border-b border-white/10 bg-white/[0.025] px-4 py-3 md:px-5 md:py-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.22em] text-carbon-500">Planning flotte</p>
-                    <h2 className="mt-1 text-lg font-black text-white">Vue hebdomadaire des véhicules</h2>
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-carbon-500 md:text-xs md:tracking-[0.22em]">Planning flotte</p>
+                    <h2 className="mt-1 text-base font-black text-white md:text-lg">Vue hebdomadaire des véhicules</h2>
                   </div>
-                  <p className="text-sm text-carbon-400">{visibleVehicles.length} véhicule{visibleVehicles.length > 1 ? 's' : ''} affiché{visibleVehicles.length > 1 ? 's' : ''}</p>
+                  <p className="text-xs text-carbon-400 md:text-sm">{visibleVehicles.length} véhicule{visibleVehicles.length > 1 ? 's' : ''} affiché{visibleVehicles.length > 1 ? 's' : ''}</p>
                 </div>
               </div>
 
@@ -498,21 +498,21 @@ export default function CalendarPage() {
                       return (
                         <div key={`mobile-timeline-${vehicle.id}`} className="flex border-t border-white/10 first:border-t-0">
                           <div
-                            className="sticky left-0 z-20 shrink-0 bg-carbon-950/98 px-3 py-3 shadow-[10px_0_24px_rgba(0,0,0,.42)] backdrop-blur"
+                            className="sticky left-0 z-20 shrink-0 bg-carbon-950/98 px-2.5 py-2.5 shadow-[10px_0_24px_rgba(0,0,0,.42)] backdrop-blur"
                             style={{ width: MOBILE_VEHICLE_COL_WIDTH, minHeight: MOBILE_ROW_HEIGHT }}
                           >
-                            <div className="flex gap-2.5">
-                              <div className="grid h-14 w-16 shrink-0 place-items-center overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+                            <div className="flex gap-2">
+                              <div className="grid h-12 w-14 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/10 bg-white/5">
                                 {vehicle.imageUrl ? (
                                   <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} className="h-full w-full object-cover" />
                                 ) : (
-                                  <Car className="h-5 w-5 text-gold-200" />
+                                  <Car className="h-4 w-4 text-gold-200" />
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <p className="truncate text-sm font-black text-white">{vehicle.brand} {vehicle.model}</p>
-                                <p className="mt-1 truncate text-[11px] text-carbon-400"><PlateNumber value={vehicle.plate} /></p>
-                                <span className={`mt-2 inline-flex rounded-full border px-2 py-0.5 text-[10px] font-bold ${vehicleStatusClass(vehicle.status, isArchivedVehicle(vehicle))}`}>
+                                <p className="truncate text-xs font-black text-white">{vehicle.brand} {vehicle.model}</p>
+                                <p className="mt-0.5 truncate text-[10px] text-carbon-400"><PlateNumber value={vehicle.plate} /></p>
+                                <span className={`mt-1.5 inline-flex max-w-full rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${vehicleStatusClass(vehicle.status, isArchivedVehicle(vehicle))}`}>
                                   {vehicleStatusLabel(vehicle.status, isArchivedVehicle(vehicle))}
                                 </span>
                               </div>
@@ -561,21 +561,21 @@ export default function CalendarPage() {
 
                             {blocks.map((block) => {
                               const spanDays = block.endIndex - block.startIndex + 1;
-                              const left = block.startIndex * MOBILE_DAY_COL_WIDTH + 8;
-                              const width = Math.max(142, spanDays * MOBILE_DAY_COL_WIDTH - 16);
+                              const left = block.startIndex * MOBILE_DAY_COL_WIDTH + 6;
+                              const width = Math.max(128, spanDays * MOBILE_DAY_COL_WIDTH - 12);
                               const startDayIso = isoDate(addDays(windowStart, block.startIndex));
                               return (
                                 <button
                                   key={`mobile-block-${vehicle.id}-${block.reservation.id}`}
-                                  className={`absolute top-4 z-10 rounded-2xl border px-3 py-2 text-left shadow-[0_14px_26px_rgba(0,0,0,.42)] transition active:scale-[0.98] ${blockClass(block.reservation, startDayIso)}`}
-                                  style={{ left, width, minHeight: 62 }}
+                                  className={`absolute top-3 z-10 rounded-xl border px-2.5 py-2 text-left shadow-[0_12px_22px_rgba(0,0,0,.38)] transition active:scale-[0.98] ${blockClass(block.reservation, startDayIso)}`}
+                                  style={{ left, width, minHeight: 54 }}
                                   onClick={() => {
                                     setSelectedReservation(block.reservation);
                                     setSelectedDayIso(block.reservation.pickupDate);
                                   }}
                                 >
-                                  <span className="block truncate text-sm font-black">{block.reservation.id} · {block.reservation.client}</span>
-                                  <span className="mt-1 block truncate text-xs opacity-85">
+                                  <span className="block truncate text-xs font-black">{block.reservation.id} · {block.reservation.client}</span>
+                                  <span className="mt-1 block truncate text-[11px] opacity-85">
                                     {formatCalendarDate(new Date(block.reservation.pickupDate))} → {formatCalendarDate(new Date(block.reservation.returnDate))}
                                   </span>
                                 </button>
@@ -585,12 +585,12 @@ export default function CalendarPage() {
                             {maintenanceDays.slice(0, 1).map(({ dayIndex, dayIso }) => (
                               <button
                                 key={`mobile-maintenance-${vehicle.id}-${dayIso}-${rowIndex}`}
-                                className="absolute top-4 z-10 rounded-2xl border border-violet-300/35 bg-gradient-to-r from-violet-500/30 to-sky-500/18 px-3 py-2 text-left text-violet-50 shadow-[0_14px_26px_rgba(0,0,0,.42)]"
-                                style={{ left: dayIndex * MOBILE_DAY_COL_WIDTH + 8, width: Math.max(150, MOBILE_DAY_COL_WIDTH * 2 - 16), minHeight: 62 }}
+                                className="absolute top-3 z-10 rounded-xl border border-violet-300/35 bg-gradient-to-r from-violet-500/30 to-sky-500/18 px-2.5 py-2 text-left text-violet-50 shadow-[0_12px_22px_rgba(0,0,0,.38)]"
+                                style={{ left: dayIndex * MOBILE_DAY_COL_WIDTH + 6, width: Math.max(128, MOBILE_DAY_COL_WIDTH * 2 - 12), minHeight: 54 }}
                                 onClick={() => setSelectedDayIso(dayIso)}
                               >
-                                <span className="block truncate text-sm font-black">Maintenance programmée</span>
-                                <span className="mt-1 block truncate text-xs opacity-85">{formatCalendarDate(new Date(dayIso))}</span>
+                                <span className="block truncate text-xs font-black">Maintenance programmée</span>
+                                <span className="mt-1 block truncate text-[11px] opacity-85">{formatCalendarDate(new Date(dayIso))}</span>
                               </button>
                             ))}
                           </div>
@@ -747,18 +747,18 @@ export default function CalendarPage() {
           )}
         </Card>
 
-        <Card className="border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-5 shadow-[0_24px_70px_rgba(0,0,0,.30)] 2xl:sticky 2xl:top-24 2xl:self-start">
+        <Card className="border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-4 shadow-[0_24px_70px_rgba(0,0,0,.30)] md:p-5 2xl:sticky 2xl:top-24 2xl:self-start">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.22em] text-gold-300">Détails du jour</p>
-              <h2 className="mt-2 text-xl font-black capitalize text-white">{selectedDateLabel}</h2>
+              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-gold-300 md:text-xs">Détails du jour</p>
+              <h2 className="mt-1.5 text-lg font-black capitalize text-white md:mt-2 md:text-xl">{selectedDateLabel}</h2>
             </div>
-            <span className="grid h-11 w-11 place-items-center rounded-2xl border border-[#D4A017]/20 bg-[#D4A017]/10 text-gold-200">
-              <CalendarDays className="h-5 w-5" />
+            <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#D4A017]/20 bg-[#D4A017]/10 text-gold-200 md:h-11 md:w-11 md:rounded-2xl">
+              <CalendarDays className="h-4 w-4 md:h-5 md:w-5" />
             </span>
           </div>
 
-          <div className="mt-5 space-y-5">
+          <div className="mt-4 space-y-4 md:mt-5 md:space-y-5">
             {[
               { title: 'Départs aujourd’hui', items: dayDetails.departures, tone: 'text-amber-200', badge: 'Départ' },
               { title: 'Retours aujourd’hui', items: dayDetails.returns, tone: 'text-cyan-200', badge: 'Retour' },
