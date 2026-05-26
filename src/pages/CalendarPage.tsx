@@ -269,13 +269,13 @@ export default function CalendarPage() {
   };
 
   return (
-    <section className="relative overflow-x-hidden pb-28 md:pb-8">
+    <section className="relative overflow-x-hidden pb-8 md:pb-8">
       <div className="pointer-events-none absolute right-[-18%] top-8 h-80 w-80 rounded-full bg-[#D4A017]/10 blur-3xl" />
       <div className="md:hidden">
         <div className="mb-5 flex items-end justify-between gap-4">
           <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-[0.32em] text-gold-300">PLANIFICATION</p>
-            <h1 className="mt-3 text-4xl font-black tracking-tight text-white">Calendrier</h1>
+            <h1 className="mt-3 text-[2rem] font-black leading-tight tracking-tight text-white">Calendrier</h1>
             <p className="mt-2 max-w-[320px] text-sm leading-6 text-carbon-300">
               Planifiez et suivez votre flotte en temps réel. Optimisez chaque réservation.
             </p>
@@ -340,7 +340,7 @@ export default function CalendarPage() {
           { label: 'En maintenance', value: String(calendarStats.maintenanceCount), helper: 'Véhicules immobilisés', icon: Wrench, tone: 'text-violet-200', glow: 'from-violet-400/14' },
           { label: 'Taux d’occupation', value: `${calendarStats.occupancy}%`, helper: 'Flotte réservée', icon: TrendingUp, tone: 'text-emerald-200', glow: 'from-emerald-400/14' },
         ].map(({ label, value, helper, icon: Icon, tone, glow }) => (
-          <div key={label} className="group relative min-h-[142px] min-w-[148px] overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950/90 to-black p-4 shadow-[0_18px_48px_rgba(0,0,0,.28),inset_0_1px_0_rgba(255,255,255,.05)] transition hover:border-[#D4A017]/35 md:min-h-[126px] md:min-w-0">
+          <div key={label} className="group relative min-h-[126px] min-w-[140px] overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950/90 to-black p-3.5 shadow-[0_18px_48px_rgba(0,0,0,.28),inset_0_1px_0_rgba(255,255,255,.05)] transition hover:border-[#D4A017]/35 md:min-h-[126px] md:min-w-0 md:p-4">
             <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${glow} to-transparent opacity-80`} />
             <div className="relative flex items-start justify-between gap-3">
               <div className="min-w-0">

@@ -880,7 +880,7 @@ export default function ContractsPage() {
   }
 
   return (
-    <div className="relative overflow-x-hidden pb-28">
+    <div className="relative overflow-x-hidden pb-8">
       <div className="pointer-events-none absolute -right-24 top-10 h-80 w-80 rounded-full bg-gold-400/10 blur-3xl" />
       <div className="pointer-events-none absolute left-1/3 top-80 h-72 w-72 rounded-full bg-gold-400/5 blur-3xl" />
       <div className="relative">
@@ -1126,7 +1126,7 @@ export default function ContractsPage() {
           </div>
 
           {!hasPreviewSource ? (
-            <div className="grid min-h-[520px] place-items-center rounded-3xl border border-dashed border-white/10 bg-[radial-gradient(circle_at_top,rgba(212,160,23,.12),transparent_34%),linear-gradient(135deg,#111722,#06090d)] p-6 text-center">
+            <div className="grid min-h-[340px] place-items-center rounded-3xl border border-dashed border-white/10 bg-[radial-gradient(circle_at_top,rgba(212,160,23,.12),transparent_34%),linear-gradient(135deg,#111722,#06090d)] p-5 text-center md:min-h-[520px] md:p-6">
               <div className="max-w-sm">
                 <div className="mx-auto grid h-16 w-16 place-items-center rounded-3xl border border-gold-300/25 bg-gold-400/12 text-gold-200 shadow-[0_0_34px_rgba(227,177,23,.14)]">
                   <FileSignature className="h-7 w-7" />
