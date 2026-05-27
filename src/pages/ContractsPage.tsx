@@ -1,5 +1,4 @@
 import {
-  Building2,
   CalendarDays,
   CheckCircle2,
   CircleAlert,
@@ -7,7 +6,6 @@ import {
   Eye,
   FileSignature,
   FileText,
-  Landmark,
   MessageCircle,
   PenLine,
   RefreshCcw,
@@ -23,6 +21,7 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import ContractPdfTemplate, { type ContractPdfData } from '../components/contracts/ContractPdfTemplate';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -46,43 +45,6 @@ const defaultTerms = [
   "Le véhicule ne doit pas être utilisé hors des conditions autorisées par l’agence.",
   'Le retard de restitution peut entraîner des frais supplémentaires.',
 ];
-
-const contractBorder = '#d08a2f';
-
-const accessoryLabels: Record<string, string> = {
-  roue_secours: 'Roue de secours',
-  cric: 'Cric',
-  poste_radio: 'Poste radio',
-  batterie: 'Batterie',
-  allume_cigare: 'Allume cigare',
-  siege_enfant: 'Siège enfant',
-  porte_bagage: 'Porte bagage',
-  triangle: 'Triangle',
-  gilet: 'Gilet',
-  documents_vehicule: 'Documents véhicule',
-};
-
-const damageTypeLabels: Record<string, string> = {
-  rayure: 'R',
-  cassure: 'C',
-  eclat: 'E',
-  bosse: 'B',
-  peinture: 'P',
-  autre: 'A',
-};
-
-const zoneCoords: Record<string, { x: number; y: number }> = {
-  avant: { x: 296, y: 228 },
-  arriere: { x: 296, y: 148 },
-  capot: { x: 296, y: 214 },
-  coffre: { x: 296, y: 162 },
-  porte_gauche: { x: 270, y: 188 },
-  porte_droite: { x: 322, y: 188 },
-  aile_gauche: { x: 257, y: 204 },
-  aile_droite: { x: 335, y: 204 },
-  parechoc_avant: { x: 296, y: 236 },
-  parechoc_arriere: { x: 296, y: 140 },
-};
 
 function statusLabel(status: string) {
   if (status === 'Signed') return 'Signé';
@@ -124,17 +86,6 @@ function sanitizeFileName(value: string) {
     .toLowerCase();
 }
 
-function extractAgencyCityFromAddress(address?: string) {
-  if (!address) return '';
-  const cleaned = address.trim();
-  if (!cleaned) return '';
-  const commaParts = cleaned.split(',').map((part) => part.trim()).filter(Boolean);
-  if (commaParts.length > 1) return commaParts[commaParts.length - 1];
-  const dashParts = cleaned.split('-').map((part) => part.trim()).filter(Boolean);
-  if (dashParts.length > 1) return dashParts[dashParts.length - 1];
-  return cleaned;
-}
-
 function normalizeLoose(value?: string) {
   return (value || '')
     .toLowerCase()
@@ -143,29 +94,6 @@ function normalizeLoose(value?: string) {
     .replace(/[^a-z0-9\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-}
-
-function escapePdfWinAnsi(value: string) {
-  const text = String(value ?? '')
-    .replace(/[’‘]/g, "'")
-    .replace(/[“”]/g, '"')
-    .replace(/–|—/g, '-');
-
-  let out = '';
-  for (let i = 0; i < text.length; i += 1) {
-    const code = text.charCodeAt(i);
-    if (code === 40 || code === 41 || code === 92) {
-      out += `\\${String(code).padStart(3, '0')}`;
-      continue;
-    }
-    if (code < 32 || code > 126) {
-      const byte = code <= 255 ? code : 63;
-      out += `\\${byte.toString(8).padStart(3, '0')}`;
-      continue;
-    }
-    out += text[i];
-  }
-  return `(${out})`;
 }
 
 type PdfLogoAsset = {
@@ -294,6 +222,72 @@ function serializeSecondDriverForContract(secondDriver: SecondDriver) {
   ].join('\n');
 }
 
+function parseSecondDriverFromContractTerms(terms: string) {
+  const start = terms.indexOf('[2EME_CONDUCTEUR]');
+  const end = terms.indexOf('[/2EME_CONDUCTEUR]');
+  if (start < 0 || end < 0 || end <= start) {
+    return { cleanTerms: terms, secondDriver: emptySecondDriver };
+  }
+
+  const block = terms.slice(start + '[2EME_CONDUCTEUR]'.length, end);
+  const cleanTerms = `${terms.slice(0, start)}${terms.slice(end + '[/2EME_CONDUCTEUR]'.length)}`.trim();
+  const values = new Map<string, string>();
+  block.split('\n').forEach((line) => {
+    const [label, ...rest] = line.split(':');
+    if (!label || !rest.length) return;
+    const value = rest.join(':').trim();
+    values.set(label.trim().toLowerCase(), value === '—' ? '' : value);
+  });
+
+  return {
+    cleanTerms,
+    secondDriver: {
+      enabled: true,
+      lastName: values.get('nom') || '',
+      firstName: values.get('prénom') || values.get('prenom') || '',
+      birthDate: values.get('date de naissance') || '',
+      nationality: values.get('nationalité') || values.get('nationalite') || '',
+      idNumber: values.get('cin/passeport') || '',
+      licenseNumber: values.get('permis n°') || values.get('permis n') || '',
+      phone: values.get('téléphone') || values.get('telephone') || '',
+      address: values.get('adresse') || '',
+    },
+  };
+}
+
+type LooseRecord = Record<string, unknown>;
+
+function readString(source: unknown, keys: string[]) {
+  if (!source || typeof source !== 'object') return '';
+  const record = source as LooseRecord;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'string' && value.trim()) return value.trim();
+    if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  }
+  return '';
+}
+
+function readNumber(source: unknown, keys: string[]) {
+  if (!source || typeof source !== 'object') return undefined;
+  const record = source as LooseRecord;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+    if (typeof value === 'string' && value.trim() && !Number.isNaN(Number(value))) return Number(value);
+  }
+  return undefined;
+}
+
+function splitClientName(fullName: string) {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length <= 1) return { firstName: parts[0] || '', lastName: '' };
+  return {
+    firstName: parts.slice(1).join(' '),
+    lastName: parts[0],
+  };
+}
+
 function createPdfCaptureSource(source: HTMLElement, logoDataUrl?: string | null) {
   const host = document.createElement('div');
   host.style.position = 'fixed';
@@ -307,7 +301,7 @@ function createPdfCaptureSource(source: HTMLElement, logoDataUrl?: string | null
   const clone = source.cloneNode(true) as HTMLElement;
   clone.removeAttribute('id');
   clone.style.width = `${A4_SOURCE_WIDTH}px`;
-  clone.style.minHeight = `${A4_SOURCE_HEIGHT}px`;
+  clone.style.minHeight = '0';
   clone.style.height = 'auto';
   clone.style.transform = 'none';
   clone.style.transformOrigin = 'top left';
@@ -317,12 +311,12 @@ function createPdfCaptureSource(source: HTMLElement, logoDataUrl?: string | null
   clone.style.background = '#ffffff';
 
   if (logoDataUrl) {
-    const logoImage = clone.querySelector<HTMLImageElement>('img[data-pdf-logo="agency"]');
-    if (logoImage) {
+    const logoImages = clone.querySelectorAll<HTMLImageElement>('img[data-pdf-logo="agency"]');
+    logoImages.forEach((logoImage) => {
       logoImage.src = logoDataUrl;
       logoImage.removeAttribute('crossorigin');
       logoImage.decoding = 'sync';
-    }
+    });
   }
 
   host.appendChild(clone);
@@ -335,11 +329,11 @@ function createPdfCaptureSource(source: HTMLElement, logoDataUrl?: string | null
 
 export default function ContractsPage() {
   const [searchParams] = useSearchParams();
-  const { clients, vehicles, reservations, contracts, createContract, deleteContract } = useData();
+  const { clients, vehicles, reservations, contracts, payments, createContract, deleteContract } = useData();
   const { agencyId, profile } = useAuth();
   const { notify } = useApp();
 
-  const previewRef = useRef<HTMLElement | null>(null);
+  const previewRef = useRef<HTMLDivElement | null>(null);
   const previewViewportRef = useRef<HTMLDivElement | null>(null);
   const [template, setTemplate] = useState(templates[0]);
   const [clientId, setClientId] = useState('');
@@ -559,17 +553,12 @@ export default function ContractsPage() {
   const rentalDays = getDiffDays(pickupDate, returnDate);
   const totalAmount = selectedReservation?.totalAmount || archivePreviewContract?.totalAmount || vehicle.dailyPrice * rentalDays;
   const deposit = selectedReservation?.deposit ?? 0;
-  const accessories = vehicle.accessories || {};
   const damageMarks = vehicle.damageMarks || [];
   const hasPreviewSource = Boolean(selectedReservation || archivePreviewContract);
 
   const contractReference = useMemo(() => {
     return archivePreviewContract?.contractNumber || selectedReservation?.id || `CONTRAT-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}`;
   }, [archivePreviewContract?.contractNumber, selectedReservation?.id]);
-
-  const signatureCity = useMemo(() => {
-    return extractAgencyCityFromAddress(agencyMeta.address) || 'Non renseigné';
-  }, [agencyMeta.address]);
 
   const stats = useMemo(() => {
     return {
@@ -581,6 +570,122 @@ export default function ContractsPage() {
   }, [contracts, reservations]);
 
   const effectiveLogoUrl = profile?.agency?.logoUrl || logoPublicUrl || null;
+
+  const selectedReservationPayments = useMemo(() => {
+    if (!selectedReservation?.id) return [];
+    return payments.filter((payment) => payment.reservationId === selectedReservation.id);
+  }, [payments, selectedReservation?.id]);
+
+  const paidAmount = useMemo(() => {
+    return selectedReservationPayments
+      .filter((payment) => payment.status === 'Paid' || payment.status === 'Partial')
+      .reduce((sum, payment) => sum + (payment.amount || 0), 0);
+  }, [selectedReservationPayments]);
+
+  const clientNameParts = useMemo(() => splitClientName(client.fullName || selectedReservation?.client || ''), [client.fullName, selectedReservation?.client]);
+
+  const contractPdfData = useMemo<ContractPdfData>(() => {
+    const agencySource = agencyMeta as LooseRecord;
+    const clientSource = client as unknown as LooseRecord;
+    const vehicleSource = vehicle as unknown as LooseRecord;
+    const reservationSource = selectedReservation as unknown as LooseRecord | undefined;
+    const damageSummary = damageMarks
+      .map((mark) => [mark.zone, mark.type, mark.note].filter(Boolean).join(' · '))
+      .join(' | ');
+
+    return {
+      agency: {
+        name: profile?.agency?.name || 'MekLoc Agency',
+        address: agencyMeta.address || '',
+        phone: agencyMeta.phone || profile?.phone || '',
+        email: agencyMeta.email || profile?.email || '',
+        logoUrl: effectiveLogoUrl,
+        rc: agencyMeta.rc || '',
+        ifNumber: readString(agencySource, ['if', 'if_number', 'fiscal_id', 'tax_id']),
+        ice: agencyMeta.ice || '',
+        cnss: readString(agencySource, ['cnss', 'cnss_number']),
+      },
+      reservation: {
+        pickupDate: formatDateFr(pickupDate),
+        pickupTime,
+        returnDate: formatDateFr(returnDate),
+        returnTime,
+        rentalDays,
+        pickupLocation: selectedReservation?.pickupLocation || selectedReservation?.city || '',
+        returnLocation: selectedReservation?.returnLocation || selectedReservation?.city || '',
+        agentName: profile?.fullName || profile?.email || '',
+      },
+      client: {
+        fullName: client.fullName || selectedReservation?.client || '',
+        firstName: readString(clientSource, ['firstName', 'first_name']) || clientNameParts.firstName,
+        lastName: readString(clientSource, ['lastName', 'last_name']) || clientNameParts.lastName,
+        birthDate: readString(clientSource, ['birthDate', 'birth_date', 'dateOfBirth', 'date_of_birth']),
+        nationality: readString(clientSource, ['nationality', 'nationalite']),
+        address: client.address || '',
+        phone: client.phone || '',
+        email: client.email || '',
+        idNumber: client.cin || '',
+        licenseNumber: client.license || '',
+        licenseIssuedAt: readString(clientSource, ['licenseIssuedAt', 'license_issued_at', 'licenseIssueDate', 'license_issue_date']),
+        licenseExpiresAt: readString(clientSource, ['licenseExpiresAt', 'license_expires_at', 'licenseExpiryDate', 'license_expiry_date']),
+      },
+      secondDriver,
+      vehicle: {
+        brand: vehicle.brand || selectedReservation?.vehicle || '',
+        model: vehicle.model || '',
+        plate: vehicle.plate || '',
+        mileageOut: selectedReservation?.mileageOut ?? (vehicle.mileage || ''),
+        mileageReturn: readString(reservationSource, ['mileageReturn', 'mileage_return', 'mileageIn', 'mileage_in']),
+        fuelLevel: selectedReservation?.fuelLevelOut || readString(vehicleSource, ['fuelLevel', 'fuel_level']) || vehicle.fuel,
+        insuranceAllRisk: null,
+        franchise: readNumber(reservationSource, ['franchise']) ?? readNumber(vehicleSource, ['franchise']),
+        observations: selectedReservation?.notes || '',
+        damageObservations: damageSummary,
+        papers: {
+          registrationCard: Boolean(vehicle.accessories?.documents_vehicule),
+          technicalInspection: Boolean(vehicle.inspectionDate),
+          insurance: Boolean(vehicle.insuranceExpiry),
+          vignette: false,
+          circulationAuthorization: false,
+        },
+      },
+      payment: {
+        totalAmount,
+        paidAmount,
+        remainingAmount: Math.max(0, (totalAmount || 0) - paidAmount),
+        deposit,
+        method: selectedReservationPayments[0]?.method,
+      },
+      contract: {
+        reference: contractReference,
+        date: new Date().toLocaleDateString('fr-MA'),
+      },
+    };
+  }, [
+    agencyMeta,
+    client,
+    clientNameParts.firstName,
+    clientNameParts.lastName,
+    contractReference,
+    damageMarks,
+    deposit,
+    effectiveLogoUrl,
+    paidAmount,
+    pickupDate,
+    pickupTime,
+    profile?.agency?.name,
+    profile?.email,
+    profile?.fullName,
+    profile?.phone,
+    rentalDays,
+    returnDate,
+    returnTime,
+    secondDriver,
+    selectedReservation,
+    selectedReservationPayments,
+    totalAmount,
+    vehicle,
+  ]);
 
   useEffect(() => {
     setLogoBroken(false);
@@ -596,40 +701,33 @@ export default function ContractsPage() {
 
   const contractFileName = `contract-location-${sanitizeFileName(client.fullName || 'client')}-${sanitizeFileName(vehicle.plate || 'vehicule')}-${new Date().toISOString().slice(0, 10)}.pdf`;
 
-  function ensureRequiredData(mode: 'preview' | 'generate' = 'preview') {
+  function getMissingContractFields(mode: 'preview' | 'generate') {
+    const missing: string[] = [];
     const hasClientData = Boolean(client.fullName?.trim() || selectedReservation?.client?.trim());
-    const hasVehicleData = Boolean(
-      vehicle.brand?.trim() ||
-      vehicle.model?.trim() ||
-      selectedReservation?.vehicle?.trim(),
-    );
+    const hasVehicleData = Boolean(vehicle.brand?.trim() || vehicle.model?.trim() || selectedReservation?.vehicle?.trim());
 
-    if (mode === 'generate' ? !effectiveClientId : !hasClientData) {
-      notify({ title: 'Données manquantes', message: 'Veuillez sélectionner un client.', type: 'warning' });
-      return false;
-    }
-    if (mode === 'generate' ? !effectiveVehicleId : !hasVehicleData) {
-      notify({ title: 'Données manquantes', message: 'Veuillez sélectionner un véhicule.', type: 'warning' });
-      return false;
-    }
-    if (mode === 'generate' && !selectedReservation?.id) {
-      notify({ title: 'Données manquantes', message: 'Veuillez sélectionner une réservation source.', type: 'warning' });
-      return false;
-    }
-    if (mode === 'preview' && !hasPreviewSource) {
-      notify({ title: 'Données manquantes', message: 'Veuillez sélectionner une réservation ou un contrat archivé.', type: 'warning' });
-      return false;
-    }
-    if (!pickupDate || !returnDate) {
-      notify({ title: 'Données manquantes', message: 'Veuillez choisir les dates de location.', type: 'warning' });
-      return false;
-    }
-    if (!terms.trim()) {
-      notify({ title: 'Données manquantes', message: 'Veuillez renseigner les conditions générales.', type: 'warning' });
-      return false;
-    }
-    if (mode === 'generate' && !selectedReservation?.pickupLocation) {
-      notify({ title: 'Données manquantes', message: 'Veuillez indiquer le lieu de prise en charge.', type: 'warning' });
+    if (mode === 'preview' && !hasPreviewSource) missing.push('réservation ou contrat archivé');
+    if (mode === 'generate' && !selectedReservation?.id) missing.push('réservation source');
+    if (mode === 'generate' ? !effectiveClientId && !hasClientData : !hasClientData) missing.push('nom du client');
+    if (!client.phone?.trim()) missing.push('téléphone du client');
+    if (mode === 'generate' ? !effectiveVehicleId && !hasVehicleData : !hasVehicleData) missing.push('véhicule');
+    if (!vehicle.plate?.trim()) missing.push('immatriculation du véhicule');
+    if (!pickupDate) missing.push('date de départ');
+    if (!returnDate) missing.push('date de retour');
+    if (!totalAmount || totalAmount <= 0) missing.push('montant total');
+    if (!profile?.agency?.name?.trim()) missing.push('nom de l’agence');
+
+    return missing;
+  }
+
+  function ensureRequiredData(mode: 'preview' | 'generate' = 'preview') {
+    const missing = getMissingContractFields(mode);
+    if (missing.length) {
+      notify({
+        title: 'Données à compléter',
+        message: `Champs manquants: ${missing.join(', ')}. Corrigez ces informations avant de générer le PDF.`,
+        type: 'warning',
+      });
       return false;
     }
     return true;
@@ -657,7 +755,7 @@ export default function ContractsPage() {
     );
   }
 
-  async function captureContractCanvas(source: HTMLElement) {
+  async function captureContractPages(source: HTMLElement) {
     let logoAsset: PdfLogoAsset | null = null;
     if (effectiveLogoUrl && !logoBroken) {
       logoAsset = await loadLogoForPdf(effectiveLogoUrl);
@@ -669,19 +767,31 @@ export default function ContractsPage() {
       await document.fonts?.ready;
       await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-      return await html2canvas(captureSource.element, {
-        width: A4_SOURCE_WIDTH,
-        height: Math.max(A4_SOURCE_HEIGHT, captureSource.element.scrollHeight),
-        windowWidth: A4_SOURCE_WIDTH,
-        windowHeight: Math.max(A4_SOURCE_HEIGHT, captureSource.element.scrollHeight),
-        scale: Math.min(Math.max(window.devicePixelRatio || 2, 2), 2.5),
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: '#ffffff',
-        logging: false,
-        scrollX: 0,
-        scrollY: 0,
-      });
+      const pages = Array.from(captureSource.element.querySelectorAll<HTMLElement>('.contract-pdf-page'));
+      const captureTargets = pages.length ? pages : [captureSource.element];
+      const scale = Math.min(Math.max(window.devicePixelRatio || 2, 2), 2.5);
+      const canvases: HTMLCanvasElement[] = [];
+
+      for (const page of captureTargets) {
+        page.style.margin = '0';
+        page.style.boxShadow = 'none';
+        page.style.borderRadius = '0';
+        canvases.push(await html2canvas(page, {
+          width: A4_SOURCE_WIDTH,
+          height: A4_SOURCE_HEIGHT,
+          windowWidth: A4_SOURCE_WIDTH,
+          windowHeight: A4_SOURCE_HEIGHT,
+          scale,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: '#ffffff',
+          logging: false,
+          scrollX: 0,
+          scrollY: 0,
+        }));
+      }
+
+      return canvases;
     } finally {
       captureSource.cleanup();
     }
@@ -695,31 +805,16 @@ export default function ContractsPage() {
     }
     try {
       setDownloadingPdf(true);
-      const canvas = await captureContractCanvas(previewRef.current);
-      const imageData = canvas.toDataURL('image/png');
+      const canvases = await captureContractPages(previewRef.current);
       const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
-      const sourcePageRatio = A4_SOURCE_HEIGHT / A4_SOURCE_WIDTH;
-      const renderedRatio = canvas.height / canvas.width;
 
-      if (renderedRatio <= sourcePageRatio + 0.025) {
+      canvases.forEach((canvas, index) => {
+        if (index > 0) pdf.addPage();
+        const imageData = canvas.toDataURL('image/png');
         pdf.addImage(imageData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
-      } else {
-        const imageWidth = pdfWidth;
-        const imageHeight = (canvas.height * imageWidth) / canvas.width;
-        let heightLeft = imageHeight;
-        let position = 0;
-        pdf.addImage(imageData, 'PNG', 0, position, imageWidth, imageHeight, undefined, 'FAST');
-        heightLeft -= pdfHeight;
-
-        while (heightLeft > 1) {
-          position = heightLeft - imageHeight;
-          pdf.addPage();
-          pdf.addImage(imageData, 'PNG', 0, position, imageWidth, imageHeight, undefined, 'FAST');
-          heightLeft -= pdfHeight;
-        }
-      }
+      });
 
       pdf.save(contractFileName);
       notify({ title: 'Téléchargement lancé', message: 'Le contrat PDF a été généré.', type: 'success' });
@@ -822,7 +917,9 @@ export default function ContractsPage() {
     setClientId(contract.clientId);
     setVehicleId(contract.vehicleId);
     setTemplate(contract.template);
-    setTerms(contract.terms || defaultTerms.join('\n'));
+    const parsedContractTerms = parseSecondDriverFromContractTerms(contract.terms || defaultTerms.join('\n'));
+    setTerms(parsedContractTerms.cleanTerms || defaultTerms.join('\n'));
+    setSecondDriver(parsedContractTerms.secondDriver);
     const matchingReservation = reservations.find((item) =>
       item.clientId === contract.clientId &&
       item.vehicleId === contract.vehicleId &&
@@ -1145,204 +1242,22 @@ export default function ContractsPage() {
             >
             <div
               className="relative mx-auto"
-              style={{ width: A4_SOURCE_WIDTH * previewScale, height: A4_SOURCE_HEIGHT * previewScale }}
+              style={{
+                width: A4_SOURCE_WIDTH * previewScale,
+                height: ((A4_SOURCE_HEIGHT * 2) + 18) * previewScale,
+              }}
             >
-              <article ref={previewRef} className="absolute left-0 top-0 w-[794px] min-h-[1123px] origin-top-left rounded-xl border border-[#e8e8e8] bg-white px-8 py-7 text-[#1c2330] shadow-[0_16px_40px_rgba(15,23,42,.12)]" style={{ transform: `scale(${previewScale})` }}>
-              <header className="flex items-start justify-between gap-5 border-b border-[#e8edf4] pb-4">
-                <div className="flex items-start gap-3">
-                  <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-lg border border-[#dce4ef] bg-white p-1.5 shadow-sm">
-                    {effectiveLogoUrl && !logoBroken ? (
-                      <img
-                        src={effectiveLogoUrl}
-                        alt={`${profile?.agency?.name || 'Agence'} logo`}
-                        crossOrigin="anonymous"
-                        data-pdf-logo="agency"
-                        className="h-full w-full object-contain"
-                        onError={() => setLogoBroken(true)}
-                      />
-                    ) : (
-                      <Building2 className="h-7 w-7 text-[#9aa3b2]" />
-                    )}
-                  </div>
-                  <div className="max-w-[330px] pt-1">
-                    <p className="text-lg font-black leading-tight">{profile?.agency?.name || 'MekLoc Agency'}</p>
-                    <p className="mt-1 text-sm leading-5 text-[#5e697a]">{agencyMeta.address || 'Adresse non renseignée'}</p>
-                    <p className="text-sm leading-5 text-[#5e697a]">{agencyMeta.phone || profile?.phone || 'Téléphone non renseigné'} · {agencyMeta.email || profile?.email || 'Email non renseigné'}</p>
-                  </div>
-                </div>
-                <div className="max-w-[320px] text-right">
-                  <p className="text-[11px] font-semibold uppercase tracking-[.14em] text-[#a58b3f]">Contrat</p>
-                  <h1 className="mt-1 text-xl font-black leading-tight">CONTRAT DE LOCATION DE VÉHICULE</h1>
-                  <p className="mt-1 text-sm text-[#5e697a]">Réf: {contractReference}</p>
-                  <p className="text-sm text-[#5e697a]">Date: {new Date().toLocaleDateString('fr-MA')}</p>
-                </div>
-              </header>
-
-              <section className="mt-4 grid gap-3 md:grid-cols-2">
-                <InfoBlock
-                  icon={<Landmark className="h-4 w-4 text-[#a58b3f]" />}
-                  title="Agence"
-                  rows={[
-                    ['Nom agence', profile?.agency?.name || 'Non renseigné'],
-                    ['Adresse', agencyMeta.address || 'Non renseigné'],
-                    ['Téléphone', agencyMeta.phone || profile?.phone || 'Non renseigné'],
-                    ['Email', agencyMeta.email || profile?.email || 'Non renseigné'],
-                    ['ICE / RC', `${agencyMeta.ice || 'Non renseigné'} / ${agencyMeta.rc || 'Non renseigné'}`],
-                  ]}
+              <div
+                ref={previewRef}
+                className="absolute left-0 top-0 origin-top-left"
+                style={{ transform: `scale(${previewScale})` }}
+              >
+                <ContractPdfTemplate
+                  data={contractPdfData}
+                  logoBroken={logoBroken}
+                  onLogoError={() => setLogoBroken(true)}
                 />
-                <InfoBlock
-                  icon={<UserRound className="h-4 w-4 text-[#a58b3f]" />}
-                  title="Locataire"
-                  rows={[
-                    ['Nom complet', client.fullName || 'Non renseigné'],
-                    ['Téléphone', client.phone || 'Non renseigné'],
-                    ['Email', client.email || 'Non renseigné'],
-                    ['CIN/Passport', client.cin || 'Non renseigné'],
-                    ['Numéro permis', client.license || 'Non renseigné'],
-                    ['Adresse', client.address || 'Non renseigné'],
-                    ['Documents identité', client.idCardFrontUrl && client.idCardBackUrl ? 'Complets' : 'Manquants'],
-                  ]}
-                />
-              </section>
-
-              <section className="mt-3 rounded-xl border p-3" style={{ borderColor: contractBorder }}>
-                <p className="text-[11px] font-bold uppercase tracking-[.12em]" style={{ color: contractBorder }}>2ÈME CONDUCTEUR</p>
-                <div className="mt-2 grid gap-1.5 text-[13px] text-[#334155] md:grid-cols-2">
-                  <p>Nom: {secondDriverValue(secondDriver.lastName)}</p><p>Prénom: {secondDriverValue(secondDriver.firstName)}</p>
-                  <p>Date de naissance: {secondDriverValue(secondDriver.birthDate)}</p><p>Nationalité: {secondDriverValue(secondDriver.nationality)}</p>
-                  <p>CIN/Passeport: {secondDriverValue(secondDriver.idNumber)}</p><p>Permis N°: {secondDriverValue(secondDriver.licenseNumber)}</p>
-                  <p>Téléphone: {secondDriverValue(secondDriver.phone)}</p><p>Adresse: {secondDriverValue(secondDriver.address)}</p>
-                </div>
-              </section>
-
-              <section className="mt-3 grid gap-3 md:grid-cols-2">
-                <InfoBlock
-                  icon={<Building2 className="h-4 w-4 text-[#a58b3f]" />}
-                  title="Véhicule"
-                  rows={[
-                    ['Marque + modèle', `${vehicle.brand || 'Non renseigné'} ${vehicle.model || ''}`.trim()],
-                    ['Immatriculation', vehicle.plate || 'Non renseigné'],
-                    ['Couleur', vehicle.vehicleColor || 'Non renseigné'],
-                    ['Année', String(vehicle.year || 'Non renseigné')],
-                    ['Carburant', vehicle.fuel || 'Non renseigné'],
-                    ['Transmission', vehicle.transmission || 'Non renseigné'],
-                    ['Kilométrage départ', String(selectedReservation?.mileageOut ?? 'Non renseigné')],
-                    ['Kilométrage retour', 'Non renseigné'],
-                  ]}
-                />
-                <InfoBlock
-                  icon={<CalendarDays className="h-4 w-4 text-[#a58b3f]" />}
-                  title="Départ / Retour"
-                  rows={[
-                    ['Date de départ', formatDateFr(pickupDate)],
-                    ['Date de retour', formatDateFr(returnDate)],
-                    ['Retour réel', '—'],
-                    ['Heure départ', pickupTime || '—'],
-                    ['Heure retour', returnTime || '—'],
-                    ['Lieu départ', selectedReservation?.pickupLocation || 'Non renseigné'],
-                    ['Lieu retour', selectedReservation?.returnLocation || 'Non renseigné'],
-                  ]}
-                />
-              </section>
-
-              <section className="mt-3 rounded-xl border p-3.5" style={{ borderColor: contractBorder }}>
-                <p className="text-[11px] font-bold uppercase tracking-[.12em]" style={{ color: contractBorder }}>Montants</p>
-                <div className="mt-2 grid gap-1.5 text-[13px] text-[#334155] md:grid-cols-2">
-                  <p>Nombre de jours: <span className="font-semibold">{rentalDays}</span></p>
-                  <p>Prix / 24h: <span className="font-semibold">{formatMAD(vehicle.dailyPrice || 0)}</span></p>
-                  <p>Prix total: <span className="font-semibold">{formatMAD(totalAmount || 0)}</span></p>
-                  <p>Caution: <span className="font-semibold">{formatMAD(deposit || 0)}</span></p>
-                  <p>Franchise d’assurance: <span className="font-semibold">—</span></p>
-                  <p>Mode de règlement: <span className="font-semibold">—</span></p>
-                  <p>Payé par: <span className="font-semibold">{client.fullName || 'Non renseigné'}</span></p>
-                  <p>Statut paiement: <span className="font-semibold">{selectedReservation?.status || 'Non renseigné'}</span></p>
-                </div>
-              </section>
-
-              <section className="mt-3 rounded-xl border border-[#e8edf4] p-3.5">
-                <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#6b7280]">Accessoires véhicule</p>
-                <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
-                  {Object.entries(accessoryLabels).map(([key, label]) => (
-                    <p key={key} className="text-[13px] text-[#334155]">
-                      {accessories[key as keyof typeof accessories] ? '☑' : '☐'} {label}
-                    </p>
-                  ))}
-                </div>
-              </section>
-
-              <section className="mt-3 rounded-xl border border-[#e8edf4] p-3.5">
-                <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#6b7280]">Schéma des dommages</p>
-                <div className="mt-3 grid gap-3 md:grid-cols-[180px_1fr]">
-                  <svg viewBox="0 0 120 220" className="h-48 w-full max-w-[180px] rounded-lg border border-[#dbe3ee] bg-[#f8fafc]">
-                    <rect x="48" y="20" width="24" height="180" rx="8" fill="#fff" stroke="#334155" strokeWidth="1.2" />
-                    <rect x="40" y="48" width="40" height="124" rx="8" fill="none" stroke="#64748b" strokeWidth="1" />
-                    <line x1="48" y1="108" x2="72" y2="108" stroke="#64748b" strokeWidth="1" />
-                    <rect x="33" y="56" width="7" height="24" fill="none" stroke="#64748b" />
-                    <rect x="80" y="56" width="7" height="24" fill="none" stroke="#64748b" />
-                    <rect x="33" y="140" width="7" height="24" fill="none" stroke="#64748b" />
-                    <rect x="80" y="140" width="7" height="24" fill="none" stroke="#64748b" />
-                    {damageMarks.map((mark) => {
-                      const coords: Record<string, { x: number; y: number }> = {
-                        avant: { x: 60, y: 24 },
-                        arriere: { x: 60, y: 196 },
-                        capot: { x: 60, y: 42 },
-                        coffre: { x: 60, y: 178 },
-                        porte_gauche: { x: 45, y: 110 },
-                        porte_droite: { x: 75, y: 110 },
-                        aile_gauche: { x: 40, y: 62 },
-                        aile_droite: { x: 80, y: 62 },
-                        parechoc_avant: { x: 60, y: 16 },
-                        parechoc_arriere: { x: 60, y: 204 },
-                      };
-                      const point = coords[mark.zone] || { x: 60, y: 110 };
-                      return (
-                        <text key={mark.id} x={point.x} y={point.y} textAnchor="middle" fill="#dc2626" fontSize="10" fontWeight="700">
-                          {damageTypeLabels[mark.type] || 'A'}
-                        </text>
-                      );
-                    })}
-                  </svg>
-                  <div className="space-y-1.5 text-[13px] text-[#334155]">
-                    {damageMarks.length === 0 ? (
-                      <p>Aucun dommage signalé au départ.</p>
-                    ) : (
-                      damageMarks.map((mark) => (
-                        <p key={mark.id}>
-                          {mark.zone} · {damageTypeLabels[mark.type] || 'A'} {mark.note ? `· ${mark.note}` : ''}
-                        </p>
-                      ))
-                    )}
-                    <p className="pt-2 text-xs text-[#64748b]">Légende: R=Rayure, C=Cassure, E=Éclat, B=Bosse, P=Peinture, A=Autre</p>
-                  </div>
-                </div>
-              </section>
-
-              <section className="mt-3 rounded-xl border border-[#e8edf4] p-3.5">
-                <p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#6b7280]">Conditions générales</p>
-                <div className="mt-2 space-y-1.5 text-[13px] leading-5 text-[#2f3a4b]">
-                  {(terms.trim() ? terms.split('\n').filter(Boolean) : defaultTerms).map((item, index) => (
-                    <p key={`${item}-${index}`}>{index + 1}. {item}</p>
-                  ))}
-                </div>
-              </section>
-
-              <section className="mt-4 grid gap-3 md:grid-cols-2">
-                <SignatureBox title="Signature agence" />
-                <SignatureBox title="Signature client" />
-              </section>
-
-              <section className="mt-3 rounded-xl border border-[#e8edf4] p-3 text-sm text-[#3f4b5d]">
-                Fait à {signatureCity}, le {new Date().toLocaleDateString('fr-MA')}
-              </section>
-
-              <footer className="mt-4 border-t border-[#e8edf4] pt-3 text-xs text-[#778396]">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span>Contrat généré par MekLoc</span>
-                  <span>{contractReference}</span>
-                  <span>Page 1/1</span>
-                </div>
-              </footer>
-              </article>
+              </div>
             </div>
           </div>
           )}
@@ -1508,42 +1423,6 @@ export default function ContractsPage() {
           </div>
         </div>
       </Modal>
-    </div>
-  );
-}
-
-function InfoBlock({
-  icon,
-  title,
-  rows,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  rows: [string, string][];
-}) {
-  return (
-    <div className="rounded-xl border bg-[#fffdf8] p-3.5" style={{ borderColor: contractBorder }}>
-      <div className="mb-2 flex items-center gap-2">
-        {icon}
-        <p className="text-[11px] font-bold uppercase tracking-[.12em]" style={{ color: contractBorder }}>{title}</p>
-      </div>
-      <div className="space-y-1.5">
-        {rows.map(([label, value]) => (
-          <p key={`${label}-${value}`} className="flex justify-between gap-3 text-[13px] leading-5 text-[#334155]">
-            <span className="text-[#64748b]">{label}</span>
-            <span className="text-right font-semibold">{value || 'Non renseigné'}</span>
-          </p>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function SignatureBox({ title }: { title: string }) {
-  return (
-    <div className="rounded-xl border border-dashed border-[#cfd7e3] p-3.5">
-      <PenLine className="mb-10 h-5 w-5 text-[#94a3b8]" />
-      <p className="text-sm font-semibold text-[#334155]">{title}</p>
     </div>
   );
 }
