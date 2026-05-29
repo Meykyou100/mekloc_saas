@@ -363,6 +363,7 @@ export default function ContractsPage() {
     logo_url?: string;
     ice?: string;
     rc?: string;
+    settings?: Record<string, unknown> | null;
   }>({});
   const [logoPublicUrl, setLogoPublicUrl] = useState<string | null>(null);
 
@@ -425,12 +426,12 @@ export default function ContractsPage() {
   useEffect(() => {
     async function loadAgencyMeta() {
       if (!agencyId || !supabase) {
-        setLogoPublicUrl(profile?.agency?.logoUrl || null);
+        setLogoPublicUrl(null);
         return;
       }
       const { data } = await supabase
         .from('agencies')
-        .select('address,phone,email,logo_path,logo_url,ice,rc')
+        .select('address,phone,email,logo_path,logo_url,ice,rc,settings')
         .eq('id', agencyId)
         .maybeSingle();
       if (!data) return;
@@ -445,15 +446,15 @@ export default function ContractsPage() {
             break;
           }
         }
-        setLogoPublicUrl(resolvedLogo || (data as { logo_url?: string | null }).logo_url || profile?.agency?.logoUrl || null);
+        setLogoPublicUrl(resolvedLogo || (data as { logo_url?: string | null }).logo_url || null);
       } else if ((data as { logo_url?: string | null }).logo_url) {
         setLogoPublicUrl((data as { logo_url?: string | null }).logo_url || null);
       } else {
-        setLogoPublicUrl(profile?.agency?.logoUrl || null);
+        setLogoPublicUrl(null);
       }
     }
     loadAgencyMeta();
-  }, [agencyId, profile?.agency?.logoUrl]);
+  }, [agencyId]);
 
   const emptyClient: Client = {
     id: '',
@@ -569,7 +570,7 @@ export default function ContractsPage() {
     };
   }, [contracts, reservations]);
 
-  const effectiveLogoUrl = profile?.agency?.logoUrl || logoPublicUrl || null;
+  const effectiveLogoUrl = logoPublicUrl || agencyMeta.logo_url || null;
 
   const selectedReservationPayments = useMemo(() => {
     if (!selectedReservation?.id) return [];
@@ -586,9 +587,15 @@ export default function ContractsPage() {
 
   const contractPdfData = useMemo<ContractPdfData>(() => {
     const agencySource = agencyMeta as LooseRecord;
+    const agencySettings = (agencyMeta.settings || {}) as LooseRecord;
     const clientSource = client as unknown as LooseRecord;
     const vehicleSource = vehicle as unknown as LooseRecord;
     const reservationSource = selectedReservation as unknown as LooseRecord | undefined;
+    const paidFromReservation = readNumber(reservationSource, ['paidAmount', 'paid_amount', 'amountPaid', 'amount_paid']);
+    const effectivePaidAmount = paidAmount || paidFromReservation || 0;
+    const effectiveDeposit =
+      readNumber(reservationSource, ['deposit', 'depositAmount', 'deposit_amount', 'caution']) ??
+      deposit;
     const damageSummary = damageMarks
       .map((mark) => [mark.zone, mark.type, mark.note].filter(Boolean).join(' · '))
       .join(' | ');
@@ -601,9 +608,9 @@ export default function ContractsPage() {
         email: agencyMeta.email || profile?.email || '',
         logoUrl: effectiveLogoUrl,
         rc: agencyMeta.rc || '',
-        ifNumber: readString(agencySource, ['if', 'if_number', 'fiscal_id', 'tax_id']),
+        ifNumber: readString(agencySource, ['if', 'if_number', 'fiscal_id', 'tax_id']) || readString(agencySettings, ['if', 'if_number', 'fiscal_id', 'tax_id']),
         ice: agencyMeta.ice || '',
-        cnss: readString(agencySource, ['cnss', 'cnss_number']),
+        cnss: readString(agencySource, ['cnss', 'cnss_number']) || readString(agencySettings, ['cnss', 'cnss_number']),
       },
       reservation: {
         pickupDate: formatDateFr(pickupDate),
@@ -651,10 +658,10 @@ export default function ContractsPage() {
       },
       payment: {
         totalAmount,
-        paidAmount,
-        remainingAmount: Math.max(0, (totalAmount || 0) - paidAmount),
-        deposit,
-        method: selectedReservationPayments[0]?.method,
+        paidAmount: effectivePaidAmount,
+        remainingAmount: Math.max(0, (totalAmount || 0) - effectivePaidAmount),
+        deposit: effectiveDeposit,
+        method: selectedReservationPayments[0]?.method || readString(reservationSource, ['paymentMethod', 'payment_method', 'method']),
       },
       contract: {
         reference: contractReference,

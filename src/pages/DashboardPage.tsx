@@ -11,12 +11,11 @@ import {
   WalletCards,
   Wrench,
 } from 'lucide-react';
-import { useMemo } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
 import { MobileEmptyBlock } from '../components/ui/MobilePrimitives';
-import PageHeader from '../components/ui/PageHeader';
 import PlateNumber from '../components/ui/PlateNumber';
 import {
   formatMAD,
@@ -26,7 +25,6 @@ import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import {
   buildWhatsAppReminderUrl,
-  getMissingDocumentClients,
   getOverdueReservations,
   getPaymentAlerts,
   getTodayReservations,
@@ -48,24 +46,33 @@ function KpiCard({
   value,
   helper,
   icon: Icon,
+  tone = 'gold',
 }: {
   label: string;
   value: string;
   helper: string;
   icon: typeof Car;
+  tone?: 'gold' | 'blue' | 'green' | 'violet';
 }) {
+  const toneClasses = {
+    gold: 'border-gold-300/25 bg-gold-500/10 text-gold-100 shadow-[0_0_28px_rgba(227,177,23,0.08)]',
+    blue: 'border-sky-300/20 bg-sky-500/10 text-sky-100',
+    green: 'border-emerald-300/20 bg-emerald-500/10 text-emerald-100',
+    violet: 'border-violet-300/20 bg-violet-500/10 text-violet-100',
+  };
+
   return (
-    <Card className="flex min-h-[92px] flex-col justify-between p-3 sm:min-h-[136px] sm:p-6">
-      <div className="flex items-start justify-between gap-2 sm:gap-4">
+    <Card className="group flex min-h-[126px] flex-col justify-between rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 transition hover:border-gold-300/25 hover:shadow-[0_18px_50px_rgba(0,0,0,0.35)] sm:min-h-[148px] sm:p-5">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-[11px] font-medium text-carbon-400 light:text-carbon-600 sm:text-sm">{label}</p>
-          <p className="mt-1 truncate text-xl font-semibold tracking-tight text-white light:text-carbon-950 sm:mt-3 sm:text-3xl">{value}</p>
+          <p className="truncate text-[11px] font-semibold uppercase tracking-[0.14em] text-carbon-500 light:text-carbon-600">{label}</p>
+          <p className="mt-3 truncate text-2xl font-semibold tracking-tight text-white light:text-carbon-950 sm:text-3xl">{value}</p>
         </div>
-        <div className="rounded-xl border border-white/10 bg-white/[0.045] p-2 text-carbon-200 light:bg-carbon-950/[0.04] light:text-carbon-700 sm:rounded-2xl sm:p-3">
+        <div className={`rounded-2xl border p-2.5 ${toneClasses[tone]}`}>
           <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
       </div>
-      <p className="mt-2 line-clamp-1 text-[11px] text-carbon-500 light:text-carbon-600 sm:mt-5 sm:text-sm">{helper}</p>
+      <p className="mt-4 line-clamp-1 text-xs text-carbon-500 light:text-carbon-600 sm:text-sm">{helper}</p>
     </Card>
   );
 }
@@ -82,7 +89,7 @@ function ActivityRow({
   tone?: 'neutral' | 'warning';
 }) {
   return (
-    <div className="premium-surface flex items-center justify-between gap-4 rounded-2xl px-4 py-3">
+    <div className="premium-surface flex items-center justify-between gap-4 rounded-2xl px-4 py-3.5">
       <div className="flex items-center gap-3">
         <div className={`rounded-xl p-2 ${tone === 'warning' ? 'bg-white/[0.04] text-gold-200' : 'bg-white/[0.04] text-carbon-200 light:text-carbon-700'}`}>
           <Icon className="h-4 w-4" />
@@ -94,11 +101,40 @@ function ActivityRow({
   );
 }
 
+function PriorityCard({
+  title,
+  priority,
+  emptyText,
+  icon: Icon,
+  children,
+}: {
+  title: string;
+  priority: AssistantPriority;
+  emptyText: string;
+  icon: typeof Car;
+  children?: ReactNode;
+}) {
+  return (
+    <Card className="min-h-[168px] rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 transition hover:border-gold-300/20 sm:p-5">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="rounded-2xl border border-gold-300/20 bg-gold-500/10 p-2.5 text-gold-100">
+            <Icon className="h-4 w-4" />
+          </div>
+          <h3 className="text-base font-semibold text-white light:text-carbon-950 sm:text-lg">{title}</h3>
+        </div>
+        <PriorityBadge priority={priority} />
+      </div>
+      {children || <p className="text-sm text-carbon-400 light:text-carbon-600">{emptyText}</p>}
+    </Card>
+  );
+}
+
 function PriorityBadge({ priority }: { priority: AssistantPriority }) {
-  if (priority === 'urgent') return <Badge>Urgent</Badge>;
-  if (priority === 'today') return <Badge>Aujourd’hui</Badge>;
-  if (priority === 'missing') return <Badge>Manquant</Badge>;
-  return <Badge>À surveiller</Badge>;
+  if (priority === 'urgent') return <span className="rounded-full border border-rose-300/20 bg-rose-500/10 px-2.5 py-1 text-[11px] font-semibold text-rose-100">Urgent</span>;
+  if (priority === 'today') return <span className="rounded-full border border-gold-300/20 bg-gold-500/10 px-2.5 py-1 text-[11px] font-semibold text-gold-100">Aujourd’hui</span>;
+  if (priority === 'missing') return <span className="rounded-full border border-orange-300/20 bg-orange-500/10 px-2.5 py-1 text-[11px] font-semibold text-orange-100">À suivre</span>;
+  return <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[11px] font-semibold text-carbon-300">À surveiller</span>;
 }
 
 export default function DashboardPage() {
@@ -133,18 +169,15 @@ export default function DashboardPage() {
   const todayReturns = useMemo(() => getTodayReservations(reservations, 'return'), [reservations]);
   const overdueReservations = useMemo(() => getOverdueReservations(reservations), [reservations]);
   const paymentAlerts = useMemo(() => getPaymentAlerts(reservations, payments), [reservations, payments]);
-  const missingDocuments = useMemo(() => getMissingDocumentClients(clients), [clients]);
   const vehicleAlerts = useMemo(
     () => getVehicleExpiryAlerts(vehicles, maintenanceItems),
     [vehicles, maintenanceItems],
   );
-  const isAllGood =
+  const prioritiesAreClear =
     todayPickups.length === 0 &&
     todayReturns.length === 0 &&
     overdueReservations.length === 0 &&
-    paymentAlerts.length === 0 &&
-    missingDocuments.length === 0 &&
-    vehicleAlerts.length === 0;
+    paymentAlerts.length === 0;
 
   async function markReservationCompleted(reservationId: string) {
     const target = reservations.find((reservation) => reservation.id === reservationId);
@@ -178,12 +211,21 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <PageHeader
-        eyebrow="Espace agence"
-        title="Tableau de bord"
-        description="Vue claire des locations du jour, du parc disponible, des paiements et des actions prioritaires."
-      />
+    <div className="space-y-6 pb-[calc(84px+env(safe-area-inset-bottom))] md:pb-0">
+      <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.34em] text-gold-200">Espace agence</p>
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white light:text-carbon-950 sm:text-4xl">
+            Tableau de bord
+          </h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-carbon-400 light:text-carbon-600 sm:text-base">
+            Vue claire des locations du jour, du parc disponible, des paiements et des actions prioritaires.
+          </p>
+        </div>
+        <div className="w-fit rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-2 text-sm font-semibold text-carbon-300 shadow-[0_14px_40px_rgba(0,0,0,0.22)] light:text-carbon-700">
+          {new Date().toLocaleDateString('fr-MA', { day: '2-digit', month: 'long', year: 'numeric' })}
+        </div>
+      </header>
 
       {isSubscriptionExpiringSoon(profile?.agency) ? (
         <div className="rounded-2xl border border-white/[0.07] bg-white/[0.035] px-4 py-3 text-sm font-semibold text-gold-100 light:text-gold-800">
@@ -191,39 +233,34 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      <section className="rounded-3xl border border-white/10 bg-white/[0.02] p-4 sm:p-6">
+      <section className="rounded-[28px] border border-white/10 bg-gradient-to-br from-white/[0.045] via-white/[0.02] to-transparent p-4 shadow-[0_24px_80px_rgba(0,0,0,0.24)] sm:p-6">
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-gold-200">Assistant du jour</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white">Actions prioritaires de la journée</h2>
+            <h2 className="mt-2 text-xl font-semibold text-white sm:text-2xl">Actions prioritaires de la journée</h2>
+            <p className="mt-1 text-sm text-carbon-500">Les urgences opérationnelles à traiter en premier.</p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-2 text-xs font-semibold text-carbon-300">
-            {new Date().toLocaleDateString('fr-MA', { day: '2-digit', month: 'long', year: 'numeric' })}
-          </div>
+          {prioritiesAreClear ? (
+            <span className="rounded-full border border-emerald-300/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-100">
+              Tout est à jour
+            </span>
+          ) : null}
         </div>
 
         {loading ? (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, index) => (
-              <div key={index} className="h-44 animate-pulse rounded-2xl border border-white/10 bg-white/[0.03]" />
+          <div className="grid gap-4 lg:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="h-40 animate-pulse rounded-3xl border border-white/10 bg-white/[0.03]" />
             ))}
           </div>
-        ) : isAllGood ? (
-          <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-4 text-sm font-semibold text-emerald-100">
-            Tout est à jour aujourd’hui.
-          </div>
         ) : (
-          <div className="grid gap-4 xl:grid-cols-2">
-            <Card className="p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white">Départs aujourd’hui</h3>
-                <PriorityBadge priority="today" />
-              </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <PriorityCard title="Départs aujourd’hui" priority="today" icon={CalendarClock} emptyText="Aucun départ prévu.">
               {todayPickups.length === 0 ? (
-                <p className="text-sm text-carbon-400">Aucun départ prévu.</p>
+                null
               ) : (
                 <div className="space-y-3">
-                  {todayPickups.slice(0, 4).map((reservation) => {
+                  {todayPickups.slice(0, 1).map((reservation) => {
                     const contractExists = contracts.some(
                       (contract) =>
                         contract.clientId === reservation.clientId &&
@@ -240,7 +277,7 @@ export default function DashboardPage() {
                       date: reservation.pickupDate,
                     });
                     return (
-                      <div key={`pickup-${reservation.id}`} className="rounded-2xl border border-white/10 bg-white/[0.02] p-3">
+                      <div key={`pickup-${reservation.id}`} className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
                         <p className="text-sm font-semibold text-white">{reservation.client} · {reservation.vehicle}</p>
                         <p className="mt-1 text-xs text-carbon-400">
                           {reservation.pickupLocation || 'Lieu à confirmer'} · {reservation.pickupDate}
@@ -271,20 +308,19 @@ export default function DashboardPage() {
                       </div>
                     );
                   })}
+                  {todayPickups.length > 1 ? (
+                    <p className="text-xs font-medium text-carbon-500">+ {todayPickups.length - 1} autre(s) départ(s) aujourd’hui</p>
+                  ) : null}
                 </div>
               )}
-            </Card>
+            </PriorityCard>
 
-            <Card className="p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white">Retours aujourd’hui</h3>
-                <PriorityBadge priority="today" />
-              </div>
+            <PriorityCard title="Retours aujourd’hui" priority="today" icon={ArrowRight} emptyText="Aucun retour prévu.">
               {todayReturns.length === 0 ? (
-                <p className="text-sm text-carbon-400">Aucun retour prévu.</p>
+                null
               ) : (
                 <div className="space-y-3">
-                  {todayReturns.slice(0, 4).map((reservation) => {
+                  {todayReturns.slice(0, 1).map((reservation) => {
                     const phone = getClientPhoneByReservation(reservation.id, reservation.client);
                     const whatsappUrl = buildWhatsAppReminderUrl({
                       kind: 'return',
@@ -294,7 +330,7 @@ export default function DashboardPage() {
                       date: reservation.returnDate,
                     });
                     return (
-                      <div key={`return-${reservation.id}`} className="rounded-2xl border border-white/10 bg-white/[0.02] p-3">
+                      <div key={`return-${reservation.id}`} className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
                         <p className="text-sm font-semibold text-white">{reservation.client} · {reservation.vehicle}</p>
                         <p className="mt-1 text-xs text-carbon-400">
                           {reservation.returnLocation || 'Lieu à confirmer'} · {reservation.returnDate}
@@ -327,21 +363,20 @@ export default function DashboardPage() {
                       </div>
                     );
                   })}
+                  {todayReturns.length > 1 ? (
+                    <p className="text-xs font-medium text-carbon-500">+ {todayReturns.length - 1} autre(s) retour(s) aujourd’hui</p>
+                  ) : null}
                 </div>
               )}
-            </Card>
+            </PriorityCard>
 
-            <Card className="p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white">Retards</h3>
-                <PriorityBadge priority="urgent" />
-              </div>
+            <PriorityCard title="Retards" priority="urgent" icon={AlertTriangle} emptyText="Aucun retour en retard.">
               {overdueReservations.length === 0 ? (
-                <p className="text-sm text-carbon-400">Aucun retour en retard.</p>
+                null
               ) : (
                 <div className="space-y-3">
-                  {overdueReservations.slice(0, 4).map((reservation) => (
-                    <div key={`overdue-${reservation.id}`} className="rounded-2xl border border-rose-300/30 bg-rose-500/10 p-3">
+                  {overdueReservations.slice(0, 1).map((reservation) => (
+                    <div key={`overdue-${reservation.id}`} className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3">
                       <p className="text-sm font-semibold text-white">{reservation.client} · {reservation.vehicle}</p>
                       <p className="mt-1 text-xs text-rose-100">Retour en retard depuis le {reservation.returnDate}</p>
                       <div className="mt-3">
@@ -351,20 +386,19 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   ))}
+                  {overdueReservations.length > 1 ? (
+                    <p className="text-xs font-medium text-carbon-500">+ {overdueReservations.length - 1} autre(s) retard(s)</p>
+                  ) : null}
                 </div>
               )}
-            </Card>
+            </PriorityCard>
 
-            <Card className="p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white">Paiements à suivre</h3>
-                <PriorityBadge priority="missing" />
-              </div>
+            <PriorityCard title="Paiements à suivre" priority="missing" icon={WalletCards} emptyText="Aucun paiement en attente.">
               {paymentAlerts.length === 0 ? (
-                <p className="text-sm text-carbon-400">Aucun paiement en attente.</p>
+                null
               ) : (
                 <div className="space-y-3">
-                  {paymentAlerts.slice(0, 4).map((item) => {
+                  {paymentAlerts.slice(0, 1).map((item) => {
                     const phone = getClientPhoneByReservation(item.reservation.id, item.reservation.client);
                     const whatsappUrl = buildWhatsAppReminderUrl({
                       kind: 'payment',
@@ -373,7 +407,7 @@ export default function DashboardPage() {
                       amount: item.remaining,
                     });
                     return (
-                      <div key={`pay-${item.reservation.id}`} className="rounded-2xl border border-white/10 bg-white/[0.02] p-3">
+                      <div key={`pay-${item.reservation.id}`} className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
                         <p className="text-sm font-semibold text-white">{item.reservation.client} · {item.reservation.id}</p>
                         <p className="mt-1 text-xs text-carbon-400">
                           Reste à payer: {formatMAD(item.remaining)} {item.cautionMissing ? '· Caution manquante' : ''}
@@ -399,92 +433,25 @@ export default function DashboardPage() {
                       </div>
                     );
                   })}
+                  {paymentAlerts.length > 1 ? (
+                    <p className="text-xs font-medium text-carbon-500">+ {paymentAlerts.length - 1} paiement(s) à suivre</p>
+                  ) : null}
                 </div>
               )}
-            </Card>
-
-            <Card className="p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white">Documents manquants</h3>
-                <PriorityBadge priority="missing" />
-              </div>
-              {missingDocuments.length === 0 ? (
-                <p className="text-sm text-carbon-400">Tous les dossiers clients sont complets.</p>
-              ) : (
-                <div className="space-y-3">
-                  {missingDocuments.slice(0, 4).map((item) => {
-                    const whatsappUrl = buildWhatsAppReminderUrl({
-                      kind: 'documents',
-                      phone: item.client.phone,
-                      clientName: item.client.fullName,
-                      missingDocs: item.missing,
-                    });
-                    return (
-                      <div key={`doc-${item.client.id}`} className="rounded-2xl border border-white/10 bg-white/[0.02] p-3">
-                        <p className="text-sm font-semibold text-white">{item.client.fullName}</p>
-                        <p className="mt-1 text-xs text-carbon-400">Documents manquants: {item.missing.join(' / ')}</p>
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <Link to="/clients" className="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-carbon-200 hover:bg-white/[0.07]">
-                            Compléter client
-                          </Link>
-                          {whatsappUrl ? (
-                            <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-carbon-200 hover:bg-white/[0.07]">
-                              <MessageCircle className="h-3.5 w-3.5" /> Envoyer WhatsApp
-                            </a>
-                          ) : (
-                            <button type="button" disabled className="cursor-not-allowed rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-carbon-500">
-                              Téléphone manquant
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </Card>
-
-            <Card className="p-4">
-              <div className="mb-3 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-white">Véhicules à surveiller</h3>
-                <PriorityBadge priority="watch" />
-              </div>
-              {vehicleAlerts.length === 0 ? (
-                <p className="text-sm text-carbon-400">Aucune alerte véhicule.</p>
-              ) : (
-                <div className="space-y-3">
-                  {vehicleAlerts.slice(0, 5).map((item) => (
-                    <div key={`veh-alert-${item.source}-${item.vehicle.id}-${item.date}`} className="rounded-2xl border border-white/10 bg-white/[0.02] p-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-white">
-                          {item.vehicle.brand} {item.vehicle.model} · <PlateNumber value={item.vehicle.plate} />
-                        </p>
-                        <PriorityBadge priority={item.priority} />
-                      </div>
-                      <p className="mt-1 text-xs text-carbon-400">{item.label} · {item.date || 'Date non renseignée'}</p>
-                      <div className="mt-3">
-                        <Link to="/vehicles" className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-3 py-1.5 text-xs font-semibold text-carbon-200 hover:bg-white/[0.07]">
-                          Voir véhicule
-                        </Link>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </Card>
+            </PriorityCard>
           </div>
         )}
       </section>
 
       <section className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <KpiCard label="Véhicules disponibles" value={String(availableVehicles)} helper="Prêts pour de nouvelles réservations" icon={Car} />
-        <KpiCard label="Réservations actives" value={String(activeReservations)} helper="Locations en cours" icon={CalendarClock} />
-        <KpiCard label="Revenus du mois" value={formatMAD(monthlyRevenue)} helper="Paiements encaissés et partiels" icon={WalletCards} />
-        <KpiCard label="Paiements en attente" value={String(pendingPayments)} helper="Factures en attente ou en retard" icon={Banknote} />
+        <KpiCard label="Véhicules disponibles" value={String(availableVehicles)} helper="Prêts pour de nouvelles réservations" icon={Car} tone="green" />
+        <KpiCard label="Réservations actives" value={String(activeReservations)} helper="Locations en cours" icon={CalendarClock} tone="blue" />
+        <KpiCard label="Revenus du mois" value={formatMAD(monthlyRevenue)} helper="Paiements encaissés et partiels" icon={WalletCards} tone="gold" />
+        <KpiCard label="Paiements en attente" value={String(pendingPayments)} helper="Factures en attente ou en retard" icon={Banknote} tone="violet" />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card className="p-5 sm:p-6">
+      <section className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+        <Card className="rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-5 sm:p-6">
           <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Activité du jour</h2>
@@ -502,7 +469,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="p-5 sm:p-6">
+        <Card className="rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-5 sm:p-6">
           <div className="mb-6">
               <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Actions rapides</h2>
               <p className="mt-1 text-sm text-carbon-400 light:text-carbon-600">Lancez les actions les plus fréquentes.</p>
@@ -530,7 +497,7 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-4 xl:grid-cols-3">
-        <Card className="p-5 sm:p-6">
+        <Card className="rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-5 sm:p-6">
           <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Départs à venir</h2>
           <div className="mt-5 grid gap-3">
             {upcomingPickups.length === 0 ? (
@@ -548,7 +515,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="p-5 sm:p-6">
+        <Card className="rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-5 sm:p-6">
           <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Retours à venir</h2>
           <div className="mt-5 grid gap-3">
             {upcomingReturns.length === 0 ? (
@@ -566,7 +533,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="p-5 sm:p-6">
+        <Card className="rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-5 sm:p-6">
           <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Paiements à relancer</h2>
           <div className="mt-5 grid gap-3">
             {latePaymentItems.length === 0 ? (
@@ -586,7 +553,7 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black">
           <div className="flex items-center justify-between border-b border-white/10 p-5 sm:p-6">
             <div>
               <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Réservations récentes</h2>
@@ -642,7 +609,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="p-5 sm:p-6">
+        <Card className="rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-5 sm:p-6">
           <div className="mb-5 flex items-center justify-between">
             <div>
               <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">État de la flotte</h2>
@@ -674,15 +641,27 @@ export default function DashboardPage() {
       </section>
 
       <section>
-        <Card className="p-5 sm:p-6">
+        <Card className="rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-5 sm:p-6">
           <div className="mb-5 flex items-center gap-3">
             <Wrench className="h-5 w-5 text-gold-200" />
             <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Alertes entretien</h2>
           </div>
           <div className="grid gap-3">
-            {maintenanceItems.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-carbon-400">Aucune donnée pour le moment.</div>
-            ) : maintenanceItems.map((item) => (
+            {vehicleAlerts.length > 0 ? (
+              vehicleAlerts.slice(0, 5).map((item) => (
+                <div key={`veh-alert-${item.source}-${item.vehicle.id}-${item.date}`} className="premium-surface flex items-center justify-between gap-4 rounded-2xl p-4">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold text-white light:text-carbon-950">
+                      {item.vehicle.brand} {item.vehicle.model} · <PlateNumber value={item.vehicle.plate} />
+                    </p>
+                    <p className="mt-1 text-sm text-carbon-400">{item.label} · {item.date || 'Date non renseignée'}</p>
+                  </div>
+                  <PriorityBadge priority={item.priority} />
+                </div>
+              ))
+            ) : maintenanceItems.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-carbon-400">Aucune alerte entretien pour le moment.</div>
+            ) : maintenanceItems.slice(0, 5).map((item) => (
               <div key={item.id} className="premium-surface flex items-center justify-between gap-4 rounded-2xl p-4">
                 <div>
                   <p className="font-semibold text-white light:text-carbon-950">{item.vehicle}</p>

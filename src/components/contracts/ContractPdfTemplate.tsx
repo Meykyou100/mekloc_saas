@@ -108,6 +108,17 @@ function valueOrLine(value: unknown) {
   return normalized || emptyLine;
 }
 
+function isBlankValue(value: unknown) {
+  if (value === null || value === undefined) return true;
+  if (typeof value === 'string') return !value.trim() || value.trim() === emptyLine;
+  return false;
+}
+
+function agencyInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'AG';
+}
+
 function optionalValue(value: unknown) {
   if (value === null || value === undefined) return '';
   return String(value).trim();
@@ -148,10 +159,11 @@ function FieldRow({
   unit?: string;
   narrow?: boolean;
 }) {
+  const missing = isBlankValue(value);
   return (
     <div className="cp-field-row">
       <span className={`cp-field-label${narrow ? ' cp-field-label-narrow' : ''}`}>{label}</span>
-      <span className="cp-field-value">{value || emptyLine}</span>
+      <span className={`cp-field-value ${missing ? 'cp-field-value-empty' : 'cp-field-value-filled'}`}>{missing ? emptyLine : value}</span>
       {unit ? <span className="cp-field-unit">{unit}</span> : null}
     </div>
   );
@@ -178,6 +190,7 @@ function FuelTrack({ value }: { value?: string }) {
           <span key={index} className={`cp-fuel-seg${index < filledSegments ? ' cp-fuel-seg-filled' : ''}`} />
         ))}
         <span className="cp-fuel-label">F</span>
+        {!normalized ? <span className="cp-fuel-text">Non renseigné</span> : null}
         {normalized && !filledSegments ? <span className="cp-fuel-text">{value}</span> : null}
       </div>
     </div>
@@ -204,6 +217,7 @@ function CarDiagram() {
 export default function ContractPdfTemplate({ data, logoBroken = false, onLogoError, className = '' }: ContractPdfTemplateProps) {
   const { agency, reservation, client, secondDriver, vehicle, payment, contract } = data;
   const secondDriverName = secondDriver.enabled ? fullSecondDriverName(secondDriver) : '';
+  const agencyName = optionalValue(agency.name);
   const remainingAmount =
     typeof payment.remainingAmount === 'number'
       ? payment.remainingAmount
@@ -223,7 +237,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           width: 794px;
           color: var(--cp-ink);
           font-family: Arial, Helvetica, sans-serif;
-          line-height: 1.25;
+          line-height: 1.28;
         }
         .cp-page {
           position: relative;
@@ -231,7 +245,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           height: 1123px;
           overflow: hidden;
           background: var(--cp-paper);
-          padding: 45px;
+          padding: 42px;
           box-sizing: border-box;
           border: 1px solid #e6e0d7;
           box-shadow: 0 18px 45px rgba(0,0,0,.16);
@@ -242,42 +256,52 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           align-items: flex-start;
           justify-content: space-between;
           gap: 18px;
-          padding-bottom: 10px;
+          padding-bottom: 11px;
           border-bottom: 2px solid var(--cp-ink);
         }
         .cp-logo-block {
           display: flex;
-          align-items: center;
-          gap: 12px;
+          align-items: flex-start;
+          gap: 10px;
           min-width: 0;
+          flex: 1 1 auto;
         }
         .cp-logo-img {
           display: block;
-          width: 98px;
-          max-height: 54px;
+          width: auto;
+          max-width: 70px;
+          max-height: 45px;
           object-fit: contain;
+          flex: 0 0 auto;
         }
         .cp-logo-fallback {
+          display: grid;
+          place-items: center;
+          width: 44px;
+          height: 44px;
+          border: 1px solid var(--cp-ink);
           font-weight: 800;
-          font-size: 16px;
+          font-size: 13px;
           letter-spacing: .02em;
           text-transform: uppercase;
         }
         .cp-agency-name {
-          font-size: 16px;
+          font-size: 17px;
           font-weight: 800;
           text-transform: uppercase;
           letter-spacing: .04em;
+          line-height: 1.1;
         }
         .cp-agency-sub, .cp-reg-row {
           color: var(--cp-mid);
-          font-size: 9px;
-          line-height: 1.55;
+          font-size: 9.6px;
+          line-height: 1.45;
         }
         .cp-header-right {
-          max-width: 280px;
+          max-width: 300px;
+          flex: 0 0 300px;
           text-align: right;
-          padding-top: 4px;
+          padding-top: 2px;
         }
         .cp-title-bar {
           display: flex;
@@ -285,31 +309,31 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           justify-content: space-between;
           gap: 12px;
           margin: 10px 0 8px;
-          padding: 8px 10px;
+          padding: 8px 11px;
           background: var(--cp-ink);
           color: #fff;
           text-transform: uppercase;
           letter-spacing: .08em;
-          font-size: 18px;
+          font-size: 18.5px;
           font-weight: 800;
         }
         .cp-contract-meta {
           display: flex;
           gap: 14px;
-          font-size: 10px;
+          font-size: 10.4px;
           font-weight: 600;
           letter-spacing: .04em;
         }
         .cp-grid-2 {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 8px;
-          margin-bottom: 8px;
+          gap: 7px;
+          margin-bottom: 7px;
         }
         .cp-grid-3 {
           display: grid;
           grid-template-columns: 1fr 1fr 1fr;
-          gap: 8px;
+          gap: 7px;
           margin-top: 2px;
         }
         .cp-section {
@@ -321,7 +345,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           border-bottom: 1px solid var(--cp-line);
           padding: 4px 7px;
           color: var(--cp-ink);
-          font-size: 10px;
+          font-size: 10.5px;
           font-weight: 800;
           letter-spacing: .11em;
           text-transform: uppercase;
@@ -333,13 +357,13 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           display: flex;
           align-items: flex-end;
           gap: 5px;
-          min-height: 18px;
+          min-height: 18.5px;
           margin-bottom: 3px;
           color: var(--cp-mid);
-          font-size: 10px;
+          font-size: 10.7px;
         }
         .cp-field-label {
-          flex: 0 0 96px;
+          flex: 0 0 98px;
           color: var(--cp-mid);
           font-weight: 700;
         }
@@ -348,16 +372,25 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           flex: 1 1 auto;
           min-width: 0;
           color: var(--cp-ink);
-          font-weight: 650;
-          border-bottom: 1px dotted #999;
-          padding: 0 2px 1px;
+          font-weight: 700;
+          padding: 0 3px 1px;
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
+        .cp-field-value-empty {
+          color: var(--cp-light);
+          font-weight: 500;
+          border-bottom: 1px dotted #999;
+        }
+        .cp-field-value-filled {
+          border-bottom: 0;
+          background: #f8f6f1;
+          box-shadow: inset 0 -1px 0 rgba(28,27,25,.10);
+        }
         .cp-field-unit {
           color: var(--cp-light);
-          font-size: 9px;
+          font-size: 9.3px;
         }
         .cp-field-inline-2 {
           display: grid;
@@ -379,12 +412,12 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           align-items: center;
           gap: 4px;
           color: var(--cp-mid);
-          font-size: 9px;
+          font-size: 9.5px;
           font-weight: 600;
         }
         .cp-cb {
           color: var(--cp-ink);
-          font-size: 10px;
+          font-size: 10.5px;
           line-height: 1;
         }
         .cp-fuel-row {
@@ -401,7 +434,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         }
         .cp-fuel-label, .cp-fuel-text {
           color: var(--cp-light);
-          font-size: 8px;
+          font-size: 8.5px;
         }
         .cp-fuel-seg {
           width: 16px;
@@ -429,21 +462,21 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           right: 5px;
           bottom: 3px;
           color: var(--cp-light);
-          font-size: 8px;
+          font-size: 8.4px;
         }
         .cp-observation-box {
           width: 100%;
           min-height: 22px;
           border: 1px dotted #bbb;
           color: var(--cp-mid);
-          font-size: 9px;
+          font-size: 9.4px;
           padding: 3px;
           box-sizing: border-box;
         }
         .cp-payment-table {
           width: 100%;
           border-collapse: collapse;
-          font-size: 10px;
+          font-size: 10.4px;
         }
         .cp-payment-table td {
           padding: 3px 6px;
@@ -458,7 +491,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           border-top: 1.5px solid var(--cp-ink);
           border-bottom: 0;
           font-weight: 800;
-          font-size: 11px;
+          font-size: 11.2px;
         }
         .cp-sig-grid {
           display: grid;
@@ -467,7 +500,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           margin-top: 8px;
         }
         .cp-sig-box {
-          min-height: 70px;
+          min-height: 78px;
           border: 1px solid #bbb;
           background: #fafafa;
           padding: 5px 6px;
@@ -478,14 +511,14 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           padding-bottom: 3px;
           border-bottom: 1px solid #ddd;
           color: var(--cp-mid);
-          font-size: 8px;
+          font-size: 8.5px;
           font-weight: 800;
           letter-spacing: .08em;
           text-transform: uppercase;
         }
         .cp-sig-subtext {
           color: var(--cp-light);
-          font-size: 8px;
+          font-size: 8.4px;
           line-height: 1.55;
         }
         .cp-acceptance {
@@ -493,16 +526,16 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           padding-top: 6px;
           border-top: 1px solid #e0ddd8;
           color: var(--cp-mid);
-          font-size: 9px;
+          font-size: 9.2px;
           font-style: italic;
           text-align: center;
         }
         .cp-page-num {
           position: absolute;
-          right: 45px;
+          right: 42px;
           bottom: 23px;
           color: var(--cp-light);
-          font-size: 9px;
+          font-size: 9.2px;
           letter-spacing: .06em;
         }
         .cp-cg-header-strip {
@@ -515,7 +548,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         .cp-cg-logo-mini {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 7px;
           padding: 4px 8px;
           border: 1.5px solid var(--cp-ink);
           font-size: 13px;
@@ -524,7 +557,8 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           text-transform: uppercase;
         }
         .cp-cg-logo-img {
-          width: 34px;
+          width: auto;
+          max-width: 34px;
           max-height: 24px;
           object-fit: contain;
         }
@@ -533,7 +567,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           padding-bottom: 7px;
           border-bottom: 2px solid var(--cp-ink);
           color: var(--cp-ink);
-          font-size: 24px;
+          font-size: 24.5px;
           font-weight: 700;
           letter-spacing: .03em;
           text-align: center;
@@ -544,7 +578,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           gap: 14px;
         }
         .cp-cg-article {
-          margin-bottom: 9px;
+          margin-bottom: 10px;
         }
         .cp-cg-article-title {
           display: flex;
@@ -554,7 +588,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           padding: 3px 6px;
           background: var(--cp-ink);
           color: #fff;
-          font-size: 10px;
+          font-size: 10.4px;
           font-weight: 800;
           letter-spacing: .1em;
           text-transform: uppercase;
@@ -567,8 +601,8 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         .cp-cg-article li {
           margin: 0 0 3px;
           color: var(--cp-mid);
-          font-size: 8.8px;
-          line-height: 1.55;
+          font-size: 9.15px;
+          line-height: 1.52;
         }
         .cp-cg-article ul {
           margin: 2px 0 0;
@@ -594,7 +628,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           gap: 8px;
         }
         .cp-cg-sig-box {
-          min-height: 58px;
+          min-height: 64px;
           border: 1px solid #bbb;
           background: #fafafa;
           padding: 5px 6px;
@@ -605,14 +639,14 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           padding-bottom: 3px;
           border-bottom: 1px solid #e0ddd8;
           color: var(--cp-mid);
-          font-size: 8px;
+          font-size: 8.5px;
           font-weight: 800;
           letter-spacing: .08em;
           text-transform: uppercase;
         }
         .cp-cg-sig-sub {
           color: var(--cp-light);
-          font-size: 8px;
+          font-size: 8.4px;
           line-height: 1.55;
         }
       `}</style>
@@ -630,12 +664,13 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
                 onError={onLogoError}
               />
             ) : (
-              <div className="cp-logo-fallback">{valueOrLine(agency.name)}</div>
+              <div className="cp-logo-fallback">{agencyInitials(agencyName)}</div>
             )}
             <div>
               <div className="cp-agency-name">{valueOrLine(agency.name)}</div>
               <div className="cp-agency-sub">
-                {valueOrLine(agency.address)} &nbsp;·&nbsp; Tél : {valueOrLine(agency.phone)} &nbsp;·&nbsp; Email : {valueOrLine(agency.email)}
+                <div>{valueOrLine(agency.address)}</div>
+                <div>Tél : {valueOrLine(agency.phone)} &nbsp;·&nbsp; Email : {valueOrLine(agency.email)}</div>
               </div>
             </div>
           </div>
@@ -656,58 +691,55 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
 
         <div className="cp-grid-2">
           <Section title="Durée de location">
-            <FieldRow label="Départ :" value={valueOrLine(reservation.pickupDate)} unit={`à ${valueOrLine(reservation.pickupTime)} h`} />
-            <FieldRow label="Retour :" value={valueOrLine(reservation.returnDate)} unit={`à ${valueOrLine(reservation.returnTime)} h`} />
-            <FieldRow label="Durée :" value={valueOrLine(reservation.rentalDays)} unit="jour(s)" />
-            <FieldRow label="Lieu de livraison :" value={valueOrLine(reservation.pickupLocation)} />
-            <FieldRow label="Lieu de reprise :" value={valueOrLine(reservation.returnLocation)} />
+            <FieldRow label="Départ :" value={reservation.pickupDate} unit={reservation.pickupTime ? `à ${reservation.pickupTime} h` : 'à ........ h'} />
+            <FieldRow label="Retour :" value={reservation.returnDate} unit={reservation.returnTime ? `à ${reservation.returnTime} h` : 'à ........ h'} />
+            <FieldRow label="Durée :" value={reservation.rentalDays} unit="jour(s)" />
+            <FieldRow label="Lieu de livraison :" value={reservation.pickupLocation} />
+            <FieldRow label="Lieu de reprise :" value={reservation.returnLocation} />
           </Section>
 
           <Section title="Informations véhicule">
             <div className="cp-field-inline-2">
-              <FieldRow label="Marque :" value={valueOrLine(vehicle.brand)} narrow />
-              <FieldRow label="Modèle :" value={valueOrLine(vehicle.model)} narrow />
+              <FieldRow label="Marque :" value={vehicle.brand} narrow />
+              <FieldRow label="Modèle :" value={vehicle.model} narrow />
             </div>
-            <FieldRow label="Immatriculation :" value={<span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{valueOrLine(vehicle.plate)}</span>} />
+            <FieldRow label="Immatriculation :" value={vehicle.plate ? <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{vehicle.plate}</span> : ''} />
             <div className="cp-field-inline-2">
-              <FieldRow label="Km départ :" value={valueOrLine(vehicle.mileageOut)} narrow />
-              <FieldRow label="Km retour :" value={valueOrLine(vehicle.mileageReturn)} narrow />
+              <FieldRow label="Km départ :" value={vehicle.mileageOut} narrow />
+              <FieldRow label="Km retour :" value={vehicle.mileageReturn} narrow />
             </div>
             <FuelTrack value={vehicle.fuelLevel} />
-            <FieldRow label="Agent commercial :" value={valueOrLine(reservation.agentName)} />
+            <FieldRow label="Agent commercial :" value={reservation.agentName} />
           </Section>
         </div>
 
         <div className="cp-grid-2">
           <Section title="Informations locataire">
+            <FieldRow label="Nom complet :" value={client.fullName} />
             <div className="cp-field-inline-2">
-              <FieldRow label="Nom :" value={valueOrLine(client.lastName || client.fullName)} narrow />
-              <FieldRow label="Prénom :" value={valueOrLine(client.firstName)} narrow />
+              <FieldRow label="Date naissance :" value={client.birthDate} narrow />
+              <FieldRow label="Nationalité :" value={client.nationality} narrow />
             </div>
+            <FieldRow label="Adresse :" value={client.address} />
             <div className="cp-field-inline-2">
-              <FieldRow label="Date naissance :" value={valueOrLine(client.birthDate)} narrow />
-              <FieldRow label="Nationalité :" value={valueOrLine(client.nationality)} narrow />
+              <FieldRow label="Téléphone :" value={client.phone} narrow />
+              <FieldRow label="CIN / Passeport :" value={client.idNumber} narrow />
             </div>
-            <FieldRow label="Adresse :" value={valueOrLine(client.address)} />
+            <FieldRow label="Permis N° :" value={client.licenseNumber} />
             <div className="cp-field-inline-2">
-              <FieldRow label="Téléphone :" value={valueOrLine(client.phone)} narrow />
-              <FieldRow label="CIN / Passeport :" value={valueOrLine(client.idNumber)} narrow />
-            </div>
-            <FieldRow label="Permis N° :" value={valueOrLine(client.licenseNumber)} />
-            <div className="cp-field-inline-2">
-              <FieldRow label="Délivré le :" value={valueOrLine(client.licenseIssuedAt)} narrow />
-              <FieldRow label="Valable jusqu'au :" value={valueOrLine(client.licenseExpiresAt)} narrow />
+              <FieldRow label="Délivré le :" value={client.licenseIssuedAt} narrow />
+              <FieldRow label="Valable jusqu'au :" value={client.licenseExpiresAt} narrow />
             </div>
           </Section>
 
           <div className="cp-stack">
             <Section title="2ème conducteur">
-              <FieldRow label="Nom complet :" value={valueOrLine(secondDriverName)} />
+              <FieldRow label="Nom complet :" value={secondDriverName} />
               <div className="cp-field-inline-2">
-                <FieldRow label="CIN / Passeport :" value={valueOrLine(secondDriver.idNumber)} narrow />
-                <FieldRow label="Téléphone :" value={valueOrLine(secondDriver.phone)} narrow />
+                <FieldRow label="CIN / Passeport :" value={secondDriver.idNumber} narrow />
+                <FieldRow label="Téléphone :" value={secondDriver.phone} narrow />
               </div>
-              <FieldRow label="Permis N° :" value={valueOrLine(secondDriver.licenseNumber)} />
+              <FieldRow label="Permis N° :" value={secondDriver.licenseNumber} />
             </Section>
             <Section title="Papiers du véhicule">
               <div className="cp-check-grid">
@@ -730,7 +762,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
                 <div className="cp-check-row"><span className="cp-cb">{checked(vehicle.insuranceAllRisk === false)}</span> Non</div>
               </div>
             </div>
-            <FieldRow label="Franchise :" value={valueOrLine(vehicle.franchise)} unit="DH" narrow />
+            <FieldRow label="Franchise :" value={vehicle.franchise} unit="DH" narrow />
             <div style={{ fontSize: 9, color: 'var(--cp-mid)', margin: '4px 0 2px', fontWeight: 700 }}>Observations :</div>
             <div className="cp-observation-box">{optionalValue(vehicle.observations)}</div>
           </Section>
@@ -749,6 +781,10 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
                 <tr>
                   <td>Total général</td>
                   <td>{formatMoney(payment.totalAmount)} DH</td>
+                </tr>
+                <tr>
+                  <td>Caution</td>
+                  <td>{formatMoney(payment.deposit)} DH</td>
                 </tr>
                 <tr>
                   <td>Montant payé</td>
