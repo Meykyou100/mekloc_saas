@@ -1,4 +1,4 @@
-import { Download, FileSpreadsheet, Gauge, TrendingUp, WalletCards } from 'lucide-react';
+import { CalendarDays, Download, FileSpreadsheet, Gauge, TrendingUp, WalletCards } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -58,12 +58,19 @@ function escapePdf(value: string) {
   return value.replace(/[()\\]/g, '');
 }
 
-function MetricCard({ label, value, note }: { label: string; value: string; note: string }) {
+function MetricCard({ label, value, note, tone = 'gold' }: { label: string; value: string; note: string; tone?: 'gold' | 'green' | 'amber' | 'red' }) {
+  const toneClass = {
+    gold: 'from-[#D4A017]/16 text-gold-100',
+    green: 'from-emerald-400/14 text-emerald-100',
+    amber: 'from-amber-400/14 text-amber-100',
+    red: 'from-rose-400/14 text-rose-100',
+  }[tone];
   return (
-    <Card className="flex min-h-[88px] flex-col justify-between p-3 sm:min-h-[122px] sm:p-5">
-      <p className="truncate text-[11px] font-semibold uppercase tracking-[0.1em] text-carbon-400 light:text-carbon-600 sm:text-xs">{label}</p>
-      <p className="mt-1 truncate text-lg font-black tracking-tight text-white light:text-carbon-950 sm:mt-3 sm:text-2xl">{value}</p>
-      <p className="mt-1 truncate text-[10px] text-carbon-500 light:text-carbon-600 sm:mt-3 sm:text-sm">{note}</p>
+    <Card className={`relative flex min-h-[112px] min-w-0 flex-col justify-between overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br ${toneClass} via-white/[0.035] to-black p-3 shadow-[0_14px_38px_rgba(0,0,0,.22)] sm:min-h-[132px] sm:p-5`}>
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+      <p className="line-clamp-2 text-[10px] font-black uppercase tracking-[0.12em] text-carbon-400 light:text-carbon-600 sm:text-xs">{label}</p>
+      <p className="mt-2 break-words text-lg font-black tracking-tight text-white light:text-carbon-950 sm:mt-3 sm:text-2xl">{value}</p>
+      <p className="mt-2 line-clamp-2 text-[11px] font-medium text-carbon-500 light:text-carbon-600 sm:text-sm">{note}</p>
     </Card>
   );
 }
@@ -71,12 +78,25 @@ function MetricCard({ label, value, note }: { label: string; value: string; note
 function BarRow({ label, value, max }: { label: string; value: number; max: number }) {
   const width = max > 0 ? Math.max(4, Math.round((value / max) * 100)) : 0;
   return (
-    <div className="grid grid-cols-[76px_1fr_92px] items-center gap-3 text-sm sm:grid-cols-[92px_1fr_120px]">
-      <span className="truncate text-carbon-500">{label}</span>
-      <div className="h-2 rounded-full bg-white/10">
-        <div className="h-2 rounded-full bg-gold-400" style={{ width: `${width}%` }} />
+    <div className="grid min-w-0 gap-2 rounded-2xl border border-white/10 bg-white/[0.035] p-3 text-sm sm:grid-cols-[92px_1fr_120px] sm:items-center sm:gap-3 sm:border-0 sm:bg-transparent sm:p-0">
+      <span className="min-w-0 truncate font-semibold text-carbon-300 sm:text-carbon-500">{label}</span>
+      <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
+        <div className="h-full rounded-full bg-gradient-to-r from-[#D4A017] to-[#f1c232]" style={{ width: `${width}%` }} />
       </div>
-      <span className="truncate text-right font-semibold text-white light:text-carbon-950">{formatMAD(value)}</span>
+      <span className="truncate font-black text-gold-100 sm:text-right">{formatMAD(value)}</span>
+    </div>
+  );
+}
+
+function CountBarRow({ label, count, max }: { label: string; count: number; max: number }) {
+  const width = max > 0 ? Math.max(4, Math.round((count / max) * 100)) : 0;
+  return (
+    <div className="grid min-w-0 gap-2 rounded-2xl border border-white/10 bg-white/[0.035] p-3 text-sm sm:grid-cols-[92px_1fr_52px] sm:items-center sm:gap-3 sm:border-0 sm:bg-transparent sm:p-0">
+      <span className="min-w-0 truncate font-semibold text-carbon-300 sm:text-carbon-500">{label}</span>
+      <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
+        <div className="h-full rounded-full bg-gradient-to-r from-[#D4A017] to-[#f1c232]" style={{ width: `${width}%` }} />
+      </div>
+      <span className="font-black text-white light:text-carbon-950 sm:text-right">{count}</span>
     </div>
   );
 }
@@ -252,20 +272,27 @@ startxref
         title="Rapports financiers"
         description="Tableau de bord comptable calculé depuis les données réelles de votre agence."
         action={
-          <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" icon={<FileSpreadsheet className="h-4 w-4" />} onClick={exportCsv}>CSV</Button>
-            <Button icon={<Download className="h-4 w-4" />} onClick={exportPdf}>PDF</Button>
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
+            <Button variant="secondary" className="h-11 w-full rounded-2xl sm:w-auto" icon={<FileSpreadsheet className="h-4 w-4" />} onClick={exportCsv}>CSV</Button>
+            <Button className="h-11 w-full rounded-2xl sm:w-auto" icon={<Download className="h-4 w-4" />} onClick={exportPdf}>PDF</Button>
           </div>
         }
       />
 
-      <Card className="p-4">
-        <div className="grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
-          <div>
-            <p className="text-sm font-semibold text-white light:text-carbon-950">Filtre de période</p>
-            <p className="mt-1 text-xs text-carbon-500">Les montants sont basés sur les réservations, paiements et entretiens de la période.</p>
+      <Card className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-[#121720] via-[#0d1118] to-black p-4 shadow-[0_18px_50px_rgba(0,0,0,.26)] sm:p-5">
+        <div className="grid gap-4 lg:grid-cols-[1fr_auto_auto] lg:items-end">
+          <div className="min-w-0">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-[#D4A017]/20 bg-[#D4A017]/10 text-gold-200">
+                <CalendarDays className="h-4 w-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-base font-black text-white light:text-carbon-950">Filtre de période</p>
+                <p className="mt-1 text-xs leading-5 text-carbon-500">Les montants sont basés sur les réservations, paiements et entretiens de la période.</p>
+              </div>
+            </div>
           </div>
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 no-scrollbar md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 no-scrollbar lg:mx-0 lg:flex-wrap lg:overflow-visible lg:px-0 lg:pb-0">
             {[
               ['month', 'Ce mois'],
               ['quarter', '3 mois'],
@@ -275,7 +302,7 @@ startxref
               <button
                 key={key}
                 type="button"
-                className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${period === key ? 'bg-gold-400 text-carbon-950' : 'border border-white/10 text-carbon-300 hover:bg-white/[0.06]'}`}
+                className={`h-11 shrink-0 rounded-2xl px-4 text-sm font-black transition ${period === key ? 'bg-gold-400 text-carbon-950 shadow-[0_0_28px_rgba(212,160,23,.16)]' : 'border border-white/10 bg-white/[0.035] text-carbon-300 hover:bg-white/[0.06]'}`}
                 onClick={() => setPeriod(key as PeriodKey)}
               >
                 {label}
@@ -284,8 +311,8 @@ startxref
           </div>
           {period === 'custom' ? (
             <div className="grid gap-2 sm:grid-cols-2">
-              <input className="form-control text-sm" type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} />
-              <input className="form-control text-sm" type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} />
+              <input aria-label="Début période" className="form-control h-11 rounded-2xl text-sm" type="date" value={customStart} onChange={(event) => setCustomStart(event.target.value)} />
+              <input aria-label="Fin période" className="form-control h-11 rounded-2xl text-sm" type="date" value={customEnd} onChange={(event) => setCustomEnd(event.target.value)} />
             </div>
           ) : null}
         </div>
@@ -295,46 +322,44 @@ startxref
         <MobileEmptyBlock icon={TrendingUp} title="Aucune donnée sur cette période" message="Les revenus, réservations et dépenses apparaîtront dès que votre activité commence." />
       ) : null}
 
-      <section className="grid grid-cols-2 gap-2 sm:gap-4 xl:grid-cols-4">
-        <MetricCard label="Chiffre d’affaires total" value={formatMAD(report.totalRevenue)} note="Réservations non annulées" />
-        <MetricCard label="Revenus encaissés" value={formatMAD(report.collectedRevenue)} note="Paiements payés ou partiels" />
-        <MetricCard label="Paiements en attente" value={formatMAD(report.pendingPayments)} note="En attente et en retard" />
-        <MetricCard label="Profit estimé" value={formatMAD(report.estimatedProfit)} note="Encaissé - entretien" />
-        <MetricCard label="Cautions reçues" value={formatMAD(report.depositsReceived)} note="Cautions de la période" />
-        <MetricCard label="Cautions à rembourser" value={formatMAD(report.depositsToRefund)} note="Locations actives ou terminées" />
-        <MetricCard label="Dépenses entretien" value={formatMAD(report.maintenanceExpenses)} note="Coûts garage et maintenance" />
-        <MetricCard label="Paiements en retard" value={formatMAD(report.overdue.reduce((sum, item) => sum + item.amount, 0))} note={`${report.overdue.length} facture(s)`} />
+      <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
+        <MetricCard label="Chiffre d’affaires total" value={formatMAD(report.totalRevenue)} note="Réservations non annulées" tone="gold" />
+        <MetricCard label="Revenus encaissés" value={formatMAD(report.collectedRevenue)} note="Paiements payés ou partiels" tone="green" />
+        <MetricCard label="Paiements en attente" value={formatMAD(report.pendingPayments)} note="En attente et en retard" tone="amber" />
+        <MetricCard label="Profit estimé" value={formatMAD(report.estimatedProfit)} note="Encaissé - entretien" tone={report.estimatedProfit >= 0 ? 'green' : 'red'} />
+        <MetricCard label="Cautions reçues" value={formatMAD(report.depositsReceived)} note="Cautions de la période" tone="gold" />
+        <MetricCard label="Cautions à rembourser" value={formatMAD(report.depositsToRefund)} note="Locations actives ou terminées" tone="amber" />
+        <MetricCard label="Dépenses entretien" value={formatMAD(report.maintenanceExpenses)} note="Coûts garage et maintenance" tone="red" />
+        <MetricCard label="Paiements en retard" value={formatMAD(report.overdue.reduce((sum, item) => sum + item.amount, 0))} note={`${report.overdue.length} facture(s)`} tone="red" />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
-        <Card className="p-5 sm:p-6">
-          <div className="mb-5 flex items-center gap-3">
-            <TrendingUp className="h-5 w-5 text-gold-200" />
-            <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Réservations par mois</h2>
+      <section className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
+        <Card className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-4 shadow-[0_18px_50px_rgba(0,0,0,.24)] sm:p-6">
+          <div className="mb-5 flex min-w-0 items-center gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-[#D4A017]/20 bg-[#D4A017]/10 text-gold-200">
+              <TrendingUp className="h-5 w-5" />
+            </span>
+            <h2 className="min-w-0 truncate text-lg font-black tracking-tight text-white light:text-carbon-950 sm:text-xl">Réservations par mois</h2>
           </div>
           <div className="grid gap-3">
             {report.reservationsByMonth.length === 0 ? (
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-carbon-400">Aucune réservation.</div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-carbon-400">Aucune réservation.</div>
             ) : report.reservationsByMonth.map(([label, count]) => (
-              <div key={label} className="grid grid-cols-[76px_1fr_48px] items-center gap-3 text-sm">
-                <span className="text-carbon-500">{label}</span>
-                <div className="h-2 rounded-full bg-white/10">
-                  <div className="h-2 rounded-full bg-gold-400" style={{ width: `${Math.max(4, (count / maxMonthlyReservations) * 100)}%` }} />
-                </div>
-                <span className="text-right font-semibold text-white light:text-carbon-950">{count}</span>
-              </div>
+              <CountBarRow key={label} label={label} count={count} max={maxMonthlyReservations} />
             ))}
           </div>
         </Card>
 
-        <Card className="p-5 sm:p-6">
-          <div className="mb-5 flex items-center gap-3">
-            <Gauge className="h-5 w-5 text-carbon-300" />
-            <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Revenus par véhicule</h2>
+        <Card className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-4 shadow-[0_18px_50px_rgba(0,0,0,.24)] sm:p-6">
+          <div className="mb-5 flex min-w-0 items-center gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.06] text-carbon-300">
+              <Gauge className="h-5 w-5" />
+            </span>
+            <h2 className="min-w-0 truncate text-lg font-black tracking-tight text-white light:text-carbon-950 sm:text-xl">Revenus par véhicule</h2>
           </div>
           <div className="grid gap-3">
             {report.revenueByVehicle.length === 0 ? (
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-carbon-400">Aucun revenu véhicule.</div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-carbon-400">Aucun revenu véhicule.</div>
             ) : report.revenueByVehicle.slice(0, 8).map((item) => (
               <BarRow key={item.id} label={item.plate} value={item.revenue} max={maxVehicleRevenue} />
             ))}
@@ -342,22 +367,22 @@ startxref
         </Card>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-2">
-        <Card className="overflow-hidden p-0">
-          <div className="border-b border-white/10 p-5">
-            <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Top véhicules rentables</h2>
+      <section className="grid gap-4 xl:grid-cols-2">
+        <Card className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-0 shadow-[0_18px_50px_rgba(0,0,0,.24)]">
+          <div className="border-b border-white/10 p-4 sm:p-5">
+            <h2 className="text-lg font-black tracking-tight text-white light:text-carbon-950 sm:text-xl">Top véhicules rentables</h2>
           </div>
           <div className="grid gap-3 p-4 md:hidden">
             {report.revenueByVehicle.length === 0 ? (
               <MobileEmptyBlock icon={Gauge} title="Aucun revenu véhicule" message="Les véhicules rentables apparaîtront après vos premiers paiements." />
             ) : report.revenueByVehicle.slice(0, 8).map((item) => (
-              <div key={item.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-white">{item.label}</p>
-                    <p className="mt-1 text-xs text-carbon-500"><PlateNumber value={item.plate} /></p>
+              <div key={item.id} className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-black text-white">{item.label}</p>
+                    <div className="mt-2"><PlateNumber value={item.plate} /></div>
                   </div>
-                  <p className="font-black text-gold-200">{formatMAD(item.revenue)}</p>
+                  <p className="shrink-0 text-right font-black text-gold-200">{formatMAD(item.revenue)}</p>
                 </div>
               </div>
             ))}
@@ -377,21 +402,21 @@ startxref
           </div>
         </Card>
 
-        <Card className="overflow-hidden p-0">
-          <div className="border-b border-white/10 p-5">
-            <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Clients les plus rentables</h2>
+        <Card className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-0 shadow-[0_18px_50px_rgba(0,0,0,.24)]">
+          <div className="border-b border-white/10 p-4 sm:p-5">
+            <h2 className="text-lg font-black tracking-tight text-white light:text-carbon-950 sm:text-xl">Clients les plus rentables</h2>
           </div>
           <div className="grid gap-3 p-4 md:hidden">
             {report.profitableClients.length === 0 ? (
               <MobileEmptyBlock icon={WalletCards} title="Aucun client rentable" message="Le classement client apparaîtra après vos premières locations." />
             ) : report.profitableClients.slice(0, 8).map((item) => (
-              <div key={item.id} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-white">{item.label}</p>
-                    <p className="mt-1 text-xs text-carbon-500">{item.reservations} réservation(s)</p>
+              <div key={item.id} className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+                <div className="flex min-w-0 items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-black text-white">{item.label}</p>
+                    <p className="mt-1 text-sm text-carbon-400">{item.reservations} réservation(s)</p>
                   </div>
-                  <p className="font-black text-gold-200">{formatMAD(item.revenue)}</p>
+                  <p className="shrink-0 text-right font-black text-gold-200">{formatMAD(item.revenue)}</p>
                 </div>
               </div>
             ))}
@@ -412,22 +437,24 @@ startxref
         </Card>
       </section>
 
-      <Card className="p-5 sm:p-6">
-        <div className="mb-5 flex items-center gap-3">
-          <WalletCards className="h-5 w-5 text-carbon-300" />
-          <h2 className="text-xl font-semibold tracking-tight text-white light:text-carbon-950">Paiements en retard</h2>
+      <Card className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-4 shadow-[0_18px_50px_rgba(0,0,0,.24)] sm:p-6">
+        <div className="mb-5 flex min-w-0 items-center gap-3">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-rose-300/20 bg-rose-500/10 text-rose-100">
+            <WalletCards className="h-5 w-5" />
+          </span>
+          <h2 className="min-w-0 truncate text-lg font-black tracking-tight text-white light:text-carbon-950 sm:text-xl">Paiements en retard</h2>
         </div>
         <div className="grid gap-3">
           {report.overdue.length === 0 ? (
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-carbon-400">Aucun paiement en retard.</div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-carbon-400">Aucun paiement en retard.</div>
           ) : report.overdue.map((payment) => (
-            <div key={payment.id} className="premium-surface grid gap-3 rounded-2xl p-4 md:grid-cols-[1fr_auto_auto] md:items-center">
-              <div>
-                <p className="font-semibold text-white light:text-carbon-950">{payment.client}</p>
+            <div key={payment.id} className="grid gap-3 rounded-3xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] md:grid-cols-[1fr_auto_auto] md:items-center">
+              <div className="min-w-0">
+                <p className="truncate font-black text-white light:text-carbon-950">{payment.client}</p>
                 <p className="mt-1 text-sm text-carbon-400">{payment.invoice} · échéance {payment.dueDate}</p>
               </div>
-              <p className="font-semibold text-white light:text-carbon-950">{formatMAD(payment.amount)}</p>
-              <span className="rounded-full border border-rose-300/30 bg-rose-500/10 px-3 py-1 text-center text-xs font-semibold text-rose-100">En retard</span>
+              <p className="font-black text-rose-100 light:text-carbon-950">{formatMAD(payment.amount)}</p>
+              <span className="inline-flex h-9 items-center justify-center rounded-full border border-rose-300/30 bg-rose-500/10 px-3 text-center text-xs font-black text-rose-100">En retard</span>
             </div>
           ))}
         </div>
