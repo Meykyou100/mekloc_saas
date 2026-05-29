@@ -26,9 +26,9 @@ import PlateNumber from '../components/ui/PlateNumber';
 import { useData } from '../context/DataContext';
 import { formatMAD, type Reservation, type ReservationStatus } from '../data/mockData';
 
-const MOBILE_VEHICLE_COL_WIDTH = 156;
-const MOBILE_DAY_COL_WIDTH = 78;
-const MOBILE_ROW_HEIGHT = 92;
+const MOBILE_VEHICLE_COL_WIDTH = 144;
+const MOBILE_DAY_COL_WIDTH = 72;
+const MOBILE_ROW_HEIGHT = 84;
 const VEHICLE_COL_WIDTH = 260;
 const DAY_COL_WIDTH = 118;
 const ROW_HEIGHT = 112;
@@ -269,21 +269,21 @@ export default function CalendarPage() {
   };
 
   return (
-    <section className="relative overflow-x-hidden pb-6 md:pb-8">
+    <section className="relative overflow-x-hidden pb-[calc(100px+env(safe-area-inset-bottom))] md:pb-8">
       <div className="pointer-events-none absolute right-[-24%] top-5 h-64 w-64 rounded-full bg-[#D4A017]/10 blur-3xl" />
       <div className="md:hidden">
-        <div className="mb-3 flex items-start justify-between gap-3">
+        <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.26em] text-gold-300">PLANIFICATION</p>
-            <h1 className="mt-1.5 text-[1.875rem] font-black leading-tight tracking-tight text-white">Calendrier</h1>
-            <p className="mt-1 max-w-[225px] text-sm leading-5 text-carbon-300">
+            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-gold-300">PLANIFICATION</p>
+            <h1 className="mt-2 text-[1.85rem] font-black leading-none tracking-tight text-white">Calendrier</h1>
+            <p className="mt-2 max-w-[230px] text-[13px] leading-5 text-carbon-300">
               Planifiez et suivez votre flotte en temps réel.
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
-              className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.045] px-2.5 text-xs font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,.06)]"
+              className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.045] px-2.5 text-xs font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,.06)] backdrop-blur"
               onClick={() => {
                 const today = toDateOnly(new Date());
                 setWindowStart(today);
@@ -340,54 +340,54 @@ export default function CalendarPage() {
           { label: 'Maintenance', value: String(calendarStats.maintenanceCount), helper: 'Non disponibles', icon: Wrench, tone: 'text-amber-200', glow: 'from-amber-400/14' },
           { label: 'Occupation', value: `${calendarStats.occupancy}%`, helper: 'Cette semaine', icon: TrendingUp, tone: 'text-sky-200', glow: 'from-sky-400/14' },
         ].map(({ label, value, helper, icon: Icon, tone, glow }) => (
-          <div key={label} className="group relative min-h-[108px] min-w-[118px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-950/90 to-black p-2.5 shadow-[0_14px_34px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.05)] transition hover:border-[#D4A017]/35 md:min-h-[126px] md:min-w-0 md:rounded-3xl md:p-4">
+          <div key={label} className="group relative min-h-[118px] min-w-[136px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_14px_34px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.05)] transition hover:border-[#D4A017]/35 md:min-h-[126px] md:min-w-0 md:rounded-3xl md:p-4">
             <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${glow} to-transparent opacity-80`} />
             <div className="relative flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-[9px] font-black uppercase leading-3 tracking-[0.1em] text-carbon-400">{label}</p>
-                <p className="mt-2 truncate text-2xl font-black leading-none text-white md:text-3xl">{value}</p>
+                <p className="text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-carbon-400">{label}</p>
+                <p className="mt-2 truncate text-[1.7rem] font-black leading-none text-white md:text-3xl">{value}</p>
               </div>
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[14px] border border-[#D4A017]/20 bg-[#D4A017]/10 shadow-[0_0_20px_rgba(212,160,23,0.10)] md:h-10 md:w-10">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[14px] border border-[#D4A017]/20 bg-[#D4A017]/10 shadow-[0_0_20px_rgba(212,160,23,0.10)] md:h-10 md:w-10">
                 <Icon className={`h-3.5 w-3.5 md:h-4 md:w-4 ${tone}`} />
               </span>
             </div>
             <div className="relative mt-2.5">
-              <p className="truncate text-[10px] font-medium text-carbon-400">{helper}</p>
+              <p className="truncate text-[11px] font-medium text-carbon-400">{helper}</p>
               <span className="mt-1.5 block h-1 w-14 rounded-full bg-gradient-to-r from-[#D4A017]/70 via-white/20 to-transparent" />
             </div>
           </div>
         ))}
       </div>
 
-      <Card className="relative mb-3 border-white/10 bg-gradient-to-br from-zinc-950/90 to-black p-2.5 shadow-[0_18px_46px_rgba(0,0,0,.24)] md:mb-4 md:p-4">
-        <div className="flex flex-col gap-2.5 xl:flex-row xl:items-center xl:justify-between">
-          <div className="grid grid-cols-[1fr_auto_auto] items-center gap-1.5 md:flex md:flex-wrap md:gap-2">
-            <button type="button" className="focus-ring h-9 rounded-xl border border-white/10 bg-white/[0.045] px-3 text-xs font-bold text-white md:h-11 md:rounded-2xl md:px-4 md:text-sm">
+      <Card className="relative mb-3 rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_18px_46px_rgba(0,0,0,.24)] md:mb-4 md:p-4">
+        <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="grid grid-cols-[minmax(0,1fr)_40px_40px] items-center gap-2 md:flex md:flex-wrap md:gap-2">
+            <button type="button" className="focus-ring h-10 rounded-xl border border-white/10 bg-white/[0.045] px-3 text-xs font-bold text-white md:h-11 md:rounded-2xl md:px-4 md:text-sm">
               Vue semaine
             </button>
             <button
               type="button"
-              className="focus-ring grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.045] text-carbon-200 transition hover:border-[#D4A017]/30 hover:text-gold-100 md:h-11 md:w-11 md:rounded-2xl"
+              className="focus-ring grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.045] text-carbon-200 transition hover:border-[#D4A017]/30 hover:text-gold-100 md:h-11 md:w-11 md:rounded-2xl"
               onClick={() => setWindowStart((current) => addDays(current, -daysToShow))}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               type="button"
-              className="focus-ring grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.045] text-carbon-200 transition hover:border-[#D4A017]/30 hover:text-gold-100 md:h-11 md:w-11 md:rounded-2xl"
+              className="focus-ring grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.045] text-carbon-200 transition hover:border-[#D4A017]/30 hover:text-gold-100 md:h-11 md:w-11 md:rounded-2xl"
               onClick={() => setWindowStart((current) => addDays(current, daysToShow))}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
-            <div className="col-span-3 flex h-9 items-center justify-center gap-2 rounded-xl border border-[#D4A017]/20 bg-[#D4A017]/10 px-3 text-xs font-black text-gold-100 md:col-span-1 md:h-11 md:rounded-2xl md:px-4 md:text-sm">
+            <div className="col-span-3 flex h-10 items-center justify-center gap-2 rounded-xl border border-[#D4A017]/20 bg-[#D4A017]/10 px-3 text-xs font-black text-gold-100 md:col-span-1 md:h-11 md:rounded-2xl md:px-4 md:text-sm">
               <CalendarDays className="h-3.5 w-3.5 md:h-4 md:w-4" />
               {dateRangeLabel}
             </div>
           </div>
 
           <div className="flex flex-col gap-2 xl:items-end">
-            <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
-              <button type="button" className="focus-ring inline-flex h-8 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.045] px-2.5 text-xs font-bold text-carbon-200 transition hover:border-[#D4A017]/30 md:h-10 md:gap-2 md:rounded-2xl md:px-3">
+            <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 md:flex md:flex-wrap md:items-center">
+              <button type="button" className="focus-ring inline-flex h-10 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.045] px-3 text-xs font-bold text-carbon-200 transition hover:border-[#D4A017]/30 md:gap-2 md:rounded-2xl">
                 <Filter className="h-3.5 w-3.5" />
                 Filtres
               </button>
@@ -402,11 +402,11 @@ export default function CalendarPage() {
                   Afficher archivés
                 </button>
               ) : null}
-              <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-white/[0.045] p-0.5 md:rounded-2xl md:p-1">
+              <div className="flex h-10 min-w-0 items-center gap-1 rounded-xl border border-white/10 bg-white/[0.045] p-0.5 md:rounded-2xl md:p-1">
                 {DAY_OPTIONS.map((option) => (
                   <button
                     key={option}
-                    className={`rounded-lg px-3 py-1.5 text-xs font-black transition md:rounded-xl md:py-2 ${
+                    className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-black transition md:flex-none md:rounded-xl md:px-3 md:py-2 ${
                       daysToShow === option ? 'bg-[#D4A017] text-carbon-950' : 'text-carbon-300 hover:bg-white/10'
                     }`}
                     onClick={() => setDaysToShow(option)}
@@ -416,7 +416,7 @@ export default function CalendarPage() {
                 ))}
               </div>
             </div>
-            <div className="flex flex-wrap gap-x-2.5 gap-y-1.5 text-[10px] md:gap-x-3 md:gap-y-2 md:text-xs">
+            <div className="flex flex-wrap gap-x-2.5 gap-y-1.5 text-[10px] leading-4 md:gap-x-3 md:gap-y-2 md:text-xs">
               {[
                 ['Disponible', 'bg-emerald-400', 'text-emerald-200'],
                 ['Réservé', 'bg-sky-400', 'text-sky-200'],
@@ -434,7 +434,7 @@ export default function CalendarPage() {
         </div>
       </Card>
 
-      <div className="no-scrollbar -mx-4 mb-2.5 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden">
+      <div className="no-scrollbar -mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden">
         {days.map((day) => {
           const dayIso = isoDate(day);
           const isToday = dayIso === todayIso;
@@ -444,7 +444,7 @@ export default function CalendarPage() {
               type="button"
               key={`mobile-chip-${dayIso}`}
               onClick={() => setSelectedDayIso(dayIso)}
-              className={`min-w-[56px] rounded-xl border px-2 py-1.5 text-center transition ${
+              className={`min-w-[58px] rounded-xl border px-2 py-1.5 text-center transition ${
                 isToday || isSelected
                   ? 'border-gold-300/60 bg-[#D4A017]/22 text-gold-50 shadow-[0_0_24px_rgba(212,160,23,.16)]'
                   : 'border-white/10 bg-white/[0.04] text-carbon-200'
@@ -457,8 +457,8 @@ export default function CalendarPage() {
         })}
       </div>
 
-      <div className="relative grid gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
-        <Card className="overflow-hidden border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-0 shadow-[0_24px_70px_rgba(0,0,0,.30)]">
+      <div className="relative grid gap-4 md:gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
+        <Card className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-0 shadow-[0_24px_70px_rgba(0,0,0,.30)]">
           {loading ? (
             <div className="space-y-3 p-5">
               <div className="h-24 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]" />
@@ -480,10 +480,10 @@ export default function CalendarPage() {
               <div className="border-b border-white/10 bg-white/[0.025] px-4 py-3 md:px-5 md:py-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-carbon-500 md:text-xs md:tracking-[0.22em]">Planning flotte</p>
-                    <h2 className="mt-1 text-base font-black text-white md:text-lg">Vue hebdomadaire des véhicules</h2>
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-carbon-500 md:text-xs md:tracking-[0.22em]">Planning flotte</p>
+                    <h2 className="mt-1 text-[1rem] font-black text-white md:text-lg">Vue hebdomadaire des véhicules</h2>
                   </div>
-                  <p className="text-xs text-carbon-400 md:text-sm">{visibleVehicles.length} véhicule{visibleVehicles.length > 1 ? 's' : ''} affiché{visibleVehicles.length > 1 ? 's' : ''}</p>
+                  <p className="text-[11px] text-carbon-400 md:text-sm">{visibleVehicles.length} véhicule{visibleVehicles.length > 1 ? 's' : ''} affiché{visibleVehicles.length > 1 ? 's' : ''}</p>
                 </div>
               </div>
 
@@ -498,11 +498,11 @@ export default function CalendarPage() {
                       return (
                         <div key={`mobile-timeline-${vehicle.id}`} className="flex border-t border-white/10 first:border-t-0">
                           <div
-                            className="sticky left-0 z-20 shrink-0 bg-carbon-950/98 px-2.5 py-2.5 shadow-[10px_0_24px_rgba(0,0,0,.42)] backdrop-blur"
+                            className="sticky left-0 z-20 shrink-0 bg-carbon-950/98 px-2 py-2 shadow-[10px_0_24px_rgba(0,0,0,.42)] backdrop-blur"
                             style={{ width: MOBILE_VEHICLE_COL_WIDTH, minHeight: MOBILE_ROW_HEIGHT }}
                           >
                             <div className="flex gap-2">
-                              <div className="grid h-12 w-14 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/10 bg-white/5">
+                              <div className="grid h-11 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/10 bg-white/5">
                                 {vehicle.imageUrl ? (
                                   <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} className="h-full w-full object-cover" />
                                 ) : (
@@ -510,9 +510,9 @@ export default function CalendarPage() {
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <p className="truncate text-xs font-black text-white">{vehicle.brand} {vehicle.model}</p>
+                                <p className="truncate text-[11px] font-black text-white">{vehicle.brand} {vehicle.model}</p>
                                 <p className="mt-0.5 truncate text-[10px] text-carbon-400"><PlateNumber value={vehicle.plate} /></p>
-                                <span className={`mt-1.5 inline-flex max-w-full rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${vehicleStatusClass(vehicle.status, isArchivedVehicle(vehicle))}`}>
+                                <span className={`mt-1 inline-flex max-w-full rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${vehicleStatusClass(vehicle.status, isArchivedVehicle(vehicle))}`}>
                                   {vehicleStatusLabel(vehicle.status, isArchivedVehicle(vehicle))}
                                 </span>
                               </div>
@@ -568,13 +568,13 @@ export default function CalendarPage() {
                                 <button
                                   key={`mobile-block-${vehicle.id}-${block.reservation.id}`}
                                   className={`absolute top-3 z-10 rounded-xl border px-2.5 py-2 text-left shadow-[0_12px_22px_rgba(0,0,0,.38)] transition active:scale-[0.98] ${blockClass(block.reservation, startDayIso)}`}
-                                  style={{ left, width, minHeight: 54 }}
+                                  style={{ left, width, minHeight: 50 }}
                                   onClick={() => {
                                     setSelectedReservation(block.reservation);
                                     setSelectedDayIso(block.reservation.pickupDate);
                                   }}
                                 >
-                                  <span className="block truncate text-xs font-black">{block.reservation.id} · {block.reservation.client}</span>
+                                  <span className="block truncate text-[11px] font-black">{block.reservation.id} · {block.reservation.client}</span>
                                   <span className="mt-1 block truncate text-[11px] opacity-85">
                                     {formatCalendarDate(new Date(block.reservation.pickupDate))} → {formatCalendarDate(new Date(block.reservation.returnDate))}
                                   </span>
@@ -586,7 +586,7 @@ export default function CalendarPage() {
                               <button
                                 key={`mobile-maintenance-${vehicle.id}-${dayIso}-${rowIndex}`}
                                 className="absolute top-3 z-10 rounded-xl border border-violet-300/35 bg-gradient-to-r from-violet-500/30 to-sky-500/18 px-2.5 py-2 text-left text-violet-50 shadow-[0_12px_22px_rgba(0,0,0,.38)]"
-                                style={{ left: dayIndex * MOBILE_DAY_COL_WIDTH + 6, width: Math.max(128, MOBILE_DAY_COL_WIDTH * 2 - 12), minHeight: 54 }}
+                                style={{ left: dayIndex * MOBILE_DAY_COL_WIDTH + 6, width: Math.max(128, MOBILE_DAY_COL_WIDTH * 2 - 12), minHeight: 50 }}
                                 onClick={() => setSelectedDayIso(dayIso)}
                               >
                                 <span className="block truncate text-xs font-black">Maintenance programmée</span>
@@ -747,18 +747,18 @@ export default function CalendarPage() {
           )}
         </Card>
 
-        <Card className="border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-4 shadow-[0_24px_70px_rgba(0,0,0,.30)] md:p-5 2xl:sticky 2xl:top-24 2xl:self-start">
+        <Card className="rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 shadow-[0_24px_70px_rgba(0,0,0,.30)] md:p-5 2xl:sticky 2xl:top-24 2xl:self-start">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[11px] font-black uppercase tracking-[0.22em] text-gold-300 md:text-xs">Détails du jour</p>
-              <h2 className="mt-1.5 text-lg font-black capitalize text-white md:mt-2 md:text-xl">{selectedDateLabel}</h2>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-gold-300 md:text-xs">Détails du jour</p>
+              <h2 className="mt-1.5 text-base font-black capitalize text-white md:mt-2 md:text-xl">{selectedDateLabel}</h2>
             </div>
             <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#D4A017]/20 bg-[#D4A017]/10 text-gold-200 md:h-11 md:w-11 md:rounded-2xl">
               <CalendarDays className="h-4 w-4 md:h-5 md:w-5" />
             </span>
           </div>
 
-          <div className="mt-4 space-y-4 md:mt-5 md:space-y-5">
+          <div className="mt-4 space-y-3 md:mt-5 md:space-y-5">
             {[
               { title: 'Départs aujourd’hui', items: dayDetails.departures, tone: 'text-amber-200', badge: 'Départ' },
               { title: 'Retours aujourd’hui', items: dayDetails.returns, tone: 'text-cyan-200', badge: 'Retour' },
@@ -766,7 +766,7 @@ export default function CalendarPage() {
             ].map(({ title, items, tone, badge }) => (
               <div key={title}>
                 <div className="mb-2 flex items-center justify-between">
-                  <p className={`text-sm font-black ${tone}`}>{title}</p>
+                  <p className={`text-[13px] font-black md:text-sm ${tone}`}>{title}</p>
                   <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-bold text-carbon-300">{items.length}</span>
                 </div>
                 {items.length ? (
@@ -781,13 +781,13 @@ export default function CalendarPage() {
                           className="w-full rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-[#D4A017]/30 hover:bg-white/[0.06]"
                         >
                           <div className="flex gap-3">
-                            <div className="grid h-12 w-14 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/10 bg-white/5">
+                            <div className="grid h-11 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/10 bg-white/5">
                               {vehicle?.imageUrl ? <img src={vehicle.imageUrl} alt={reservation.vehicle} className="h-full w-full object-cover" /> : <Car className="h-5 w-5 text-gold-200" />}
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="min-w-0">
-                                  <p className="truncate text-sm font-black text-white">{reservation.vehicle}</p>
+                                  <p className="truncate text-[13px] font-black text-white md:text-sm">{reservation.vehicle}</p>
                                   <p className="truncate text-xs text-carbon-500">{vehicle?.plate ? <PlateNumber value={vehicle.plate} /> : reservation.id}</p>
                                 </div>
                                 <span className="rounded-full border border-[#D4A017]/30 bg-[#D4A017]/10 px-2 py-0.5 text-[11px] font-bold text-gold-100">{badge}</span>
@@ -809,14 +809,14 @@ export default function CalendarPage() {
                     })}
                   </div>
                 ) : (
-                  <p className="rounded-2xl border border-white/10 bg-white/[0.025] p-3 text-sm text-carbon-500">Aucun mouvement prévu.</p>
+                  <p className="rounded-2xl border border-white/10 bg-white/[0.025] p-3 text-[13px] text-carbon-500 md:text-sm">Aucun mouvement prévu.</p>
                 )}
               </div>
             ))}
 
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-sm font-black text-violet-200">Maintenance</p>
+                <p className="text-[13px] font-black text-violet-200 md:text-sm">Maintenance</p>
                 <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-bold text-carbon-300">{dayDetails.maintenanceItems.length}</span>
               </div>
               {dayDetails.maintenanceItems.length ? (
@@ -834,10 +834,10 @@ export default function CalendarPage() {
             </div>
 
             {!dayDetails.departures.length && !dayDetails.returns.length && !dayDetails.active.length && !dayDetails.maintenanceItems.length ? (
-              <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 text-center">
+              <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 text-center md:p-5">
                 <ShieldCheck className="mx-auto h-8 w-8 text-gold-200" />
-                <p className="mt-3 font-black text-white">Aucun mouvement prévu aujourd’hui.</p>
-                <p className="mt-1 text-sm text-carbon-400">Votre flotte est calme sur cette date.</p>
+                <p className="mt-3 text-sm font-black text-white md:text-base">Aucun mouvement prévu aujourd’hui.</p>
+                <p className="mt-1 text-xs text-carbon-400 md:text-sm">Votre flotte est calme sur cette date.</p>
               </div>
             ) : null}
           </div>
