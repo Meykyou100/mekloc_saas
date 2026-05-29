@@ -434,29 +434,6 @@ export default function CalendarPage() {
         </div>
       </Card>
 
-      <div className="no-scrollbar -mx-4 mb-1.5 mt-[-2px] flex flex-nowrap gap-2 overflow-x-auto px-4 pb-0.5 md:hidden">
-        {days.map((day) => {
-          const dayIso = isoDate(day);
-          const isToday = dayIso === todayIso;
-          const isSelected = dayIso === selectedDayIso;
-          return (
-            <button
-              type="button"
-              key={`mobile-chip-${dayIso}`}
-              onClick={() => setSelectedDayIso(dayIso)}
-              className={`h-[52px] min-w-[58px] rounded-xl border px-2 py-1.5 text-center transition ${
-                isToday || isSelected
-                  ? 'border-gold-300/60 bg-[#D4A017]/22 text-gold-50 shadow-[0_0_24px_rgba(212,160,23,.16)]'
-                  : 'border-white/10 bg-white/[0.04] text-carbon-200'
-              }`}
-            >
-              <p className="text-[10px] font-bold capitalize">{day.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}</p>
-              <p className="text-base font-black leading-5">{String(day.getDate()).padStart(2, '0')}</p>
-            </button>
-          );
-        })}
-      </div>
-
       <div className="relative grid gap-4 md:gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-0 shadow-[0_24px_70px_rgba(0,0,0,.30)]">
           {loading ? (
@@ -490,6 +467,43 @@ export default function CalendarPage() {
               <div className="p-0 md:hidden">
                 <div className="no-scrollbar overflow-x-auto">
                   <div className="min-w-max">
+                    <div className="flex border-t border-white/10 bg-carbon-950/95">
+                      <div
+                        className="sticky left-0 z-30 flex h-[54px] shrink-0 items-center border-r border-white/10 bg-carbon-950/98 px-3 shadow-[10px_0_24px_rgba(0,0,0,.42)] backdrop-blur"
+                        style={{ width: MOBILE_VEHICLE_COL_WIDTH }}
+                      >
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-carbon-300">VÉHICULES</p>
+                      </div>
+
+                      <div
+                        className="grid h-[54px] border-l border-white/10 bg-carbon-950/95"
+                        style={{
+                          width: days.length * MOBILE_DAY_COL_WIDTH,
+                          gridTemplateColumns: `repeat(${days.length}, ${MOBILE_DAY_COL_WIDTH}px)`,
+                        }}
+                      >
+                        {days.map((day) => {
+                          const dayIso = isoDate(day);
+                          const isToday = dayIso === todayIso;
+                          const isSelected = dayIso === selectedDayIso;
+                          return (
+                            <button
+                              type="button"
+                              key={`mobile-header-${dayIso}`}
+                              onClick={() => setSelectedDayIso(dayIso)}
+                              className={`relative flex h-full flex-col items-center justify-center border-l border-white/10 text-center transition first:border-l-0 ${
+                                isToday || isSelected ? 'bg-[#D4A017]/18 text-gold-50' : 'text-carbon-200 active:bg-white/[0.06]'
+                              }`}
+                            >
+                              {isToday ? <span className="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-[#F5C542] shadow-[0_0_14px_rgba(245,197,66,.65)]" /> : null}
+                              <p className="text-[10px] font-bold capitalize leading-4">{day.toLocaleDateString('fr-FR', { weekday: 'short' }).replace('.', '')}</p>
+                              <p className="text-[15px] font-black leading-4">{String(day.getDate()).padStart(2, '0')}</p>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
                     {visibleVehicles.map((vehicle, rowIndex) => {
                       const blocks = reservationBlocksByVehicle.get(vehicle.id) || [];
                       const maintenanceDays = days
