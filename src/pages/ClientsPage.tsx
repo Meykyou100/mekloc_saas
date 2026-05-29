@@ -3,11 +3,9 @@ import {
   BadgeCheck,
   CalendarClock,
   Camera,
-  Car,
   Edit3,
   Eye,
   FileImage,
-  Filter,
   Mail,
   MapPin,
   MoreVertical,
@@ -467,33 +465,24 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="relative overflow-x-hidden pb-44 md:pb-8">
+    <div className="relative overflow-x-hidden pb-[calc(118px+env(safe-area-inset-bottom))] md:pb-8">
       <div className="pointer-events-none absolute right-[-18%] top-10 h-72 w-72 rounded-full bg-[#D4A017]/10 blur-3xl" />
       <div className="relative pt-4 md:hidden">
         <section className="space-y-5">
-          <div className="flex items-start justify-between gap-4">
+          <div className="rounded-[28px] border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 shadow-[0_18px_46px_rgba(0,0,0,.24)]">
             <div className="min-w-0">
               <p className="text-xs font-black uppercase tracking-[0.28em] text-gold-200">CRM</p>
               <h1 className="mt-2 text-4xl font-black leading-none text-white">Clients</h1>
               <p className="mt-2 text-base leading-relaxed text-carbon-300">Gérez vos clients et leurs documents.</p>
             </div>
-            <div className="flex shrink-0 gap-2">
-              <button
-                type="button"
-                aria-label="Filtres"
-                className="focus-ring grid h-14 w-14 place-items-center rounded-2xl border border-white/10 bg-white/[0.04] text-white shadow-[0_18px_42px_rgba(0,0,0,.25)]"
-              >
-                <Filter className="h-5 w-5" />
-              </button>
-              <button
-                type="button"
-                aria-label="Ajouter un client"
-                onClick={openNewClient}
-                className="focus-ring grid h-14 w-14 place-items-center rounded-2xl bg-[#D4A017] text-black shadow-[0_18px_42px_rgba(212,160,23,.25)] transition hover:bg-[#f1c232]"
-              >
-                <UserPlus className="h-5 w-5" />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={openNewClient}
+              className="focus-ring mt-4 flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[#D4A017] text-sm font-black text-black shadow-[0_18px_42px_rgba(212,160,23,.22)] transition hover:bg-[#f1c232]"
+            >
+              <UserPlus className="h-4 w-4" />
+              Ajouter un client
+            </button>
           </div>
 
           <label className="relative block">
@@ -553,6 +542,19 @@ export default function ClientsPage() {
               </button>
             ))}
           </div>
+
+          <label className="relative block">
+            <SlidersHorizontal className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
+            <select
+              value={sort}
+              onChange={(event) => setSort(event.target.value as ClientSort)}
+              className="form-control focus-ring h-12 w-full rounded-2xl border-white/10 bg-black/30 pl-11 pr-4 text-sm font-semibold text-white"
+            >
+              <option value="recent">Plus récent</option>
+              <option value="name">Nom A-Z</option>
+              <option value="spent">Dépense la plus élevée</option>
+            </select>
+          </label>
 
           {clients.length === 0 ? (
             <div className="rounded-[28px] border border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-6 text-center shadow-[0_24px_60px_rgba(0,0,0,.30)]">
@@ -629,7 +631,7 @@ export default function ClientsPage() {
                       </div>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-3 gap-2" onClick={(event) => event.stopPropagation()}>
+                    <div className="mt-4 grid grid-cols-2 gap-2" onClick={(event) => event.stopPropagation()}>
                       <button
                         type="button"
                         onClick={() => setMobileClientId(client.id)}
@@ -649,7 +651,7 @@ export default function ClientsPage() {
                       <button
                         type="button"
                         onClick={() => navigate('/reservations')}
-                        className="focus-ring inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#D4A017]/30 bg-[#D4A017]/10 px-2 text-center text-sm font-bold text-gold-100"
+                        className="focus-ring col-span-2 inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#D4A017]/30 bg-[#D4A017]/10 px-2 text-center text-sm font-bold text-gold-100"
                       >
                         <CalendarClock className="h-4 w-4" />
                         Réserver
@@ -1091,9 +1093,9 @@ export default function ClientsPage() {
       ) : null}
 
       <Modal open={modalOpen} title={editingClient ? 'Modifier un client' : 'Ajouter un client'} onClose={closeModal}>
-        <form className="relative space-y-6 pb-20" onSubmit={handleSaveClient}>
-          <section className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-gold-200">Informations personnelles</h3>
+        <form className="relative space-y-4 pb-20" onSubmit={handleSaveClient}>
+          <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+            <h3 className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-gold-200">Informations personnelles</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <InputField label="Nom complet" required value={formState.fullName} onChange={(value) => setFormState((s) => ({ ...s, fullName: value }))} error={formErrors.fullName} />
               <InputField label="Téléphone" required value={formState.phone} onChange={(value) => setFormState((s) => ({ ...s, phone: value }))} error={formErrors.phone} />
@@ -1102,17 +1104,17 @@ export default function ClientsPage() {
             </div>
           </section>
 
-          <section className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-gold-200">Documents</h3>
+          <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+            <h3 className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-gold-200">Documents</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <InputField label="CIN/Passport" value={formState.cin} onChange={(value) => setFormState((s) => ({ ...s, cin: value }))} />
               <InputField label="Numéro de permis" value={formState.license} onChange={(value) => setFormState((s) => ({ ...s, license: value }))} />
             </div>
           </section>
 
-          <section className="space-y-4">
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-gold-200">Pièces d’identité</h3>
-            <div className="grid gap-4 md:grid-cols-2">
+          <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+            <h3 className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-gold-200">Pièces d’identité</h3>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <DocumentUploadBox
                 title="Pièce d’identité recto"
                 previewUrl={frontPreview}
@@ -1141,10 +1143,10 @@ export default function ClientsPage() {
             ) : null}
           </section>
 
-          <div className="sticky bottom-0 left-0 right-0 -mx-4 border-t border-white/10 bg-[#0f141c]/95 px-4 py-3 backdrop-blur sm:-mx-5 sm:px-5">
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <Button type="button" variant="secondary" onClick={closeModal} disabled={saving}>Annuler</Button>
-              <Button type="submit" loading={saving}>
+          <div className="sticky bottom-0 left-0 right-0 -mx-4 border-t border-white/10 bg-[#0f141c]/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur sm:-mx-5 sm:px-5 sm:pb-3">
+            <div className="grid grid-cols-2 gap-3 sm:flex sm:justify-end">
+              <Button type="button" variant="secondary" className="h-11 rounded-xl" onClick={closeModal} disabled={saving}>Annuler</Button>
+              <Button type="submit" className="h-11 rounded-xl" loading={saving}>
                 {saving ? 'Enregistrement...' : 'Enregistrer'}
               </Button>
             </div>
@@ -1170,7 +1172,7 @@ export default function ClientsPage() {
         <div className="space-y-4">
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-black">
             {capturedPreview ? (
-              <img src={capturedPreview} alt="Capture caméra" className="h-64 w-full object-cover sm:h-72" />
+              <img src={capturedPreview} alt="Capture caméra" loading="lazy" decoding="async" className="h-64 w-full object-cover sm:h-72" />
             ) : (
               <video ref={videoRef} className="h-64 w-full object-cover sm:h-72" playsInline muted />
             )}
@@ -1219,7 +1221,7 @@ function InputField({ label, value, onChange, required, type = 'text', error }: 
         type={type}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className={`form-control focus-ring w-full ${error ? 'border-rose-400/60 ring-1 ring-rose-400/35' : ''}`}
+        className={`form-control focus-ring min-h-11 w-full rounded-2xl bg-black/25 ${error ? 'border-rose-400/60 ring-1 ring-rose-400/35' : ''}`}
       />
       {error ? <span className="text-xs text-rose-300">{error}</span> : null}
     </label>
@@ -1236,33 +1238,33 @@ type DocumentUploadBoxProps = {
 
 function DocumentUploadBox({ title, previewUrl, onPick, onCapture, onRemove }: DocumentUploadBoxProps) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-      <p className="mb-2 text-sm font-semibold text-white">{title}</p>
+    <div className="rounded-3xl border border-white/10 bg-black/20 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.035)]">
+      <p className="mb-3 text-sm font-black text-white">{title}</p>
       {previewUrl ? (
         <div className="space-y-3">
-          <img src={previewUrl} alt={title} className="h-40 w-full rounded-xl border border-white/10 object-cover" />
-          <div className="flex flex-wrap gap-2">
-            <label className="focus-ring inline-flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/15">
+          <img src={previewUrl} alt={title} loading="lazy" decoding="async" className="aspect-[16/10] w-full rounded-2xl border border-white/10 object-cover" />
+          <div className="grid grid-cols-2 gap-2">
+            <label className="focus-ring inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/10 px-3 text-xs font-semibold text-white transition hover:bg-white/15">
               <Upload className="h-3.5 w-3.5" />
-              Importer une image
+              Importer
               <input type="file" className="hidden" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={onPick} />
             </label>
             <button
               type="button"
               onClick={onCapture}
-              className="focus-ring inline-flex items-center gap-2 rounded-xl border border-gold-300/45 bg-gold-400/15 px-3 py-2 text-xs font-semibold text-gold-100 transition hover:bg-gold-400/25"
+              className="focus-ring inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-gold-300/45 bg-gold-400/15 px-3 text-xs font-semibold text-gold-100 transition hover:bg-gold-400/25"
             >
               <Camera className="h-3.5 w-3.5" />
-              Prendre une photo
+              Photo
             </button>
-            <Button type="button" variant="danger" className="h-8 px-3 text-xs" icon={<X className="h-3.5 w-3.5" />} onClick={onRemove}>
+            <Button type="button" variant="danger" className="col-span-2 h-11 rounded-xl px-3 text-xs" icon={<X className="h-3.5 w-3.5" />} onClick={onRemove}>
               Retirer
             </Button>
           </div>
         </div>
       ) : (
         <div className="space-y-2">
-          <label className="focus-ring flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 bg-black/15 px-4 py-6 text-center transition hover:border-[#D4A017]/60 hover:bg-[#D4A017]/8">
+          <label className="focus-ring flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-white/20 bg-black/15 px-4 py-6 text-center transition hover:border-[#D4A017]/60 hover:bg-[#D4A017]/8">
             <FileImage className="h-6 w-6 text-gold-200" />
             <span className="text-sm font-semibold text-white">Importer une image</span>
             <span className="text-xs text-carbon-400">PNG, JPG ou WEBP · Max 5MB</span>
@@ -1271,7 +1273,7 @@ function DocumentUploadBox({ title, previewUrl, onPick, onCapture, onRemove }: D
           <button
             type="button"
             onClick={onCapture}
-            className="focus-ring flex w-full items-center justify-center gap-2 rounded-xl border border-gold-300/45 bg-gold-400/12 px-3 py-2 text-xs font-semibold text-gold-100 transition hover:bg-gold-400/22"
+            className="focus-ring flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-gold-300/45 bg-gold-400/12 px-3 text-xs font-semibold text-gold-100 transition hover:bg-gold-400/22"
           >
             <Camera className="h-3.5 w-3.5" />
             Prendre une photo
