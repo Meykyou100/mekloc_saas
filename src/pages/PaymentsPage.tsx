@@ -1,4 +1,4 @@
-import { Download, MessageCircle, Plus, Search, Trash2 } from 'lucide-react';
+import { Copy, Download, Eye, MessageCircle, Plus, Search, Trash2 } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import jsPDF from 'jspdf';
 import Badge from '../components/ui/Badge';
@@ -14,6 +14,7 @@ import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { buildWhatsAppReminderUrl } from '../lib/assistantDuJour';
 import { getNotificationPreferences } from '../lib/notificationPreferences';
+import { getPaidAmount, getReservationPaymentId, getReservationPaymentSummary, paymentMatchesReservation } from '../lib/paymentBalance';
 import { sanitizeText, validatePositiveNumber } from '../lib/security';
 
 type FilterKey = 'tous' | 'paye' | 'partiel' | 'attente' | 'retard' | 'mois';
@@ -27,20 +28,6 @@ const filters: Array<{ key: FilterKey; label: string }> = [
   { key: 'mois', label: 'Ce mois' },
 ];
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function getReservationPaymentId(reservation: Reservation) {
-  return reservation.recordId && UUID_RE.test(reservation.recordId) ? reservation.recordId : reservation.id;
-}
-
-function paymentMatchesReservation(payment: Pick<Payment, 'reservationId'>, reservation: Reservation) {
-  return Boolean(payment.reservationId && payment.reservationId === getReservationPaymentId(reservation));
-}
-
-function getPaidAmount(payment: Payment) {
-  return payment.status === 'Pending' || payment.status === 'Late' ? 0 : Math.max(0, payment.amount);
-}
-
 function sanitizeFileName(value: string) {
   return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9_-]+/gi, '-').replace(/^-+|-+$/g, '').toLowerCase() || 'paiement';
 }
@@ -49,6 +36,16 @@ function methodFr(method: Payment['method']) {
   if (method === 'Bank transfer') return 'Virement bancaire';
   if (method === 'Card') return 'Carte';
   return 'Espèces';
+}
+
+function buildManualReminderMessage(item: {
+  client: string;
+  invoice: string;
+  vehicleLabel: string;
+  remaining: number;
+  dueDate: string;
+}) {
+  return `Bonjour ${item.client}, rappel MekLoc concernant la facture ${item.invoice} pour ${item.vehicleLabel}. Reste à payer: ${formatMAD(item.remaining)}. Échéance: ${item.dueDate || 'non renseignée'}. Merci de régulariser votre paiement.`;
 }
 
 function measureReceiptLogo(dataUrl: string) {
@@ -126,6 +123,8 @@ export default function PaymentsPage() {
   const [paymentNotes, setPaymentNotes] = useState('');
   const [savingPayment, setSavingPayment] = useState(false);
   const [paymentToDelete, setPaymentToDelete] = useState<Payment | null>(null);
+  const [detailPaymentId, setDetailPaymentId] = useState<string | null>(null);
+  const [reminderPaymentId, setReminderPaymentId] = useState<string | null>(null);
   const paymentRows = payments;
 
   const enriched = useMemo(() => {
@@ -136,8 +135,10 @@ export default function PaymentsPage() {
       const vehicle = vehicleId ? vehicles.find((item) => item.id === vehicleId) : undefined;
       const client = clients.find((item) => item.id === (payment.clientId || reservation?.clientId)) ||
         clients.find((item) => item.fullName.trim().toLowerCase() === payment.client.trim().toLowerCase());
-      const total = reservation?.totalAmount || reservation?.dailyPrice || payment.amount;
-      const paid = getPaidAmount(payment);
+      const reservationPaymentSummary = reservation ? getReservationPaymentSummary(reservation, paymentRows) : null;
+      const total = reservationPaymentSummary?.total || payment.amount;
+      const paid = reservationPaymentSummary?.paid ?? getPaidAmount(payment);
+      const relatedPayments = reservationPaymentSummary?.relatedPayments || [payment];
       const remaining = Math.max(0, total - paid);
       let statusFr: 'Payé' | 'Partiel' | 'En attente' | 'En retard' = payment.status === 'Paid' ? 'Payé' : payment.status === 'Partial' ? 'Partiel' : payment.status === 'Late' ? 'En retard' : 'En attente';
       if (remaining === 0) statusFr = 'Payé';
@@ -145,12 +146,14 @@ export default function PaymentsPage() {
       else if (paid > 0) statusFr = 'Partiel';
       return {
         ...payment,
+        reservationIdForUi: reservation?.id || '',
         reservationCode: reservation?.id || '—',
         vehicleLabel: vehicle ? `${vehicle.brand} ${vehicle.model}` : '—',
         clientPhone: client?.phone,
         total,
         paid,
         remaining,
+        relatedPayments,
         statusFr,
         progress: total > 0 ? Math.round((paid / total) * 100) : 0,
       };
@@ -205,7 +208,7 @@ export default function PaymentsPage() {
     setAmountPaid(String(reservationSummary.remaining > 0 ? reservationSummary.remaining : selectedReservationChoice.total));
   }, [reservationSummary, selectedReservationChoice]);
 
-  const filtered = enriched.filter((item) => {
+  const filtered = useMemo(() => enriched.filter((item) => {
     const inMonth = item.dueDate.slice(0, 7) === new Date().toISOString().slice(0, 7);
     const matchesFilter =
       filter === 'tous' ||
@@ -217,12 +220,23 @@ export default function PaymentsPage() {
     const haystack = `${item.invoice} ${item.client} ${item.vehicleLabel} ${item.reservationCode}`.toLowerCase();
     const methodHit = methodFilter === 'toutes' || item.method === methodFilter;
     return matchesFilter && methodHit && haystack.includes(query.toLowerCase());
-  });
+  }), [enriched, filter, methodFilter, query]);
 
   const totalFacture = enriched.reduce((s, i) => s + i.total, 0);
   const totalEncaisse = enriched.reduce((s, i) => s + i.paid, 0);
   const soldeOuvert = Math.max(0, totalFacture - totalEncaisse);
   const enRetard = enriched.filter((i) => i.statusFr === 'En retard').length;
+  const detailPayment = detailPaymentId ? enriched.find((item) => item.id === detailPaymentId) || null : null;
+  const reminderPayment = reminderPaymentId ? enriched.find((item) => item.id === reminderPaymentId) || null : null;
+
+  function openPaymentModal(reservationId?: string) {
+    if (reservationId) setSelectedReservationId(reservationId);
+    setModalOpen(true);
+  }
+
+  function openPaymentModalForRow(item: (typeof enriched)[number]) {
+    openPaymentModal(item.reservationIdForUi);
+  }
 
   async function handleAddPayment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -452,7 +466,17 @@ export default function PaymentsPage() {
     });
     if (!whatsappUrl) return;
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-    notify({ title: 'WhatsApp', message: 'Rappel WhatsApp prêt à être envoyé.', type: 'info' });
+  }
+
+  async function copyReminderMessage() {
+    if (!reminderPayment) return;
+    const message = buildManualReminderMessage(reminderPayment);
+    try {
+      await navigator.clipboard.writeText(message);
+      notify({ title: 'Rappel copié', message: 'Le message de rappel est prêt à coller.', type: 'success' });
+    } catch {
+      notify({ title: 'Copie impossible', message: 'Sélectionnez le message puis copiez-le manuellement.', type: 'warning' });
+    }
   }
 
   return (
@@ -461,7 +485,7 @@ export default function PaymentsPage() {
         eyebrow="Facturation"
         title="Paiements"
         description="Gérez les factures, encaissements partiels, retards et relances clients."
-        action={<Button icon={<Plus className="h-4 w-4" />} onClick={() => setModalOpen(true)}>Ajouter un paiement</Button>}
+        action={<Button icon={<Plus className="h-4 w-4" />} onClick={() => openPaymentModal()}>Ajouter un paiement</Button>}
       />
 
       <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
@@ -510,7 +534,17 @@ export default function PaymentsPage() {
               {filtered.map((item) => (
                 <tr key={item.id} className="hover:bg-white/[0.03]">
                   <td className="px-5 py-4 font-semibold">{item.invoice}</td><td className="px-5 py-4">{item.client}</td><td className="px-5 py-4">{item.vehicleLabel}</td><td className="px-5 py-4">{item.reservationCode}</td><td className="px-5 py-4">{formatMAD(item.total)}</td><td className="px-5 py-4">{formatMAD(item.paid)}</td><td className="px-5 py-4">{formatMAD(item.remaining)}</td><td className="px-5 py-4">{item.dueDate}</td><td className="px-5 py-4">{item.method}</td><td className="px-5 py-4"><Badge>{item.statusFr}</Badge></td>
-                  <td className="px-5 py-4"><div className="flex flex-wrap gap-2"><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => notify({ title: 'Détail facture', message: `${item.invoice} · ${formatMAD(item.total)}`, type: 'info' })}>Voir</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => setModalOpen(true)}>Ajouter paiement</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => downloadReceipt(item)}>Télécharger reçu</Button><Button variant="secondary" className="h-8 px-2.5 text-xs" disabled={!notificationPreferences.paymentReminder || !item.clientPhone} onClick={() => sendWhatsappReminder(item)}>{!notificationPreferences.paymentReminder ? 'WhatsApp désactivé' : item.clientPhone ? 'Envoyer rappel' : 'Téléphone manquant'}</Button><Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setPaymentToDelete(item)}>Supprimer</Button></div></td>
+                  <td className="px-5 py-4">
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setDetailPaymentId(item.id)}>Voir</Button>
+                      <Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => openPaymentModalForRow(item)}>Ajouter paiement</Button>
+                      <Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => downloadReceipt(item)}>Télécharger reçu</Button>
+                      <Button variant="secondary" className="h-8 px-2.5 text-xs" disabled={item.remaining <= 0} onClick={() => setReminderPaymentId(item.id)}>
+                        {item.remaining <= 0 ? 'Payé intégralement' : 'Envoyer rappel'}
+                      </Button>
+                      <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setPaymentToDelete(item)}>Supprimer</Button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -520,15 +554,31 @@ export default function PaymentsPage() {
 
       <div className={`mt-6 grid gap-4 md:hidden ${filtered.length === 0 ? 'hidden' : ''}`}>
         {filtered.map((item) => (
-          <Card key={item.id} className="p-4">
-            <div className="flex items-center justify-between"><p className="font-semibold">{item.invoice}</p><Badge>{item.statusFr}</Badge></div>
-            <p className="mt-1 text-sm text-carbon-400">{item.client} · {item.vehicleLabel}</p>
-            <p className="mt-1 text-xs text-carbon-500">Réservation: {item.reservationCode}</p>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
-              <p>Total: <strong>{formatMAD(item.total)}</strong></p><p>Payé: <strong>{formatMAD(item.paid)}</strong></p><p>Reste: <strong>{formatMAD(item.remaining)}</strong></p><p>Échéance: <strong>{item.dueDate}</strong></p>
+          <Card key={item.id} className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-[#131821] via-[#0f141c] to-[#07090d] p-4 shadow-[0_14px_38px_rgba(0,0,0,.30)]">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-base font-black text-white">{item.invoice}</p>
+                <p className="mt-1 truncate text-sm font-semibold text-carbon-300">{item.client}</p>
+                <p className="mt-0.5 truncate text-xs text-carbon-500">{item.vehicleLabel} · Réservation {item.reservationCode}</p>
+              </div>
+              <Badge>{item.statusFr}</Badge>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3"><p className="text-xs text-carbon-500">Total</p><strong className="mt-1 block text-white">{formatMAD(item.total)}</strong></div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3"><p className="text-xs text-carbon-500">Payé</p><strong className="mt-1 block text-white">{formatMAD(item.paid)}</strong></div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3"><p className="text-xs text-carbon-500">Reste</p><strong className={`mt-1 block ${item.remaining > 0 ? 'text-amber-200' : 'text-emerald-200'}`}>{item.remaining > 0 ? formatMAD(item.remaining) : 'Payé intégralement'}</strong></div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3"><p className="text-xs text-carbon-500">Échéance</p><strong className="mt-1 block text-white">{item.dueDate}</strong></div>
             </div>
             <div className="mt-3 h-2 rounded-full bg-white/10"><div className={`h-2 rounded-full ${item.statusFr === 'En retard' ? 'bg-rose-400' : item.statusFr === 'Partiel' ? 'bg-gold-400' : 'bg-mint-400'}`} style={{ width: `${item.progress}%` }} /></div>
-            <div className="mt-3 grid grid-cols-2 gap-2"><Button variant="secondary" className="h-9 text-xs" onClick={() => downloadReceipt(item)}>Télécharger reçu</Button><Button variant="secondary" className="h-9 text-xs" disabled={!notificationPreferences.paymentReminder || !item.clientPhone} onClick={() => sendWhatsappReminder(item)}>{!notificationPreferences.paymentReminder ? 'WhatsApp désactivé' : item.clientPhone ? 'Envoyer rappel' : 'Téléphone manquant'}</Button><Button variant="danger" className="col-span-2 h-9 text-xs" icon={<Trash2 className="h-4 w-4" />} onClick={() => setPaymentToDelete(item)}>Supprimer</Button></div>
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2 text-xs" icon={<Eye className="h-4 w-4" />} onClick={() => setDetailPaymentId(item.id)}>Voir</Button>
+              <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2 text-xs" onClick={() => openPaymentModalForRow(item)}>Ajouter</Button>
+              <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2 text-xs" onClick={() => downloadReceipt(item)}>Reçu</Button>
+              <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2 text-xs" disabled={item.remaining <= 0} onClick={() => setReminderPaymentId(item.id)}>
+                {item.remaining <= 0 ? 'Soldé' : 'Rappel'}
+              </Button>
+              <Button variant="danger" className="col-span-2 h-11 rounded-xl text-xs" icon={<Trash2 className="h-4 w-4" />} onClick={() => setPaymentToDelete(item)}>Supprimer</Button>
+            </div>
           </Card>
         ))}
       </div>
@@ -579,6 +629,91 @@ export default function PaymentsPage() {
         </form>
       </Modal>
 
+      <Modal open={Boolean(detailPayment)} onClose={() => setDetailPaymentId(null)} title={`Détail facture · ${detailPayment?.invoice || ''}`}>
+        {detailPayment ? (
+          <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+8px)]">
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#131821] via-[#0f141c] to-[#07090d] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#D4A017]/10 to-transparent" />
+              <div className="relative flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-300">{detailPayment.invoice}</p>
+                  <h3 className="mt-1 truncate text-lg font-black text-white">{detailPayment.client}</h3>
+                  <p className="mt-1 truncate text-sm font-semibold text-carbon-300">{detailPayment.vehicleLabel} · Réservation {detailPayment.reservationCode}</p>
+                </div>
+                <Badge>{detailPayment.statusFr}</Badge>
+              </div>
+              <div className="relative mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
+                <SummaryTile label="Total" value={formatMAD(detailPayment.total)} />
+                <SummaryTile label="Payé" value={formatMAD(detailPayment.paid)} />
+                <SummaryTile label="Reste" value={detailPayment.remaining > 0 ? formatMAD(detailPayment.remaining) : 'Payé intégralement'} valueClassName={detailPayment.remaining > 0 ? 'text-amber-200' : 'text-emerald-200'} />
+              </div>
+            </div>
+
+            <div className="grid gap-3 rounded-3xl border border-white/10 bg-white/[0.04] p-4 text-sm text-carbon-300">
+              <TextLine label="Facture" value={detailPayment.invoice} />
+              <TextLine label="Client" value={detailPayment.client} />
+              <TextLine label="Véhicule" value={detailPayment.vehicleLabel} />
+              <TextLine label="Réservation" value={detailPayment.reservationCode} />
+              <TextLine label="Échéance" value={detailPayment.dueDate} />
+              <TextLine label="Méthode" value={methodFr(detailPayment.method)} />
+              <TextLine label="Statut" value={detailPayment.statusFr} valueClassName={detailPayment.remaining > 0 ? 'text-amber-200' : 'text-emerald-200'} />
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-4">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-gold-200">Historique des paiements</p>
+              <div className="mt-3 grid gap-2">
+                {detailPayment.relatedPayments.map((payment) => (
+                  <div key={payment.id} className="grid gap-2 rounded-2xl border border-white/10 bg-black/20 p-3 text-sm sm:grid-cols-[1fr_auto_auto] sm:items-center">
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-white">{payment.invoice}</p>
+                      <p className="mt-0.5 text-xs text-carbon-500">{payment.dueDate} · {methodFr(payment.method)}</p>
+                    </div>
+                    <Badge>{payment.status}</Badge>
+                    <p className="font-black text-gold-100">{formatMAD(payment.amount)}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
+              <Button variant="secondary" className="h-11 rounded-xl text-xs sm:text-sm" onClick={() => { setDetailPaymentId(null); openPaymentModalForRow(detailPayment); }}>Ajouter paiement</Button>
+              <Button variant="secondary" className="h-11 rounded-xl text-xs sm:text-sm" onClick={() => downloadReceipt(detailPayment)}>Télécharger reçu</Button>
+              <Button variant="secondary" className="h-11 rounded-xl text-xs sm:text-sm" disabled={detailPayment.remaining <= 0} onClick={() => setReminderPaymentId(detailPayment.id)}>
+                Rappel
+              </Button>
+              <Button variant="danger" className="h-11 rounded-xl text-xs sm:text-sm" onClick={() => setPaymentToDelete(detailPayment)}>Supprimer</Button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
+      <Modal open={Boolean(reminderPayment)} onClose={() => setReminderPaymentId(null)} title="Rappel de paiement">
+        {reminderPayment ? (
+          <div className="space-y-4">
+            <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-[#131821] to-black p-4">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-gold-200">Le rappel peut être copié/envoyé manuellement</p>
+              <p className="mt-3 text-sm leading-6 text-carbon-300">Aucun envoi automatique n’est déclenché depuis MekLoc ici. Vous pouvez copier le message ou ouvrir WhatsApp si un numéro client est disponible.</p>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm leading-6 text-carbon-200">
+              {buildManualReminderMessage(reminderPayment)}
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <Button variant="secondary" className="h-11 rounded-xl" icon={<Copy className="h-4 w-4" />} onClick={copyReminderMessage}>Copier</Button>
+              <Button
+                variant="secondary"
+                className="h-11 rounded-xl"
+                icon={<MessageCircle className="h-4 w-4" />}
+                disabled={!notificationPreferences.paymentReminder || !reminderPayment.clientPhone}
+                onClick={() => sendWhatsappReminder(reminderPayment)}
+              >
+                WhatsApp
+              </Button>
+              <Button className="h-11 rounded-xl" onClick={() => setReminderPaymentId(null)}>Terminer</Button>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
+
       <Modal open={Boolean(paymentToDelete)} onClose={() => setPaymentToDelete(null)} title="Supprimer le paiement">
         <div className="space-y-4">
           <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
@@ -592,6 +727,24 @@ export default function PaymentsPage() {
           </div>
         </div>
       </Modal>
+    </div>
+  );
+}
+
+function SummaryTile({ label, value, valueClassName = 'text-white' }: { label: string; value: string; valueClassName?: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+      <p className="text-xs text-carbon-500">{label}</p>
+      <p className={`mt-1 truncate font-black ${valueClassName}`}>{value}</p>
+    </div>
+  );
+}
+
+function TextLine({ label, value, valueClassName = 'text-white' }: { label: string; value: string; valueClassName?: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-3 last:border-0 last:pb-0">
+      <span className="text-carbon-500">{label}</span>
+      <strong className={`min-w-0 truncate text-right ${valueClassName}`}>{value || '—'}</strong>
     </div>
   );
 }
