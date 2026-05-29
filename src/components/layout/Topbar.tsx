@@ -1,15 +1,103 @@
-import { Bell, Building2, CheckCircle2, ChevronDown, HelpCircle, LogOut, Menu, Search, Shield, UserRound, type LucideIcon } from 'lucide-react';
+import {
+  AlertTriangle,
+  Bell,
+  Building2,
+  CalendarClock,
+  Car,
+  CheckCircle2,
+  ChevronDown,
+  CreditCard,
+  FileWarning,
+  HelpCircle,
+  LogOut,
+  Menu,
+  Search,
+  Shield,
+  UserRound,
+  Wrench,
+  type LucideIcon,
+} from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
+import { useData } from '../../context/DataContext';
+import { formatMAD, type Client, type MaintenanceItem, type Reservation, type Vehicle } from '../../data/mockData';
+import { getReservationPaymentSummary } from '../../lib/paymentBalance';
+
+type NotificationSeverity = 'info' | 'warning' | 'danger';
+
+type AppNotification = {
+  id: string;
+  title: string;
+  description: string;
+  context: string;
+  href: string;
+  severity: NotificationSeverity;
+  icon: LucideIcon;
+};
+
+const SOON_WINDOW_DAYS = 30;
+
+function toLocalIso(date: Date) {
+  const copy = new Date(date);
+  copy.setMinutes(copy.getMinutes() - copy.getTimezoneOffset());
+  return copy.toISOString().slice(0, 10);
+}
+
+function addDaysIso(date: Date, days: number) {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return toLocalIso(copy);
+}
+
+function daysUntil(dateIso?: string) {
+  if (!dateIso) return Number.POSITIVE_INFINITY;
+  const target = new Date(`${dateIso}T00:00:00`);
+  if (Number.isNaN(target.getTime())) return Number.POSITIVE_INFINITY;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return Math.ceil((target.getTime() - today.getTime()) / 86_400_000);
+}
+
+function dateContext(dateIso?: string) {
+  if (!dateIso) return 'Date non renseignée';
+  const delta = daysUntil(dateIso);
+  if (delta === 0) return "Aujourd'hui";
+  if (delta === 1) return 'Demain';
+  if (delta < 0) return `En retard de ${Math.abs(delta)} j`;
+  return `Dans ${delta} j`;
+}
+
+function isTodayOrTomorrow(dateIso: string, todayIso: string, tomorrowIso: string) {
+  return dateIso === todayIso || dateIso === tomorrowIso;
+}
+
+function vehicleLabel(vehicle: Vehicle) {
+  return `${vehicle.brand} ${vehicle.model} · ${vehicle.plate}`;
+}
+
+function clientMissingDocuments(client: Client) {
+  return !client.idCardFrontUrl || !client.idCardBackUrl;
+}
+
+function isReservationOpen(reservation: Reservation) {
+  return reservation.status !== 'Cancelled' && reservation.status !== 'Completed';
+}
+
+function isMaintenanceDue(item: MaintenanceItem) {
+  const delta = daysUntil(item.nextServiceDate);
+  return item.status === 'Overdue' || item.status === 'Due soon' || delta <= 14;
+}
 
 export default function Topbar({ onMenu }: { onMenu: () => void }) {
   const { notify } = useApp();
   const { signOut, profile, isSupabaseEnabled } = useAuth();
+  const { reservations, payments, vehicles, maintenance, clients } = useData();
   const navigate = useNavigate();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const notificationsMenuRef = useRef<HTMLDivElement | null>(null);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
   const initials = (profile?.fullName || profile?.agency?.name || 'AG')
     .split(/\s+/)
@@ -26,6 +114,111 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
     if (role === 'agent' || role === 'member') return 'Membre';
     return profile?.isSuperAdmin ? 'Super Admin' : 'Compte';
   }, [profile?.isSuperAdmin, profile?.role]);
+
+  const notifications = useMemo<AppNotification[]>(() => {
+    const today = new Date();
+    const todayIso = toLocalIso(today);
+    const tomorrowIso = addDaysIso(today, 1);
+    const nextNotifications: AppNotification[] = [];
+
+    reservations.filter(isReservationOpen).forEach((reservation) => {
+      if (isTodayOrTomorrow(reservation.pickupDate, todayIso, tomorrowIso)) {
+        nextNotifications.push({
+          id: `reservation-start-${reservation.id}`,
+          title: reservation.pickupDate === todayIso ? "Départ aujourd'hui" : 'Départ demain',
+          description: `${reservation.client} · ${reservation.vehicle}`,
+          context: reservation.pickupLocation || dateContext(reservation.pickupDate),
+          href: '/calendar',
+          severity: 'info',
+          icon: CalendarClock,
+        });
+      }
+
+      if (isTodayOrTomorrow(reservation.returnDate, todayIso, tomorrowIso)) {
+        nextNotifications.push({
+          id: `reservation-end-${reservation.id}`,
+          title: reservation.returnDate === todayIso ? "Retour aujourd'hui" : 'Retour demain',
+          description: `${reservation.client} · ${reservation.vehicle}`,
+          context: reservation.returnLocation || dateContext(reservation.returnDate),
+          href: '/calendar',
+          severity: 'warning',
+          icon: CalendarClock,
+        });
+      }
+
+      const paymentSummary = getReservationPaymentSummary(reservation, payments);
+      if (paymentSummary.remaining > 0) {
+        nextNotifications.push({
+          id: `payment-${reservation.id}`,
+          title: paymentSummary.paid > 0 ? 'Paiement partiel' : 'Paiement en attente',
+          description: `${reservation.client} · Reste ${formatMAD(paymentSummary.remaining)}`,
+          context: reservation.id,
+          href: '/payments',
+          severity: paymentSummary.paid > 0 ? 'warning' : 'danger',
+          icon: CreditCard,
+        });
+      }
+    });
+
+    vehicles.forEach((vehicle) => {
+      const insuranceDelta = daysUntil(vehicle.insuranceExpiry);
+      if (insuranceDelta <= SOON_WINDOW_DAYS) {
+        nextNotifications.push({
+          id: `vehicle-insurance-${vehicle.id}`,
+          title: insuranceDelta < 0 ? 'Assurance expirée' : 'Assurance à renouveler',
+          description: vehicleLabel(vehicle),
+          context: dateContext(vehicle.insuranceExpiry),
+          href: '/vehicles',
+          severity: insuranceDelta < 0 ? 'danger' : 'warning',
+          icon: Shield,
+        });
+      }
+
+      const inspectionDelta = daysUntil(vehicle.inspectionDate);
+      if (inspectionDelta <= SOON_WINDOW_DAYS) {
+        nextNotifications.push({
+          id: `vehicle-inspection-${vehicle.id}`,
+          title: inspectionDelta < 0 ? 'Visite technique expirée' : 'Visite technique proche',
+          description: vehicleLabel(vehicle),
+          context: dateContext(vehicle.inspectionDate),
+          href: '/vehicles',
+          severity: inspectionDelta < 0 ? 'danger' : 'warning',
+          icon: Car,
+        });
+      }
+    });
+
+    maintenance.filter(isMaintenanceDue).forEach((item) => {
+      nextNotifications.push({
+        id: `maintenance-${item.id}`,
+        title: item.status === 'Overdue' ? 'Maintenance en retard' : 'Maintenance à prévoir',
+        description: `${item.vehicle} · ${item.serviceType}`,
+        context: dateContext(item.nextServiceDate),
+        href: '/maintenance',
+        severity: item.status === 'Overdue' || daysUntil(item.nextServiceDate) < 0 ? 'danger' : 'warning',
+        icon: Wrench,
+      });
+    });
+
+    clients.filter(clientMissingDocuments).forEach((client) => {
+      nextNotifications.push({
+        id: `client-documents-${client.id}`,
+        title: 'Documents client incomplets',
+        description: client.fullName,
+        context: client.idCardFrontUrl || client.idCardBackUrl ? 'Une face manquante' : 'Recto/verso manquants',
+        href: `/clients/${client.id}`,
+        severity: 'warning',
+        icon: FileWarning,
+      });
+    });
+
+    return nextNotifications.sort((a, b) => {
+      const severityOrder = { danger: 0, warning: 1, info: 2 };
+      return severityOrder[a.severity] - severityOrder[b.severity];
+    });
+  }, [clients, maintenance, payments, reservations, vehicles]);
+
+  const notificationCount = notifications.length;
 
   useEffect(() => {
     if (!profileOpen) return undefined;
@@ -50,6 +243,34 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
     };
   }, [profileOpen]);
 
+  useEffect(() => {
+    if (!notificationsOpen) return undefined;
+
+    function onPointerDown(event: MouseEvent | TouchEvent) {
+      if (!notificationsMenuRef.current?.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setNotificationsOpen(false);
+    }
+
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('touchstart', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('touchstart', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [notificationsOpen]);
+
+  function openNotification(notification: AppNotification) {
+    setNotificationsOpen(false);
+    navigate(notification.href);
+  }
+
   function openSettingsTab(tab: 'Général' | 'Sécurité') {
     if (typeof window !== 'undefined') {
       window.localStorage.setItem('mekloc-settings-active-tab', tab);
@@ -69,6 +290,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
 
   async function handleLogout() {
     setProfileOpen(false);
+    setNotificationsOpen(false);
     await signOut();
     notify({
       title: isSupabaseEnabled ? 'Déconnexion effectuée' : 'Session démo fermée',
@@ -103,7 +325,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
             <span>MekLoc</span>
           </span>
         </div>
-        <div className="relative">
+        <div ref={notificationsMenuRef} className="relative">
           <button
             aria-label="Notifications"
             className="focus-ring relative grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/25 hover:bg-gold-400/10 light:bg-carbon-950/[0.04] light:text-carbon-800 md:h-11 md:w-11 md:bg-zinc-950/70 md:text-carbon-200"
@@ -113,19 +335,55 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
             }}
           >
             <Bell className="h-5 w-5" />
-            <span className="absolute right-1.5 top-1.5 grid h-5 w-5 place-items-center rounded-full bg-[#D4A017] text-[10px] font-black text-black md:h-2 md:w-2">
-              <span className="md:hidden">3</span>
-            </span>
+            {notificationCount > 0 ? (
+              <span className="absolute -right-1 -top-1 grid h-5 min-w-5 place-items-center rounded-full bg-[#D4A017] px-1.5 text-[10px] font-black text-black shadow-[0_0_18px_rgba(212,160,23,.32)]">
+                {notificationCount > 99 ? '99+' : notificationCount}
+              </span>
+            ) : null}
           </button>
           {notificationsOpen ? (
-            <div className="glass-card absolute right-0 z-50 mt-3 w-[min(20rem,calc(100vw-2rem))] rounded-2xl p-3">
+            <div className="absolute right-0 z-50 mt-3 w-[min(23rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/95 p-2 text-white shadow-[0_28px_80px_rgba(0,0,0,.48),0_0_40px_rgba(212,160,23,.10)] backdrop-blur-2xl light:bg-white/95 light:text-carbon-950">
               <div className="mb-2 flex items-center justify-between px-2">
-                <p className="font-semibold text-white light:text-carbon-950">Notifications</p>
-                <CheckCircle2 className="h-4 w-4 text-mint-400" />
+                <div>
+                  <p className="font-semibold text-white light:text-carbon-950">Notifications</p>
+                  <p className="text-xs text-carbon-500">{notificationCount ? `${notificationCount} alerte${notificationCount > 1 ? 's' : ''} active${notificationCount > 1 ? 's' : ''}` : 'Tout est à jour'}</p>
+                </div>
+                {notificationCount ? <AlertTriangle className="h-4 w-4 text-gold-200" /> : <CheckCircle2 className="h-4 w-4 text-mint-400" />}
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-4 text-sm text-carbon-300">
-                Aucune notification pour le moment.
-              </div>
+              {notificationCount ? (
+                <div className="max-h-[70dvh] space-y-1 overflow-y-auto pr-1">
+                  {notifications.slice(0, 12).map((notification) => {
+                    const Icon = notification.icon;
+                    const tone =
+                      notification.severity === 'danger'
+                        ? 'border-rose-300/20 bg-rose-500/10 text-rose-100'
+                        : notification.severity === 'warning'
+                          ? 'border-amber-300/20 bg-amber-500/10 text-amber-100'
+                          : 'border-sky-300/20 bg-sky-500/10 text-sky-100';
+                    return (
+                      <button
+                        key={notification.id}
+                        type="button"
+                        onClick={() => openNotification(notification)}
+                        className="focus-ring flex w-full items-start gap-3 rounded-2xl border border-transparent px-3 py-3 text-left transition hover:border-gold-300/20 hover:bg-gold-400/10"
+                      >
+                        <span className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl border ${tone}`}>
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm font-black text-white light:text-carbon-950">{notification.title}</span>
+                          <span className="mt-0.5 block truncate text-xs font-semibold text-carbon-300 light:text-carbon-700">{notification.description}</span>
+                          <span className="mt-1 block text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-500">{notification.context}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-6 text-center text-sm text-carbon-300">
+                  Aucune notification
+                </div>
+              )}
             </div>
           ) : null}
         </div>

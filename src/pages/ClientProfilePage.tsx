@@ -30,6 +30,7 @@ import Modal from '../components/ui/Modal';
 import { formatMAD, type Client, type Contract, type Payment, type Reservation } from '../data/mockData';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
+import { getClientPaymentBalance } from '../lib/paymentBalance';
 
 function clientInitials(name?: string) {
   const parts = (name || 'Client').trim().split(/\s+/).filter(Boolean);
@@ -174,6 +175,7 @@ export default function ClientProfilePage() {
   const reservationTotal = clientReservations.reduce((sum, reservation) => sum + (reservation.totalAmount ?? 0), 0);
   const paymentTotal = clientPayments.reduce((sum, payment) => sum + payment.amount, 0);
   const totalSpent = paymentTotal || reservationTotal || client.totalSpent || 0;
+  const paymentBalance = getClientPaymentBalance(client.id, clientReservations, payments);
   const latestReservation = clientReservations[0];
   const frontDocumentUrl = getClientDocumentUrl(client, 'front');
   const backDocumentUrl = getClientDocumentUrl(client, 'back');
@@ -183,6 +185,7 @@ export default function ClientProfilePage() {
   const metrics = [
     { label: 'Total locations', value: String(clientReservations.length), icon: Car, helper: 'Historique réel' },
     { label: 'Total dépensé', value: totalSpent ? formatMAD(totalSpent) : '—', icon: Wallet, helper: 'Paiements ou réservations' },
+    { label: 'Reste à payer', value: formatMAD(paymentBalance.remaining), icon: CreditCard, helper: paymentBalance.remaining > 0 ? 'Solde ouvert' : 'Payé intégralement' },
     { label: 'Dernière réservation', value: latestReservation ? formatDate(latestReservation.pickupDate) : '—', icon: CalendarClock, helper: latestReservation?.vehicle || 'Aucune location' },
     { label: 'Client depuis', value: formatDate(client.createdAt), icon: BadgeCheck, helper: client.createdAt ? 'Date de création' : 'Non renseigné' },
   ];

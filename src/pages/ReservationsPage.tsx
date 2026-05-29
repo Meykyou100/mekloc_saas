@@ -35,6 +35,7 @@ import { formatMAD, type Reservation, type ReservationStatus } from '../data/moc
 import { sanitizeText } from '../lib/security';
 import { buildWhatsAppReminderUrl } from '../lib/assistantDuJour';
 import { getNotificationPreferences } from '../lib/notificationPreferences';
+import { getReservationPaymentSummary } from '../lib/paymentBalance';
 
 type ViewMode = 'list' | 'grid';
 type ReservationFilterStatus = 'All' | ReservationStatus;
@@ -84,10 +85,6 @@ function statusFr(status: ReservationStatus) {
   if (status === 'Active') return 'Active';
   if (status === 'Completed') return 'Terminée';
   return 'Annulée';
-}
-
-function paymentMatchesReservation(payment: { reservationId?: string }, reservation: Reservation) {
-  return Boolean(payment.reservationId && payment.reservationId === (reservation.recordId || reservation.id));
 }
 
 function urgencyBadge(reservation: Reservation, todayIso: string) {
@@ -538,24 +535,30 @@ export default function ReservationsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.06]">
-                {filteredReservations.map((reservation) => (
-                  <tr key={reservation.id} className="transition hover:bg-white/[0.03]">
-                    <td className="px-5 py-4 font-bold text-white">{reservation.id}</td>
-                    <td className="px-5 py-4 text-carbon-300">{reservation.client}</td>
-                    <td className="px-5 py-4 text-carbon-300">{reservation.vehicle}</td>
-                    <td className="px-5 py-4 text-carbon-400">{formatReservationDateTime(reservation.pickupDate, reservation.pickupTime)} → {formatReservationDateTime(reservation.returnDate, reservation.returnTime)}</td>
-                    <td className="px-5 py-4"><Badge>{reservation.status}</Badge></td>
-                    <td className="px-5 py-4 text-white">{formatMAD(reservation.totalAmount ?? reservation.dailyPrice)}</td>
-                    <td className="px-5 py-4">
-                      <div className="flex flex-wrap gap-2">
-                        <Button variant="secondary" className="h-9 rounded-xl px-2.5 text-xs" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => openEditReservation(reservation)}>Modifier</Button>
-                        <Button variant="secondary" className="h-9 rounded-xl px-2.5 text-xs" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setDetailsTarget(reservation)}>Détails</Button>
-                        <Button variant="secondary" className="h-9 rounded-xl px-2.5 text-xs" icon={<FileSignature className="h-3.5 w-3.5" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}`)}>Générer contrat</Button>
-                        <Button variant="danger" className="h-9 rounded-xl px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setDeleteTarget(reservation)}>Supprimer</Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {filteredReservations.map((reservation) => {
+                  const paymentSummary = getReservationPaymentSummary(reservation, payments);
+                  return (
+                    <tr key={reservation.id} className="transition hover:bg-white/[0.03]">
+                      <td className="px-5 py-4 font-bold text-white">{reservation.id}</td>
+                      <td className="px-5 py-4 text-carbon-300">{reservation.client}</td>
+                      <td className="px-5 py-4 text-carbon-300">{reservation.vehicle}</td>
+                      <td className="px-5 py-4 text-carbon-400">{formatReservationDateTime(reservation.pickupDate, reservation.pickupTime)} → {formatReservationDateTime(reservation.returnDate, reservation.returnTime)}</td>
+                      <td className="px-5 py-4"><Badge>{reservation.status}</Badge></td>
+                      <td className="px-5 py-4">
+                        <p className="font-black text-white">{formatMAD(paymentSummary.total)}</p>
+                        <p className="mt-1 text-xs text-carbon-400">Reste: <span className={paymentSummary.remaining > 0 ? 'font-bold text-amber-200' : 'font-bold text-emerald-200'}>{formatMAD(paymentSummary.remaining)}</span></p>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-wrap gap-2">
+                          <Button variant="secondary" className="h-9 rounded-xl px-2.5 text-xs" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => openEditReservation(reservation)}>Modifier</Button>
+                          <Button variant="secondary" className="h-9 rounded-xl px-2.5 text-xs" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setDetailsTarget(reservation)}>Détails</Button>
+                          <Button variant="secondary" className="h-9 rounded-xl px-2.5 text-xs" icon={<FileSignature className="h-3.5 w-3.5" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}`)}>Générer contrat</Button>
+                          <Button variant="danger" className="h-9 rounded-xl px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setDeleteTarget(reservation)}>Supprimer</Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -565,7 +568,7 @@ export default function ReservationsPage() {
           {filteredReservations.map((reservation) => {
             const days = getRentalDays(reservation.pickupDate, reservation.returnDate);
             const urgency = urgencyBadge(reservation, todayIso);
-            const payment = payments.find((item) => paymentMatchesReservation(item, reservation));
+            const paymentSummary = getReservationPaymentSummary(reservation, payments);
             return (
               <Card key={reservation.id} interactive className="group relative overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-[#131821] via-[#0f141c] to-[#07090d] p-4 shadow-[0_14px_38px_rgba(0,0,0,.30),inset_0_1px_0_rgba(255,255,255,.04)] transition-all hover:border-[#D4A017]/35 md:p-5">
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#D4A017]/8 to-transparent opacity-80" />
@@ -604,10 +607,16 @@ export default function ReservationsPage() {
                   </div>
                 </div>
 
-                <div className="relative mt-3 flex min-w-0 items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2">
-                  <Wallet className="h-4 w-4 shrink-0 text-gold-200" />
-                  <span className="text-xs font-semibold text-carbon-500">Paiement</span>
-                  {payment ? <Badge>{payment.status}</Badge> : <span className="text-xs text-carbon-400">Non renseigné</span>}
+                <div className="relative mt-3 rounded-2xl border border-white/10 bg-black/20 p-3">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <Wallet className="h-4 w-4 shrink-0 text-gold-200" />
+                    <span className="text-xs font-semibold text-carbon-500">Paiement</span>
+                    <Badge>{paymentSummary.statusFr}</Badge>
+                  </div>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
+                    <p className="text-carbon-400">Payé: <span className="font-bold text-white">{formatMAD(paymentSummary.paid)}</span></p>
+                    <p className="text-carbon-400">Reste: <span className={paymentSummary.remaining > 0 ? 'font-black text-amber-200' : 'font-black text-emerald-200'}>{paymentSummary.remaining > 0 ? formatMAD(paymentSummary.remaining) : 'Payé intégralement'}</span></p>
+                  </div>
                 </div>
 
                 <div className="relative mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
@@ -1034,30 +1043,41 @@ export default function ReservationsPage() {
 
       <Modal open={Boolean(detailsTarget)} onClose={() => setDetailsTarget(null)} title={`Détails · ${detailsTarget?.id || ''}`}>
         {detailsTarget ? (
-          <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+8px)]">
-            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#131821] via-[#0f141c] to-[#07090d] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
-              <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#D4A017]/10 to-transparent" />
-              <div className="relative flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-300">{detailsTarget.id}</p>
-                  <h3 className="mt-1 truncate text-lg font-black text-white">{detailsTarget.vehicle}</h3>
-                  <p className="mt-1 flex items-center gap-2 truncate text-sm font-semibold text-carbon-300"><UserRound className="h-4 w-4 text-carbon-500" /> {detailsTarget.client}</p>
+          (() => {
+            const detailsPaymentSummary = getReservationPaymentSummary(detailsTarget, payments);
+            return (
+              <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+8px)]">
+                <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#131821] via-[#0f141c] to-[#07090d] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+                  <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#D4A017]/10 to-transparent" />
+                  <div className="relative flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-300">{detailsTarget.id}</p>
+                      <h3 className="mt-1 truncate text-lg font-black text-white">{detailsTarget.vehicle}</h3>
+                      <p className="mt-1 flex items-center gap-2 truncate text-sm font-semibold text-carbon-300"><UserRound className="h-4 w-4 text-carbon-500" /> {detailsTarget.client}</p>
+                    </div>
+                    <Badge>{detailsTarget.status}</Badge>
+                  </div>
+                  <div className="relative mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                      <p className="text-xs text-carbon-500">Total</p>
+                      <p className="mt-1 truncate font-black text-white">{formatMAD(detailsPaymentSummary.total)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                      <p className="text-xs text-carbon-500">Payé</p>
+                      <p className="mt-1 truncate font-black text-white">{formatMAD(detailsPaymentSummary.paid)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                      <p className="text-xs text-carbon-500">Reste</p>
+                      <p className={`mt-1 truncate font-black ${detailsPaymentSummary.remaining > 0 ? 'text-amber-200' : 'text-emerald-200'}`}>{formatMAD(detailsPaymentSummary.remaining)}</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                      <p className="text-xs text-carbon-500">Caution</p>
+                      <p className="mt-1 truncate font-black text-white">{formatMAD(detailsTarget.deposit || 0)}</p>
+                    </div>
+                  </div>
                 </div>
-                <Badge>{detailsTarget.status}</Badge>
-              </div>
-              <div className="relative mt-4 grid grid-cols-2 gap-2">
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                  <p className="text-xs text-carbon-500">Total</p>
-                  <p className="mt-1 truncate font-black text-white">{formatMAD(detailsTarget.totalAmount ?? detailsTarget.dailyPrice)}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                  <p className="text-xs text-carbon-500">Caution</p>
-                  <p className="mt-1 truncate font-black text-white">{formatMAD(detailsTarget.deposit || 0)}</p>
-                </div>
-              </div>
-            </div>
 
-            <div className="grid gap-3 rounded-3xl border border-white/10 bg-white/[0.04] p-4 text-sm text-carbon-300">
+                <div className="grid gap-3 rounded-3xl border border-white/10 bg-white/[0.04] p-4 text-sm text-carbon-300">
               <div className="flex items-start gap-3">
                 <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-gold-200" />
                 <div className="min-w-0">
@@ -1113,8 +1133,10 @@ export default function ReservationsPage() {
               <Button variant="danger" className="min-w-0 rounded-xl px-2.5 text-xs sm:px-4 sm:text-sm" onClick={() => handleUpdateStatus(detailsTarget, 'Cancelled')}>
                 Annuler
               </Button>
-            </div>
-          </div>
+                </div>
+              </div>
+            );
+          })()
         ) : null}
       </Modal>
     </div>

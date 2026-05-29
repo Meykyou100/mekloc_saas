@@ -31,6 +31,7 @@ import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { formatMAD, type Client } from '../data/mockData';
+import { getClientPaymentBalance } from '../lib/paymentBalance';
 import { normalizeText, safeStoragePath, sanitizeText, validateEmail, validateFileUpload, validatePhone } from '../lib/security';
 import { storageBuckets, supabase } from '../lib/supabase';
 
@@ -117,16 +118,19 @@ export default function ClientsPage() {
   const streamRef = useRef<MediaStream | null>(null);
 
   const clientUsage = useMemo(() => {
-    return clients.reduce<Record<string, { reservations: number; spent: number }>>((acc, client) => {
+    return clients.reduce<Record<string, { reservations: number; spent: number; paid: number; remaining: number }>>((acc, client) => {
       const clientReservations = reservations.filter((reservation) => reservation.clientId === client.id);
       const reservationIds = new Set(clientReservations.map((reservation) => reservation.recordId || reservation.id));
       const reservationSpent = clientReservations.reduce((sum, reservation) => sum + (reservation.totalAmount ?? 0), 0);
       const paymentSpent = payments
         .filter((payment) => payment.clientId === client.id || (payment.reservationId ? reservationIds.has(payment.reservationId) : false))
         .reduce((sum, payment) => sum + payment.amount, 0);
+      const paymentBalance = getClientPaymentBalance(client.id, reservations, payments);
       acc[client.id] = {
         reservations: clientReservations.length,
         spent: paymentSpent || reservationSpent || 0,
+        paid: paymentBalance.paid,
+        remaining: paymentBalance.remaining,
       };
       return acc;
     }, {});
@@ -137,6 +141,8 @@ export default function ClientsPage() {
       ...client,
       computedReservations: clientUsage[client.id]?.reservations ?? 0,
       computedSpent: clientUsage[client.id]?.spent ?? 0,
+      computedPaid: clientUsage[client.id]?.paid ?? 0,
+      computedRemaining: clientUsage[client.id]?.remaining ?? 0,
     }));
   }, [clientUsage, clients]);
 
@@ -628,6 +634,9 @@ export default function ClientsPage() {
                         <p className="text-sm text-carbon-400">
                           {client.computedReservations} {client.computedReservations > 1 ? 'réservations' : 'réservation'}
                         </p>
+                        <p className={`mt-1 text-xs font-black ${client.computedRemaining > 0 ? 'text-amber-200' : 'text-emerald-200'}`}>
+                          Reste: {formatMAD(client.computedRemaining)}
+                        </p>
                       </div>
                     </div>
 
@@ -811,6 +820,7 @@ export default function ClientsPage() {
                               <p className="text-sm font-black text-white">{client.computedReservations}</p>
                               <p className="text-[11px] text-carbon-500">Réservations</p>
                               <p className="mt-1 text-xs font-bold text-gold-100">{formatMAD(client.computedSpent)}</p>
+                              <p className={`mt-1 text-[11px] font-bold ${client.computedRemaining > 0 ? 'text-amber-200' : 'text-emerald-200'}`}>Reste {formatMAD(client.computedRemaining)}</p>
                             </div>
                           </div>
                           <div className="mt-3 flex flex-wrap gap-2">
@@ -896,6 +906,7 @@ export default function ClientsPage() {
                     <div className="mt-4 space-y-3 text-sm text-carbon-200">
                       <p className="flex items-center justify-between gap-3"><span className="text-carbon-500">Réservations</span><strong className="text-white">{selectedClient.computedReservations}</strong></p>
                       <p className="flex items-center justify-between gap-3"><span className="text-carbon-500">Total dépensé</span><strong className="text-white">{formatMAD(selectedClient.computedSpent)}</strong></p>
+                      <p className="flex items-center justify-between gap-3"><span className="text-carbon-500">Reste à payer</span><strong className={selectedClient.computedRemaining > 0 ? 'text-amber-200' : 'text-emerald-200'}>{formatMAD(selectedClient.computedRemaining)}</strong></p>
                       <p className="flex items-center justify-between gap-3"><span className="text-carbon-500">Dernière réservation</span><strong className="text-right text-white">{formatReservationDate(latestReservationByClient[selectedClient.id]?.pickupDate)}</strong></p>
                     </div>
                   </div>
@@ -907,6 +918,7 @@ export default function ClientsPage() {
                     {[
                       { label: 'Réservations totales', value: String(selectedClient.computedReservations), icon: CalendarClock },
                       { label: 'Total dépensé', value: formatMAD(selectedClient.computedSpent), icon: Wallet },
+                      { label: 'Reste à payer', value: formatMAD(selectedClient.computedRemaining), icon: Wallet },
                       { label: 'Dernière réservation', value: formatReservationDate(latestReservationByClient[selectedClient.id]?.pickupDate), icon: CalendarClock },
                       { label: 'Client depuis', value: formatClientSince(selectedClient.createdAt), icon: Users },
                     ].map(({ label, value, icon: Icon }) => (
@@ -1008,6 +1020,8 @@ export default function ClientsPage() {
                     <p className="font-bold text-white">{mobileClientDetails.computedReservations}</p>
                     <p className="text-carbon-500">Total dépensé</p>
                     <p className="font-bold text-white">{formatMAD(mobileClientDetails.computedSpent)}</p>
+                    <p className="text-carbon-500">Reste à payer</p>
+                    <p className={`font-bold ${mobileClientDetails.computedRemaining > 0 ? 'text-amber-200' : 'text-emerald-200'}`}>{formatMAD(mobileClientDetails.computedRemaining)}</p>
                   </div>
                 </div>
               </div>
