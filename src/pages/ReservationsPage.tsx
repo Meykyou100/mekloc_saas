@@ -28,7 +28,6 @@ import EmptyState from '../components/ui/EmptyState';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import PlateNumber from '../components/ui/PlateNumber';
-import StatCard from '../components/ui/StatCard';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
@@ -431,41 +430,72 @@ export default function ReservationsPage() {
     { label: 'Prix calculé', ok: totalEstimate > 0 },
   ];
 
+  const reservationStatCards = [
+    { label: 'Total réservations', value: String(stats.total), trend: 'Global', icon: CalendarDays, accent: 'from-gold-400/16' },
+    { label: 'Confirmées', value: String(stats.confirmed), trend: 'Planifiées', icon: CheckCircle2, accent: 'from-emerald-400/14' },
+    { label: 'Actives', value: String(stats.active), trend: 'En cours', icon: Clock3, accent: 'from-sky-400/14' },
+    { label: 'Terminées', value: String(stats.completed), trend: 'Historique', icon: CheckCircle2, accent: 'from-violet-400/14' },
+    { label: 'Annulées', value: String(stats.cancelled), trend: 'À suivre', icon: X, accent: 'from-rose-400/14' },
+    { label: 'Revenus prévus', value: formatMAD(stats.revenue), trend: 'Estimé', icon: Wallet, accent: 'from-amber-400/14' },
+  ];
+
   return (
-    <div>
+    <div className="overflow-x-hidden pb-[calc(96px+env(safe-area-inset-bottom))] md:pb-6">
       <PageHeader
         eyebrow="Réservations"
         title="Réservations"
         description="Pilotage complet des départs, retours, cautions et contrats de location."
-        action={<Button icon={<Plus className="h-4 w-4" />} onClick={openNewReservation}>Ajouter une réservation</Button>}
+        action={
+          <Button
+            className="h-12 rounded-2xl px-5 shadow-[0_0_34px_rgba(212,160,23,0.18)]"
+            icon={<Plus className="h-4 w-4" />}
+            onClick={openNewReservation}
+          >
+            Ajouter une réservation
+          </Button>
+        }
       />
 
-      <div className="mb-5 grid grid-cols-2 gap-2 sm:gap-4 sm:grid-cols-2 xl:grid-cols-6">
-        <StatCard label="Total réservations" value={String(stats.total)} trend="Global" icon={CalendarDays} />
-        <StatCard label="Confirmées" value={String(stats.confirmed)} trend="Planifiées" icon={CheckCircle2} />
-        <StatCard label="Actives" value={String(stats.active)} trend="En cours" icon={Clock3} />
-        <StatCard label="Terminées" value={String(stats.completed)} trend="Historique" icon={CheckCircle2} />
-        <StatCard label="Annulées" value={String(stats.cancelled)} trend="À suivre" icon={X} />
-        <StatCard label="Revenus prévus" value={formatMAD(stats.revenue)} trend="Estimé" icon={Wallet} />
+      <div className="no-scrollbar -mx-4 mb-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 md:mb-5 xl:grid-cols-6">
+        {reservationStatCards.map(({ label, value, trend, icon: Icon, accent }) => (
+          <div
+            key={label}
+            className="relative min-h-[118px] min-w-[148px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3.5 shadow-[0_14px_36px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.05)] sm:min-w-0 sm:p-4"
+          >
+            <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${accent} to-transparent`} />
+            <div className="relative flex h-full flex-col justify-between">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="line-clamp-2 text-[10px] font-black uppercase leading-4 tracking-[0.12em] text-carbon-400">{label}</p>
+                  <p className="mt-2 truncate text-[1.45rem] font-black leading-none text-white sm:text-2xl">{value}</p>
+                </div>
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[14px] border border-[#D4A017]/20 bg-[#D4A017]/10 text-gold-200 shadow-[0_0_20px_rgba(212,160,23,0.10)]">
+                  <Icon className="h-4 w-4" />
+                </span>
+              </div>
+              <p className="mt-3 text-[11px] font-semibold text-carbon-400">{trend}</p>
+            </div>
+          </div>
+        ))}
       </div>
 
-      <Card className="mb-5 p-4">
-        <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+      <Card className="mb-5 rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_18px_46px_rgba(0,0,0,.24)] md:p-4">
+        <div className="grid gap-3 xl:grid-cols-[minmax(260px,1fr)_auto_auto] xl:items-center">
           <label className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
             <input
               value={query}
               onChange={(event) => setQuery(sanitizeText(event.target.value, 120))}
               placeholder="Rechercher client, véhicule, ville ou référence"
-              className="focus-ring h-10 w-full rounded-xl border border-white/[0.07] bg-[#0F1115] pl-10 pr-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,.025)] transition placeholder:text-carbon-500 hover:border-white/12 light:bg-white light:text-carbon-950"
+              className="focus-ring h-12 w-full rounded-2xl border border-white/[0.08] bg-black/30 pl-10 pr-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,.035)] transition placeholder:text-carbon-500 hover:border-white/15 light:bg-white light:text-carbon-950"
             />
           </label>
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 no-scrollbar md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
+          <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
             {statuses.map((item) => (
               <button
                 key={item}
-                className={`focus-ring shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition md:text-sm ${
-                  status === item ? 'bg-gold-400 text-carbon-950' : 'border border-white/10 bg-white/[0.04] text-carbon-300 hover:bg-white/10'
+                className={`focus-ring h-10 shrink-0 rounded-xl px-3 text-xs font-black transition md:text-sm ${
+                  status === item ? 'bg-gold-400 text-carbon-950 shadow-[0_10px_22px_rgba(212,160,23,.14)]' : 'border border-white/10 bg-white/[0.04] text-carbon-300 hover:bg-white/10'
                 }`}
                 onClick={() => setStatus(item)}
               >
@@ -473,11 +503,11 @@ export default function ReservationsPage() {
               </button>
             ))}
           </div>
-          <div className="hidden rounded-xl border border-white/10 bg-white/[0.04] p-1 md:flex">
-            <button className={`focus-ring grid h-9 w-10 place-items-center rounded-lg ${view === 'list' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300'}`} onClick={() => setView('list')} aria-label="Vue liste">
+          <div className="grid grid-cols-2 rounded-2xl border border-white/10 bg-white/[0.04] p-1 md:flex">
+            <button className={`focus-ring grid h-10 min-w-0 place-items-center rounded-xl ${view === 'list' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300'}`} onClick={() => setView('list')} aria-label="Vue liste">
               <ListFilter className="h-4 w-4" />
             </button>
-            <button className={`focus-ring grid h-9 w-10 place-items-center rounded-lg ${view === 'grid' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300'}`} onClick={() => setView('grid')} aria-label="Vue cartes">
+            <button className={`focus-ring grid h-10 min-w-0 place-items-center rounded-xl ${view === 'grid' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300'}`} onClick={() => setView('grid')} aria-label="Vue cartes">
               <LayoutGrid className="h-4 w-4" />
             </button>
           </div>
@@ -493,7 +523,7 @@ export default function ReservationsPage() {
           onAction={openNewReservation}
         />
       ) : view === 'list' ? (
-        <Card className="data-table hidden overflow-hidden md:block">
+        <Card className="data-table hidden overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black md:block">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[980px] text-left text-sm">
               <thead className="border-b border-white/[0.06] text-xs uppercase tracking-wide text-carbon-400">
@@ -518,10 +548,10 @@ export default function ReservationsPage() {
                     <td className="px-5 py-4 text-white">{formatMAD(reservation.totalAmount ?? reservation.dailyPrice)}</td>
                     <td className="px-5 py-4">
                       <div className="flex flex-wrap gap-2">
-                        <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => openEditReservation(reservation)}>Modifier</Button>
-                        <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setDetailsTarget(reservation)}>Détails</Button>
-                        <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<FileSignature className="h-3.5 w-3.5" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}`)}>Générer contrat</Button>
-                        <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setDeleteTarget(reservation)}>Supprimer</Button>
+                        <Button variant="secondary" className="h-9 rounded-xl px-2.5 text-xs" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => openEditReservation(reservation)}>Modifier</Button>
+                        <Button variant="secondary" className="h-9 rounded-xl px-2.5 text-xs" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setDetailsTarget(reservation)}>Détails</Button>
+                        <Button variant="secondary" className="h-9 rounded-xl px-2.5 text-xs" icon={<FileSignature className="h-3.5 w-3.5" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}`)}>Générer contrat</Button>
+                        <Button variant="danger" className="h-9 rounded-xl px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setDeleteTarget(reservation)}>Supprimer</Button>
                       </div>
                     </td>
                   </tr>
@@ -531,55 +561,60 @@ export default function ReservationsPage() {
           </div>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-3.5 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
           {filteredReservations.map((reservation) => {
             const days = getRentalDays(reservation.pickupDate, reservation.returnDate);
             const urgency = urgencyBadge(reservation, todayIso);
             const payment = payments.find((item) => paymentMatchesReservation(item, reservation));
             return (
-              <Card key={reservation.id} interactive className="group overflow-hidden border-white/10 bg-gradient-to-br from-[#131821] to-[#0b0f15] p-5 shadow-[0_10px_30px_rgba(0,0,0,.28)] transition-all hover:border-[#D4A017]/35">
-                <div className="mb-3 flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-carbon-500">{reservation.id}</p>
-                    <h3 className="mt-1 text-base font-bold text-white">{reservation.vehicle}</h3>
-                    <p className="mt-1 text-sm text-carbon-400">{reservation.client}</p>
+              <Card key={reservation.id} interactive className="group relative overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-[#131821] via-[#0f141c] to-[#07090d] p-4 shadow-[0_14px_38px_rgba(0,0,0,.30),inset_0_1px_0_rgba(255,255,255,.04)] transition-all hover:border-[#D4A017]/35 md:p-5">
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#D4A017]/8 to-transparent opacity-80" />
+                <div className="relative mb-3 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gold-300/80">{reservation.id}</p>
+                    <h3 className="mt-1 truncate text-base font-black text-white">{reservation.vehicle}</h3>
+                    <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-sm font-semibold text-carbon-300">
+                      <UserRound className="h-3.5 w-3.5 shrink-0 text-carbon-500" />
+                      <span className="truncate">{reservation.client}</span>
+                    </p>
                   </div>
-                  <Badge>{reservation.status}</Badge>
+                  <div className="shrink-0"><Badge>{reservation.status}</Badge></div>
                 </div>
 
                 {urgency ? (
-                  <div className={`mb-3 inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${urgency.className}`}>
+                  <div className={`relative mb-3 inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${urgency.className}`}>
                     {urgency.label}
                   </div>
                 ) : null}
 
-                <div className="grid gap-2 text-sm text-carbon-300">
-                  <p className="flex items-center gap-2"><CalendarDays className="h-4 w-4 text-gold-200" /> {formatReservationDateTime(reservation.pickupDate, reservation.pickupTime)} → {formatReservationDateTime(reservation.returnDate, reservation.returnTime)} ({days} jours)</p>
-                  <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-gold-200" /> {reservation.pickupLocation || 'Lieu départ non renseigné'}</p>
-                  <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-gold-200" /> {reservation.returnLocation || 'Lieu retour non renseigné'}</p>
+                <div className="relative grid gap-2.5 text-sm text-carbon-300">
+                  <p className="flex min-w-0 items-start gap-2 leading-5"><CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-gold-200" /> <span className="min-w-0">{formatReservationDateTime(reservation.pickupDate, reservation.pickupTime)} → {formatReservationDateTime(reservation.returnDate, reservation.returnTime)} <span className="text-carbon-500">({days} jours)</span></span></p>
+                  <p className="flex min-w-0 items-start gap-2 leading-5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold-200" /> <span className="truncate">{reservation.pickupLocation || 'Lieu départ non renseigné'}</span></p>
+                  <p className="flex min-w-0 items-start gap-2 leading-5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold-200" /> <span className="truncate">{reservation.returnLocation || 'Lieu retour non renseigné'}</span></p>
                 </div>
 
-                <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                <div className="relative mt-4 grid grid-cols-2 gap-2.5">
+                  <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.045] p-3">
                     <p className="text-xs text-carbon-500">Total</p>
-                    <p className="mt-1 font-semibold text-white">{formatMAD(reservation.totalAmount ?? reservation.dailyPrice)}</p>
+                    <p className="mt-1 truncate font-black text-white">{formatMAD(reservation.totalAmount ?? reservation.dailyPrice)}</p>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                  <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.045] p-3">
                     <p className="text-xs text-carbon-500">Caution</p>
-                    <p className="mt-1 font-semibold text-white">{formatMAD(reservation.deposit || 0)}</p>
+                    <p className="mt-1 truncate font-black text-white">{formatMAD(reservation.deposit || 0)}</p>
                   </div>
                 </div>
 
-                <div className="mt-3">
-                  <span className="text-xs text-carbon-500">Paiement: </span>
+                <div className="relative mt-3 flex min-w-0 items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2">
+                  <Wallet className="h-4 w-4 shrink-0 text-gold-200" />
+                  <span className="text-xs font-semibold text-carbon-500">Paiement</span>
                   {payment ? <Badge>{payment.status}</Badge> : <span className="text-xs text-carbon-400">Non renseigné</span>}
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button variant="secondary" className="h-9 px-3 text-xs" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => openEditReservation(reservation)}>Modifier</Button>
-                  <Button variant="secondary" className="h-9 px-3 text-xs" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setDetailsTarget(reservation)}>Détails</Button>
-                  <Button variant="secondary" className="h-9 px-3 text-xs" icon={<FileSignature className="h-3.5 w-3.5" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}`)}>Générer contrat</Button>
-                  <Button variant="danger" className="h-9 px-3 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setDeleteTarget(reservation)}>Supprimer</Button>
+                <div className="relative mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                  <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2.5 text-xs sm:h-9 sm:px-3" icon={<Pencil className="h-3.5 w-3.5 shrink-0" />} onClick={() => openEditReservation(reservation)}>Modifier</Button>
+                  <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2.5 text-xs sm:h-9 sm:px-3" icon={<Eye className="h-3.5 w-3.5 shrink-0" />} onClick={() => setDetailsTarget(reservation)}>Détails</Button>
+                  <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2.5 text-xs sm:h-9 sm:px-3" icon={<FileSignature className="h-3.5 w-3.5 shrink-0" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}`)}>Générer</Button>
+                  <Button variant="danger" className="h-11 min-w-0 rounded-xl px-2.5 text-xs sm:h-9 sm:px-3" icon={<Trash2 className="h-3.5 w-3.5 shrink-0" />} onClick={() => setDeleteTarget(reservation)}>Supprimer</Button>
                 </div>
               </Card>
             );
@@ -589,36 +624,54 @@ export default function ReservationsPage() {
 
       <AnimatePresence>
         {modalOpen ? (
-          <motion.div className="fixed inset-0 z-50 overflow-hidden bg-[#050505]/88 p-0 backdrop-blur-sm sm:p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div className="fixed inset-0 z-50 overflow-hidden bg-[#050505]/88 p-0 backdrop-blur-sm sm:p-4 lg:flex lg:items-center lg:justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <button aria-label="Fermer" className="absolute inset-0 h-full w-full cursor-default" onClick={() => !saving && setModalOpen(false)} />
             <motion.aside
-              initial={{ opacity: 0, x: 36, scale: 0.985 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: 28, scale: 0.985 }}
+              initial={{ opacity: 0, y: 18, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.985 }}
               transition={{ duration: 0.24, ease: 'easeOut' }}
-              className="relative ml-auto flex h-[100dvh] max-h-[100dvh] w-full max-w-6xl flex-col overflow-hidden rounded-none border border-white/[0.07] bg-[#0B0D10] shadow-[0_26px_80px_rgba(0,0,0,.55)] sm:h-full sm:max-h-none sm:rounded-[1.5rem]"
+              className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-6xl flex-col overflow-hidden rounded-none border border-white/[0.07] bg-[#0B0D10] shadow-[0_26px_80px_rgba(0,0,0,.55)] sm:h-full sm:max-h-none sm:rounded-[1.5rem] lg:h-[92dvh] lg:max-h-[920px]"
             >
-              <div className="flex items-start justify-between gap-4 border-b border-white/10 px-4 py-4 sm:px-7">
-                <div>
+              <div className="shrink-0 border-b border-white/10 bg-[#0B0D10]/95 px-4 py-4 backdrop-blur sm:px-7">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
                   <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.035] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-carbon-300">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     {editingReservation ? 'Modifier réservation' : 'Nouvelle réservation'}
                   </div>
-                  <h2 className="text-lg font-semibold tracking-tight text-white sm:text-2xl">{editingReservation ? 'Modifier une réservation' : 'Ajouter une réservation'}</h2>
-                  <p className="mt-1 text-sm text-carbon-400">Flux guidé pour créer rapidement une réservation fiable.</p>
+                    <h2 className="truncate text-lg font-black tracking-tight text-white sm:text-2xl">{editingReservation ? 'Modifier une réservation' : 'Ajouter une réservation'}</h2>
+                    <p className="mt-1 text-sm text-carbon-400">Flux guidé pour créer rapidement une réservation fiable.</p>
+                  </div>
+                  <button className="focus-ring grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-carbon-300 transition hover:bg-white/10 hover:text-white" onClick={() => !saving && setModalOpen(false)} type="button">
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
-                <button className="focus-ring grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-carbon-300 transition hover:bg-white/10 hover:text-white" onClick={() => !saving && setModalOpen(false)} type="button">
-                  <X className="h-5 w-5" />
-                </button>
               </div>
 
               <form className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[1fr_360px]" onSubmit={handleSubmitReservation}>
                 <div className="flex min-h-0 flex-col">
-                  <div className="border-b border-white/10 px-4 py-4 sm:px-7">
+                  <div className="shrink-0 border-b border-white/10 bg-[#0B0D10]/95 px-4 py-3 backdrop-blur sm:px-7 sm:py-4">
                     <div className="sm:hidden">
                       <p className="text-xs font-semibold text-carbon-400">{reservationStep + 1}/5 • {reservationSteps[reservationStep]}</p>
                       <div className="mt-2 h-1.5 rounded-full bg-white/10">
                         <div className="h-1.5 rounded-full bg-gold-400 transition-all" style={{ width: `${((reservationStep + 1) / reservationSteps.length) * 100}%` }} />
+                      </div>
+                      <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1">
+                        {reservationSteps.map((step, index) => (
+                          <button
+                            key={step}
+                            type="button"
+                            onClick={() => setReservationStep(index)}
+                            className={`h-10 shrink-0 rounded-xl border px-3 text-xs font-black transition ${
+                              reservationStep === index
+                                ? 'border-gold-300/50 bg-gold-400 text-carbon-950'
+                                : 'border-white/10 bg-white/[0.04] text-carbon-300'
+                            }`}
+                          >
+                            {index + 1}. {step}
+                          </button>
+                        ))}
                       </div>
                     </div>
                     <div className="hidden sm:grid sm:grid-cols-5 sm:gap-2">
@@ -837,11 +890,46 @@ export default function ReservationsPage() {
                         </div>
                       </section>
                     ) : null}
+
+                    <div className="mt-5 rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] lg:hidden">
+                      <div className="mb-4 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-xs font-black uppercase tracking-[0.18em] text-gold-200">Résumé</p>
+                          <p className="mt-1 truncate text-sm text-carbon-400">Aperçu avant validation</p>
+                        </div>
+                        <Badge>{draftStatus}</Badge>
+                      </div>
+                      <div className="grid gap-3 text-sm">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="flex items-center gap-2 text-carbon-400"><UserRound className="h-4 w-4" /> Client</span>
+                          <strong className="min-w-0 truncate text-right text-white">{selectedClient?.fullName || 'Non sélectionné'}</strong>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="flex items-center gap-2 text-carbon-400"><Car className="h-4 w-4" /> Véhicule</span>
+                          <strong className="min-w-0 truncate text-right text-white">{selectedVehicle ? `${selectedVehicle.brand} ${selectedVehicle.model}` : 'Non sélectionné'}</strong>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="flex items-center gap-2 text-carbon-400"><CalendarDays className="h-4 w-4" /> Durée</span>
+                          <strong className="text-white">{rentalDays} jour(s)</strong>
+                        </div>
+                        <div className="h-px bg-white/10" />
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                            <p className="text-xs text-carbon-500">Total</p>
+                            <p className="mt-1 truncate font-black text-white">{formatMAD(totalEstimate)}</p>
+                          </div>
+                          <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                            <p className="text-xs text-carbon-500">Caution</p>
+                            <p className="mt-1 truncate font-black text-white">{formatMAD(depositNumber || 0)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
-                  <div className="sticky bottom-0 flex items-center justify-between gap-3 border-t border-white/10 bg-[#0B0D10]/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+10px)] backdrop-blur sm:px-7 sm:py-4 sm:pb-4">
+                  <div className="sticky bottom-0 grid grid-cols-2 gap-3 border-t border-white/10 bg-[#0B0D10]/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+10px)] backdrop-blur sm:flex sm:items-center sm:justify-between sm:px-7 sm:py-4 sm:pb-4">
                     <button
-                      className="focus-ring h-10 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-carbon-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+                      className="focus-ring h-11 min-w-0 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-carbon-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10"
                       disabled={reservationStep === 0 || saving}
                       type="button"
                       onClick={() => setReservationStep((step) => Math.max(0, step - 1))}
@@ -850,7 +938,7 @@ export default function ReservationsPage() {
                     </button>
                     {reservationStep < reservationSteps.length - 1 ? (
                       <button
-                        className="focus-ring h-10 rounded-xl bg-[#D4A017] px-4 text-sm font-bold text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.14)] transition hover:-translate-y-0.5 hover:bg-[#E8B923] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="focus-ring h-11 min-w-0 rounded-xl bg-[#D4A017] px-4 text-sm font-bold text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.14)] transition hover:-translate-y-0.5 hover:bg-[#E8B923] disabled:cursor-not-allowed disabled:opacity-50 sm:h-10"
                         type="button"
                         disabled={saving}
                         onClick={() => {
@@ -862,7 +950,7 @@ export default function ReservationsPage() {
                       </button>
                     ) : (
                       <button
-                        className="focus-ring h-10 rounded-xl bg-[#D4A017] px-4 text-sm font-bold text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.14)] transition hover:-translate-y-0.5 hover:bg-[#E8B923] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="focus-ring h-11 min-w-0 rounded-xl bg-[#D4A017] px-3 text-sm font-bold text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.14)] transition hover:-translate-y-0.5 hover:bg-[#E8B923] disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:px-4"
                         type="submit"
                         disabled={saving}
                       >
@@ -944,19 +1032,53 @@ export default function ReservationsPage() {
 
       <Modal open={Boolean(detailsTarget)} onClose={() => setDetailsTarget(null)} title={`Détails · ${detailsTarget?.id || ''}`}>
         {detailsTarget ? (
-          <div className="space-y-4">
-            <div className="grid gap-2 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-carbon-300">
-              <p><strong className="text-white">Client:</strong> {detailsTarget.client}</p>
-              <p><strong className="text-white">Véhicule:</strong> {detailsTarget.vehicle}</p>
-              <p><strong className="text-white">Période:</strong> {formatReservationDateTime(detailsTarget.pickupDate, detailsTarget.pickupTime)} → {formatReservationDateTime(detailsTarget.returnDate, detailsTarget.returnTime)}</p>
-              <p><strong className="text-white">Lieu départ:</strong> {detailsTarget.pickupLocation || 'Non renseigné'}</p>
-              <p><strong className="text-white">Lieu retour:</strong> {detailsTarget.returnLocation || 'Non renseigné'}</p>
-              <p><strong className="text-white">Total:</strong> {formatMAD(detailsTarget.totalAmount ?? detailsTarget.dailyPrice)}</p>
-              <p><strong className="text-white">Caution:</strong> {formatMAD(detailsTarget.deposit || 0)}</p>
-              <p><strong className="text-white">Statut:</strong> {statusFr(detailsTarget.status)}</p>
-              <p><strong className="text-white">Notes:</strong> {detailsTarget.notes || 'Aucune note'}</p>
+          <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+8px)]">
+            <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#131821] via-[#0f141c] to-[#07090d] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#D4A017]/10 to-transparent" />
+              <div className="relative flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-300">{detailsTarget.id}</p>
+                  <h3 className="mt-1 truncate text-lg font-black text-white">{detailsTarget.vehicle}</h3>
+                  <p className="mt-1 flex items-center gap-2 truncate text-sm font-semibold text-carbon-300"><UserRound className="h-4 w-4 text-carbon-500" /> {detailsTarget.client}</p>
+                </div>
+                <Badge>{detailsTarget.status}</Badge>
+              </div>
+              <div className="relative mt-4 grid grid-cols-2 gap-2">
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                  <p className="text-xs text-carbon-500">Total</p>
+                  <p className="mt-1 truncate font-black text-white">{formatMAD(detailsTarget.totalAmount ?? detailsTarget.dailyPrice)}</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+                  <p className="text-xs text-carbon-500">Caution</p>
+                  <p className="mt-1 truncate font-black text-white">{formatMAD(detailsTarget.deposit || 0)}</p>
+                </div>
+              </div>
             </div>
-            <div className="flex flex-wrap justify-end gap-2">
+
+            <div className="grid gap-3 rounded-3xl border border-white/10 bg-white/[0.04] p-4 text-sm text-carbon-300">
+              <div className="flex items-start gap-3">
+                <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-gold-200" />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-carbon-500">Période</p>
+                  <p className="mt-1 text-white">{formatReservationDateTime(detailsTarget.pickupDate, detailsTarget.pickupTime)} → {formatReservationDateTime(detailsTarget.returnDate, detailsTarget.returnTime)}</p>
+                </div>
+              </div>
+              <div className="h-px bg-white/10" />
+              <div className="flex items-start gap-3">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold-200" />
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-carbon-500">Lieux</p>
+                  <p className="mt-1 text-white">{detailsTarget.pickupLocation || 'Non renseigné'}</p>
+                  <p className="mt-1 text-carbon-400">{detailsTarget.returnLocation || 'Non renseigné'}</p>
+                </div>
+              </div>
+              <div className="h-px bg-white/10" />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-carbon-500">Notes</p>
+                <p className="mt-1 leading-6 text-carbon-300">{detailsTarget.notes || 'Aucune note'}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">
               {(() => {
                 const detailsClient = clients.find((item) => item.id === detailsTarget.clientId);
                 const whatsappUrl = buildWhatsAppReminderUrl({
@@ -967,27 +1089,27 @@ export default function ReservationsPage() {
                   date: detailsTarget.pickupDate,
                 });
                 if (!notificationPreferences.reservationConfirmation) {
-                  return <Button variant="secondary" disabled>WhatsApp désactivé</Button>;
+                  return <Button variant="secondary" className="min-w-0 rounded-xl px-2.5 text-xs sm:px-4 sm:text-sm" disabled>WhatsApp désactivé</Button>;
                 }
                 return whatsappUrl ? (
                   <a href={whatsappUrl} target="_blank" rel="noreferrer">
-                    <Button variant="secondary" icon={<MessageCircle className="h-4 w-4" />}>WhatsApp</Button>
+                    <Button variant="secondary" className="w-full min-w-0 rounded-xl px-2.5 text-xs sm:w-auto sm:px-4 sm:text-sm" icon={<MessageCircle className="h-4 w-4" />}>WhatsApp</Button>
                   </a>
                 ) : (
-                  <Button variant="secondary" disabled>Téléphone manquant</Button>
+                  <Button variant="secondary" className="min-w-0 rounded-xl px-2.5 text-xs sm:px-4 sm:text-sm" disabled>Téléphone manquant</Button>
                 );
               })()}
-              <Button variant="secondary" icon={<Pencil className="h-4 w-4" />} onClick={() => { setDetailsTarget(null); openEditReservation(detailsTarget); }}>
+              <Button variant="secondary" className="min-w-0 rounded-xl px-2.5 text-xs sm:px-4 sm:text-sm" icon={<Pencil className="h-4 w-4" />} onClick={() => { setDetailsTarget(null); openEditReservation(detailsTarget); }}>
                 Modifier
               </Button>
-              <Button variant="secondary" icon={<FileSignature className="h-4 w-4" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(detailsTarget.id)}`)}>
-                Générer contrat
+              <Button variant="secondary" className="min-w-0 rounded-xl px-2.5 text-xs sm:px-4 sm:text-sm" icon={<FileSignature className="h-4 w-4" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(detailsTarget.id)}`)}>
+                Générer
               </Button>
-              <Button variant="secondary" onClick={() => handleUpdateStatus(detailsTarget, 'Completed')}>
-                Marquer terminée
+              <Button variant="secondary" className="min-w-0 rounded-xl px-2.5 text-xs sm:px-4 sm:text-sm" onClick={() => handleUpdateStatus(detailsTarget, 'Completed')}>
+                Terminée
               </Button>
-              <Button variant="danger" onClick={() => handleUpdateStatus(detailsTarget, 'Cancelled')}>
-                Annuler réservation
+              <Button variant="danger" className="min-w-0 rounded-xl px-2.5 text-xs sm:px-4 sm:text-sm" onClick={() => handleUpdateStatus(detailsTarget, 'Cancelled')}>
+                Annuler
               </Button>
             </div>
           </div>
