@@ -52,6 +52,8 @@ export default function VehicleDetailsPage() {
               <img
                 src={vehicle.imageUrl}
                 alt={`${vehicle.brand} ${vehicle.model}`}
+                loading="lazy"
+                decoding="async"
                 className="h-full w-full object-cover object-center"
               />
             ) : (

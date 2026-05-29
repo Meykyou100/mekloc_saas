@@ -171,6 +171,7 @@ export default function VehiclesPage() {
   const { notify } = useApp();
 
   const [query, setQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
   const [status, setStatus] = useState<VehicleFilterStatus>('All');
   const [view, setView] = useState<'grid' | 'table'>('grid');
   const [modalOpen, setModalOpen] = useState(false);
@@ -191,6 +192,7 @@ export default function VehiclesPage() {
   const [colorSuggestionsOpen, setColorSuggestionsOpen] = useState(false);
   const [highlightedColorIndex, setHighlightedColorIndex] = useState(0);
   const selectedBrandModels = vehicleBrandModels[vehicleBrandDraft] || [];
+  const normalizedQuery = useMemo(() => debouncedQuery.trim().toLowerCase(), [debouncedQuery]);
   const colorSuggestions = useMemo(() => {
     const q = vehicleColorDraft.trim().toLowerCase();
     if (!q) return vehicleColorOptions;
@@ -202,9 +204,9 @@ export default function VehiclesPage() {
       vehicles.filter((vehicle) => {
         const haystack = `${vehicle.brand} ${vehicle.model} ${vehicle.plate} ${vehicle.city}`.toLowerCase();
         const archiveHit = status === 'Archived' ? Boolean(vehicle.archivedAt) : !vehicle.archivedAt;
-        return haystack.includes(query.toLowerCase()) && archiveHit && (status === 'All' || status === 'Archived' || vehicle.status === status);
+        return haystack.includes(normalizedQuery) && archiveHit && (status === 'All' || status === 'Archived' || vehicle.status === status);
       }),
-    [query, status, vehicles],
+    [normalizedQuery, status, vehicles],
   );
 
   const stats = useMemo(() => {
@@ -225,6 +227,13 @@ export default function VehiclesPage() {
     { label: 'Maintenance', value: String(stats.maintenance), tone: 'text-amber-300', helper: 'À suivre', icon: Wrench, accent: 'from-amber-400/14' },
     { label: 'Prix moyen / jour', value: formatMAD(stats.avgPrice), tone: 'text-gold-200', helper: `Archivés: ${stats.archived}`, icon: AlertTriangle, accent: 'from-violet-400/14' },
   ];
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setDebouncedQuery((current) => (current === query ? current : query));
+    }, 160);
+    return () => window.clearTimeout(timer);
+  }, [query]);
 
   useEffect(() => {
     if (modalOpen) {
@@ -539,6 +548,8 @@ export default function VehiclesPage() {
                     <img
                       src={vehicle.imageUrl}
                       alt={`${vehicle.brand} ${vehicle.model}`}
+                      loading="lazy"
+                      decoding="async"
                       className="h-full w-full object-cover object-center transition-transform duration-300 ease-out group-hover:scale-105"
                     />
                   ) : (
@@ -627,7 +638,7 @@ export default function VehiclesPage() {
                       <div className="flex items-center gap-3">
                         {vehicle.imageUrl ? (
                           <div className="grid h-10 w-12 place-items-center rounded-lg bg-gradient-to-br from-zinc-800 to-zinc-950">
-                            <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} className="h-8 w-11 object-contain" />
+                            <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} loading="lazy" decoding="async" className="h-8 w-11 object-contain" />
                           </div>
                         ) : (
                           <div className="grid h-10 w-12 place-items-center rounded-lg bg-white/5"><Car className="h-4 w-4 text-carbon-400" /></div>
@@ -932,7 +943,7 @@ export default function VehiclesPage() {
             <div className="mt-3">
               {imagePreview ? (
                 <div className="relative">
-                  <img src={imagePreview} alt="Aperçu véhicule" className="aspect-[16/10] w-full rounded-2xl object-cover" />
+                  <img src={imagePreview} alt="Aperçu véhicule" loading="lazy" decoding="async" className="aspect-[16/10] w-full rounded-2xl object-cover" />
                   <button
                     type="button"
                     className="focus-ring absolute right-2 top-2 min-h-9 rounded-xl border border-white/10 bg-carbon-950/85 px-3 text-xs font-semibold text-white backdrop-blur"

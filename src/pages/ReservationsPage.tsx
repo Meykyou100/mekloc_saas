@@ -754,6 +754,8 @@ export default function ReservationsPage() {
                                 <img
                                   src={selectedVehicle.imageUrl}
                                   alt={`${selectedVehicle.brand} ${selectedVehicle.model}`}
+                                  loading="lazy"
+                                  decoding="async"
                                   className="h-full w-full object-cover"
                                 />
                               ) : (

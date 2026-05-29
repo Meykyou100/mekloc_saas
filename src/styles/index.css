@@ -248,3 +248,18 @@ option {
     font-size: 0.95rem;
   }
 }
+
+@media (max-width: 767px) {
+  .glass-card {
+    backdrop-filter: blur(14px);
+  }
+
+  .backdrop-blur,
+  .backdrop-blur-sm,
+  .backdrop-blur-md,
+  .backdrop-blur-lg,
+  .backdrop-blur-xl,
+  .backdrop-blur-2xl {
+    --tw-backdrop-blur: blur(10px);
+  }
+}

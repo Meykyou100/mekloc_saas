@@ -736,7 +736,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setMockDataState(setters);
       }
     });
-  }, [agencyId, authLoading, isSupabaseEnabled, profile, refreshData]);
+  }, [
+    agencyId,
+    authLoading,
+    isSupabaseEnabled,
+    profile?.accountStatus,
+    profile?.agency?.billingStatus,
+    profile?.agency?.subscriptionEndDate,
+    profile?.isSuperAdmin,
+    refreshData,
+  ]);
 
   useEffect(() => {
     if (!isSupabaseEnabled) return;

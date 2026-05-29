@@ -518,7 +518,7 @@ export default function CalendarPage() {
                             <div className="flex gap-2">
                               <div className="grid h-11 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/10 bg-white/5">
                                 {vehicle.imageUrl ? (
-                                  <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} className="h-full w-full object-cover" />
+                                  <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                                 ) : (
                                   <Car className="h-4 w-4 text-gold-200" />
                                 )}
@@ -664,7 +664,7 @@ export default function CalendarPage() {
                           <div className="flex gap-3">
                             <div className="grid h-16 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl border border-white/10 bg-white/5">
                               {vehicle.imageUrl ? (
-                                <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} className="h-full w-full object-cover" />
+                                <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                               ) : (
                                 <Car className="h-6 w-6 text-gold-200" />
                               )}
@@ -796,7 +796,7 @@ export default function CalendarPage() {
                         >
                           <div className="flex gap-3">
                             <div className="grid h-11 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/10 bg-white/5">
-                              {vehicle?.imageUrl ? <img src={vehicle.imageUrl} alt={reservation.vehicle} className="h-full w-full object-cover" /> : <Car className="h-5 w-5 text-gold-200" />}
+                              {vehicle?.imageUrl ? <img src={vehicle.imageUrl} alt={reservation.vehicle} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : <Car className="h-5 w-5 text-gold-200" />}
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-start justify-between gap-2">

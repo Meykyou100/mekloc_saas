@@ -321,7 +321,7 @@ export default function MaintenancePage() {
           {selectedFormVehicle ? (
             <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/15 p-3">
               <div className="grid h-14 w-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-white/[0.04]">
-                {selectedFormVehicle.imageUrl ? <img src={selectedFormVehicle.imageUrl} alt={`${selectedFormVehicle.brand} ${selectedFormVehicle.model}`} className="h-full w-full object-cover" /> : <Car className="h-6 w-6 text-carbon-400" />}
+                {selectedFormVehicle.imageUrl ? <img src={selectedFormVehicle.imageUrl} alt={`${selectedFormVehicle.brand} ${selectedFormVehicle.model}`} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : <Car className="h-6 w-6 text-carbon-400" />}
               </div>
               <div className="min-w-0">
                 <p className="truncate font-semibold text-white light:text-carbon-950">{selectedFormVehicle.brand} {selectedFormVehicle.model}</p>
