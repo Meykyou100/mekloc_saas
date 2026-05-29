@@ -434,7 +434,7 @@ export default function CalendarPage() {
         </div>
       </Card>
 
-      <div className="no-scrollbar -mx-4 mb-3 flex gap-2 overflow-x-auto px-4 pb-1 md:hidden">
+      <div className="no-scrollbar -mx-4 mb-1.5 mt-[-2px] flex flex-nowrap gap-2 overflow-x-auto px-4 pb-0.5 md:hidden">
         {days.map((day) => {
           const dayIso = isoDate(day);
           const isToday = dayIso === todayIso;
@@ -444,7 +444,7 @@ export default function CalendarPage() {
               type="button"
               key={`mobile-chip-${dayIso}`}
               onClick={() => setSelectedDayIso(dayIso)}
-              className={`min-w-[58px] rounded-xl border px-2 py-1.5 text-center transition ${
+              className={`h-[52px] min-w-[58px] rounded-xl border px-2 py-1.5 text-center transition ${
                 isToday || isSelected
                   ? 'border-gold-300/60 bg-[#D4A017]/22 text-gold-50 shadow-[0_0_24px_rgba(212,160,23,.16)]'
                   : 'border-white/10 bg-white/[0.04] text-carbon-200'
