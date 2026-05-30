@@ -40,7 +40,7 @@ import { getReservationPaymentSummary } from '../lib/paymentBalance';
 type ViewMode = 'list' | 'grid';
 type ReservationFilterStatus = 'All' | ReservationStatus;
 const statuses: Array<ReservationFilterStatus> = ['All', 'Confirmed', 'Active', 'Completed', 'Cancelled'];
-const reservationSteps = ['Client', 'Véhicule', 'Dates & lieux', 'Tarif & caution', 'Confirmation'];
+const reservationSteps = ['Client', 'Véhicule', 'Dates & lieux', 'Tarif & caution', 'Validation'];
 
 const inputClass = 'form-control focus-ring w-full text-sm';
 
@@ -121,6 +121,7 @@ export default function ReservationsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [query, setQuery] = useState('');
+  const [clientSearch, setClientSearch] = useState('');
   const [status, setStatus] = useState<ReservationFilterStatus>('All');
   const [view, setView] = useState<ViewMode>('grid');
 
@@ -191,6 +192,14 @@ export default function ReservationsPage() {
     });
   }, [query, reservations, status]);
 
+  const filteredClientChoices = useMemo(() => {
+    const q = clientSearch.trim().toLowerCase();
+    if (!q) return clients.slice(0, 8);
+    return clients
+      .filter((client) => `${client.fullName} ${client.phone} ${client.cin} ${client.license}`.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [clientSearch, clients]);
+
   const stats = useMemo(() => {
     const total = reservations.length;
     const confirmed = reservations.filter((r) => r.status === 'Confirmed').length;
@@ -232,6 +241,7 @@ export default function ReservationsPage() {
     setDraftFuelLevelOut('');
     setDraftNotes('');
     setDraftStatus('Confirmed');
+    setClientSearch('');
     setReservationStep(0);
   }
 
@@ -293,6 +303,7 @@ export default function ReservationsPage() {
     setDraftFuelLevelOut(reservation.fuelLevelOut || '');
     setDraftNotes(reservation.notes || '');
     setDraftStatus(reservation.status);
+    setClientSearch(reservation.client || '');
     setReservationStep(0);
     setModalOpen(true);
   }
@@ -640,106 +651,126 @@ export default function ReservationsPage() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 18, scale: 0.985 }}
               transition={{ duration: 0.24, ease: 'easeOut' }}
-              className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-6xl flex-col overflow-hidden rounded-none border border-white/[0.07] bg-[#0B0D10] shadow-[0_26px_80px_rgba(0,0,0,.55)] sm:h-full sm:max-h-none sm:rounded-[1.5rem] lg:h-[92dvh] lg:max-h-[920px]"
+              className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-7xl flex-col overflow-hidden rounded-none border border-white/[0.07] bg-[#090B0F] shadow-[0_26px_80px_rgba(0,0,0,.55)] sm:h-full sm:max-h-none sm:rounded-[1.35rem] lg:h-[92dvh] lg:max-h-[920px]"
             >
-              <div className="shrink-0 border-b border-white/10 bg-[#0B0D10]/95 px-4 py-4 backdrop-blur sm:px-7">
-                <div className="flex items-start justify-between gap-4">
+              <div className="shrink-0 border-b border-white/10 bg-[#090B0F]/95 px-4 py-3 backdrop-blur sm:px-6">
+                <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
-                  <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.035] px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-carbon-300">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    {editingReservation ? 'Modifier réservation' : 'Nouvelle réservation'}
+                    <h2 className="truncate text-lg font-black tracking-tight text-white sm:text-xl">{editingReservation ? 'Modifier une réservation' : 'Ajouter une réservation'}</h2>
+                    <p className="mt-0.5 truncate text-xs font-medium text-carbon-500 sm:text-sm">Création guidée, validation claire, résumé permanent.</p>
                   </div>
-                    <h2 className="truncate text-lg font-black tracking-tight text-white sm:text-2xl">{editingReservation ? 'Modifier une réservation' : 'Ajouter une réservation'}</h2>
-                    <p className="mt-1 text-sm text-carbon-400">Flux guidé pour créer rapidement une réservation fiable.</p>
-                  </div>
-                  <button className="focus-ring grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-carbon-300 transition hover:bg-white/10 hover:text-white" onClick={() => !saving && setModalOpen(false)} type="button">
-                    <X className="h-5 w-5" />
+                  <button className="focus-ring grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-carbon-300 transition hover:bg-white/10 hover:text-white" onClick={() => !saving && setModalOpen(false)} type="button">
+                    <X className="h-[18px] w-[18px]" />
                   </button>
                 </div>
               </div>
 
-              <form className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[1fr_360px]" onSubmit={handleSubmitReservation}>
+              <form className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[minmax(0,7fr)_minmax(290px,3fr)]" onSubmit={handleSubmitReservation}>
                 <div className="flex min-h-0 flex-col">
-                  <div className="shrink-0 border-b border-white/10 bg-[#0B0D10]/95 px-4 py-3 backdrop-blur sm:px-7 sm:py-4">
-                    <div className="sm:hidden">
-                      <p className="text-xs font-semibold text-carbon-400">{reservationStep + 1}/5 • {reservationSteps[reservationStep]}</p>
-                      <div className="mt-2 h-1.5 rounded-full bg-white/10">
-                        <div className="h-1.5 rounded-full bg-gold-400 transition-all" style={{ width: `${((reservationStep + 1) / reservationSteps.length) * 100}%` }} />
-                      </div>
-                      <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1">
-                        {reservationSteps.map((step, index) => (
-                          <button
-                            key={step}
-                            type="button"
-                            onClick={() => setReservationStep(index)}
-                            className={`h-10 shrink-0 rounded-xl border px-3 text-xs font-black transition ${
-                              reservationStep === index
-                                ? 'border-gold-300/50 bg-gold-400 text-carbon-950'
-                                : 'border-white/10 bg-white/[0.04] text-carbon-300'
-                            }`}
-                          >
-                            {index + 1}. {step}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="hidden sm:grid sm:grid-cols-5 sm:gap-2">
+                  <div className="shrink-0 border-b border-white/10 bg-[#090B0F]/95 px-4 py-3 backdrop-blur sm:px-6">
+                    <div className="grid grid-cols-5 items-start gap-0">
                       {reservationSteps.map((step, index) => (
                         <button
                           key={step}
                           type="button"
                           onClick={() => setReservationStep(index)}
-                          className={`rounded-xl border px-3 py-2 text-left text-xs font-bold uppercase tracking-[0.08em] transition ${
-                            reservationStep === index
-                              ? 'border-gold-400/45 bg-white/[0.045] text-gold-200'
-                              : 'border-white/10 bg-white/[0.025] text-carbon-500 hover:text-carbon-200'
-                          }`}
+                          className="group relative min-w-0 px-0.5 text-center"
                         >
-                          <span className="mr-2 text-carbon-500">0{index + 1}</span>{step}
+                          {index > 0 ? <span className={`absolute left-0 top-4 h-px w-1/2 ${reservationStep >= index ? 'bg-gold-400/80' : 'bg-white/10'}`} /> : null}
+                          {index < reservationSteps.length - 1 ? <span className={`absolute right-0 top-4 h-px w-1/2 ${reservationStep > index ? 'bg-gold-400/80' : 'bg-white/10'}`} /> : null}
+                          <span className={`relative mx-auto grid h-8 w-8 place-items-center rounded-full border text-xs font-black transition ${
+                            reservationStep === index
+                              ? 'border-gold-300 bg-gold-400 text-carbon-950 shadow-[0_0_22px_rgba(212,160,23,.24)]'
+                              : reservationStep > index
+                                ? 'border-gold-300/45 bg-gold-400/12 text-gold-100'
+                                : 'border-white/10 bg-white/[0.04] text-carbon-500 group-hover:text-carbon-200'
+                          }`}>
+                            {reservationStep > index ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
+                          </span>
+                          <span className={`mt-1 block truncate text-[9px] font-black uppercase tracking-[0.08em] sm:text-[10px] ${
+                            reservationStep === index ? 'text-gold-200' : 'text-carbon-500'
+                          }`}>
+                            {step}
+                          </span>
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-28 sm:px-7 sm:py-6">
+                  <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-28 sm:px-6 sm:py-5">
                     {reservationStep === 0 ? (
-                      <section className="space-y-5">
-                        <div>
-                          <h3 className="text-xl font-semibold text-white">Client</h3>
-                          <p className="mt-1 text-sm text-carbon-400">Sélectionnez le client associé à la réservation.</p>
-                        </div>
-                        <ReservationField label="Client">
-                          <select className={inputClass} value={draftClientId} onChange={(event) => setDraftClientId(event.target.value)} required>
-                            {clients.map((client) => <option key={client.id} value={client.id}>{client.fullName}</option>)}
-                          </select>
-                        </ReservationField>
-                        {selectedClient ? (
-                          <div className="premium-surface rounded-3xl p-5">
-                            <div className="flex gap-4">
-                              <div className="premium-avatar grid h-14 w-14 place-items-center rounded-2xl text-lg font-black text-carbon-950">
-                                {selectedClient.fullName.split(' ').map((part) => part[0]).slice(0, 2).join('')}
-                              </div>
-                              <div>
-                                <div className="mb-2"><Badge>{selectedClient.status}</Badge></div>
-                                <p className="font-semibold text-white">{selectedClient.fullName}</p>
-                                <p className="mt-1 text-sm text-carbon-400">{selectedClient.phone} · {selectedClient.cin}</p>
-                                <p className="mt-1 text-sm text-carbon-500">Permis {selectedClient.license} · {selectedClient.totalRentals} réservations passées</p>
-                                {selectedClient.idCardFrontUrl && selectedClient.idCardBackUrl ? (
-                                  <p className="mt-2 text-xs font-semibold text-emerald-200">Documents identité complets</p>
-                                ) : (
-                                  <p className="mt-2 text-xs font-semibold text-amber-200">Pièces d’identité manquantes</p>
-                                )}
-                              </div>
-                            </div>
+                      <section className="space-y-4">
+                        <div className="flex items-end justify-between gap-3">
+                          <div className="min-w-0">
+                            <h3 className="text-lg font-black text-white">Client</h3>
+                            <p className="mt-1 text-sm text-carbon-500">Recherchez et sélectionnez le client associé.</p>
                           </div>
+                        </div>
+                        <div className="relative">
+                          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gold-200" />
+                          <input
+                            className="form-control focus-ring h-11 w-full rounded-2xl border-white/10 bg-white/[0.04] pl-10 pr-4 text-sm"
+                            value={clientSearch}
+                            onChange={(event) => setClientSearch(sanitizeText(event.target.value, 120))}
+                            placeholder="Rechercher par nom, téléphone, CIN ou permis..."
+                          />
+                        </div>
+                        <div className="grid gap-2">
+                          {filteredClientChoices.map((client) => {
+                            const isSelected = client.id === draftClientId;
+                            const docsComplete = Boolean(client.idCardFrontUrl && client.idCardBackUrl);
+                            const initials = client.fullName.split(' ').map((part) => part[0]).slice(0, 2).join('').toUpperCase();
+                            return (
+                              <button
+                                key={client.id}
+                                type="button"
+                                onClick={() => {
+                                  setDraftClientId(client.id);
+                                  setClientSearch(client.fullName);
+                                }}
+                                className={`focus-ring group min-w-0 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 ${
+                                  isSelected
+                                    ? 'border-gold-300/55 bg-gold-400/10 shadow-[0_0_28px_rgba(212,160,23,.10)]'
+                                    : 'border-white/10 bg-white/[0.035] hover:border-gold-300/25 hover:bg-white/[0.055]'
+                                }`}
+                              >
+                                <div className="flex min-w-0 items-start gap-3">
+                                  <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-sm font-black ${isSelected ? 'bg-gold-400 text-carbon-950' : 'bg-white/10 text-white'}`}>
+                                    {initials || 'CL'}
+                                  </span>
+                                  <span className="min-w-0 flex-1">
+                                    <span className="flex min-w-0 flex-wrap items-center gap-2">
+                                      <span className="truncate text-base font-black text-white">{client.fullName}</span>
+                                      {client.status === 'New' ? <span className="rounded-full border border-gold-300/25 bg-gold-400/12 px-2 py-0.5 text-[10px] font-black text-gold-100">Nouveau</span> : null}
+                                      {client.status === 'VIP' ? <span className="rounded-full border border-gold-300/30 bg-gold-400/16 px-2 py-0.5 text-[10px] font-black text-gold-100">VIP</span> : null}
+                                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${docsComplete ? 'border-emerald-300/25 bg-emerald-500/12 text-emerald-200' : 'border-amber-300/25 bg-amber-500/12 text-amber-100'}`}>
+                                        {docsComplete ? 'Documents complets' : 'Docs à compléter'}
+                                      </span>
+                                    </span>
+                                    <span className="mt-1 grid gap-x-3 gap-y-1 text-xs text-carbon-400 sm:grid-cols-3">
+                                      <span className="truncate">Tél. {client.phone || '—'}</span>
+                                      <span className="truncate">CIN {client.cin || '—'}</span>
+                                      <span className="truncate">Permis {client.license || '—'}</span>
+                                    </span>
+                                  </span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                          {filteredClientChoices.length === 0 ? (
+                            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm text-carbon-400">Aucun client trouvé.</div>
+                          ) : null}
+                        </div>
+                        {selectedClient ? (
+                          <input className="sr-only" value={selectedClient.id} readOnly required />
                         ) : null}
                       </section>
                     ) : null}
 
                     {reservationStep === 1 ? (
-                      <section className="space-y-5">
+                      <section className="space-y-4">
                         <div>
-                          <h3 className="text-xl font-semibold text-white">Véhicule</h3>
+                          <h3 className="text-lg font-black text-white">Véhicule</h3>
                           <p className="mt-1 text-sm text-carbon-400">Choisissez le véhicule disponible pour la période.</p>
                         </div>
                         <ReservationField label="Véhicule">
@@ -775,7 +806,7 @@ export default function ReservationsPage() {
                             </div>
                             <div>
                               <div className="flex flex-wrap items-center gap-3">
-                                <p className="text-lg font-semibold text-white">{selectedVehicle.brand} {selectedVehicle.model}</p>
+                                <p className="text-base font-black text-white">{selectedVehicle.brand} {selectedVehicle.model}</p>
                                 <Badge>{selectedVehicle.status}</Badge>
                               </div>
                               <p className="mt-1 text-sm text-carbon-400"><PlateNumber value={selectedVehicle.plate} /> · {selectedVehicle.city}</p>
@@ -787,9 +818,9 @@ export default function ReservationsPage() {
                     ) : null}
 
                     {reservationStep === 2 ? (
-                      <section className="space-y-5">
+                      <section className="space-y-4">
                         <div>
-                          <h3 className="text-xl font-semibold text-white">Dates & lieux</h3>
+                          <h3 className="text-lg font-black text-white">Dates & lieux</h3>
                           <p className="mt-1 text-sm text-carbon-400">Définissez les dates, lieux et validez la disponibilité.</p>
                         </div>
                         <div className="grid gap-4 md:grid-cols-2">
@@ -829,9 +860,9 @@ export default function ReservationsPage() {
                     ) : null}
 
                     {reservationStep === 3 ? (
-                      <section className="space-y-5">
+                      <section className="space-y-4">
                         <div>
-                          <h3 className="text-xl font-semibold text-white">Tarif & caution</h3>
+                          <h3 className="text-lg font-black text-white">Tarif & caution</h3>
                           <p className="mt-1 text-sm text-carbon-400">Ajustez le prix journalier, la caution et le statut.</p>
                         </div>
                         <div className="grid gap-4 md:grid-cols-[1fr_1fr_1.25fr]">
@@ -843,7 +874,7 @@ export default function ReservationsPage() {
                           </ReservationField>
                           <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
                             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-carbon-500">Montant total</p>
-                            <p className="mt-1 text-xl font-semibold text-white">{formatMAD(totalEstimate)}</p>
+                            <p className="mt-1 text-lg font-black text-white">{formatMAD(totalEstimate)}</p>
                             <p className="mt-1 text-xs text-carbon-500">{rentalDays} jours × {formatMAD(dailyPriceNumber || 0)}</p>
                           </div>
                         </div>
@@ -870,13 +901,13 @@ export default function ReservationsPage() {
                     ) : null}
 
                     {reservationStep === 4 ? (
-                      <section className="space-y-5">
+                      <section className="space-y-4">
                         <div>
-                          <h3 className="text-xl font-semibold text-white">Confirmation</h3>
+                          <h3 className="text-lg font-black text-white">Validation</h3>
                           <p className="mt-1 text-sm text-carbon-400">Vérifiez les informations avant enregistrement.</p>
                         </div>
                         <div className="premium-surface rounded-3xl p-5">
-                          <p className="text-lg font-semibold text-white">{selectedClient?.fullName || 'Client non sélectionné'}</p>
+                          <p className="text-base font-black text-white">{selectedClient?.fullName || 'Client non sélectionné'}</p>
                           <p className="mt-1 text-sm text-carbon-400">{selectedVehicle?.brand} {selectedVehicle?.model} · <PlateNumber value={selectedVehicle?.plate} /></p>
                           <p className="mt-2 text-sm text-carbon-300">{formatReservationDateTime(draftPickupDate, draftPickupTime)} → {formatReservationDateTime(draftReturnDate, draftReturnTime)} · {rentalDays} jours</p>
                           <p className="mt-2 text-sm text-carbon-300">{draftPickupLocation || 'Lieu départ non renseigné'} → {draftReturnLocation || 'Lieu retour non renseigné'}</p>
@@ -902,11 +933,11 @@ export default function ReservationsPage() {
                       </section>
                     ) : null}
 
-                    <div className="mt-5 rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] lg:hidden">
+                    <div className="mt-5 rounded-3xl border border-gold-300/15 bg-gradient-to-br from-[#171410] via-white/[0.045] to-white/[0.02] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] lg:hidden">
                       <div className="mb-4 flex items-center justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-xs font-black uppercase tracking-[0.18em] text-gold-200">Résumé</p>
-                          <p className="mt-1 truncate text-sm text-carbon-400">Aperçu avant validation</p>
+                          <p className="text-xs font-black uppercase tracking-[0.18em] text-gold-200">Aperçu avant validation</p>
+                          <p className="mt-1 truncate text-sm text-carbon-400">Résumé compact de la réservation</p>
                         </div>
                         <Badge>{draftStatus}</Badge>
                       </div>
@@ -923,6 +954,14 @@ export default function ReservationsPage() {
                           <span className="flex items-center gap-2 text-carbon-400"><CalendarDays className="h-4 w-4" /> Durée</span>
                           <strong className="text-white">{rentalDays} jour(s)</strong>
                         </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="flex items-center gap-2 text-carbon-400"><MapPin className="h-4 w-4" /> Départ</span>
+                          <strong className="min-w-0 truncate text-right text-white">{formatReservationDateTime(draftPickupDate, draftPickupTime)}</strong>
+                        </div>
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="flex items-center gap-2 text-carbon-400"><MapPin className="h-4 w-4" /> Retour</span>
+                          <strong className="min-w-0 truncate text-right text-white">{formatReservationDateTime(draftReturnDate, draftReturnTime)}</strong>
+                        </div>
                         <div className="h-px bg-white/10" />
                         <div className="grid grid-cols-2 gap-2">
                           <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
@@ -938,7 +977,7 @@ export default function ReservationsPage() {
                     </div>
                   </div>
 
-                  <div className="sticky bottom-0 grid grid-cols-2 gap-3 border-t border-white/10 bg-[#0B0D10]/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+10px)] backdrop-blur sm:flex sm:items-center sm:justify-between sm:px-7 sm:py-4 sm:pb-4">
+                  <div className="sticky bottom-0 grid grid-cols-2 gap-3 border-t border-white/10 bg-[#090B0F]/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+10px)] backdrop-blur sm:flex sm:items-center sm:justify-end sm:px-6 sm:py-3 sm:pb-3">
                     <button
                       className="focus-ring h-11 min-w-0 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-carbon-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10"
                       disabled={reservationStep === 0 || saving}
@@ -971,21 +1010,21 @@ export default function ReservationsPage() {
                   </div>
                 </div>
 
-                <aside className="hidden border-t border-white/[0.07] bg-[#0F1115] p-5 lg:block lg:border-l lg:border-t-0 lg:p-6">
-                  <div className="sticky top-6 space-y-5">
+                <aside className="hidden border-t border-white/[0.07] bg-[#0D1015] p-5 lg:block lg:border-l lg:border-t-0">
+                  <div className="sticky top-5 space-y-4">
                     <div>
-                      <h3 className="text-sm font-bold uppercase tracking-[0.18em] text-carbon-500">Résumé réservation</h3>
-                      <p className="mt-2 text-sm leading-6 text-carbon-400">Vérification rapide avant enregistrement.</p>
+                      <h3 className="text-xs font-black uppercase tracking-[0.18em] text-gold-200">Aperçu avant validation</h3>
+                      <p className="mt-1 text-sm leading-5 text-carbon-500">Résumé permanent de la réservation.</p>
                     </div>
 
-                    <div className="premium-surface rounded-3xl p-5">
+                    <div className="rounded-3xl border border-gold-300/15 bg-gradient-to-br from-[#171410] via-white/[0.04] to-white/[0.02] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
                       {selectedVehicle ? (
-                        <div className="flex gap-4">
-                          <div className="vehicle-visual grid h-16 w-20 shrink-0 place-items-center rounded-2xl text-gold-200">
-                            <Car className="h-7 w-7" />
+                        <div className="flex gap-3">
+                          <div className="vehicle-visual grid h-14 w-16 shrink-0 place-items-center rounded-2xl text-gold-200">
+                            <Car className="h-6 w-6" />
                           </div>
-                          <div>
-                            <p className="font-semibold text-white">{selectedVehicle.brand} {selectedVehicle.model}</p>
+                          <div className="min-w-0">
+                            <p className="truncate font-black text-white">{selectedVehicle.brand} {selectedVehicle.model}</p>
                             <p className="mt-1 text-sm text-carbon-400"><PlateNumber value={selectedVehicle.plate} /> · {selectedVehicle.city}</p>
                           </div>
                         </div>
@@ -996,10 +1035,14 @@ export default function ReservationsPage() {
                       )}
                     </div>
 
-                    <div className="premium-surface grid gap-3 rounded-3xl p-5 text-sm">
+                    <div className="grid gap-3 rounded-3xl border border-white/10 bg-white/[0.035] p-4 text-sm">
                       <div className="flex items-center justify-between gap-3">
                         <span className="flex items-center gap-2 text-carbon-400"><UserRound className="h-4 w-4" /> Client</span>
-                        <strong className="text-right text-white">{selectedClient?.fullName || 'Non sélectionné'}</strong>
+                        <strong className="min-w-0 truncate text-right text-white">{selectedClient?.fullName || 'Non sélectionné'}</strong>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="flex items-center gap-2 text-carbon-400"><Car className="h-4 w-4" /> Véhicule</span>
+                        <strong className="min-w-0 truncate text-right text-white">{selectedVehicle ? `${selectedVehicle.brand} ${selectedVehicle.model}` : 'Non sélectionné'}</strong>
                       </div>
                       <div className="flex items-center justify-between gap-3">
                         <span className="flex items-center gap-2 text-carbon-400"><CalendarDays className="h-4 w-4" /> Durée</span>
@@ -1007,7 +1050,11 @@ export default function ReservationsPage() {
                       </div>
                       <div className="flex items-center justify-between gap-3">
                         <span className="flex items-center gap-2 text-carbon-400"><MapPin className="h-4 w-4" /> Départ</span>
-                        <strong className="text-white">{formatReservationDateTime(draftPickupDate, draftPickupTime)}</strong>
+                        <strong className="min-w-0 truncate text-right text-white">{formatReservationDateTime(draftPickupDate, draftPickupTime)}</strong>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="flex items-center gap-2 text-carbon-400"><MapPin className="h-4 w-4" /> Retour</span>
+                        <strong className="min-w-0 truncate text-right text-white">{formatReservationDateTime(draftReturnDate, draftReturnTime)}</strong>
                       </div>
                       <div className="h-px bg-white/10" />
                       <div className="flex items-center justify-between gap-3">
