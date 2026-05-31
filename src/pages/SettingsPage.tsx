@@ -1,4 +1,4 @@
-import { BellRing, Building2, Camera, Copy, ExternalLink, FileSignature, Globe2, Link2, Loader2, Mail, MessageCircle, Percent, RefreshCw, Save, ShieldAlert, ShieldCheck, Smartphone, Trash2, UserPlus, UsersRound } from 'lucide-react';
+import { BellRing, Building2, Camera, Copy, ExternalLink, FileSignature, Globe2, Link2, Loader2, Mail, MessageCircle, Percent, RefreshCw, Save, Settings, ShieldAlert, ShieldCheck, Smartphone, Trash2, UserPlus, UsersRound } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
@@ -97,10 +97,10 @@ function accountStatusFr(status: string | null | undefined) {
 }
 
 function teamStatusClass(status: string | null | undefined) {
-  if (status === 'active') return 'bg-emerald-400/15 text-emerald-200';
-  if (status === 'pending') return 'bg-sky-400/15 text-sky-200';
+  if (status === 'active') return 'bg-emerald-400/15 text-emerald-700 dark:text-emerald-200';
+  if (status === 'pending') return 'bg-sky-400/15 text-sky-700 dark:text-sky-200';
   if (status === 'suspended') return 'bg-rose-400/15 text-rose-200';
-  if (status === 'pending_deletion') return 'bg-rose-400/15 text-rose-100';
+  if (status === 'pending_deletion') return 'bg-rose-400/15 text-[var(--app-danger)]';
   return 'bg-slate-400/15 text-slate-200';
 }
 
@@ -156,7 +156,7 @@ function sessionLocationLabel(sessionItem: AccountSession) {
 }
 
 export default function SettingsPage() {
-  const { notify } = useApp();
+  const { notify, theme, setTheme } = useApp();
   const { agencyId, isSupabaseEnabled, profile, signOut, deleteAccountWithPassword, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const logoInputRef = useRef<HTMLInputElement | null>(null);
@@ -1035,12 +1035,12 @@ startxref
 
   return (
     <div className="overflow-x-hidden pb-[calc(108px+env(safe-area-inset-bottom))] md:pb-8">
-      <div className="mb-3 rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(227,177,23,.16),transparent_36%),linear-gradient(135deg,rgba(12,17,24,.96),rgba(2,3,5,.98))] p-3 shadow-[0_18px_50px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)] md:hidden">
+      <div className="mb-3 rounded-2xl border border-[var(--app-border)] bg-[radial-gradient(circle_at_top_right,rgba(227,177,23,.16),transparent_36%),linear-gradient(135deg,rgba(12,17,24,.96),rgba(2,3,5,.98))] p-3 shadow-[0_18px_50px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)] md:hidden">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gold-200">WORKSPACE</p>
-            <h1 className="mt-0.5 text-2xl font-black leading-none text-white">Paramètres</h1>
-            <p className="mt-1 truncate text-xs text-carbon-400">Configurez votre espace agence.</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--app-gold-text)]">WORKSPACE</p>
+            <h1 className="mt-0.5 text-2xl font-black leading-none text-[var(--app-text)]">Paramètres</h1>
+            <p className="mt-1 truncate text-xs text-[var(--app-text-muted)]">Configurez votre espace agence.</p>
           </div>
           <div className="flex shrink-0 gap-2">
             <Button className="h-11 rounded-2xl px-3 text-xs" icon={settingsSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} onClick={handleSaveSettings} loading={settingsSaving} disabled={!hasChanges && !settingsSaving}>
@@ -1059,16 +1059,16 @@ startxref
         />
       </div>
       <div className="mb-2 md:mb-3">
-        {saveState === 'dirty' ? <p className="text-sm text-gold-200">Modifications non enregistrées</p> : null}
+        {saveState === 'dirty' ? <p className="text-sm text-[var(--app-gold-text)]">Modifications non enregistrées</p> : null}
         {saveState === 'saved' ? <p className="text-sm text-emerald-300">Enregistré</p> : null}
       </div>
 
-      <Card className="sticky top-0 z-20 mb-3 rounded-2xl border-white/10 bg-zinc-950/95 p-2 backdrop-blur md:static md:mb-6 md:rounded-3xl">
+      <Card className="sticky top-0 z-20 mb-3 rounded-2xl border-[var(--app-border)] bg-[var(--app-modal)]/95 p-2 backdrop-blur md:static md:mb-6 md:rounded-3xl">
         <div className="no-scrollbar flex gap-2 overflow-x-auto md:flex-wrap md:overflow-visible">
           {tabs.map((item) => (
             <button
               key={item}
-              className={`focus-ring h-9 shrink-0 rounded-full px-3 text-xs font-black transition md:h-10 md:rounded-xl md:px-4 md:text-sm ${tab === item ? 'bg-gold-400 text-carbon-950 shadow-[0_10px_24px_rgba(227,177,23,.14)]' : 'border border-transparent text-carbon-300 hover:border-white/10 hover:bg-white/10 light:text-carbon-700'}`}
+              className={`focus-ring h-9 shrink-0 rounded-full px-3 text-xs font-black transition md:h-10 md:rounded-xl md:px-4 md:text-sm ${tab === item ? 'bg-gold-400 text-[#101820] shadow-[0_10px_24px_rgba(227,177,23,.14)]' : 'border border-transparent text-[var(--app-text-soft)] hover:border-[var(--app-border)] hover:bg-[var(--app-surface-soft)] '}`}
               onClick={() => selectSettingsTab(item)}
             >
               {item}
@@ -1079,15 +1079,15 @@ startxref
 
       {tab === 'Général' ? (
         <div className="grid gap-3 md:gap-6 xl:grid-cols-[1fr_0.8fr]">
-          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+          <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between md:mb-5">
               <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gold-400/12 text-gold-200 md:h-11 md:w-11">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gold-400/12 text-[var(--app-gold-text)] md:h-11 md:w-11">
                   <Building2 className="h-5 w-5" />
                 </div>
                 <div>
-                  <h2 className="font-semibold text-white light:text-carbon-950">Profil agence</h2>
-                  <p className="text-xs text-carbon-400 md:text-sm">Informations visibles dans vos documents et communications.</p>
+                  <h2 className="font-semibold text-[var(--app-text)] ">Profil agence</h2>
+                  <p className="text-xs text-[var(--app-text-muted)] md:text-sm">Informations visibles dans vos documents et communications.</p>
                 </div>
               </div>
             </div>
@@ -1108,15 +1108,15 @@ startxref
               </div>
               <Field label="Adresse" value={agencyAddress} onChange={(e) => setAgencyAddress(e.target.value)} placeholder="Adresse agence" />
             </div>
-            <div className="mt-4 grid gap-3 rounded-2xl border border-dashed border-gold-300/30 bg-gradient-to-br from-gold-400/10 via-white/[0.025] to-black/10 p-4 lg:grid-cols-[1fr_auto] lg:items-center md:mt-5 md:gap-4 md:p-5">
+            <div className="mt-4 grid gap-3 rounded-2xl border border-dashed border-gold-300/30 bg-[var(--app-gold-soft)] p-4 lg:grid-cols-[1fr_auto] lg:items-center md:mt-5 md:gap-4 md:p-5">
               <div className="flex items-center gap-3">
-                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400 text-carbon-950 md:h-14 md:w-14">
+                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400 text-[#101820] md:h-14 md:w-14">
                   <Camera className="h-5 w-5 md:h-6 md:w-6" />
                 </div>
                 <div>
-                  <p className="font-bold text-white light:text-carbon-950">Logo agence</p>
-                  <p className="text-sm text-carbon-400">PNG, JPG, ou SVG pour contrats et factures.</p>
-                  {logoFileName ? <p className="mt-1 text-xs text-gold-200">{logoFileName}</p> : null}
+                  <p className="font-bold text-[var(--app-text)] ">Logo agence</p>
+                  <p className="text-sm text-[var(--app-text-muted)]">PNG, JPG, ou SVG pour contrats et factures.</p>
+                  {logoFileName ? <p className="mt-1 text-xs text-[var(--app-gold-text)]">{logoFileName}</p> : null}
                 </div>
               </div>
               <div className="flex items-center gap-3 lg:justify-end">
@@ -1129,7 +1129,7 @@ startxref
                       onError={() => setLogoPreviewBroken(true)}
                     />
                   ) : (
-                    <div className="grid h-full w-full place-items-center text-xl font-black text-gold-100 light:text-carbon-950">M</div>
+                    <div className="grid h-full w-full place-items-center text-xl font-black text-[var(--app-gold-text)] ">M</div>
                   )}
                 </div>
               </div>
@@ -1151,9 +1151,9 @@ startxref
                 ) : null}
               </div>
             </div>
-            <div className="mt-4 rounded-2xl border border-white/10 bg-[#0d1117] p-3 shadow-inner light:bg-white md:mt-5 md:p-4">
-              <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gold-200">Aperçu du logo</p>
-              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 p-3 light:bg-carbon-950">
+            <div className="mt-4 rounded-2xl border border-[var(--app-border)] bg-[var(--app-card-soft)] p-3 shadow-inner  md:mt-5 md:p-4">
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[var(--app-gold-text)]">Aperçu du logo</p>
+              <div className="flex items-center gap-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
                 <div className={logoBadgeClass}>
                   {logoPreviewUrl && !logoPreviewBroken ? (
                     <img
@@ -1163,20 +1163,20 @@ startxref
                       onError={() => setLogoPreviewBroken(true)}
                     />
                   ) : (
-                    <div className="grid h-full w-full place-items-center text-xl font-black text-gold-100 light:text-carbon-950">M</div>
+                    <div className="grid h-full w-full place-items-center text-xl font-black text-[var(--app-gold-text)] ">M</div>
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-xl font-black tracking-wide text-white light:text-carbon-950">MekLoc</p>
-                  <p className="max-w-[220px] text-xs leading-4 text-carbon-400">Smart Rental Management System</p>
+                  <p className="text-xl font-black tracking-wide text-[var(--app-text)] ">MekLoc</p>
+                  <p className="max-w-[220px] text-xs leading-4 text-[var(--app-text-muted)]">Smart Rental Management System</p>
                 </div>
               </div>
             </div>
           </Card>
-          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+          <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
             <div className="mb-4 flex items-center gap-3 md:mb-5">
-              <Globe2 className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">Paramètres de devise</h2>
+              <Globe2 className="h-5 w-5 text-[var(--app-gold-text)]" />
+              <h2 className="font-semibold text-[var(--app-text)] ">Paramètres de devise</h2>
             </div>
             <div className="grid gap-4">
               <SelectField label="Devise" defaultValue="MAD">
@@ -1190,6 +1190,40 @@ startxref
               </SelectField>
             </div>
           </Card>
+          <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
+            <div className="mb-4 flex items-center gap-3 md:mb-5">
+              <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gold-400/12 text-[var(--app-gold-text)]">
+                <Settings className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-[var(--app-text)] ">Apparence</h2>
+                <p className="text-xs text-[var(--app-text-muted)] md:text-sm">Choisissez le thème de votre espace agence.</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-1.5 ">
+              {[
+                { value: 'dark', label: 'Mode sombre' },
+                { value: 'light', label: 'Mode clair' },
+              ].map((item) => {
+                const active = theme === item.value;
+                return (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onClick={() => setTheme(item.value as 'dark' | 'light')}
+                    className={`focus-ring min-h-11 rounded-xl px-3 text-sm font-black transition ${
+                      active
+                        ? 'bg-gold-400 text-[#101820] shadow-[0_10px_24px_rgba(227,177,23,.14)]'
+                        : 'text-[var(--app-text-soft)] hover:bg-[var(--app-surface-soft)] hover:text-[var(--app-text)]   '
+                    }`}
+                    aria-pressed={active}
+                  >
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+          </Card>
         </div>
       ) : null}
 
@@ -1197,23 +1231,23 @@ startxref
         <div className="grid gap-3 md:gap-6 xl:grid-cols-[0.95fr_1.05fr]">
           <div className="grid gap-4">
             {contractSettingCards.map((item, index) => (
-              <Card key={item.title} className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+              <Card key={item.title} className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
                 <div className="flex items-start gap-4">
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gold-400/12 text-gold-200">
+                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gold-400/12 text-[var(--app-gold-text)]">
                     {index === 0 ? <FileSignature className="h-5 w-5" /> : index === 1 ? <ShieldCheck className="h-5 w-5" /> : <Percent className="h-5 w-5" />}
                   </div>
                   <div>
-                    <h3 className="font-semibold text-white light:text-carbon-950">{item.title}</h3>
-                    <p className="mt-1 text-sm leading-6 text-carbon-400">{item.text}</p>
+                    <h3 className="font-semibold text-[var(--app-text)] ">{item.title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-[var(--app-text-muted)]">{item.text}</p>
                   </div>
                 </div>
               </Card>
             ))}
           </div>
-          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+          <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
             <div className="mb-4 flex items-center gap-3">
-              <FileSignature className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">Paramètres contrats</h2>
+              <FileSignature className="h-5 w-5 text-[var(--app-gold-text)]" />
+              <h2 className="font-semibold text-[var(--app-text)] ">Paramètres contrats</h2>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <SelectField label="Langue contrat par défaut" defaultValue="Français">
@@ -1234,17 +1268,17 @@ startxref
 
       {tab === 'Facturation' ? (
         <div className="grid gap-3 md:gap-6 lg:grid-cols-2">
-          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+          <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
             <div className="mb-4 flex items-start gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400/12 text-gold-200">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400/12 text-[var(--app-gold-text)]">
                 <Percent className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="font-semibold text-white light:text-carbon-950">Paramètres fiscaux</h2>
-                <p className="mt-1 text-sm text-carbon-400">TVA et affichage des taxes sur les factures.</p>
+                <h2 className="font-semibold text-[var(--app-text)] ">Paramètres fiscaux</h2>
+                <p className="mt-1 text-sm text-[var(--app-text-muted)]">TVA et affichage des taxes sur les factures.</p>
               </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+            <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
               <div className="grid gap-4">
               <Field label="Taux TVA" defaultValue="20" type="number" />
               <SelectField label="Affichage taxe facture" defaultValue="Incluse">
@@ -1254,17 +1288,17 @@ startxref
               </div>
             </div>
           </Card>
-          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+          <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
             <div className="mb-4 flex items-start gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-400/12 text-emerald-200">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-400/12 text-emerald-700 dark:text-emerald-200">
                 <ShieldCheck className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="font-semibold text-white light:text-carbon-950">Facturation abonnement</h2>
-                <p className="mt-1 text-sm text-carbon-400">Plan actuel et méthode de règlement préférée.</p>
+                <h2 className="font-semibold text-[var(--app-text)] ">Facturation abonnement</h2>
+                <p className="mt-1 text-sm text-[var(--app-text-muted)]">Plan actuel et méthode de règlement préférée.</p>
               </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+            <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
               <div className="grid gap-4">
               <SelectField label="Plan actuel" defaultValue="Pro">
                 <option>Gratuit</option>
@@ -1284,44 +1318,44 @@ startxref
 
       {tab === 'Abonnement' ? (
         <div className="grid gap-3 md:gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <Card className="overflow-hidden rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-0 md:rounded-3xl">
-            <div className="border-b border-white/10 bg-gradient-to-br from-gold-400/16 via-white/[0.035] to-transparent p-4 md:p-5">
+          <Card className="overflow-hidden rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-0 md:rounded-3xl">
+            <div className="border-b border-[var(--app-border)] bg-gradient-to-br from-gold-400/16 via-white/[0.035] to-transparent p-4 md:p-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-200">Plan actuel</p>
-                  <h2 className="mt-2 text-3xl font-black capitalize text-white light:text-carbon-950">{agency?.plan || 'starter'}</h2>
-                  <p className="mt-1 text-sm text-carbon-400">{billingTypeFr} · {agency?.monthlyPrice ? `${agency.monthlyPrice} MAD / mois` : '99 MAD / mois'}</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--app-gold-text)]">Plan actuel</p>
+                  <h2 className="mt-2 text-3xl font-black capitalize text-[var(--app-text)] ">{agency?.plan || 'starter'}</h2>
+                  <p className="mt-1 text-sm text-[var(--app-text-muted)]">{billingTypeFr} · {agency?.monthlyPrice ? `${agency.monthlyPrice} MAD / mois` : '99 MAD / mois'}</p>
                 </div>
-                <span className={`inline-flex w-fit rounded-full px-3 py-1.5 text-xs font-bold ${agency?.billingStatus === 'paid' ? 'bg-emerald-400/15 text-emerald-200' : agency?.billingStatus === 'trial' ? 'bg-sky-400/15 text-sky-200' : agency?.billingStatus === 'overdue' ? 'bg-orange-400/15 text-orange-200' : agency?.billingStatus === 'unpaid' ? 'bg-rose-400/15 text-rose-200' : 'bg-slate-400/15 text-slate-200'}`}>{billingStatusFr}</span>
+                <span className={`inline-flex w-fit rounded-full px-3 py-1.5 text-xs font-bold ${agency?.billingStatus === 'paid' ? 'bg-emerald-400/15 text-emerald-700 dark:text-emerald-200' : agency?.billingStatus === 'trial' ? 'bg-sky-400/15 text-sky-700 dark:text-sky-200' : agency?.billingStatus === 'overdue' ? 'bg-orange-400/15 text-orange-700 dark:text-orange-200' : agency?.billingStatus === 'unpaid' ? 'bg-rose-400/15 text-rose-700 dark:text-rose-200' : 'bg-slate-400/15 text-slate-700 dark:text-slate-200'}`}>{billingStatusFr}</span>
               </div>
             </div>
             <div className="p-4 md:p-5">
               <div className="grid gap-3 sm:grid-cols-2">
-              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Type facturation</p><p className="mt-1 font-semibold">{billingTypeFr}</p></div>
-              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Statut paiement</p><p className="mt-1 font-semibold">{billingStatusFr}</p></div>
-              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Dernier paiement</p><p className="mt-1 font-semibold">{agency?.lastPaymentDate || '—'}</p></div>
-              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Prochain paiement</p><p className="mt-1 font-semibold">{agency?.nextPaymentDueDate || '—'}</p></div>
-              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Fin d’abonnement</p><p className="mt-1 font-semibold">{agency?.subscriptionEndDate || '—'}</p></div>
-              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Méthode de paiement</p><p className="mt-1 font-semibold">{agency?.paymentMethod || 'other'}</p></div>
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-[var(--app-text-muted)]">Type facturation</p><p className="mt-1 font-semibold">{billingTypeFr}</p></div>
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-[var(--app-text-muted)]">Statut paiement</p><p className="mt-1 font-semibold">{billingStatusFr}</p></div>
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-[var(--app-text-muted)]">Dernier paiement</p><p className="mt-1 font-semibold">{agency?.lastPaymentDate || '—'}</p></div>
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-[var(--app-text-muted)]">Prochain paiement</p><p className="mt-1 font-semibold">{agency?.nextPaymentDueDate || '—'}</p></div>
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-[var(--app-text-muted)]">Fin d’abonnement</p><p className="mt-1 font-semibold">{agency?.subscriptionEndDate || '—'}</p></div>
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-[var(--app-text-muted)]">Méthode de paiement</p><p className="mt-1 font-semibold">{agency?.paymentMethod || 'other'}</p></div>
             </div>
-            {agency?.paymentNotes ? <p className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-sm text-carbon-300">Notes paiement: {agency.paymentNotes}</p> : null}
+            {agency?.paymentNotes ? <p className="mt-4 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3 text-sm text-[var(--app-text-soft)]">Notes paiement: {agency.paymentNotes}</p> : null}
             </div>
           </Card>
-          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+          <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
             <div className="mb-4 flex items-center gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-400/12 text-sky-200">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-400/12 text-sky-700 dark:text-sky-200">
                 <BellRing className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="font-semibold text-white light:text-carbon-950">Alertes abonnement</h2>
-                <p className="text-sm text-carbon-400">Suivi paiement, échéance et support MekLoc.</p>
+                <h2 className="font-semibold text-[var(--app-text)] ">Alertes abonnement</h2>
+                <p className="text-sm text-[var(--app-text-muted)]">Suivi paiement, échéance et support MekLoc.</p>
               </div>
             </div>
             <div className="grid gap-3">
-              {nextDiff !== null && nextDiff >= 0 && nextDiff <= 7 ? <p className="rounded-2xl border border-gold-300/25 bg-gold-400/10 p-3 text-sm text-gold-100">Votre abonnement expire bientôt. Prochain paiement le {nextPaymentDate}.</p> : null}
-              {agency?.billingStatus === 'unpaid' ? <p className="rounded-2xl border border-rose-300/25 bg-rose-400/10 p-3 text-sm text-rose-100">Votre paiement est en attente. Merci de régulariser votre abonnement.</p> : null}
+              {nextDiff !== null && nextDiff >= 0 && nextDiff <= 7 ? <p className="rounded-2xl border border-gold-300/25 bg-gold-400/10 p-3 text-sm text-[var(--app-gold-text)]">Votre abonnement expire bientôt. Prochain paiement le {nextPaymentDate}.</p> : null}
+              {agency?.billingStatus === 'unpaid' ? <p className="rounded-2xl border border-rose-300/25 bg-rose-400/10 p-3 text-sm text-[var(--app-danger)]">Votre paiement est en attente. Merci de régulariser votre abonnement.</p> : null}
               {agency?.billingStatus === 'overdue' ? <p className="rounded-2xl border border-orange-300/25 bg-orange-400/10 p-3 text-sm text-orange-100">Votre abonnement est en retard. Contactez MekLoc pour éviter la suspension.</p> : null}
-              {endDiff !== null && endDiff < 0 ? <p className="rounded-2xl border border-rose-300/25 bg-rose-400/10 p-3 text-sm text-rose-100">Votre abonnement a expiré.</p> : null}
+              {endDiff !== null && endDiff < 0 ? <p className="rounded-2xl border border-rose-300/25 bg-rose-400/10 p-3 text-sm text-[var(--app-danger)]">Votre abonnement a expiré.</p> : null}
             </div>
             <div className="mt-4 grid gap-2">
               <Button type="button" onClick={() => window.open(`https://wa.me/${contactPhone}`, '_blank', 'noopener,noreferrer')}>Contacter MekLoc sur WhatsApp</Button>
@@ -1334,11 +1368,11 @@ startxref
       ) : null}
 
       {tab === 'Équipe' ? (
-          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+          <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
             <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <UsersRound className="h-5 w-5 text-gold-300" />
-                <h2 className="font-semibold text-white light:text-carbon-950">Gestion équipe</h2>
+                <UsersRound className="h-5 w-5 text-[var(--app-gold-text)]" />
+                <h2 className="font-semibold text-[var(--app-text)] ">Gestion équipe</h2>
               </div>
               <Button
                 type="button"
@@ -1351,36 +1385,36 @@ startxref
             </div>
             {teamLoading ? (
               <div className="grid gap-2">
-                <div className="h-14 animate-pulse rounded-xl border border-white/10 bg-white/[0.04]" />
-                <div className="h-14 animate-pulse rounded-xl border border-white/10 bg-white/[0.04]" />
+                <div className="h-14 animate-pulse rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)]" />
+                <div className="h-14 animate-pulse rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)]" />
               </div>
             ) : teamMembers.length ? (
               <div className="space-y-3">
-                <div className="premium-surface rounded-2xl p-4 text-sm text-carbon-300">
-                  <p className="font-semibold text-white light:text-carbon-900">
+                <div className="premium-surface rounded-2xl p-4 text-sm text-[var(--app-text-soft)]">
+                  <p className="font-semibold text-[var(--app-text)] ">
                     {teamMembers.length} membre{teamMembers.length > 1 ? 's' : ''} dans votre agence
                   </p>
                 </div>
                 {teamMembers.map((member) => (
                   <div
                     key={member.id}
-                    className="premium-surface grid gap-4 rounded-2xl border border-white/10 p-4 xl:grid-cols-[minmax(0,1fr)_auto]"
+                    className="premium-surface grid gap-4 rounded-2xl border border-[var(--app-border)] p-4 xl:grid-cols-[minmax(0,1fr)_auto]"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/10 text-sm font-black text-gold-100">
+                      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[var(--app-surface-soft)] text-sm font-black text-[var(--app-gold-text)]">
                         {(member.full_name || member.email || 'U').slice(0, 1).toUpperCase()}
                       </div>
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate font-semibold text-white light:text-carbon-900">
+                          <p className="truncate font-semibold text-[var(--app-text)] ">
                             {member.full_name || 'Utilisateur'}
                           </p>
                           {member.id === profile?.id ? (
-                            <span className="rounded-full bg-gold-400/15 px-2 py-0.5 text-[11px] font-bold text-gold-100">Vous</span>
+                            <span className="rounded-full bg-gold-400/15 px-2 py-0.5 text-[11px] font-bold text-[var(--app-gold-text)]">Vous</span>
                           ) : null}
                         </div>
-                        <p className="truncate text-sm text-carbon-400">{member.email || 'Email non renseigné'}</p>
-                        <p className="mt-1 text-xs text-carbon-500">{roleFr(member.role)}</p>
+                        <p className="truncate text-sm text-[var(--app-text-muted)]">{member.email || 'Email non renseigné'}</p>
+                        <p className="mt-1 text-xs text-[var(--app-text-muted)]">{roleFr(member.role)}</p>
                       </div>
                     </div>
                     <div className="grid gap-3 lg:grid-cols-[170px_auto] xl:grid-cols-[170px_auto_auto] xl:items-center">
@@ -1435,7 +1469,7 @@ startxref
                 ))}
               </div>
             ) : (
-              <div className="premium-surface rounded-2xl p-4 text-sm text-carbon-300">
+              <div className="premium-surface rounded-2xl p-4 text-sm text-[var(--app-text-soft)]">
                 Aucun membre trouvé pour cette agence.
               </div>
             )}
@@ -1444,17 +1478,17 @@ startxref
 
       {tab === 'Notifications' ? (
         <div className="grid gap-3 md:gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+          <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
             <div className="mb-4 flex items-start gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400/12 text-gold-200">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400/12 text-[var(--app-gold-text)]">
                 <BellRing className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="font-semibold text-white light:text-carbon-950">Préférences notifications</h2>
-                <p className="mt-1 text-sm text-carbon-400">Canal et horaire utilisés pour préparer les rappels.</p>
+                <h2 className="font-semibold text-[var(--app-text)] ">Préférences notifications</h2>
+                <p className="mt-1 text-sm text-[var(--app-text-muted)]">Canal et horaire utilisés pour préparer les rappels.</p>
               </div>
             </div>
-            <div className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
+            <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
               <div className="grid gap-4">
               <Field label="Numéro WhatsApp" defaultValue={agencyPhone || '+212 6 00 00 00 00'} />
               <SelectField label="Heure rappel par défaut" defaultValue="09:00">
@@ -1465,34 +1499,34 @@ startxref
               </div>
             </div>
           </Card>
-          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+          <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
             <div className="mb-4 flex items-start gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-400/12 text-emerald-200">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-400/12 text-emerald-700 dark:text-emerald-200">
                 <MessageCircle className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="font-semibold text-white light:text-carbon-950">Automatisation WhatsApp</h2>
-                <p className="mt-1 text-sm text-carbon-400">Active les boutons WhatsApp dans les écrans opérationnels.</p>
+                <h2 className="font-semibold text-[var(--app-text)] ">Automatisation WhatsApp</h2>
+                <p className="mt-1 text-sm text-[var(--app-text-muted)]">Active les boutons WhatsApp dans les écrans opérationnels.</p>
               </div>
             </div>
             <div className="grid gap-3">
               {notificationPreferenceItems.map((item) => {
                 const enabled = notificationPreferences[item.key];
                 return (
-                <div key={item.key} className="premium-surface flex items-start justify-between gap-4 rounded-2xl border border-white/10 p-4">
+                <div key={item.key} className="premium-surface flex items-start justify-between gap-4 rounded-2xl border border-[var(--app-border)] p-4">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <MessageCircle className={`h-4 w-4 ${enabled ? 'text-emerald-300' : 'text-carbon-500'}`} />
-                    <p className="font-bold text-white light:text-carbon-950">{item.label}</p>
+                      <MessageCircle className={`h-4 w-4 ${enabled ? 'text-emerald-300' : 'text-[var(--app-text-muted)]'}`} />
+                    <p className="font-bold text-[var(--app-text)] ">{item.label}</p>
                     </div>
-                    <p className="mt-1 text-sm leading-5 text-carbon-400">{notificationDescriptions[item.key]}</p>
-                    <p className={`mt-2 text-xs font-semibold ${enabled ? 'text-emerald-300' : 'text-carbon-500'}`}>{enabled ? 'Bouton WhatsApp actif' : 'Bouton WhatsApp désactivé'}</p>
+                    <p className="mt-1 text-sm leading-5 text-[var(--app-text-muted)]">{notificationDescriptions[item.key]}</p>
+                    <p className={`mt-2 text-xs font-semibold ${enabled ? 'text-emerald-300' : 'text-[var(--app-text-muted)]'}`}>{enabled ? 'Bouton WhatsApp actif' : 'Bouton WhatsApp désactivé'}</p>
                   </div>
                   <button
                     type="button"
                     role="switch"
                     aria-checked={enabled}
-                    className={`h-6 w-11 rounded-full p-1 transition ${enabled ? 'bg-gold-400' : 'bg-white/15'}`}
+                    className={`h-6 w-11 rounded-full p-1 transition ${enabled ? 'bg-gold-400' : 'bg-[var(--app-surface-soft)]'}`}
                     onClick={() => setNotificationPreferences((current) => ({ ...current, [item.key]: !current[item.key] }))}
                   >
                     <span className={`block h-4 w-4 rounded-full bg-white transition ${enabled ? 'translate-x-5' : 'translate-x-0'}`} />
@@ -1507,17 +1541,17 @@ startxref
 
       {tab === 'Sécurité' ? (
         <div className="grid gap-5">
-          <Card className="overflow-hidden rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-0 md:rounded-3xl">
-            <div className="border-b border-white/10 bg-gradient-to-br from-gold-400/12 via-white/[0.03] to-transparent p-4 md:p-5">
+          <Card className="overflow-hidden rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-0 md:rounded-3xl">
+            <div className="border-b border-[var(--app-border)] bg-gradient-to-br from-gold-400/12 via-white/[0.03] to-transparent p-4 md:p-5">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-start gap-3">
-                  <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400/12 text-gold-200">
+                  <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400/12 text-[var(--app-gold-text)]">
                     <ShieldCheck className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-200">Security Center</p>
-                    <h2 className="mt-1 text-xl font-black text-white light:text-carbon-950">Sécurité du compte</h2>
-                    <p className="mt-1 text-sm text-carbon-400">Gérez vos accès, vos identifiants et les appareils connectés.</p>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--app-gold-text)]">Security Center</p>
+                    <h2 className="mt-1 text-xl font-black text-[var(--app-text)] ">Sécurité du compte</h2>
+                    <p className="mt-1 text-sm text-[var(--app-text-muted)]">Gérez vos accès, vos identifiants et les appareils connectés.</p>
                   </div>
                 </div>
                 <Button variant="secondary" icon={<RefreshCw className="h-4 w-4" />} loading={securityLoading} onClick={loadSecurityCenter}>
@@ -1532,46 +1566,46 @@ startxref
                 ['Sessions actives', String(accountSessions.filter((sessionItem) => !sessionItem.revoked_at).length)],
                 ['Dernière connexion', formatSecurityDate(lastLoginAt)],
               ].map(([label, value]) => (
-                <div key={label} className="min-h-[92px] rounded-2xl border border-white/10 bg-carbon-950/45 p-4 light:bg-white">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-carbon-500">{label}</p>
-                  <p className="mt-2 break-words text-sm font-bold text-white light:text-carbon-950">{value}</p>
+                <div key={label} className="min-h-[92px] rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 ">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--app-text-muted)]">{label}</p>
+                  <p className="mt-2 break-words text-sm font-bold text-[var(--app-text)] ">{value}</p>
                 </div>
               ))}
             </div>
           </Card>
 
           <div className="grid gap-5 xl:grid-cols-[0.82fr_1.18fr]">
-            <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+            <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
               <div className="mb-4">
-                <h3 className="font-bold text-white light:text-carbon-950">Actions compte</h3>
-                <p className="mt-1 text-sm text-carbon-400">Modifications sensibles et accès au compte.</p>
+                <h3 className="font-bold text-[var(--app-text)] ">Actions compte</h3>
+                <p className="mt-1 text-sm text-[var(--app-text-muted)]">Modifications sensibles et accès au compte.</p>
               </div>
               <div className="grid gap-3">
-                <button type="button" className="focus-ring flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-gold-300/30 hover:bg-white/[0.055]" onClick={openEmailChangeModal}>
-                  <span><span className="block font-semibold text-white light:text-carbon-950">Changer email</span><span className="mt-1 block break-all text-xs text-carbon-400">{agencyEmail || 'Email non renseigné'}</span></span>
-                  <span className="text-xs font-bold text-gold-200">Modifier</span>
+                <button type="button" className="focus-ring flex items-center justify-between rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-left transition hover:border-gold-300/30 hover:bg-[var(--app-surface-soft)]" onClick={openEmailChangeModal}>
+                  <span><span className="block font-semibold text-[var(--app-text)] ">Changer email</span><span className="mt-1 block break-all text-xs text-[var(--app-text-muted)]">{agencyEmail || 'Email non renseigné'}</span></span>
+                  <span className="text-xs font-bold text-[var(--app-gold-text)]">Modifier</span>
                 </button>
-                <button type="button" className="focus-ring flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-gold-300/30 hover:bg-white/[0.055]" onClick={() => setPasswordChangeOpen(true)}>
-                  <span><span className="block font-semibold text-white light:text-carbon-950">Changer mot de passe</span><span className="mt-1 block text-xs text-carbon-400">Revalidation du mot de passe actuel requise.</span></span>
-                  <span className="text-xs font-bold text-gold-200">Modifier</span>
+                <button type="button" className="focus-ring flex items-center justify-between rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-left transition hover:border-gold-300/30 hover:bg-[var(--app-surface-soft)]" onClick={() => setPasswordChangeOpen(true)}>
+                  <span><span className="block font-semibold text-[var(--app-text)] ">Changer mot de passe</span><span className="mt-1 block text-xs text-[var(--app-text-muted)]">Revalidation du mot de passe actuel requise.</span></span>
+                  <span className="text-xs font-bold text-[var(--app-gold-text)]">Modifier</span>
                 </button>
-                <button type="button" className="focus-ring flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left transition hover:border-gold-300/30 hover:bg-white/[0.055]" onClick={() => selectSettingsTab('Général')}>
-                  <span><span className="block font-semibold text-white light:text-carbon-950">Changer numéro WhatsApp</span><span className="mt-1 block text-xs text-carbon-400">{agencyPhone || 'Numéro non renseigné'}</span></span>
-                  <span className="text-xs font-bold text-gold-200">Général</span>
+                <button type="button" className="focus-ring flex items-center justify-between rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-left transition hover:border-gold-300/30 hover:bg-[var(--app-surface-soft)]" onClick={() => selectSettingsTab('Général')}>
+                  <span><span className="block font-semibold text-[var(--app-text)] ">Changer numéro WhatsApp</span><span className="mt-1 block text-xs text-[var(--app-text-muted)]">{agencyPhone || 'Numéro non renseigné'}</span></span>
+                  <span className="text-xs font-bold text-[var(--app-gold-text)]">Général</span>
                 </button>
                 <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
-                  <p className="font-semibold text-rose-100">Zone sensible</p>
-                  <p className="mt-1 text-sm text-carbon-300">Désactivation immédiate, suppression définitive après 30 jours.</p>
+                  <p className="font-semibold text-[var(--app-danger)]">Zone sensible</p>
+                  <p className="mt-1 text-sm text-[var(--app-text-soft)]">Désactivation immédiate, suppression définitive après 30 jours.</p>
                   <Button type="button" variant="danger" className="mt-3 h-9 px-3 text-xs" onClick={() => setDeleteOpen(true)}>Supprimer mon compte</Button>
                 </div>
               </div>
             </Card>
 
-            <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+            <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h3 className="font-bold text-white light:text-carbon-950">Sessions actives</h3>
-                  <p className="mt-1 text-sm text-carbon-400">Appareils connectés et dernière activité.</p>
+                  <h3 className="font-bold text-[var(--app-text)] ">Sessions actives</h3>
+                  <p className="mt-1 text-sm text-[var(--app-text-muted)]">Appareils connectés et dernière activité.</p>
                 </div>
                 <Button
                   type="button"
@@ -1588,20 +1622,20 @@ startxref
                   const currentSessionKey = typeof window !== 'undefined' ? window.localStorage.getItem(sessionStorageKey) : null;
                   const isCurrentSession = Boolean(sessionItem.session_key && currentSessionKey && sessionItem.session_key === currentSessionKey);
                   return (
-                    <div key={sessionItem.id} className="grid gap-3 rounded-2xl border border-white/10 bg-carbon-950/45 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center light:bg-white">
+                    <div key={sessionItem.id} className="grid gap-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center ">
                       <div className="flex min-w-0 items-center gap-3">
-                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gold-400/10 text-gold-200">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gold-400/10 text-[var(--app-gold-text)]">
                           <Smartphone className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
                           <div className="flex min-w-0 flex-wrap items-center gap-2">
-                            <p className="truncate text-sm font-semibold text-white light:text-carbon-950">{sessionDeviceLabel(sessionItem)}</p>
+                            <p className="truncate text-sm font-semibold text-[var(--app-text)] ">{sessionDeviceLabel(sessionItem)}</p>
                             {isCurrentSession ? (
-                              <span className="rounded-full bg-gold-400/15 px-2 py-0.5 text-[10px] font-bold text-gold-100">Session actuelle</span>
+                              <span className="rounded-full bg-gold-400/15 px-2 py-0.5 text-[10px] font-bold text-[var(--app-gold-text)]">Session actuelle</span>
                             ) : null}
                           </div>
-                          <p className="truncate text-xs text-carbon-400">{sessionItem.browser || 'Navigateur'} · {sessionItem.os || 'Système'}</p>
-                          <p className="truncate text-xs text-carbon-500">{sessionLocationLabel(sessionItem)} · {formatSecurityDate(sessionItem.last_seen_at)}</p>
+                          <p className="truncate text-xs text-[var(--app-text-muted)]">{sessionItem.browser || 'Navigateur'} · {sessionItem.os || 'Système'}</p>
+                          <p className="truncate text-xs text-[var(--app-text-muted)]">{sessionLocationLabel(sessionItem)} · {formatSecurityDate(sessionItem.last_seen_at)}</p>
                         </div>
                       </div>
                       <Button
@@ -1617,7 +1651,7 @@ startxref
                   );
                 })}
                 {accountSessions.filter((sessionItem) => !sessionItem.revoked_at).length === 0 ? (
-                  <p className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-carbon-400">Aucune session active enregistrée.</p>
+                  <p className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-sm text-[var(--app-text-muted)]">Aucune session active enregistrée.</p>
                 ) : null}
               </div>
             </Card>
@@ -1627,16 +1661,16 @@ startxref
       <Modal open={Boolean(memberStatusTarget)} onClose={() => setMemberStatusTarget(null)} title={memberStatusTarget?.account_status === 'suspended' || memberStatusTarget?.account_status === 'rejected' ? 'Réactiver le membre' : 'Suspendre le membre'}>
         <div className="space-y-4">
           <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
-            <p className="font-semibold text-rose-100">
+            <p className="font-semibold text-[var(--app-danger)]">
               {memberStatusTarget?.account_status === 'suspended' || memberStatusTarget?.account_status === 'rejected' ? 'Ce membre retrouvera son accès.' : 'Ce membre perdra immédiatement l’accès à l’application.'}
             </p>
-            <p className="mt-2 text-sm text-carbon-300">
+            <p className="mt-2 text-sm text-[var(--app-text-soft)]">
               {memberStatusTarget?.account_status === 'suspended' || memberStatusTarget?.account_status === 'rejected'
                 ? 'Vérifiez que cette personne doit bien pouvoir accéder aux données de l’agence.'
                 : 'Ses sessions actives seront révoquées si la gestion des sessions est disponible.'}
             </p>
           </div>
-          <p className="text-sm text-carbon-300">Membre: <strong>{memberStatusTarget?.full_name || memberStatusTarget?.email}</strong></p>
+          <p className="text-sm text-[var(--app-text-soft)]">Membre: <strong>{memberStatusTarget?.full_name || memberStatusTarget?.email}</strong></p>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setMemberStatusTarget(null)}>Annuler</Button>
             <Button type="button" variant={memberStatusTarget?.account_status === 'suspended' || memberStatusTarget?.account_status === 'rejected' ? 'secondary' : 'danger'} onClick={confirmToggleMemberStatus}>
@@ -1647,7 +1681,7 @@ startxref
       </Modal>
       <Modal open={emailChangeOpen} onClose={() => { if (!emailChanging) setEmailChangeOpen(false); }} title="Changer email">
         <div className="space-y-4">
-          <p className="text-sm text-carbon-400">Le nouvel email devra être confirmé avant d’être appliqué à votre compte.</p>
+          <p className="text-sm text-[var(--app-text-muted)]">Le nouvel email devra être confirmé avant d’être appliqué à votre compte.</p>
           <Field
             label="Nouvel email"
             name="newAccountEmail"
@@ -1711,8 +1745,8 @@ startxref
       <Modal open={deleteOpen} onClose={() => setDeleteOpen(false)} title="Supprimer mon compte">
         <div className="space-y-4">
           <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
-            <p className="text-sm font-semibold text-rose-100">Votre compte sera désactivé maintenant et supprimé définitivement après 30 jours.</p>
-            <p className="mt-2 text-sm text-carbon-300">Confirmez votre mot de passe actuel pour programmer la suppression. Un administrateur peut encore annuler pendant la période de grâce.</p>
+            <p className="text-sm font-semibold text-[var(--app-danger)]">Votre compte sera désactivé maintenant et supprimé définitivement après 30 jours.</p>
+            <p className="mt-2 text-sm text-[var(--app-text-soft)]">Confirmez votre mot de passe actuel pour programmer la suppression. Un administrateur peut encore annuler pendant la période de grâce.</p>
           </div>
           <Field label="Mot de passe" name="deletePassword" type="password" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} required />
           <div className="flex justify-end gap-2">
@@ -1749,8 +1783,8 @@ startxref
           </SelectField>
           {inviteLink ? (
             <div className="rounded-2xl border border-gold-300/25 bg-gold-400/10 p-3">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold-200">Lien activation</p>
-              <p className="mt-2 break-all text-sm text-carbon-100">{inviteLink}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--app-gold-text)]">Lien activation</p>
+              <p className="mt-2 break-all text-sm text-[var(--app-text)]">{inviteLink}</p>
               <Button
                 type="button"
                 variant="secondary"
@@ -1772,21 +1806,21 @@ startxref
       <Modal open={isActivationModalOpen && Boolean(generatedActivationLink)} onClose={closeActivationLinkModal} title="Lien d’activation">
         {selectedMemberForActivation && generatedActivationLink ? (
           <div className="space-y-4">
-            <p className="text-sm text-carbon-300 light:text-carbon-600">
+            <p className="text-sm text-[var(--app-text-soft)] ">
               Envoyez ce lien au membre pour activer son compte.
             </p>
             <div className="rounded-2xl border border-gold-300/25 bg-gold-400/10 p-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gold-200">Membre</p>
-              <p className="mt-2 text-sm font-semibold text-white light:text-carbon-950">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--app-gold-text)]">Membre</p>
+              <p className="mt-2 text-sm font-semibold text-[var(--app-text)] ">
                 {selectedMemberForActivation.full_name || selectedMemberForActivation.email || 'Membre'}
               </p>
-              <p className="mt-1 break-all text-sm text-carbon-300">{selectedMemberForActivation.email || 'Email non renseigné'}</p>
-              <p className="mt-2 inline-flex rounded-full bg-white/10 px-2.5 py-1 text-xs font-semibold text-carbon-200">
+              <p className="mt-1 break-all text-sm text-[var(--app-text-soft)]">{selectedMemberForActivation.email || 'Email non renseigné'}</p>
+              <p className="mt-2 inline-flex rounded-full bg-[var(--app-surface-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--app-text-soft)]">
                 {roleFr(selectedMemberForActivation.role)}
               </p>
             </div>
             <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-carbon-200 light:text-carbon-700">Lien activation</span>
+              <span className="mb-2 block text-sm font-semibold text-[var(--app-text-soft)] ">Lien activation</span>
               <input
                 className="form-control w-full text-sm"
                 value={generatedActivationLink}
@@ -1816,14 +1850,14 @@ startxref
 
       <Modal open={cropOpen} onClose={() => { setCropOpen(false); if (rawLogoUrl) URL.revokeObjectURL(rawLogoUrl); setRawLogoUrl(''); }} title="Ajuster le logo">
         <div className="space-y-4">
-          <p className="text-sm text-carbon-300">Ajustez votre logo pour qu’il apparaisse correctement dans MekLoc, les contrats et les factures.</p>
+          <p className="text-sm text-[var(--app-text-soft)]">Ajustez votre logo pour qu’il apparaisse correctement dans MekLoc, les contrats et les factures.</p>
           <div
             ref={cropFrameRef}
             onPointerDown={handleCropPointerDown}
             onPointerMove={handleCropPointerMove}
             onPointerUp={handleCropPointerUp}
             onPointerCancel={handleCropPointerUp}
-            className="relative mx-auto grid h-72 w-full max-w-md touch-none place-items-center overflow-hidden rounded-3xl border border-white/10 bg-[#0e1218]"
+            className="relative mx-auto grid h-72 w-full max-w-md touch-none place-items-center overflow-hidden rounded-3xl border border-[var(--app-border)] bg-[var(--app-card-soft)]"
           >
             {rawLogoUrl ? (
               <img
@@ -1840,7 +1874,7 @@ startxref
             ) : null}
             <div className="pointer-events-none absolute inset-5 rounded-3xl border-2 border-gold-300/70 shadow-[0_0_0_9999px_rgba(0,0,0,.35)]" />
           </div>
-          <label className="grid gap-2 text-sm text-carbon-300">
+          <label className="grid gap-2 text-sm text-[var(--app-text-soft)]">
             Zoom
             <input
               type="range"

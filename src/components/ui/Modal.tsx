@@ -28,20 +28,20 @@ export default function Modal({ open, title, subtitle, children, onClose, panelC
             exit={{ opacity: 0, scale: 0.96, y: 18 }}
             transition={{ duration: 0.22 }}
           >
-            <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-white/10 bg-[#090B0F]/95 px-4 py-3 backdrop-blur sm:px-6">
+            <div className="sticky top-0 z-10 flex items-center justify-between gap-4 border-b border-[var(--app-border)] bg-[var(--app-modal)]/95 px-4 py-3 backdrop-blur sm:px-6">
               <div className="min-w-0">
-                <h2 className="truncate text-lg font-black tracking-tight text-white light:text-carbon-950">{title}</h2>
-                {subtitle ? <p className="mt-0.5 truncate text-xs font-medium text-carbon-500 sm:text-sm">{subtitle}</p> : null}
+                <h2 className="truncate text-lg font-black tracking-tight text-[var(--app-text)]">{title}</h2>
+                {subtitle ? <p className="mt-0.5 truncate text-xs font-medium text-[var(--app-text-muted)] sm:text-sm">{subtitle}</p> : null}
               </div>
               <button
                 aria-label="Close modal"
-                className="focus-ring grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-carbon-200 transition hover:bg-white/10 light:text-carbon-700"
+                className="focus-ring grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] transition hover:bg-[var(--app-gold-soft)]"
                 onClick={onClose}
               >
                 <X className="h-[18px] w-[18px]" />
               </button>
             </div>
-            <div className={`min-h-0 flex-1 overflow-y-auto bg-[#090B0F] p-4 sm:p-5 ${bodyClassName}`}>{children}</div>
+            <div className={`min-h-0 flex-1 overflow-y-auto bg-[var(--app-modal)] p-4 sm:p-5 ${bodyClassName}`}>{children}</div>
           </motion.div>
         </motion.div>
       ) : null}

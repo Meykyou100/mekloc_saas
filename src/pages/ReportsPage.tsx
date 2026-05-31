@@ -60,23 +60,23 @@ function escapePdf(value: string) {
 
 function MetricCard({ label, value, note, icon: Icon, tone = 'gold' }: { label: string; value: string; note: string; icon: typeof WalletCards; tone?: 'gold' | 'green' | 'amber' | 'red' }) {
   const toneClass = {
-    gold: 'border-gold-300/25 bg-gold-400/12 text-gold-200',
-    green: 'border-emerald-300/20 bg-emerald-400/10 text-emerald-200',
-    amber: 'border-amber-300/25 bg-amber-400/10 text-amber-200',
+    gold: 'border-gold-300/25 bg-gold-400/12 text-[var(--app-gold-text)]',
+    green: 'border-emerald-300/20 bg-emerald-400/10 text-emerald-700 dark:text-emerald-200',
+    amber: 'border-amber-300/25 bg-amber-400/10 text-amber-700 dark:text-amber-200',
     red: 'border-rose-300/20 bg-rose-400/10 text-rose-200',
   }[tone];
   return (
-    <Card className="relative flex min-h-[106px] min-w-[138px] flex-col justify-between overflow-hidden rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_14px_38px_rgba(0,0,0,.22),inset_0_1px_0_rgba(255,255,255,.04)] sm:min-h-[132px] sm:min-w-0 sm:rounded-3xl sm:p-5">
+    <Card className="relative flex min-h-[106px] min-w-[138px] flex-col justify-between overflow-hidden rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_14px_38px_rgba(0,0,0,.22),inset_0_1px_0_rgba(255,255,255,.04)] sm:min-h-[132px] sm:min-w-0 sm:rounded-3xl sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-carbon-400 light:text-carbon-600 sm:text-xs">{label}</p>
-          <p className="mt-2 truncate text-[1.2rem] font-black leading-none tracking-tight text-white light:text-carbon-950 sm:mt-3 sm:text-2xl">{value}</p>
+          <p className="truncate text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-[var(--app-text-muted)]  sm:text-xs">{label}</p>
+          <p className="mt-2 truncate text-[1.2rem] font-black leading-none tracking-tight text-[var(--app-text)]  sm:mt-3 sm:text-2xl">{value}</p>
         </div>
         <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border sm:h-10 sm:w-10 sm:rounded-2xl ${toneClass}`}>
           <Icon className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
         </span>
       </div>
-      <p className="mt-2 truncate text-[11px] font-medium text-carbon-500 light:text-carbon-600 sm:text-sm">{note}</p>
+      <p className="mt-2 truncate text-[11px] font-medium text-[var(--app-text-muted)]  sm:text-sm">{note}</p>
     </Card>
   );
 }
@@ -84,12 +84,12 @@ function MetricCard({ label, value, note, icon: Icon, tone = 'gold' }: { label: 
 function BarRow({ label, value, max }: { label: string; value: number; max: number }) {
   const width = max > 0 ? Math.max(4, Math.round((value / max) * 100)) : 0;
   return (
-    <div className="grid min-w-0 gap-2 rounded-2xl border border-white/10 bg-white/[0.035] p-3 text-sm sm:grid-cols-[92px_1fr_120px] sm:items-center sm:gap-3 sm:border-0 sm:bg-transparent sm:p-0">
-      <span className="min-w-0 truncate font-semibold text-carbon-300 sm:text-carbon-500">{label}</span>
-      <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
+    <div className="grid min-w-0 gap-2 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3 text-sm sm:grid-cols-[92px_1fr_120px] sm:items-center sm:gap-3 sm:border-0 sm:bg-transparent sm:p-0">
+      <span className="min-w-0 truncate font-semibold text-[var(--app-text-soft)] sm:text-[var(--app-text-muted)]">{label}</span>
+      <div className="h-2.5 overflow-hidden rounded-full bg-[var(--app-surface-soft)]">
         <div className="h-full rounded-full bg-gradient-to-r from-[#D4A017] to-[#f1c232]" style={{ width: `${width}%` }} />
       </div>
-      <span className="truncate font-black text-gold-100 sm:text-right">{formatMAD(value)}</span>
+      <span className="truncate font-black text-[var(--app-gold-text)] sm:text-right">{formatMAD(value)}</span>
     </div>
   );
 }
@@ -97,12 +97,12 @@ function BarRow({ label, value, max }: { label: string; value: number; max: numb
 function CountBarRow({ label, count, max }: { label: string; count: number; max: number }) {
   const width = max > 0 ? Math.max(4, Math.round((count / max) * 100)) : 0;
   return (
-    <div className="grid min-w-0 gap-2 rounded-2xl border border-white/10 bg-white/[0.035] p-3 text-sm sm:grid-cols-[92px_1fr_52px] sm:items-center sm:gap-3 sm:border-0 sm:bg-transparent sm:p-0">
-      <span className="min-w-0 truncate font-semibold text-carbon-300 sm:text-carbon-500">{label}</span>
-      <div className="h-2.5 overflow-hidden rounded-full bg-white/10">
+    <div className="grid min-w-0 gap-2 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3 text-sm sm:grid-cols-[92px_1fr_52px] sm:items-center sm:gap-3 sm:border-0 sm:bg-transparent sm:p-0">
+      <span className="min-w-0 truncate font-semibold text-[var(--app-text-soft)] sm:text-[var(--app-text-muted)]">{label}</span>
+      <div className="h-2.5 overflow-hidden rounded-full bg-[var(--app-surface-soft)]">
         <div className="h-full rounded-full bg-gradient-to-r from-[#D4A017] to-[#f1c232]" style={{ width: `${width}%` }} />
       </div>
-      <span className="font-black text-white light:text-carbon-950 sm:text-right">{count}</span>
+      <span className="font-black text-[var(--app-text)]  sm:text-right">{count}</span>
     </div>
   );
 }
@@ -273,12 +273,12 @@ startxref
 
   return (
     <div className="space-y-3 overflow-x-hidden pb-[calc(108px+env(safe-area-inset-bottom))] md:space-y-6 md:pb-8">
-      <div className="rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(227,177,23,.16),transparent_36%),linear-gradient(135deg,rgba(12,17,24,.96),rgba(2,3,5,.98))] p-3 shadow-[0_18px_50px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)] md:hidden">
+      <div className="rounded-2xl border border-[var(--app-border)] bg-[radial-gradient(circle_at_top_right,rgba(227,177,23,.16),transparent_36%),linear-gradient(135deg,rgba(12,17,24,.96),rgba(2,3,5,.98))] p-3 shadow-[0_18px_50px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)] md:hidden">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gold-200">COMPTABILITÉ</p>
-            <h1 className="mt-0.5 text-2xl font-black leading-none text-white">Rapports</h1>
-            <p className="mt-1 truncate text-xs text-carbon-400">Rapports financiers depuis vos données réelles.</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--app-gold-text)]">COMPTABILITÉ</p>
+            <h1 className="mt-0.5 text-2xl font-black leading-none text-[var(--app-text)]">Rapports</h1>
+            <p className="mt-1 truncate text-xs text-[var(--app-text-muted)]">Rapports financiers depuis vos données réelles.</p>
           </div>
           <div className="grid shrink-0 grid-cols-2 gap-2">
             <Button variant="secondary" className="h-11 rounded-2xl px-3 text-xs" icon={<FileSpreadsheet className="h-4 w-4" />} onClick={exportCsv}>CSV</Button>
@@ -300,16 +300,16 @@ startxref
         />
       </div>
 
-      <Card className="overflow-hidden rounded-2xl border-white/10 bg-gradient-to-br from-[#121720] via-[#0d1118] to-black p-3 shadow-[0_18px_50px_rgba(0,0,0,.26)] sm:rounded-3xl sm:p-5">
+      <Card className="overflow-hidden rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_18px_50px_rgba(0,0,0,.26)] sm:rounded-3xl sm:p-5">
         <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto] lg:items-end">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-[#D4A017]/20 bg-[#D4A017]/10 text-gold-200 sm:h-10 sm:w-10 sm:rounded-2xl">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-[#D4A017]/20 bg-[#D4A017]/10 text-[var(--app-gold-text)] sm:h-10 sm:w-10 sm:rounded-2xl">
                 <CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </span>
               <div className="min-w-0">
-                <p className="text-sm font-black text-white light:text-carbon-950 sm:text-base">Filtre de période</p>
-                <p className="mt-1 truncate text-xs leading-5 text-carbon-500">Réservations, paiements et entretiens de la période.</p>
+                <p className="text-sm font-black text-[var(--app-text)]  sm:text-base">Filtre de période</p>
+                <p className="mt-1 truncate text-xs leading-5 text-[var(--app-text-muted)]">Réservations, paiements et entretiens de la période.</p>
               </div>
             </div>
           </div>
@@ -323,7 +323,7 @@ startxref
               <button
                 key={key}
                 type="button"
-                className={`h-9 shrink-0 rounded-full px-3 text-xs font-black transition sm:h-11 sm:rounded-2xl sm:px-4 sm:text-sm ${period === key ? 'bg-gold-400 text-carbon-950 shadow-[0_0_28px_rgba(212,160,23,.16)]' : 'border border-white/10 bg-white/[0.035] text-carbon-300 hover:bg-white/[0.06]'}`}
+                className={`h-9 shrink-0 rounded-full px-3 text-xs font-black transition sm:h-11 sm:rounded-2xl sm:px-4 sm:text-sm ${period === key ? 'bg-gold-400 text-[#101820] shadow-[0_0_28px_rgba(212,160,23,.16)]' : 'border border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] hover:bg-[var(--app-surface-soft)]'}`}
                 onClick={() => setPeriod(key as PeriodKey)}
               >
                 {label}
@@ -355,32 +355,32 @@ startxref
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
-        <Card className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-4 shadow-[0_18px_50px_rgba(0,0,0,.24)] sm:p-6">
+        <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-4 shadow-[0_18px_50px_rgba(0,0,0,.24)] sm:p-6">
           <div className="mb-5 flex min-w-0 items-center gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-[#D4A017]/20 bg-[#D4A017]/10 text-gold-200">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-[#D4A017]/20 bg-[#D4A017]/10 text-[var(--app-gold-text)]">
               <TrendingUp className="h-5 w-5" />
             </span>
-            <h2 className="min-w-0 truncate text-lg font-black tracking-tight text-white light:text-carbon-950 sm:text-xl">Réservations par mois</h2>
+            <h2 className="min-w-0 truncate text-lg font-black tracking-tight text-[var(--app-text)]  sm:text-xl">Réservations par mois</h2>
           </div>
           <div className="grid gap-3">
             {report.reservationsByMonth.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-carbon-400">Aucune réservation.</div>
+              <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-sm text-[var(--app-text-muted)]">Aucune réservation.</div>
             ) : report.reservationsByMonth.map(([label, count]) => (
               <CountBarRow key={label} label={label} count={count} max={maxMonthlyReservations} />
             ))}
           </div>
         </Card>
 
-        <Card className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-4 shadow-[0_18px_50px_rgba(0,0,0,.24)] sm:p-6">
+        <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-4 shadow-[0_18px_50px_rgba(0,0,0,.24)] sm:p-6">
           <div className="mb-5 flex min-w-0 items-center gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.06] text-carbon-300">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)]">
               <Gauge className="h-5 w-5" />
             </span>
-            <h2 className="min-w-0 truncate text-lg font-black tracking-tight text-white light:text-carbon-950 sm:text-xl">Revenus par véhicule</h2>
+            <h2 className="min-w-0 truncate text-lg font-black tracking-tight text-[var(--app-text)]  sm:text-xl">Revenus par véhicule</h2>
           </div>
           <div className="grid gap-3">
             {report.revenueByVehicle.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-carbon-400">Aucun revenu véhicule.</div>
+              <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-sm text-[var(--app-text-muted)]">Aucun revenu véhicule.</div>
             ) : report.revenueByVehicle.slice(0, 8).map((item) => (
               <BarRow key={item.id} label={item.plate} value={item.revenue} max={maxVehicleRevenue} />
             ))}
@@ -389,93 +389,93 @@ startxref
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">
-        <Card className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-0 shadow-[0_18px_50px_rgba(0,0,0,.24)]">
-          <div className="border-b border-white/10 p-4 sm:p-5">
-            <h2 className="text-lg font-black tracking-tight text-white light:text-carbon-950 sm:text-xl">Top véhicules rentables</h2>
+        <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-0 shadow-[0_18px_50px_rgba(0,0,0,.24)]">
+          <div className="border-b border-[var(--app-border)] p-4 sm:p-5">
+            <h2 className="text-lg font-black tracking-tight text-[var(--app-text)]  sm:text-xl">Top véhicules rentables</h2>
           </div>
           <div className="grid gap-3 p-4 md:hidden">
             {report.revenueByVehicle.length === 0 ? (
               <MobileEmptyBlock icon={Gauge} title="Aucun revenu véhicule" message="Les véhicules rentables apparaîtront après vos premiers paiements." />
             ) : report.revenueByVehicle.slice(0, 8).map((item) => (
-              <div key={item.id} className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+              <div key={item.id} className="rounded-3xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
                 <div className="flex min-w-0 items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate font-black text-white">{item.label}</p>
+                    <p className="truncate font-black text-[var(--app-text)]">{item.label}</p>
                     <div className="mt-2"><PlateNumber value={item.plate} /></div>
                   </div>
-                  <p className="shrink-0 text-right font-black text-gold-200">{formatMAD(item.revenue)}</p>
+                  <p className="shrink-0 text-right font-black text-[var(--app-gold-text)]">{formatMAD(item.revenue)}</p>
                 </div>
               </div>
             ))}
           </div>
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[520px] text-left text-sm">
-              <thead className="border-b border-white/10 text-xs uppercase tracking-wide text-carbon-500">
+              <thead className="border-b border-[var(--app-border)] text-xs uppercase tracking-wide text-[var(--app-text-muted)]">
                 <tr><th className="px-5 py-3">Véhicule</th><th className="px-5 py-3">Immatriculation</th><th className="px-5 py-3 text-right">Revenus</th></tr>
               </thead>
-              <tbody className="divide-y divide-white/10">
+              <tbody className="divide-y divide-[var(--app-border)]">
                 {report.revenueByVehicle.slice(0, 8).map((item) => (
-                  <tr key={item.id}><td className="px-5 py-3 font-semibold">{item.label}</td><td className="px-5 py-3 text-carbon-400"><PlateNumber value={item.plate} /></td><td className="px-5 py-3 text-right font-semibold text-gold-200">{formatMAD(item.revenue)}</td></tr>
+                  <tr key={item.id}><td className="px-5 py-3 font-semibold">{item.label}</td><td className="px-5 py-3 text-[var(--app-text-muted)]"><PlateNumber value={item.plate} /></td><td className="px-5 py-3 text-right font-semibold text-[var(--app-gold-text)]">{formatMAD(item.revenue)}</td></tr>
                 ))}
-                {report.revenueByVehicle.length === 0 ? <tr><td colSpan={3} className="px-5 py-4 text-carbon-400">Aucune donnée.</td></tr> : null}
+                {report.revenueByVehicle.length === 0 ? <tr><td colSpan={3} className="px-5 py-4 text-[var(--app-text-muted)]">Aucune donnée.</td></tr> : null}
               </tbody>
             </table>
           </div>
         </Card>
 
-        <Card className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-0 shadow-[0_18px_50px_rgba(0,0,0,.24)]">
-          <div className="border-b border-white/10 p-4 sm:p-5">
-            <h2 className="text-lg font-black tracking-tight text-white light:text-carbon-950 sm:text-xl">Clients les plus rentables</h2>
+        <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-0 shadow-[0_18px_50px_rgba(0,0,0,.24)]">
+          <div className="border-b border-[var(--app-border)] p-4 sm:p-5">
+            <h2 className="text-lg font-black tracking-tight text-[var(--app-text)]  sm:text-xl">Clients les plus rentables</h2>
           </div>
           <div className="grid gap-3 p-4 md:hidden">
             {report.profitableClients.length === 0 ? (
               <MobileEmptyBlock icon={WalletCards} title="Aucun client rentable" message="Le classement client apparaîtra après vos premières locations." />
             ) : report.profitableClients.slice(0, 8).map((item) => (
-              <div key={item.id} className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+              <div key={item.id} className="rounded-3xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
                 <div className="flex min-w-0 items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="truncate font-black text-white">{item.label}</p>
-                    <p className="mt-1 text-sm text-carbon-400">{item.reservations} réservation(s)</p>
+                    <p className="truncate font-black text-[var(--app-text)]">{item.label}</p>
+                    <p className="mt-1 text-sm text-[var(--app-text-muted)]">{item.reservations} réservation(s)</p>
                   </div>
-                  <p className="shrink-0 text-right font-black text-gold-200">{formatMAD(item.revenue)}</p>
+                  <p className="shrink-0 text-right font-black text-[var(--app-gold-text)]">{formatMAD(item.revenue)}</p>
                 </div>
               </div>
             ))}
           </div>
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[520px] text-left text-sm">
-              <thead className="border-b border-white/10 text-xs uppercase tracking-wide text-carbon-500">
+              <thead className="border-b border-[var(--app-border)] text-xs uppercase tracking-wide text-[var(--app-text-muted)]">
                 <tr><th className="px-5 py-3">Client</th><th className="px-5 py-3">Réservations</th><th className="px-5 py-3 text-right">Revenus</th></tr>
               </thead>
-              <tbody className="divide-y divide-white/10">
+              <tbody className="divide-y divide-[var(--app-border)]">
                 {report.profitableClients.slice(0, 8).map((item) => (
-                  <tr key={item.id}><td className="px-5 py-3 font-semibold">{item.label}</td><td className="px-5 py-3 text-carbon-400">{item.reservations}</td><td className="px-5 py-3 text-right font-semibold text-gold-200">{formatMAD(item.revenue)}</td></tr>
+                  <tr key={item.id}><td className="px-5 py-3 font-semibold">{item.label}</td><td className="px-5 py-3 text-[var(--app-text-muted)]">{item.reservations}</td><td className="px-5 py-3 text-right font-semibold text-[var(--app-gold-text)]">{formatMAD(item.revenue)}</td></tr>
                 ))}
-                {report.profitableClients.length === 0 ? <tr><td colSpan={3} className="px-5 py-4 text-carbon-400">Aucune donnée.</td></tr> : null}
+                {report.profitableClients.length === 0 ? <tr><td colSpan={3} className="px-5 py-4 text-[var(--app-text-muted)]">Aucune donnée.</td></tr> : null}
               </tbody>
             </table>
           </div>
         </Card>
       </section>
 
-      <Card className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-4 shadow-[0_18px_50px_rgba(0,0,0,.24)] sm:p-6">
+      <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-4 shadow-[0_18px_50px_rgba(0,0,0,.24)] sm:p-6">
         <div className="mb-5 flex min-w-0 items-center gap-3">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-rose-300/20 bg-rose-500/10 text-rose-100">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-rose-300/20 bg-rose-500/10 text-[var(--app-danger)]">
             <WalletCards className="h-5 w-5" />
           </span>
-          <h2 className="min-w-0 truncate text-lg font-black tracking-tight text-white light:text-carbon-950 sm:text-xl">Paiements en retard</h2>
+          <h2 className="min-w-0 truncate text-lg font-black tracking-tight text-[var(--app-text)]  sm:text-xl">Paiements en retard</h2>
         </div>
         <div className="grid gap-3">
           {report.overdue.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-carbon-400">Aucun paiement en retard.</div>
+            <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-sm text-[var(--app-text-muted)]">Aucun paiement en retard.</div>
           ) : report.overdue.map((payment) => (
-            <div key={payment.id} className="grid gap-3 rounded-3xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] md:grid-cols-[1fr_auto_auto] md:items-center">
+            <div key={payment.id} className="grid gap-3 rounded-3xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] md:grid-cols-[1fr_auto_auto] md:items-center">
               <div className="min-w-0">
-                <p className="truncate font-black text-white light:text-carbon-950">{payment.client}</p>
-                <p className="mt-1 text-sm text-carbon-400">{payment.invoice} · échéance {payment.dueDate}</p>
+                <p className="truncate font-black text-[var(--app-text)] ">{payment.client}</p>
+                <p className="mt-1 text-sm text-[var(--app-text-muted)]">{payment.invoice} · échéance {payment.dueDate}</p>
               </div>
-              <p className="font-black text-rose-100 light:text-carbon-950">{formatMAD(payment.amount)}</p>
-              <span className="inline-flex h-9 items-center justify-center rounded-full border border-rose-300/30 bg-rose-500/10 px-3 text-center text-xs font-black text-rose-100">En retard</span>
+              <p className="font-black text-[var(--app-danger)] ">{formatMAD(payment.amount)}</p>
+              <span className="inline-flex h-9 items-center justify-center rounded-full border border-rose-300/30 bg-rose-500/10 px-3 text-center text-xs font-black text-[var(--app-danger)]">En retard</span>
             </div>
           ))}
         </div>

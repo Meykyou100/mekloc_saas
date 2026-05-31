@@ -88,12 +88,12 @@ function reservationLabel(status: ReservationStatus) {
 
 function blockClass(reservation: Reservation, dayIso: string) {
   if (reservation.pickupDate === dayIso) {
-    return 'border-amber-300/60 bg-gradient-to-r from-amber-500/35 to-amber-500/18 text-amber-50';
+    return 'border-amber-300/60 bg-gradient-to-r from-amber-500/35 to-amber-500/18 text-amber-50 light:text-amber-900';
   }
   if (reservation.returnDate === dayIso) {
-    return 'border-cyan-300/55 bg-gradient-to-r from-cyan-500/30 to-teal-500/18 text-cyan-50';
+    return 'border-cyan-300/55 bg-gradient-to-r from-cyan-500/30 to-teal-500/18 text-cyan-50 light:text-cyan-900';
   }
-  return 'border-emerald-300/35 bg-gradient-to-r from-emerald-500/30 to-emerald-500/14 text-white';
+  return 'border-emerald-300/35 bg-gradient-to-r from-emerald-500/30 to-emerald-500/14 text-white light:text-emerald-900';
 }
 
 type CellState = 'available' | 'reserved' | 'maintenance' | 'departure_today' | 'return_today';
@@ -128,11 +128,11 @@ function vehicleStatusLabel(status: string, archived?: boolean) {
 }
 
 function vehicleStatusClass(status: string, archived?: boolean) {
-  if (archived) return 'border-carbon-500/30 bg-white/5 text-carbon-300';
-  if (status === 'Available') return 'border-emerald-300/30 bg-emerald-500/12 text-emerald-200';
-  if (status === 'Rented') return 'border-sky-300/30 bg-sky-500/12 text-sky-200';
-  if (status === 'Maintenance') return 'border-violet-300/30 bg-violet-500/12 text-violet-200';
-  return 'border-amber-300/30 bg-amber-500/12 text-amber-100';
+  if (archived) return 'border-carbon-500/30 bg-[var(--app-surface-soft)] text-[var(--app-text-muted)]';
+  if (status === 'Available') return 'border-emerald-300/30 bg-emerald-500/12 text-emerald-200 light:text-emerald-700';
+  if (status === 'Rented') return 'border-sky-300/30 bg-sky-500/12 text-sky-200 light:text-sky-700';
+  if (status === 'Maintenance') return 'border-violet-300/30 bg-violet-500/12 text-violet-200 light:text-violet-700';
+  return 'border-amber-300/30 bg-amber-500/12 text-amber-100 light:text-amber-700';
 }
 
 function formatMoroccoTel(phone?: string) {
@@ -284,23 +284,23 @@ export default function CalendarPage() {
       <div className="md:hidden">
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-gold-300">PLANIFICATION</p>
-            <h1 className="mt-2 text-[1.85rem] font-black leading-none tracking-tight text-white">Calendrier</h1>
-            <p className="mt-2 max-w-[230px] text-[13px] leading-5 text-carbon-300">
+            <p className="text-[11px] font-black uppercase tracking-[0.28em] text-[var(--app-gold-text)]">PLANIFICATION</p>
+            <h1 className="mt-2 text-[1.85rem] font-black leading-none tracking-tight text-[var(--app-text)]">Calendrier</h1>
+            <p className="mt-2 max-w-[230px] text-[13px] leading-5 text-[var(--app-text-soft)]">
               Planifiez et suivez votre flotte en temps réel.
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
-              className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.045] px-2.5 text-xs font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,.06)] backdrop-blur"
+              className="focus-ring inline-flex h-9 items-center gap-1.5 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-2.5 text-xs font-black text-[var(--app-text)] shadow-[inset_0_1px_0_rgba(255,255,255,.06)] backdrop-blur"
               onClick={() => {
                 const today = toDateOnly(new Date());
                 setWindowStart(today);
                 setSelectedDayIso(isoDate(today));
               }}
             >
-              <RefreshCcw className="h-3.5 w-3.5 text-gold-200" />
+              <RefreshCcw className="h-3.5 w-3.5 text-[var(--app-gold-text)]" />
               Aujourd’hui
             </button>
             <button
@@ -344,52 +344,52 @@ export default function CalendarPage() {
 
       <div className="no-scrollbar relative -mx-4 mb-3 flex gap-2.5 overflow-x-auto px-4 pb-1 md:mx-0 md:mb-6 md:grid md:grid-cols-2 md:overflow-visible md:px-0 md:pb-0 xl:grid-cols-5">
         {[
-          { label: 'Véhicules', value: String(calendarStats.activeVehicles), helper: 'Dans votre flotte', icon: Car, tone: 'text-emerald-200', glow: 'from-emerald-400/14' },
-          { label: 'Réserv.', value: String(calendarStats.reservationsToday), helper: 'Aujourd’hui', icon: CalendarDays, tone: 'text-violet-200', glow: 'from-violet-400/14' },
-          { label: 'Retours', value: String(calendarStats.returnsToday), helper: 'Aujourd’hui', icon: RefreshCcw, tone: 'text-cyan-200', glow: 'from-cyan-400/14' },
-          { label: 'Maintenance', value: String(calendarStats.maintenanceCount), helper: 'Non disponibles', icon: Wrench, tone: 'text-amber-200', glow: 'from-amber-400/14' },
-          { label: 'Occupation', value: `${calendarStats.occupancy}%`, helper: 'Cette semaine', icon: TrendingUp, tone: 'text-sky-200', glow: 'from-sky-400/14' },
+          { label: 'Véhicules', value: String(calendarStats.activeVehicles), helper: 'Dans votre flotte', icon: Car, tone: 'text-emerald-200 light:text-emerald-700', glow: 'from-emerald-400/14' },
+          { label: 'Réserv.', value: String(calendarStats.reservationsToday), helper: 'Aujourd’hui', icon: CalendarDays, tone: 'text-violet-200 light:text-violet-700', glow: 'from-violet-400/14' },
+          { label: 'Retours', value: String(calendarStats.returnsToday), helper: 'Aujourd’hui', icon: RefreshCcw, tone: 'text-cyan-200 light:text-cyan-700', glow: 'from-cyan-400/14' },
+          { label: 'Maintenance', value: String(calendarStats.maintenanceCount), helper: 'Non disponibles', icon: Wrench, tone: 'text-amber-200 light:text-amber-700', glow: 'from-amber-400/14' },
+          { label: 'Occupation', value: `${calendarStats.occupancy}%`, helper: 'Cette semaine', icon: TrendingUp, tone: 'text-sky-200 light:text-sky-700', glow: 'from-sky-400/14' },
         ].map(({ label, value, helper, icon: Icon, tone, glow }) => (
-          <div key={label} className="group relative min-h-[118px] min-w-[136px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_14px_34px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.05)] transition hover:border-[#D4A017]/35 md:min-h-[126px] md:min-w-0 md:rounded-3xl md:p-4">
+          <div key={label} className="group relative min-h-[118px] min-w-[136px] overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[var(--app-shadow)] transition hover:border-[#D4A017]/35 md:min-h-[126px] md:min-w-0 md:rounded-3xl md:p-4">
             <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${glow} to-transparent opacity-80`} />
             <div className="relative flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-carbon-400">{label}</p>
-                <p className="mt-2 truncate text-[1.7rem] font-black leading-none text-white md:text-3xl">{value}</p>
+                <p className="text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-[var(--app-text-muted)]">{label}</p>
+                <p className="mt-2 truncate text-[1.7rem] font-black leading-none text-[var(--app-text)] md:text-3xl">{value}</p>
               </div>
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[14px] border border-[#D4A017]/20 bg-[#D4A017]/10 shadow-[0_0_20px_rgba(212,160,23,0.10)] md:h-10 md:w-10">
                 <Icon className={`h-3.5 w-3.5 md:h-4 md:w-4 ${tone}`} />
               </span>
             </div>
             <div className="relative mt-2.5">
-              <p className="truncate text-[11px] font-medium text-carbon-400">{helper}</p>
+              <p className="truncate text-[11px] font-medium text-[var(--app-text-muted)]">{helper}</p>
               <span className="mt-1.5 block h-1 w-14 rounded-full bg-gradient-to-r from-[#D4A017]/70 via-white/20 to-transparent" />
             </div>
           </div>
         ))}
       </div>
 
-      <Card className="relative mb-3 rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_18px_46px_rgba(0,0,0,.24)] md:mb-4 md:p-4">
+      <Card className="relative mb-3 rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[var(--app-shadow)] md:mb-4 md:p-4">
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="grid grid-cols-[minmax(0,1fr)_40px_40px] items-center gap-2 md:flex md:flex-wrap md:gap-2">
-            <button type="button" className="focus-ring h-10 rounded-xl border border-white/10 bg-white/[0.045] px-3 text-xs font-bold text-white md:h-11 md:rounded-2xl md:px-4 md:text-sm">
+            <button type="button" className="focus-ring h-10 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 text-xs font-bold text-[var(--app-text)] md:h-11 md:rounded-2xl md:px-4 md:text-sm">
               Vue semaine
             </button>
             <button
               type="button"
-              className="focus-ring grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.045] text-carbon-200 transition hover:border-[#D4A017]/30 hover:text-gold-100 md:h-11 md:w-11 md:rounded-2xl"
+              className="focus-ring grid h-10 w-10 place-items-center rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] transition hover:border-[#D4A017]/30 hover:text-[var(--app-gold-text)] md:h-11 md:w-11 md:rounded-2xl"
               onClick={() => setWindowStart((current) => addDays(current, -daysToShow))}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               type="button"
-              className="focus-ring grid h-10 w-10 place-items-center rounded-xl border border-white/10 bg-white/[0.045] text-carbon-200 transition hover:border-[#D4A017]/30 hover:text-gold-100 md:h-11 md:w-11 md:rounded-2xl"
+              className="focus-ring grid h-10 w-10 place-items-center rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] transition hover:border-[#D4A017]/30 hover:text-[var(--app-gold-text)] md:h-11 md:w-11 md:rounded-2xl"
               onClick={() => setWindowStart((current) => addDays(current, daysToShow))}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
-            <div className="col-span-3 flex h-10 items-center justify-center gap-2 rounded-xl border border-[#D4A017]/20 bg-[#D4A017]/10 px-3 text-xs font-black text-gold-100 md:col-span-1 md:h-11 md:rounded-2xl md:px-4 md:text-sm">
+            <div className="col-span-3 flex h-10 items-center justify-center gap-2 rounded-xl border border-[#D4A017]/20 bg-[var(--app-gold-soft)] px-3 text-xs font-black text-[var(--app-gold-text)] md:col-span-1 md:h-11 md:rounded-2xl md:px-4 md:text-sm">
               <CalendarDays className="h-3.5 w-3.5 md:h-4 md:w-4" />
               {dateRangeLabel}
             </div>
@@ -397,7 +397,7 @@ export default function CalendarPage() {
 
           <div className="flex flex-col gap-2 xl:items-end">
             <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 md:flex md:flex-wrap md:items-center">
-              <button type="button" className="focus-ring inline-flex h-10 items-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.045] px-3 text-xs font-bold text-carbon-200 transition hover:border-[#D4A017]/30 md:gap-2 md:rounded-2xl">
+              <button type="button" className="focus-ring inline-flex h-10 items-center gap-1.5 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 text-xs font-bold text-[var(--app-text-soft)] transition hover:border-[#D4A017]/30 md:gap-2 md:rounded-2xl">
                 <Filter className="h-3.5 w-3.5" />
                 Filtres
               </button>
@@ -405,19 +405,19 @@ export default function CalendarPage() {
                 <button
                   type="button"
                   className={`focus-ring h-8 rounded-xl border px-2.5 text-xs font-bold transition md:h-10 md:rounded-2xl md:px-3 ${
-                    showArchived ? 'border-gold-300/40 bg-gold-400 text-carbon-950' : 'border-white/10 bg-white/[0.045] text-carbon-300 hover:bg-white/10'
+                    showArchived ? 'border-gold-300/40 bg-gold-400 text-carbon-950' : 'border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] hover:bg-[var(--app-gold-soft)]'
                   }`}
                   onClick={() => setShowArchived((current) => !current)}
                 >
                   Afficher archivés
                 </button>
               ) : null}
-              <div className="flex h-10 min-w-0 items-center gap-1 rounded-xl border border-white/10 bg-white/[0.045] p-0.5 md:rounded-2xl md:p-1">
+              <div className="flex h-10 min-w-0 items-center gap-1 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-0.5 md:rounded-2xl md:p-1">
                 {DAY_OPTIONS.map((option) => (
                   <button
                     key={option}
                     className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-black transition md:flex-none md:rounded-xl md:px-3 md:py-2 ${
-                      daysToShow === option ? 'bg-[#D4A017] text-carbon-950' : 'text-carbon-300 hover:bg-white/10'
+                      daysToShow === option ? 'bg-[#D4A017] text-carbon-950' : 'text-[var(--app-text-soft)] hover:bg-[var(--app-gold-soft)]'
                     }`}
                     onClick={() => setDaysToShow(option)}
                   >
@@ -428,11 +428,11 @@ export default function CalendarPage() {
             </div>
             <div className="flex flex-wrap gap-x-2.5 gap-y-1.5 text-[10px] leading-4 md:gap-x-3 md:gap-y-2 md:text-xs">
               {[
-                ['Disponible', 'bg-emerald-400', 'text-emerald-200'],
-                ['Réservé', 'bg-sky-400', 'text-sky-200'],
-                ['Départ aujourd’hui', 'bg-amber-400', 'text-amber-200'],
-                ['Retour aujourd’hui', 'bg-cyan-400', 'text-cyan-200'],
-                ['Maintenance', 'bg-violet-400', 'text-violet-200'],
+                ['Disponible', 'bg-emerald-400', 'text-emerald-200 light:text-emerald-700'],
+                ['Réservé', 'bg-sky-400', 'text-sky-200 light:text-sky-700'],
+                ['Départ aujourd’hui', 'bg-amber-400', 'text-amber-200 light:text-amber-700'],
+                ['Retour aujourd’hui', 'bg-cyan-400', 'text-cyan-200 light:text-cyan-700'],
+                ['Maintenance', 'bg-violet-400', 'text-violet-200 light:text-violet-700'],
               ].map(([label, dot, text]) => (
                 <span key={label} className={`inline-flex items-center gap-2 ${text}`}>
                   <span className={`h-2 w-2 rounded-full ${dot} md:h-2.5 md:w-2.5`} />
@@ -445,12 +445,12 @@ export default function CalendarPage() {
       </Card>
 
       <div className="relative grid gap-4 md:gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
-        <Card className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-0 shadow-[0_24px_70px_rgba(0,0,0,.30)]">
+        <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-0 shadow-[var(--app-shadow)]">
           {loading ? (
             <div className="space-y-3 p-5">
-              <div className="h-24 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]" />
-              <div className="h-24 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]" />
-              <div className="h-24 animate-pulse rounded-2xl border border-white/10 bg-white/[0.04]" />
+              <div className="h-24 animate-pulse rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)]" />
+              <div className="h-24 animate-pulse rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)]" />
+              <div className="h-24 animate-pulse rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)]" />
             </div>
           ) : !hasData ? (
             <div className="p-6">
@@ -464,29 +464,29 @@ export default function CalendarPage() {
             </div>
           ) : (
             <>
-              <div className="border-b border-white/10 bg-white/[0.025] px-4 py-3 md:px-5 md:py-4">
+              <div className="border-b border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-3 md:px-5 md:py-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-carbon-500 md:text-xs md:tracking-[0.22em]">Planning flotte</p>
-                    <h2 className="mt-1 text-[1rem] font-black text-white md:text-lg">Vue hebdomadaire des véhicules</h2>
+                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--app-text-muted)] md:text-xs md:tracking-[0.22em]">Planning flotte</p>
+                    <h2 className="mt-1 text-[1rem] font-black text-[var(--app-text)] md:text-lg">Vue hebdomadaire des véhicules</h2>
                   </div>
-                  <p className="text-[11px] text-carbon-400 md:text-sm">{visibleVehicles.length} véhicule{visibleVehicles.length > 1 ? 's' : ''} affiché{visibleVehicles.length > 1 ? 's' : ''}</p>
+                  <p className="text-[11px] text-[var(--app-text-muted)] md:text-sm">{visibleVehicles.length} véhicule{visibleVehicles.length > 1 ? 's' : ''} affiché{visibleVehicles.length > 1 ? 's' : ''}</p>
                 </div>
               </div>
 
               <div className="p-0 md:hidden">
                 <div className="no-scrollbar overflow-x-auto">
                   <div className="min-w-max">
-                    <div className="flex border-t border-white/10 bg-carbon-950/95">
+                    <div className="flex border-t border-[var(--app-border)] bg-[var(--app-card)]">
                       <div
-                        className="sticky left-0 z-30 flex h-[54px] shrink-0 items-center border-r border-white/10 bg-carbon-950/98 px-3 shadow-[10px_0_24px_rgba(0,0,0,.42)] backdrop-blur"
+                        className="sticky left-0 z-30 flex h-[54px] shrink-0 items-center border-r border-[var(--app-border)] bg-[var(--app-card)] px-3 shadow-[10px_0_24px_rgba(0,0,0,.18)] backdrop-blur"
                         style={{ width: MOBILE_VEHICLE_COL_WIDTH }}
                       >
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-carbon-300">VÉHICULES</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--app-text-soft)]">VÉHICULES</p>
                       </div>
 
                       <div
-                        className="grid h-[54px] border-l border-white/10 bg-carbon-950/95"
+                        className="grid h-[54px] border-l border-[var(--app-border)] bg-[var(--app-card)]"
                         style={{
                           width: days.length * MOBILE_DAY_COL_WIDTH,
                           gridTemplateColumns: `repeat(${days.length}, ${MOBILE_DAY_COL_WIDTH}px)`,
@@ -501,8 +501,8 @@ export default function CalendarPage() {
                               type="button"
                               key={`mobile-header-${dayIso}`}
                               onClick={() => setSelectedDayIso(dayIso)}
-                              className={`relative flex h-full flex-col items-center justify-center border-l border-white/10 text-center transition first:border-l-0 ${
-                                isToday || isSelected ? 'bg-[#D4A017]/18 text-gold-50' : 'text-carbon-200 active:bg-white/[0.06]'
+                              className={`relative flex h-full flex-col items-center justify-center border-l border-[var(--app-border)] text-center transition first:border-l-0 ${
+                                isToday || isSelected ? 'bg-[var(--app-gold-soft)] text-[var(--app-gold-text)]' : 'text-[var(--app-text-soft)] active:bg-[var(--app-surface-soft)]'
                               }`}
                             >
                               {isToday ? <span className="absolute bottom-0 left-1/2 h-0.5 w-8 -translate-x-1/2 rounded-full bg-[#F5C542] shadow-[0_0_14px_rgba(245,197,66,.65)]" /> : null}
@@ -520,22 +520,22 @@ export default function CalendarPage() {
                         .map((day, dayIndex) => ({ dayIso: isoDate(day), dayIndex }))
                         .filter(({ dayIso }) => maintenanceDatesByVehicle.get(vehicle.id)?.has(dayIso) || vehicle.status === 'Maintenance');
                       return (
-                        <div key={`mobile-timeline-${vehicle.id}`} className="flex border-t border-white/10 first:border-t-0">
+                        <div key={`mobile-timeline-${vehicle.id}`} className="flex border-t border-[var(--app-border)] first:border-t-0">
                           <div
-                            className="sticky left-0 z-20 shrink-0 bg-carbon-950/98 px-2 py-2 shadow-[10px_0_24px_rgba(0,0,0,.42)] backdrop-blur"
+                            className="sticky left-0 z-20 shrink-0 bg-[var(--app-card)] px-2 py-2 shadow-[10px_0_24px_rgba(0,0,0,.18)] backdrop-blur"
                             style={{ width: MOBILE_VEHICLE_COL_WIDTH, minHeight: MOBILE_ROW_HEIGHT }}
                           >
                             <div className="flex gap-2">
-                              <div className="grid h-11 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/10 bg-white/5">
+                              <div className="grid h-11 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)]">
                                 {vehicle.imageUrl ? (
                                   <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                                 ) : (
-                                  <Car className="h-4 w-4 text-gold-200" />
+                                  <Car className="h-4 w-4 text-[var(--app-gold-text)]" />
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <p className="truncate text-[11px] font-black text-white">{vehicle.brand} {vehicle.model}</p>
-                                <p className="mt-0.5 truncate text-[10px] text-carbon-400"><PlateNumber value={vehicle.plate} /></p>
+                                <p className="truncate text-[11px] font-black text-[var(--app-text)]">{vehicle.brand} {vehicle.model}</p>
+                                <p className="mt-0.5 truncate text-[10px] text-[var(--app-text-muted)]"><PlateNumber value={vehicle.plate} /></p>
                                 <span className={`mt-1 inline-flex max-w-full rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${vehicleStatusClass(vehicle.status, isArchivedVehicle(vehicle))}`}>
                                   {vehicleStatusLabel(vehicle.status, isArchivedVehicle(vehicle))}
                                 </span>
@@ -544,7 +544,7 @@ export default function CalendarPage() {
                           </div>
 
                           <div
-                            className="relative border-l border-white/10 bg-[linear-gradient(90deg,rgba(255,255,255,.055)_1px,transparent_1px)]"
+                            className="relative border-l border-[var(--app-border)] bg-[linear-gradient(90deg,var(--app-border)_1px,transparent_1px)]"
                             style={{
                               width: days.length * MOBILE_DAY_COL_WIDTH,
                               minHeight: MOBILE_ROW_HEIGHT,
@@ -609,7 +609,7 @@ export default function CalendarPage() {
                             {maintenanceDays.slice(0, 1).map(({ dayIndex, dayIso }) => (
                               <button
                                 key={`mobile-maintenance-${vehicle.id}-${dayIso}-${rowIndex}`}
-                                className="absolute top-3 z-10 rounded-xl border border-violet-300/35 bg-gradient-to-r from-violet-500/30 to-sky-500/18 px-2.5 py-2 text-left text-violet-50 shadow-[0_12px_22px_rgba(0,0,0,.38)]"
+                                className="absolute top-3 z-10 rounded-xl border border-violet-300/35 bg-gradient-to-r from-violet-500/30 to-sky-500/18 px-2.5 py-2 text-left text-violet-50 shadow-[0_12px_22px_rgba(0,0,0,.28)] light:text-violet-900"
                                 style={{ left: dayIndex * MOBILE_DAY_COL_WIDTH + 6, width: Math.max(128, MOBILE_DAY_COL_WIDTH * 2 - 12), minHeight: 50 }}
                                 onClick={() => setSelectedDayIso(dayIso)}
                               >
@@ -629,13 +629,13 @@ export default function CalendarPage() {
                 <div className="min-w-max">
                   <div className="sticky top-0 z-20 flex">
                     <div
-                      className="sticky left-0 z-30 flex h-16 shrink-0 items-center rounded-tl-3xl border border-white/10 bg-carbon-950/95 px-5 backdrop-blur"
+                      className="sticky left-0 z-30 flex h-16 shrink-0 items-center rounded-tl-3xl border border-[var(--app-border)] bg-[var(--app-card)] px-5 backdrop-blur"
                       style={{ width: VEHICLE_COL_WIDTH }}
                     >
-                      <p className="text-xs font-black uppercase tracking-[0.22em] text-carbon-300">Véhicules</p>
+                      <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--app-text-soft)]">Véhicules</p>
                     </div>
 
-                    <div className="flex rounded-tr-3xl border border-l-0 border-white/10 bg-carbon-950/95 backdrop-blur">
+                    <div className="flex rounded-tr-3xl border border-l-0 border-[var(--app-border)] bg-[var(--app-card)] backdrop-blur">
                       {days.map((day) => {
                         const dayIso = isoDate(day);
                         const isToday = dayIso === todayIso;
@@ -645,8 +645,8 @@ export default function CalendarPage() {
                             type="button"
                             key={dayIso}
                             onClick={() => setSelectedDayIso(dayIso)}
-                            className={`relative flex h-16 shrink-0 flex-col items-center justify-center border-l border-white/10 px-1 text-center transition ${
-                              isToday || isSelected ? 'bg-gold-500/16 text-gold-100' : 'text-carbon-200 hover:bg-white/[0.04]'
+                            className={`relative flex h-16 shrink-0 flex-col items-center justify-center border-l border-[var(--app-border)] px-1 text-center transition ${
+                              isToday || isSelected ? 'bg-[var(--app-gold-soft)] text-[var(--app-gold-text)]' : 'text-[var(--app-text-soft)] hover:bg-[var(--app-surface-soft)]'
                             }`}
                             style={{ width: DAY_COL_WIDTH }}
                           >
@@ -666,25 +666,25 @@ export default function CalendarPage() {
                     return (
                       <div key={vehicle.id} className="flex">
                         <div
-                          className={`sticky left-0 z-10 shrink-0 border border-t-0 border-white/10 bg-carbon-950/98 px-4 py-3 backdrop-blur ${
+                          className={`sticky left-0 z-10 shrink-0 border border-t-0 border-[var(--app-border)] bg-[var(--app-card)] px-4 py-3 backdrop-blur ${
                             rowIndex === visibleVehicles.length - 1 ? 'rounded-bl-3xl' : ''
                           }`}
                           style={{ width: VEHICLE_COL_WIDTH, minHeight: ROW_HEIGHT }}
                         >
                           <div className="flex gap-3">
-                            <div className="grid h-16 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+                            <div className="grid h-16 w-20 shrink-0 place-items-center overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)]">
                               {vehicle.imageUrl ? (
                                 <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                               ) : (
-                                <Car className="h-6 w-6 text-gold-200" />
+                                <Car className="h-6 w-6 text-[var(--app-gold-text)]" />
                               )}
                             </div>
                             <div className="min-w-0">
-                              <p className="truncate text-sm font-black text-white">
+                              <p className="truncate text-sm font-black text-[var(--app-text)]">
                                 {vehicle.brand} {vehicle.model}
                               </p>
-                              <p className="mt-1 text-xs text-carbon-400"><PlateNumber value={vehicle.plate} /></p>
-                              <div className="mt-2 flex items-center gap-2 text-[11px] text-carbon-300">
+                              <p className="mt-1 text-xs text-[var(--app-text-muted)]"><PlateNumber value={vehicle.plate} /></p>
+                              <div className="mt-2 flex items-center gap-2 text-[11px] text-[var(--app-text-soft)]">
                                 <MapPin className="h-3.5 w-3.5" />
                                 <span className="truncate">{vehicle.city || 'Ville non renseignée'}</span>
                               </div>
@@ -696,7 +696,7 @@ export default function CalendarPage() {
                         </div>
 
                         <div
-                          className={`relative border border-l-0 border-t-0 border-white/10 ${
+                          className={`relative border border-l-0 border-t-0 border-[var(--app-border)] ${
                             rowIndex === visibleVehicles.length - 1 ? 'rounded-br-3xl' : ''
                           }`}
                           style={{ width: timelineWidth, minHeight: ROW_HEIGHT }}
@@ -712,7 +712,7 @@ export default function CalendarPage() {
                               return (
                                 <button
                                   key={`${vehicle.id}-${dayIso}`}
-                                  className={`group relative h-full border-l border-white/10 px-2 py-2 text-left transition first:border-l-0 ${cellClass(cellState)} ${
+                                  className={`group relative h-full border-l border-[var(--app-border)] px-2 py-2 text-left transition first:border-l-0 ${cellClass(cellState)} ${
                                     canCreate ? 'cursor-pointer' : 'cursor-default'
                                   }`}
                                   onClick={() => {
@@ -722,11 +722,11 @@ export default function CalendarPage() {
                                   }}
                                 >
                                   {isToday ? <span className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-[#F5C542]/70 shadow-[0_0_18px_rgba(245,197,66,.8)]" /> : null}
-                                  <span className="pointer-events-none absolute bottom-2 left-2 text-[10px] font-semibold text-carbon-400 opacity-0 transition group-hover:opacity-100">
+                                  <span className="pointer-events-none absolute bottom-2 left-2 text-[10px] font-semibold text-[var(--app-text-muted)] opacity-0 transition group-hover:opacity-100">
                                     {label}
                                   </span>
                                   {cellState === 'maintenance' ? (
-                                    <span className="absolute right-2 top-2 text-violet-200">
+                                    <span className="absolute right-2 top-2 text-violet-200 light:text-violet-700">
                                       <Wrench className="h-3.5 w-3.5" />
                                     </span>
                                   ) : null}
@@ -771,27 +771,27 @@ export default function CalendarPage() {
           )}
         </Card>
 
-        <Card className="rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 shadow-[0_24px_70px_rgba(0,0,0,.30)] md:p-5 2xl:sticky 2xl:top-24 2xl:self-start">
+        <Card className="rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-4 shadow-[var(--app-shadow)] md:p-5 2xl:sticky 2xl:top-24 2xl:self-start">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-gold-300 md:text-xs">Détails du jour</p>
-              <h2 className="mt-1.5 text-base font-black capitalize text-white md:mt-2 md:text-xl">{selectedDateLabel}</h2>
+              <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[var(--app-gold-text)] md:text-xs">Détails du jour</p>
+              <h2 className="mt-1.5 text-base font-black capitalize text-[var(--app-text)] md:mt-2 md:text-xl">{selectedDateLabel}</h2>
             </div>
-            <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#D4A017]/20 bg-[#D4A017]/10 text-gold-200 md:h-11 md:w-11 md:rounded-2xl">
+            <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#D4A017]/20 bg-[var(--app-gold-soft)] text-[var(--app-gold-text)] md:h-11 md:w-11 md:rounded-2xl">
               <CalendarDays className="h-4 w-4 md:h-5 md:w-5" />
             </span>
           </div>
 
           <div className="mt-4 space-y-3 md:mt-5 md:space-y-5">
             {[
-              { title: 'Départs aujourd’hui', items: dayDetails.departures, tone: 'text-amber-200', badge: 'Départ' },
-              { title: 'Retours aujourd’hui', items: dayDetails.returns, tone: 'text-cyan-200', badge: 'Retour' },
-              { title: 'Réservations actives', items: dayDetails.active, tone: 'text-emerald-200', badge: 'Actif' },
+              { title: 'Départs aujourd’hui', items: dayDetails.departures, tone: 'text-amber-200 light:text-amber-700', badge: 'Départ' },
+              { title: 'Retours aujourd’hui', items: dayDetails.returns, tone: 'text-cyan-200 light:text-cyan-700', badge: 'Retour' },
+              { title: 'Réservations actives', items: dayDetails.active, tone: 'text-emerald-200 light:text-emerald-700', badge: 'Actif' },
             ].map(({ title, items, tone, badge }) => (
               <div key={title}>
                 <div className="mb-2 flex items-center justify-between">
                   <p className={`text-[13px] font-black md:text-sm ${tone}`}>{title}</p>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-bold text-carbon-300">{items.length}</span>
+                  <span className="rounded-full border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-2 py-0.5 text-xs font-bold text-[var(--app-text-soft)]">{items.length}</span>
                 </div>
                 {items.length ? (
                   <div className="space-y-2">
@@ -805,21 +805,21 @@ export default function CalendarPage() {
                           key={`${title}-${reservation.id}`}
                           type="button"
                           onClick={() => setSelectedReservation(reservation)}
-                          className="w-full rounded-2xl border border-white/10 bg-white/[0.04] p-3 text-left transition hover:border-[#D4A017]/30 hover:bg-white/[0.06]"
+                          className="w-full rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3 text-left transition hover:border-[#D4A017]/30 hover:bg-[var(--app-gold-soft)]"
                         >
                           <div className="flex gap-3">
-                            <div className="grid h-11 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-white/10 bg-white/5">
-                              {vehicle?.imageUrl ? <img src={vehicle.imageUrl} alt={reservation.vehicle} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : <Car className="h-5 w-5 text-gold-200" />}
+                            <div className="grid h-11 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)]">
+                              {vehicle?.imageUrl ? <img src={vehicle.imageUrl} alt={reservation.vehicle} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : <Car className="h-5 w-5 text-[var(--app-gold-text)]" />}
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-start justify-between gap-2">
                                 <div className="min-w-0">
-                                  <p className="truncate text-[13px] font-black text-white md:text-sm">{reservation.vehicle}</p>
-                                  <p className="truncate text-xs text-carbon-500">{vehicle?.plate ? <PlateNumber value={vehicle.plate} /> : reservation.id}</p>
+                                  <p className="truncate text-[13px] font-black text-[var(--app-text)] md:text-sm">{reservation.vehicle}</p>
+                                  <p className="truncate text-xs text-[var(--app-text-muted)]">{vehicle?.plate ? <PlateNumber value={vehicle.plate} /> : reservation.id}</p>
                                 </div>
-                                <span className="rounded-full border border-[#D4A017]/30 bg-[#D4A017]/10 px-2 py-0.5 text-[11px] font-bold text-gold-100">{badge}</span>
+                                <span className="rounded-full border border-[#D4A017]/30 bg-[var(--app-gold-soft)] px-2 py-0.5 text-[11px] font-bold text-[var(--app-gold-text)]">{badge}</span>
                               </div>
-                              <div className="mt-2 flex items-center justify-between gap-2 text-xs text-carbon-400">
+                              <div className="mt-2 flex items-center justify-between gap-2 text-xs text-[var(--app-text-muted)]">
                                 <span className="inline-flex items-center gap-1">
                                   <Clock3 className="h-3.5 w-3.5" />
                                   {badge === 'Retour' ? reservation.returnTime || 'Heure non renseignée' : reservation.pickupTime || 'Heure non renseignée'}
@@ -846,8 +846,8 @@ export default function CalendarPage() {
                               }}
                               className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border transition ${
                                 phoneHref
-                                  ? 'border-gold-300/20 bg-gold-400/10 text-gold-100 hover:border-gold-300/45 hover:bg-gold-400/15'
-                                  : 'cursor-not-allowed border-white/10 bg-black/20 text-carbon-600'
+                                  ? 'border-gold-300/20 bg-[var(--app-gold-soft)] text-[var(--app-gold-text)] hover:border-gold-300/45 hover:bg-gold-400/15'
+                                  : 'cursor-not-allowed border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-muted)]'
                               }`}
                             >
                               <Phone className="h-3.5 w-3.5" />
@@ -858,35 +858,35 @@ export default function CalendarPage() {
                     })}
                   </div>
                 ) : (
-                  <p className="rounded-2xl border border-white/10 bg-white/[0.025] p-3 text-[13px] text-carbon-500 md:text-sm">Aucun mouvement prévu.</p>
+                  <p className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3 text-[13px] text-[var(--app-text-muted)] md:text-sm">Aucun mouvement prévu.</p>
                 )}
               </div>
             ))}
 
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-[13px] font-black text-violet-200 md:text-sm">Maintenance</p>
-                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-bold text-carbon-300">{dayDetails.maintenanceItems.length}</span>
+                <p className="text-[13px] font-black text-violet-200 light:text-violet-700 md:text-sm">Maintenance</p>
+                <span className="rounded-full border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-2 py-0.5 text-xs font-bold text-[var(--app-text-soft)]">{dayDetails.maintenanceItems.length}</span>
               </div>
               {dayDetails.maintenanceItems.length ? (
                 <div className="space-y-2">
                   {dayDetails.maintenanceItems.slice(0, 3).map((item) => (
                     <div key={item.id} className="rounded-2xl border border-violet-300/20 bg-violet-500/10 p-3">
-                      <p className="text-sm font-black text-white">{item.vehicle}</p>
-                      <p className="mt-1 text-xs text-carbon-400">{item.serviceType} • {item.providerName || 'Garage non renseigné'}</p>
+                      <p className="text-sm font-black text-[var(--app-text)]">{item.vehicle}</p>
+                      <p className="mt-1 text-xs text-[var(--app-text-muted)]">{item.serviceType} • {item.providerName || 'Garage non renseigné'}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="rounded-2xl border border-white/10 bg-white/[0.025] p-3 text-sm text-carbon-500">Aucune maintenance prévue.</p>
+                <p className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3 text-sm text-[var(--app-text-muted)]">Aucune maintenance prévue.</p>
               )}
             </div>
 
             {!dayDetails.departures.length && !dayDetails.returns.length && !dayDetails.active.length && !dayDetails.maintenanceItems.length ? (
-              <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-4 text-center md:p-5">
-                <ShieldCheck className="mx-auto h-8 w-8 text-gold-200" />
-                <p className="mt-3 text-sm font-black text-white md:text-base">Aucun mouvement prévu aujourd’hui.</p>
-                <p className="mt-1 text-xs text-carbon-400 md:text-sm">Votre flotte est calme sur cette date.</p>
+              <div className="rounded-3xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-center md:p-5">
+                <ShieldCheck className="mx-auto h-8 w-8 text-[var(--app-gold-text)]" />
+                <p className="mt-3 text-sm font-black text-[var(--app-text)] md:text-base">Aucun mouvement prévu aujourd’hui.</p>
+                <p className="mt-1 text-xs text-[var(--app-text-muted)] md:text-sm">Votre flotte est calme sur cette date.</p>
               </div>
             ) : null}
           </div>
@@ -902,28 +902,28 @@ export default function CalendarPage() {
           <div className="space-y-4">
             <Card className="space-y-3 p-4">
               <div className="flex items-center justify-between">
-                <p className="text-base font-semibold text-white">{selectedReservation.id}</p>
+                <p className="text-base font-semibold text-[var(--app-text)]">{selectedReservation.id}</p>
                 <Badge>{selectedReservation.status}</Badge>
               </div>
-              <div className="grid gap-2 text-sm text-carbon-200 sm:grid-cols-2">
+              <div className="grid gap-2 text-sm text-[var(--app-text-soft)] sm:grid-cols-2">
                 <p className="inline-flex items-center gap-2">
-                  <Car className="h-4 w-4 text-carbon-400" />
+                  <Car className="h-4 w-4 text-[var(--app-text-muted)]" />
                   {selectedReservation.vehicle}
                 </p>
                 <p className="inline-flex items-center gap-2">
-                  <CalendarDays className="h-4 w-4 text-carbon-400" />
+                  <CalendarDays className="h-4 w-4 text-[var(--app-text-muted)]" />
                   {selectedReservation.pickupDate}{selectedReservation.pickupTime ? ` ${selectedReservation.pickupTime}` : ''} → {selectedReservation.returnDate}{selectedReservation.returnTime ? ` ${selectedReservation.returnTime}` : ''}
                 </p>
                 <p className="inline-flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-carbon-400" />
+                  <MapPin className="h-4 w-4 text-[var(--app-text-muted)]" />
                   {selectedReservation.pickupLocation || 'Lieu départ non renseigné'}
                 </p>
                 <p className="inline-flex items-center gap-2">
-                  <Clock3 className="h-4 w-4 text-carbon-400" />
+                  <Clock3 className="h-4 w-4 text-[var(--app-text-muted)]" />
                   {selectedReservation.returnLocation || 'Lieu retour non renseigné'}
                 </p>
               </div>
-              <p className="text-sm font-semibold text-gold-200">
+              <p className="text-sm font-semibold text-[var(--app-gold-text)]">
                 Montant total: {formatMAD(selectedReservation.totalAmount ?? selectedReservation.dailyPrice)}
               </p>
             </Card>

@@ -108,16 +108,16 @@ function statusFr(status: ReservationStatus) {
 
 function urgencyBadge(reservation: Reservation, todayIso: string) {
   if (reservation.returnDate < todayIso && reservation.status !== 'Completed' && reservation.status !== 'Cancelled') {
-    return { label: 'En retard', className: 'border-rose-300/40 bg-rose-500/15 text-rose-100' };
+    return { label: 'En retard', className: 'border-rose-300/40 bg-rose-500/15 text-rose-100 light:text-rose-700' };
   }
   if (reservation.pickupDate === todayIso) {
-    return { label: "Départ aujourd'hui", className: 'border-amber-300/40 bg-amber-500/15 text-amber-100' };
+    return { label: "Départ aujourd'hui", className: 'border-amber-300/40 bg-amber-500/15 text-amber-100 light:text-amber-700' };
   }
   if (reservation.returnDate === todayIso) {
-    return { label: "Retour aujourd'hui", className: 'border-sky-300/40 bg-sky-500/15 text-sky-100' };
+    return { label: "Retour aujourd'hui", className: 'border-sky-300/40 bg-sky-500/15 text-sky-100 light:text-sky-700' };
   }
   if (reservation.pickupDate > todayIso) {
-    return { label: 'À venir', className: 'border-emerald-300/40 bg-emerald-500/15 text-emerald-100' };
+    return { label: 'À venir', className: 'border-emerald-300/40 bg-emerald-500/15 text-emerald-100 light:text-emerald-700' };
   }
   return null;
 }
@@ -125,17 +125,17 @@ function urgencyBadge(reservation: Reservation, todayIso: string) {
 function ReservationField({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <label className="grid gap-2">
-      <span className="text-sm font-semibold text-carbon-100 light:text-carbon-800">{label}</span>
+      <span className="text-sm font-semibold text-[var(--app-text)]">{label}</span>
       {children}
-      {hint ? <span className="text-xs text-carbon-500">{hint}</span> : null}
+      {hint ? <span className="text-xs text-[var(--app-text-muted)]">{hint}</span> : null}
     </label>
   );
 }
 
 function ReservationFilterField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <label className="grid gap-2 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
-      <span className="text-xs font-black uppercase tracking-[0.14em] text-gold-200">{label}</span>
+    <label className="grid gap-2 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
+      <span className="text-xs font-black uppercase tracking-[0.14em] text-[var(--app-gold-text)]">{label}</span>
       {children}
     </label>
   );
@@ -538,34 +538,34 @@ export default function ReservationsPage() {
         {reservationStatCards.map(({ label, value, trend, icon: Icon, accent }) => (
           <div
             key={label}
-            className="relative min-h-[118px] min-w-[148px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3.5 shadow-[0_14px_36px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.05)] sm:min-w-0 sm:p-4"
+            className="relative min-h-[118px] min-w-[148px] overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3.5 shadow-[0_14px_36px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.05)] sm:min-w-0 sm:p-4"
           >
             <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${accent} to-transparent`} />
             <div className="relative flex h-full flex-col justify-between">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="line-clamp-2 text-[10px] font-black uppercase leading-4 tracking-[0.12em] text-carbon-400">{label}</p>
-                  <p className="mt-2 truncate text-[1.45rem] font-black leading-none text-white sm:text-2xl">{value}</p>
+                  <p className="line-clamp-2 text-[10px] font-black uppercase leading-4 tracking-[0.12em] text-[var(--app-text-muted)]">{label}</p>
+                  <p className="mt-2 truncate text-[1.45rem] font-black leading-none text-[var(--app-text)] sm:text-2xl">{value}</p>
                 </div>
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[14px] border border-[#D4A017]/20 bg-[#D4A017]/10 text-gold-200 shadow-[0_0_20px_rgba(212,160,23,0.10)]">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[14px] border border-[#D4A017]/20 bg-[#D4A017]/10 text-[var(--app-gold-text)] shadow-[0_0_20px_rgba(212,160,23,0.10)]">
                   <Icon className="h-4 w-4" />
                 </span>
               </div>
-              <p className="mt-3 text-[11px] font-semibold text-carbon-400">{trend}</p>
+              <p className="mt-3 text-[11px] font-semibold text-[var(--app-text-muted)]">{trend}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <Card className="mb-5 rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_18px_46px_rgba(0,0,0,.24)] md:p-4">
+      <Card className="mb-5 rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_18px_46px_rgba(0,0,0,.24)] md:p-4">
         <div className="grid gap-3 xl:grid-cols-[minmax(260px,1fr)_auto_auto_auto] xl:items-center">
           <label className="relative">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--app-text-muted)]" />
             <input
               value={query}
               onChange={(event) => setQuery(sanitizeText(event.target.value, 120))}
               placeholder="Rechercher client, véhicule, ville ou référence"
-              className="focus-ring h-12 w-full rounded-2xl border border-white/[0.08] bg-black/30 pl-10 pr-4 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,.035)] transition placeholder:text-carbon-500 hover:border-white/15 light:bg-white light:text-carbon-950"
+              className="focus-ring h-12 w-full rounded-2xl border border-[var(--app-border)] bg-[var(--app-input)] pl-10 pr-4 text-sm text-[var(--app-text)] shadow-[inset_0_1px_0_rgba(255,255,255,.035)] transition placeholder:text-[var(--app-text-muted)] hover:border-gold-300/25"
             />
           </label>
           <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
@@ -573,7 +573,7 @@ export default function ReservationsPage() {
               <button
                 key={item}
                 className={`focus-ring h-10 shrink-0 rounded-xl px-3 text-xs font-black transition md:text-sm ${
-                  status === item ? 'bg-gold-400 text-carbon-950 shadow-[0_10px_22px_rgba(212,160,23,.14)]' : 'border border-white/10 bg-white/[0.04] text-carbon-300 hover:bg-white/10'
+                  status === item ? 'bg-gold-400 text-carbon-950 shadow-[0_10px_22px_rgba(212,160,23,.14)]' : 'border border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] hover:bg-[var(--app-gold-soft)]'
                 }`}
                 onClick={() => setStatus(item)}
               >
@@ -583,7 +583,7 @@ export default function ReservationsPage() {
           </div>
           <button
             type="button"
-            className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 text-sm font-black text-carbon-200 transition hover:border-gold-300/30 hover:bg-gold-400/10 hover:text-gold-100"
+            className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 text-sm font-black text-[var(--app-text-soft)] transition hover:border-gold-300/30 hover:bg-gold-400/10 hover:text-[var(--app-gold-text)]"
             onClick={() => {
               setDraftAdvancedFilters(advancedFilters);
               setFilterDrawerOpen(true);
@@ -592,11 +592,11 @@ export default function ReservationsPage() {
             <ListFilter className="h-4 w-4" />
             Filtres
           </button>
-          <div className="grid grid-cols-2 rounded-2xl border border-white/10 bg-white/[0.04] p-1 md:flex">
-            <button className={`focus-ring grid h-10 min-w-0 place-items-center rounded-xl ${view === 'list' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300'}`} onClick={() => setView('list')} aria-label="Vue liste">
+          <div className="grid grid-cols-2 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-1 md:flex">
+            <button className={`focus-ring grid h-10 min-w-0 place-items-center rounded-xl ${view === 'list' ? 'bg-gold-400 text-carbon-950' : 'text-[var(--app-text-soft)]'}`} onClick={() => setView('list')} aria-label="Vue liste">
               <ListFilter className="h-4 w-4" />
             </button>
-            <button className={`focus-ring grid h-10 min-w-0 place-items-center rounded-xl ${view === 'grid' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300'}`} onClick={() => setView('grid')} aria-label="Vue cartes">
+            <button className={`focus-ring grid h-10 min-w-0 place-items-center rounded-xl ${view === 'grid' ? 'bg-gold-400 text-carbon-950' : 'text-[var(--app-text-soft)]'}`} onClick={() => setView('grid')} aria-label="Vue cartes">
               <LayoutGrid className="h-4 w-4" />
             </button>
           </div>
@@ -612,10 +612,10 @@ export default function ReservationsPage() {
           onAction={openNewReservation}
         />
       ) : view === 'list' ? (
-        <Card className="data-table hidden overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black md:block">
+        <Card className="data-table hidden overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] md:block">
           <div className="overflow-x-auto">
             <table className="w-full min-w-[980px] text-left text-sm">
-              <thead className="border-b border-white/[0.06] text-xs uppercase tracking-wide text-carbon-400">
+              <thead className="border-b border-[var(--app-border)] text-xs uppercase tracking-wide text-[var(--app-text-muted)]">
                 <tr>
                   <th className="px-5 py-4">Référence</th>
                   <th className="px-5 py-4">Client</th>
@@ -626,19 +626,19 @@ export default function ReservationsPage() {
                   <th className="px-5 py-4">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.06]">
+              <tbody className="divide-y divide-[var(--app-border)]">
                 {filteredReservations.map((reservation) => {
                   const paymentSummary = getReservationPaymentSummary(reservation, payments);
                   return (
-                    <tr key={reservation.id} className="transition hover:bg-white/[0.03]">
-                      <td className="px-5 py-4 font-bold text-white">{reservation.id}</td>
-                      <td className="px-5 py-4 text-carbon-300">{reservation.client}</td>
-                      <td className="px-5 py-4 text-carbon-300">{reservation.vehicle}</td>
-                      <td className="px-5 py-4 text-carbon-400">{formatReservationDateTime(reservation.pickupDate, reservation.pickupTime)} → {formatReservationDateTime(reservation.returnDate, reservation.returnTime)}</td>
+                    <tr key={reservation.id} className="transition hover:bg-[var(--app-surface-soft)]">
+                      <td className="px-5 py-4 font-bold text-[var(--app-text)]">{reservation.id}</td>
+                      <td className="px-5 py-4 text-[var(--app-text-soft)]">{reservation.client}</td>
+                      <td className="px-5 py-4 text-[var(--app-text-soft)]">{reservation.vehicle}</td>
+                      <td className="px-5 py-4 text-[var(--app-text-muted)]">{formatReservationDateTime(reservation.pickupDate, reservation.pickupTime)} → {formatReservationDateTime(reservation.returnDate, reservation.returnTime)}</td>
                       <td className="px-5 py-4"><Badge>{reservation.status}</Badge></td>
                       <td className="px-5 py-4">
-                        <p className="font-black text-white">{formatMAD(paymentSummary.total)}</p>
-                        <p className="mt-1 text-xs text-carbon-400">Reste: <span className={paymentSummary.remaining > 0 ? 'font-bold text-amber-200' : 'font-bold text-emerald-200'}>{formatMAD(paymentSummary.remaining)}</span></p>
+                        <p className="font-black text-[var(--app-text)]">{formatMAD(paymentSummary.total)}</p>
+                        <p className="mt-1 text-xs text-[var(--app-text-muted)]">Reste: <span className={paymentSummary.remaining > 0 ? 'font-bold text-amber-200' : 'font-bold text-emerald-200'}>{formatMAD(paymentSummary.remaining)}</span></p>
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap gap-2">
@@ -662,14 +662,14 @@ export default function ReservationsPage() {
             const urgency = urgencyBadge(reservation, todayIso);
             const paymentSummary = getReservationPaymentSummary(reservation, payments);
             return (
-              <Card key={reservation.id} interactive className="group relative overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-[#131821] via-[#0f141c] to-[#07090d] p-4 shadow-[0_14px_38px_rgba(0,0,0,.30),inset_0_1px_0_rgba(255,255,255,.04)] transition-all hover:border-[#D4A017]/35 md:p-5">
+              <Card key={reservation.id} interactive className="group relative overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-4 shadow-[0_14px_38px_rgba(0,0,0,.30),inset_0_1px_0_rgba(255,255,255,.04)] transition-all hover:border-[#D4A017]/35 md:p-5">
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#D4A017]/8 to-transparent opacity-80" />
                 <div className="relative mb-3 flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gold-300/80">{reservation.id}</p>
-                    <h3 className="mt-1 truncate text-base font-black text-white">{reservation.vehicle}</h3>
-                    <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-sm font-semibold text-carbon-300">
-                      <UserRound className="h-3.5 w-3.5 shrink-0 text-carbon-500" />
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--app-gold-text)] opacity-80">{reservation.id}</p>
+                    <h3 className="mt-1 truncate text-base font-black text-[var(--app-text)]">{reservation.vehicle}</h3>
+                    <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-sm font-semibold text-[var(--app-text-soft)]">
+                      <UserRound className="h-3.5 w-3.5 shrink-0 text-[var(--app-text-muted)]" />
                       <span className="truncate">{reservation.client}</span>
                     </p>
                   </div>
@@ -682,32 +682,32 @@ export default function ReservationsPage() {
                   </div>
                 ) : null}
 
-                <div className="relative grid gap-2.5 text-sm text-carbon-300">
-                  <p className="flex min-w-0 items-start gap-2 leading-5"><CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-gold-200" /> <span className="min-w-0">{formatReservationDateTime(reservation.pickupDate, reservation.pickupTime)} → {formatReservationDateTime(reservation.returnDate, reservation.returnTime)} <span className="text-carbon-500">({days} jours)</span></span></p>
-                  <p className="flex min-w-0 items-start gap-2 leading-5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold-200" /> <span className="truncate">{reservation.pickupLocation || 'Lieu départ non renseigné'}</span></p>
-                  <p className="flex min-w-0 items-start gap-2 leading-5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold-200" /> <span className="truncate">{reservation.returnLocation || 'Lieu retour non renseigné'}</span></p>
+                <div className="relative grid gap-2.5 text-sm text-[var(--app-text-soft)]">
+                  <p className="flex min-w-0 items-start gap-2 leading-5"><CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-[var(--app-gold-text)]" /> <span className="min-w-0">{formatReservationDateTime(reservation.pickupDate, reservation.pickupTime)} → {formatReservationDateTime(reservation.returnDate, reservation.returnTime)} <span className="text-[var(--app-text-muted)]">({days} jours)</span></span></p>
+                  <p className="flex min-w-0 items-start gap-2 leading-5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--app-gold-text)]" /> <span className="truncate">{reservation.pickupLocation || 'Lieu départ non renseigné'}</span></p>
+                  <p className="flex min-w-0 items-start gap-2 leading-5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--app-gold-text)]" /> <span className="truncate">{reservation.returnLocation || 'Lieu retour non renseigné'}</span></p>
                 </div>
 
                 <div className="relative mt-4 grid grid-cols-2 gap-2.5">
-                  <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.045] p-3">
-                    <p className="text-xs text-carbon-500">Total</p>
-                    <p className="mt-1 truncate font-black text-white">{formatMAD(reservation.totalAmount ?? reservation.dailyPrice)}</p>
+                  <div className="min-w-0 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
+                    <p className="text-xs text-[var(--app-text-muted)]">Total</p>
+                    <p className="mt-1 truncate font-black text-[var(--app-text)]">{formatMAD(reservation.totalAmount ?? reservation.dailyPrice)}</p>
                   </div>
-                  <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.045] p-3">
-                    <p className="text-xs text-carbon-500">Caution</p>
-                    <p className="mt-1 truncate font-black text-white">{formatMAD(reservation.deposit || 0)}</p>
+                  <div className="min-w-0 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
+                    <p className="text-xs text-[var(--app-text-muted)]">Caution</p>
+                    <p className="mt-1 truncate font-black text-[var(--app-text)]">{formatMAD(reservation.deposit || 0)}</p>
                   </div>
                 </div>
 
-                <div className="relative mt-3 rounded-2xl border border-white/10 bg-black/20 p-3">
+                <div className="relative mt-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
                   <div className="flex min-w-0 items-center gap-2">
-                    <Wallet className="h-4 w-4 shrink-0 text-gold-200" />
-                    <span className="text-xs font-semibold text-carbon-500">Paiement</span>
+                    <Wallet className="h-4 w-4 shrink-0 text-[var(--app-gold-text)]" />
+                    <span className="text-xs font-semibold text-[var(--app-text-muted)]">Paiement</span>
                     <Badge>{paymentSummary.statusFr}</Badge>
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                    <p className="text-carbon-400">Payé: <span className="font-bold text-white">{formatMAD(paymentSummary.paid)}</span></p>
-                    <p className="text-carbon-400">Reste: <span className={paymentSummary.remaining > 0 ? 'font-black text-amber-200' : 'font-black text-emerald-200'}>{paymentSummary.remaining > 0 ? formatMAD(paymentSummary.remaining) : 'Payé intégralement'}</span></p>
+                    <p className="text-[var(--app-text-muted)]">Payé: <span className="font-bold text-[var(--app-text)]">{formatMAD(paymentSummary.paid)}</span></p>
+                    <p className="text-[var(--app-text-muted)]">Reste: <span className={paymentSummary.remaining > 0 ? 'font-black text-amber-200' : 'font-black text-emerald-200'}>{paymentSummary.remaining > 0 ? formatMAD(paymentSummary.remaining) : 'Payé intégralement'}</span></p>
                   </div>
                 </div>
 
@@ -724,7 +724,7 @@ export default function ReservationsPage() {
       )}
 
       <Modal open={filterDrawerOpen} title="Filtres réservations" subtitle="Affinez la liste avec les données existantes." onClose={() => setFilterDrawerOpen(false)} panelClassName="sm:max-w-2xl" bodyClassName="p-0">
-        <div className="grid max-h-[calc(100dvh-9rem)] grid-rows-[1fr_auto] overflow-hidden bg-[#090B0F]">
+        <div className="grid max-h-[calc(100dvh-9rem)] grid-rows-[1fr_auto] overflow-hidden bg-[var(--app-modal)]">
           <div className="overflow-y-auto px-4 py-4 sm:px-6">
             <div className="grid gap-3 sm:grid-cols-2">
               <ReservationFilterField label="Date début">
@@ -766,7 +766,7 @@ export default function ReservationsPage() {
               </ReservationFilterField>
             </div>
           </div>
-          <div className="sticky bottom-0 grid grid-cols-2 gap-3 border-t border-white/10 bg-[#090B0F]/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur sm:flex sm:justify-end sm:px-6">
+          <div className="sticky bottom-0 grid grid-cols-2 gap-3 border-t border-[var(--app-border)] bg-[var(--app-modal)]/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur sm:flex sm:justify-end sm:px-6">
             <Button
               type="button"
               variant="secondary"
@@ -795,22 +795,22 @@ export default function ReservationsPage() {
 
       <AnimatePresence>
         {modalOpen ? (
-          <motion.div className="fixed inset-0 z-50 overflow-hidden bg-[#050505]/88 p-0 backdrop-blur-sm sm:p-4 lg:flex lg:items-center lg:justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <motion.div className="fixed inset-0 z-50 overflow-hidden bg-carbon-950/75 p-0 backdrop-blur-sm sm:p-4 lg:flex lg:items-center lg:justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <button aria-label="Fermer" className="absolute inset-0 h-full w-full cursor-default" onClick={() => !saving && setModalOpen(false)} />
             <motion.aside
               initial={{ opacity: 0, y: 18, scale: 0.985 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 18, scale: 0.985 }}
               transition={{ duration: 0.24, ease: 'easeOut' }}
-              className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-7xl flex-col overflow-hidden rounded-none border border-white/[0.07] bg-[#090B0F] shadow-[0_26px_80px_rgba(0,0,0,.55)] sm:h-full sm:max-h-none sm:rounded-[1.35rem] lg:h-[92dvh] lg:max-h-[920px]"
+              className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-7xl flex-col overflow-hidden rounded-none border border-[var(--app-border)] bg-[var(--app-modal)] shadow-[0_26px_80px_rgba(0,0,0,.55)] sm:h-full sm:max-h-none sm:rounded-[1.35rem] lg:h-[92dvh] lg:max-h-[920px]"
             >
-              <div className="shrink-0 border-b border-white/10 bg-[#090B0F]/95 px-4 py-2.5 backdrop-blur sm:px-6 sm:py-3">
+              <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-modal)]/95 px-4 py-2.5 backdrop-blur sm:px-6 sm:py-3">
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
-                    <h2 className="truncate text-base font-black tracking-tight text-white sm:text-xl">{editingReservation ? 'Modifier une réservation' : 'Ajouter une réservation'}</h2>
-                    <p className="mt-0.5 truncate text-xs font-medium text-carbon-500">Création guidée, validation claire.</p>
+                    <h2 className="truncate text-base font-black tracking-tight text-[var(--app-text)] sm:text-xl">{editingReservation ? 'Modifier une réservation' : 'Ajouter une réservation'}</h2>
+                    <p className="mt-0.5 truncate text-xs font-medium text-[var(--app-text-muted)]">Création guidée, validation claire.</p>
                   </div>
-                  <button className="focus-ring grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-carbon-300 transition hover:bg-white/10 hover:text-white" onClick={() => !saving && setModalOpen(false)} type="button">
+                  <button className="focus-ring grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] transition hover:bg-[var(--app-surface-soft)] hover:text-[var(--app-text)]" onClick={() => !saving && setModalOpen(false)} type="button">
                     <X className="h-[18px] w-[18px]" />
                   </button>
                 </div>
@@ -818,7 +818,7 @@ export default function ReservationsPage() {
 
               <form className={`grid min-h-0 flex-1 overflow-hidden ${reservationStep === 4 ? 'lg:grid-cols-[minmax(0,7fr)_minmax(290px,3fr)]' : ''}`} onSubmit={handleSubmitReservation}>
                 <div className="flex min-h-0 flex-col">
-                  <div className="shrink-0 border-b border-white/10 bg-[#090B0F]/95 px-3 py-2 backdrop-blur sm:px-6 sm:py-3">
+                  <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-modal)]/95 px-3 py-2 backdrop-blur sm:px-6 sm:py-3">
                     <div className="no-scrollbar -mx-1 flex items-start gap-1 overflow-x-auto px-1 sm:mx-0 sm:grid sm:grid-cols-5 sm:gap-0 sm:overflow-visible sm:px-0">
                       {reservationSteps.map((step, index) => (
                         <button
@@ -827,19 +827,19 @@ export default function ReservationsPage() {
                           onClick={() => setReservationStep(index)}
                           className="group relative min-w-[76px] px-0.5 text-center sm:min-w-0"
                         >
-                          {index > 0 ? <span className={`absolute left-0 top-3.5 h-px w-1/2 ${reservationStep >= index ? 'bg-gold-400/80' : 'bg-white/10'}`} /> : null}
-                          {index < reservationSteps.length - 1 ? <span className={`absolute right-0 top-3.5 h-px w-1/2 ${reservationStep > index ? 'bg-gold-400/80' : 'bg-white/10'}`} /> : null}
+                          {index > 0 ? <span className={`absolute left-0 top-3.5 h-px w-1/2 ${reservationStep >= index ? 'bg-gold-400/80' : 'bg-[var(--app-surface-soft)]'}`} /> : null}
+                          {index < reservationSteps.length - 1 ? <span className={`absolute right-0 top-3.5 h-px w-1/2 ${reservationStep > index ? 'bg-gold-400/80' : 'bg-[var(--app-surface-soft)]'}`} /> : null}
                           <span className={`relative mx-auto grid h-7 w-7 place-items-center rounded-full border text-[11px] font-black transition sm:h-8 sm:w-8 sm:text-xs ${
                             reservationStep === index
                               ? 'border-gold-300 bg-gold-400 text-carbon-950 shadow-[0_0_22px_rgba(212,160,23,.24)]'
                               : reservationStep > index
-                                ? 'border-gold-300/45 bg-gold-400/12 text-gold-100'
-                                : 'border-white/10 bg-white/[0.04] text-carbon-500 group-hover:text-carbon-200'
+                                ? 'border-gold-300/45 bg-gold-400/12 text-[var(--app-gold-text)]'
+                                : 'border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-muted)] group-hover:text-[var(--app-text-soft)]'
                           }`}>
                             {reservationStep > index ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
                           </span>
                           <span className={`mt-1 block truncate text-[8.5px] font-black uppercase tracking-[0.06em] sm:text-[10px] ${
-                            reservationStep === index ? 'text-gold-200' : 'text-carbon-500'
+                            reservationStep === index ? 'text-[var(--app-gold-text)]' : 'text-[var(--app-text-muted)]'
                           }`}>
                             {step}
                           </span>
@@ -853,14 +853,14 @@ export default function ReservationsPage() {
                       <section className="space-y-3 sm:space-y-4">
                         <div className="flex items-end justify-between gap-3">
                           <div className="min-w-0">
-                            <h3 className="text-base font-black text-white sm:text-lg">Client</h3>
-                            <p className="mt-0.5 text-xs text-carbon-500 sm:text-sm">Recherchez et sélectionnez le client associé.</p>
+                            <h3 className="text-base font-black text-[var(--app-text)] sm:text-lg">Client</h3>
+                            <p className="mt-0.5 text-xs text-[var(--app-text-muted)] sm:text-sm">Recherchez et sélectionnez le client associé.</p>
                           </div>
                         </div>
                         <div className="relative">
-                          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gold-200" />
+                          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--app-gold-text)]" />
                           <input
-                            className="form-control focus-ring h-11 w-full rounded-2xl border-white/10 bg-white/[0.04] pl-10 pr-4 text-sm"
+                            className="form-control focus-ring h-11 w-full rounded-2xl border-[var(--app-border)] bg-[var(--app-surface-soft)] pl-10 pr-4 text-sm"
                             value={clientSearch}
                             onChange={(event) => setClientSearch(sanitizeText(event.target.value, 120))}
                             placeholder="Rechercher par nom, téléphone, CIN ou permis..."
@@ -882,23 +882,23 @@ export default function ReservationsPage() {
                                 className={`focus-ring group min-w-0 rounded-2xl border p-3 text-left transition hover:-translate-y-0.5 ${
                                   isSelected
                                     ? 'border-gold-300/55 bg-gold-400/10 shadow-[0_0_28px_rgba(212,160,23,.10)]'
-                                    : 'border-white/10 bg-white/[0.035] hover:border-gold-300/25 hover:bg-white/[0.055]'
+                                    : 'border-[var(--app-border)] bg-[var(--app-surface-soft)] hover:border-gold-300/25 hover:bg-[var(--app-surface-soft)]'
                                 }`}
                               >
                                 <div className="flex min-w-0 items-start gap-2.5 sm:gap-3">
-                                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-black sm:h-11 sm:w-11 sm:rounded-2xl sm:text-sm ${isSelected ? 'bg-gold-400 text-carbon-950' : 'bg-white/10 text-white'}`}>
+                                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-black sm:h-11 sm:w-11 sm:rounded-2xl sm:text-sm ${isSelected ? 'bg-gold-400 text-carbon-950' : 'bg-[var(--app-surface-soft)] text-[var(--app-text)]'}`}>
                                     {initials || 'CL'}
                                   </span>
                                   <span className="min-w-0 flex-1">
                                     <span className="flex min-w-0 flex-wrap items-center gap-2">
-                                      <span className="truncate text-sm font-black text-white sm:text-base">{client.fullName}</span>
-                                      {client.status === 'New' ? <span className="rounded-full border border-gold-300/25 bg-gold-400/12 px-2 py-0.5 text-[10px] font-black text-gold-100">Nouveau</span> : null}
-                                      {client.status === 'VIP' ? <span className="rounded-full border border-gold-300/30 bg-gold-400/16 px-2 py-0.5 text-[10px] font-black text-gold-100">VIP</span> : null}
+                                      <span className="truncate text-sm font-black text-[var(--app-text)] sm:text-base">{client.fullName}</span>
+                                      {client.status === 'New' ? <span className="rounded-full border border-gold-300/25 bg-gold-400/12 px-2 py-0.5 text-[10px] font-black text-[var(--app-gold-text)]">Nouveau</span> : null}
+                                      {client.status === 'VIP' ? <span className="rounded-full border border-gold-300/30 bg-gold-400/16 px-2 py-0.5 text-[10px] font-black text-[var(--app-gold-text)]">VIP</span> : null}
                                       <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${docsComplete ? 'border-emerald-300/25 bg-emerald-500/12 text-emerald-200' : 'border-amber-300/25 bg-amber-500/12 text-amber-100'}`}>
                                         {docsComplete ? 'Documents complets' : 'Docs à compléter'}
                                       </span>
                                     </span>
-                                    <span className="mt-1 grid gap-x-3 gap-y-1 text-[11px] text-carbon-400 sm:grid-cols-3 sm:text-xs">
+                                    <span className="mt-1 grid gap-x-3 gap-y-1 text-[11px] text-[var(--app-text-muted)] sm:grid-cols-3 sm:text-xs">
                                       <span className="truncate">Tél. {client.phone || '—'}</span>
                                       <span className="truncate">CIN {client.cin || '—'}</span>
                                       <span className="truncate">Permis {client.license || '—'}</span>
@@ -909,7 +909,7 @@ export default function ReservationsPage() {
                             );
                           })}
                           {filteredClientChoices.length === 0 ? (
-                            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 text-sm text-carbon-400">Aucun client trouvé.</div>
+                            <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-sm text-[var(--app-text-muted)]">Aucun client trouvé.</div>
                           ) : null}
                         </div>
                         {selectedClient ? (
@@ -921,8 +921,8 @@ export default function ReservationsPage() {
                     {reservationStep === 1 ? (
                       <section className="space-y-3 sm:space-y-4">
                         <div>
-                          <h3 className="text-base font-black text-white sm:text-lg">Véhicule</h3>
-                          <p className="mt-0.5 text-xs text-carbon-400 sm:text-sm">Choisissez le véhicule disponible pour la période.</p>
+                          <h3 className="text-base font-black text-[var(--app-text)] sm:text-lg">Véhicule</h3>
+                          <p className="mt-0.5 text-xs text-[var(--app-text-muted)] sm:text-sm">Choisissez le véhicule disponible pour la période.</p>
                         </div>
                         <ReservationField label="Véhicule">
                           <select
@@ -940,7 +940,7 @@ export default function ReservationsPage() {
                         </ReservationField>
                         {selectedVehicle ? (
                           <div className="premium-surface grid gap-3 rounded-2xl p-3 sm:grid-cols-[180px_1fr] sm:rounded-3xl sm:p-5">
-                            <div className="relative h-24 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-800 to-zinc-950 sm:h-28 sm:rounded-3xl">
+                            <div className="relative h-24 overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] sm:h-28 sm:rounded-3xl">
                               {selectedVehicle.imageUrl ? (
                                 <img
                                   src={selectedVehicle.imageUrl}
@@ -951,17 +951,17 @@ export default function ReservationsPage() {
                                 />
                               ) : (
                                 <div className="grid h-full w-full place-items-center">
-                                  <Car className="h-14 w-14 text-white/70" strokeWidth={1.3} />
+                                  <Car className="h-14 w-14 text-[var(--app-text)]/70" strokeWidth={1.3} />
                                 </div>
                               )}
                             </div>
                             <div>
                               <div className="flex flex-wrap items-center gap-3">
-                                <p className="text-sm font-black text-white sm:text-base">{selectedVehicle.brand} {selectedVehicle.model}</p>
+                                <p className="text-sm font-black text-[var(--app-text)] sm:text-base">{selectedVehicle.brand} {selectedVehicle.model}</p>
                                 <Badge>{selectedVehicle.status}</Badge>
                               </div>
-                              <p className="mt-1 text-xs text-carbon-400 sm:text-sm"><PlateNumber value={selectedVehicle.plate} /> · {selectedVehicle.city}</p>
-                              <p className="mt-2 text-xs text-carbon-300 sm:mt-3 sm:text-sm">{selectedVehicle.mileage.toLocaleString()} km · {formatMAD(selectedVehicle.dailyPrice)} / jour</p>
+                              <p className="mt-1 text-xs text-[var(--app-text-muted)] sm:text-sm"><PlateNumber value={selectedVehicle.plate} /> · {selectedVehicle.city}</p>
+                              <p className="mt-2 text-xs text-[var(--app-text-soft)] sm:mt-3 sm:text-sm">{selectedVehicle.mileage.toLocaleString()} km · {formatMAD(selectedVehicle.dailyPrice)} / jour</p>
                             </div>
                           </div>
                         ) : null}
@@ -971,8 +971,8 @@ export default function ReservationsPage() {
                     {reservationStep === 2 ? (
                       <section className="space-y-3 sm:space-y-4">
                         <div>
-                          <h3 className="text-base font-black text-white sm:text-lg">Dates & lieux</h3>
-                          <p className="mt-0.5 text-xs text-carbon-400 sm:text-sm">Définissez les dates, lieux et validez la disponibilité.</p>
+                          <h3 className="text-base font-black text-[var(--app-text)] sm:text-lg">Dates & lieux</h3>
+                          <p className="mt-0.5 text-xs text-[var(--app-text-muted)] sm:text-sm">Définissez les dates, lieux et validez la disponibilité.</p>
                         </div>
                         <div className="grid gap-3 md:grid-cols-2 md:gap-4">
                           <ReservationField label="Date de départ">
@@ -996,7 +996,7 @@ export default function ReservationsPage() {
                             <input className={inputClass} value={draftReturnLocation} onChange={(event) => setDraftReturnLocation(event.target.value)} placeholder="Adresse de retour..." />
                           </ReservationField>
                         </div>
-                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:p-4">
+                        <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3 sm:p-4">
                           <p className="text-sm font-semibold text-carbon-100">Durée calculée: {rentalDays} jour(s)</p>
                           {overlapReservation ? (
                             <p className="mt-2 text-sm font-semibold text-rose-200">
@@ -1013,8 +1013,8 @@ export default function ReservationsPage() {
                     {reservationStep === 3 ? (
                       <section className="space-y-3 sm:space-y-4">
                         <div>
-                          <h3 className="text-base font-black text-white sm:text-lg">Tarif & caution</h3>
-                          <p className="mt-0.5 text-xs text-carbon-400 sm:text-sm">Ajustez le prix journalier, la caution et le statut.</p>
+                          <h3 className="text-base font-black text-[var(--app-text)] sm:text-lg">Tarif & caution</h3>
+                          <p className="mt-0.5 text-xs text-[var(--app-text-muted)] sm:text-sm">Ajustez le prix journalier, la caution et le statut.</p>
                         </div>
                         <div className="grid gap-3 md:grid-cols-[1fr_1fr_1.25fr] md:gap-4">
                           <ReservationField label="Prix journalier">
@@ -1023,10 +1023,10 @@ export default function ReservationsPage() {
                           <ReservationField label="Caution">
                             <input className={inputClass} type="number" value={draftDeposit} onChange={(event) => setDraftDeposit(event.target.value)} min={0} />
                           </ReservationField>
-                          <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-3 sm:px-4">
-                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-carbon-500">Montant total</p>
-                            <p className="mt-1 text-lg font-black text-white">{formatMAD(totalEstimate)}</p>
-                            <p className="mt-1 text-xs text-carbon-500">{rentalDays} jours × {formatMAD(dailyPriceNumber || 0)}</p>
+                          <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 py-3 sm:px-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--app-text-muted)]">Montant total</p>
+                            <p className="mt-1 text-lg font-black text-[var(--app-text)]">{formatMAD(totalEstimate)}</p>
+                            <p className="mt-1 text-xs text-[var(--app-text-muted)]">{rentalDays} jours × {formatMAD(dailyPriceNumber || 0)}</p>
                           </div>
                         </div>
                         <div className="grid gap-3 md:grid-cols-2 md:gap-4">
@@ -1054,24 +1054,24 @@ export default function ReservationsPage() {
                     {reservationStep === 4 ? (
                       <section className="space-y-3 sm:space-y-4">
                         <div>
-                          <h3 className="text-base font-black text-white sm:text-lg">Validation</h3>
-                          <p className="mt-0.5 text-xs text-carbon-400 sm:text-sm">Vérifiez les informations avant enregistrement.</p>
+                          <h3 className="text-base font-black text-[var(--app-text)] sm:text-lg">Validation</h3>
+                          <p className="mt-0.5 text-xs text-[var(--app-text-muted)] sm:text-sm">Vérifiez les informations avant enregistrement.</p>
                         </div>
                         <div className="premium-surface rounded-2xl p-4 sm:rounded-3xl sm:p-5">
-                          <p className="text-base font-black text-white">{selectedClient?.fullName || 'Client non sélectionné'}</p>
-                          <p className="mt-1 text-sm text-carbon-400">{selectedVehicle?.brand} {selectedVehicle?.model} · <PlateNumber value={selectedVehicle?.plate} /></p>
-                          <p className="mt-2 text-sm text-carbon-300">{formatReservationDateTime(draftPickupDate, draftPickupTime)} → {formatReservationDateTime(draftReturnDate, draftReturnTime)} · {rentalDays} jours</p>
-                          <p className="mt-2 text-sm text-carbon-300">{draftPickupLocation || 'Lieu départ non renseigné'} → {draftReturnLocation || 'Lieu retour non renseigné'}</p>
-                          <p className="mt-4 text-2xl font-semibold text-white">{formatMAD(totalEstimate)}</p>
-                          <p className="text-sm text-carbon-400">Caution: {formatMAD(depositNumber || 0)}</p>
+                          <p className="text-base font-black text-[var(--app-text)]">{selectedClient?.fullName || 'Client non sélectionné'}</p>
+                          <p className="mt-1 text-sm text-[var(--app-text-muted)]">{selectedVehicle?.brand} {selectedVehicle?.model} · <PlateNumber value={selectedVehicle?.plate} /></p>
+                          <p className="mt-2 text-sm text-[var(--app-text-soft)]">{formatReservationDateTime(draftPickupDate, draftPickupTime)} → {formatReservationDateTime(draftReturnDate, draftReturnTime)} · {rentalDays} jours</p>
+                          <p className="mt-2 text-sm text-[var(--app-text-soft)]">{draftPickupLocation || 'Lieu départ non renseigné'} → {draftReturnLocation || 'Lieu retour non renseigné'}</p>
+                          <p className="mt-4 text-2xl font-semibold text-[var(--app-text)]">{formatMAD(totalEstimate)}</p>
+                          <p className="text-sm text-[var(--app-text-muted)]">Caution: {formatMAD(depositNumber || 0)}</p>
                         </div>
 
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 sm:p-4">
-                          <p className="mb-3 text-xs font-black uppercase tracking-wide text-gold-200">Checklist</p>
+                        <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3 sm:p-4">
+                          <p className="mb-3 text-xs font-black uppercase tracking-wide text-[var(--app-gold-text)]">Checklist</p>
                           <div className="grid gap-2">
                             {stepChecklist.map((item) => (
-                              <div key={item.label} className="flex items-center justify-between rounded-xl border border-white/10 bg-black/15 px-3 py-2 text-sm">
-                                <span className="text-carbon-200">{item.label}</span>
+                              <div key={item.label} className="flex items-center justify-between rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 py-2 text-sm">
+                                <span className="text-[var(--app-text-soft)]">{item.label}</span>
                                 {item.ok ? (
                                   <span className="inline-flex items-center gap-1 text-emerald-300"><CheckCircle2 className="h-4 w-4" /> OK</span>
                                 ) : (
@@ -1085,44 +1085,44 @@ export default function ReservationsPage() {
                     ) : null}
 
                     {reservationStep === 4 ? (
-                    <div className="mt-3 rounded-2xl border border-gold-300/15 bg-gradient-to-br from-[#171410] via-white/[0.045] to-white/[0.02] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] sm:mt-5 sm:rounded-3xl sm:p-4 lg:hidden">
+                    <div className="mt-3 rounded-2xl border border-gold-300/15 bg-[var(--app-card)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] sm:mt-5 sm:rounded-3xl sm:p-4 lg:hidden">
                       <div className="mb-4 flex items-center justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-xs font-black uppercase tracking-[0.18em] text-gold-200">Aperçu avant validation</p>
-                          <p className="mt-1 truncate text-xs text-carbon-400 sm:text-sm">Résumé final de la réservation</p>
+                          <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--app-gold-text)]">Aperçu avant validation</p>
+                          <p className="mt-1 truncate text-xs text-[var(--app-text-muted)] sm:text-sm">Résumé final de la réservation</p>
                         </div>
                         <Badge>{draftStatus}</Badge>
                       </div>
                       <div className="grid gap-3 text-sm">
                         <div className="flex items-center justify-between gap-3">
-                          <span className="flex items-center gap-2 text-carbon-400"><UserRound className="h-4 w-4" /> Client</span>
-                          <strong className="min-w-0 truncate text-right text-white">{selectedClient?.fullName || 'Non sélectionné'}</strong>
+                          <span className="flex items-center gap-2 text-[var(--app-text-muted)]"><UserRound className="h-4 w-4" /> Client</span>
+                          <strong className="min-w-0 truncate text-right text-[var(--app-text)]">{selectedClient?.fullName || 'Non sélectionné'}</strong>
                         </div>
                         <div className="flex items-center justify-between gap-3">
-                          <span className="flex items-center gap-2 text-carbon-400"><Car className="h-4 w-4" /> Véhicule</span>
-                          <strong className="min-w-0 truncate text-right text-white">{selectedVehicle ? `${selectedVehicle.brand} ${selectedVehicle.model}` : 'Non sélectionné'}</strong>
+                          <span className="flex items-center gap-2 text-[var(--app-text-muted)]"><Car className="h-4 w-4" /> Véhicule</span>
+                          <strong className="min-w-0 truncate text-right text-[var(--app-text)]">{selectedVehicle ? `${selectedVehicle.brand} ${selectedVehicle.model}` : 'Non sélectionné'}</strong>
                         </div>
                         <div className="flex items-center justify-between gap-3">
-                          <span className="flex items-center gap-2 text-carbon-400"><CalendarDays className="h-4 w-4" /> Durée</span>
-                          <strong className="text-white">{rentalDays} jour(s)</strong>
+                          <span className="flex items-center gap-2 text-[var(--app-text-muted)]"><CalendarDays className="h-4 w-4" /> Durée</span>
+                          <strong className="text-[var(--app-text)]">{rentalDays} jour(s)</strong>
                         </div>
                         <div className="flex items-center justify-between gap-3">
-                          <span className="flex items-center gap-2 text-carbon-400"><MapPin className="h-4 w-4" /> Départ</span>
-                          <strong className="min-w-0 truncate text-right text-white">{formatReservationDateTime(draftPickupDate, draftPickupTime)}</strong>
+                          <span className="flex items-center gap-2 text-[var(--app-text-muted)]"><MapPin className="h-4 w-4" /> Départ</span>
+                          <strong className="min-w-0 truncate text-right text-[var(--app-text)]">{formatReservationDateTime(draftPickupDate, draftPickupTime)}</strong>
                         </div>
                         <div className="flex items-center justify-between gap-3">
-                          <span className="flex items-center gap-2 text-carbon-400"><MapPin className="h-4 w-4" /> Retour</span>
-                          <strong className="min-w-0 truncate text-right text-white">{formatReservationDateTime(draftReturnDate, draftReturnTime)}</strong>
+                          <span className="flex items-center gap-2 text-[var(--app-text-muted)]"><MapPin className="h-4 w-4" /> Retour</span>
+                          <strong className="min-w-0 truncate text-right text-[var(--app-text)]">{formatReservationDateTime(draftReturnDate, draftReturnTime)}</strong>
                         </div>
-                        <div className="h-px bg-white/10" />
+                        <div className="h-px bg-[var(--app-surface-soft)]" />
                         <div className="grid grid-cols-2 gap-2">
-                          <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                            <p className="text-xs text-carbon-500">Total</p>
-                            <p className="mt-1 truncate font-black text-white">{formatMAD(totalEstimate)}</p>
+                          <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
+                            <p className="text-xs text-[var(--app-text-muted)]">Total</p>
+                            <p className="mt-1 truncate font-black text-[var(--app-text)]">{formatMAD(totalEstimate)}</p>
                           </div>
-                          <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                            <p className="text-xs text-carbon-500">Caution</p>
-                            <p className="mt-1 truncate font-black text-white">{formatMAD(depositNumber || 0)}</p>
+                          <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
+                            <p className="text-xs text-[var(--app-text-muted)]">Caution</p>
+                            <p className="mt-1 truncate font-black text-[var(--app-text)]">{formatMAD(depositNumber || 0)}</p>
                           </div>
                         </div>
                       </div>
@@ -1130,9 +1130,9 @@ export default function ReservationsPage() {
                     ) : null}
                   </div>
 
-                  <div className="sticky bottom-0 grid grid-cols-2 gap-2.5 border-t border-white/10 bg-[#090B0F]/95 px-3 py-2.5 pb-[calc(env(safe-area-inset-bottom)+10px)] backdrop-blur sm:flex sm:items-center sm:justify-end sm:px-6 sm:py-3 sm:pb-3">
+                  <div className="sticky bottom-0 grid grid-cols-2 gap-2.5 border-t border-[var(--app-border)] bg-[var(--app-modal)]/95 px-3 py-2.5 pb-[calc(env(safe-area-inset-bottom)+10px)] backdrop-blur sm:flex sm:items-center sm:justify-end sm:px-6 sm:py-3 sm:pb-3">
                     <button
-                      className="focus-ring h-11 min-w-0 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-carbon-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10"
+                      className="focus-ring h-11 min-w-0 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 text-sm font-semibold text-[var(--app-text-soft)] transition hover:bg-[var(--app-surface-soft)] disabled:cursor-not-allowed disabled:opacity-40 sm:h-10"
                       disabled={reservationStep === 0 || saving}
                       type="button"
                       onClick={() => setReservationStep((step) => Math.max(0, step - 1))}
@@ -1164,63 +1164,63 @@ export default function ReservationsPage() {
                 </div>
 
                 {reservationStep === 4 ? (
-                <aside className="hidden border-t border-white/[0.07] bg-[#0D1015] p-5 lg:block lg:border-l lg:border-t-0">
+                <aside className="hidden border-t border-[var(--app-border)] bg-[var(--app-card)] p-5 lg:block lg:border-l lg:border-t-0">
                   <div className="sticky top-5 space-y-4">
                     <div>
-                      <h3 className="text-xs font-black uppercase tracking-[0.18em] text-gold-200">Aperçu avant validation</h3>
-                      <p className="mt-1 text-sm leading-5 text-carbon-500">Résumé permanent de la réservation.</p>
+                      <h3 className="text-xs font-black uppercase tracking-[0.18em] text-[var(--app-gold-text)]">Aperçu avant validation</h3>
+                      <p className="mt-1 text-sm leading-5 text-[var(--app-text-muted)]">Résumé permanent de la réservation.</p>
                     </div>
 
-                    <div className="rounded-3xl border border-gold-300/15 bg-gradient-to-br from-[#171410] via-white/[0.04] to-white/[0.02] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+                    <div className="rounded-3xl border border-gold-300/15 bg-[var(--app-card)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
                       {selectedVehicle ? (
                         <div className="flex gap-3">
-                          <div className="vehicle-visual grid h-14 w-16 shrink-0 place-items-center rounded-2xl text-gold-200">
+                          <div className="vehicle-visual grid h-14 w-16 shrink-0 place-items-center rounded-2xl text-[var(--app-gold-text)]">
                             <Car className="h-6 w-6" />
                           </div>
                           <div className="min-w-0">
-                            <p className="truncate font-black text-white">{selectedVehicle.brand} {selectedVehicle.model}</p>
-                            <p className="mt-1 text-sm text-carbon-400"><PlateNumber value={selectedVehicle.plate} /> · {selectedVehicle.city}</p>
+                            <p className="truncate font-black text-[var(--app-text)]">{selectedVehicle.brand} {selectedVehicle.model}</p>
+                            <p className="mt-1 text-sm text-[var(--app-text-muted)]"><PlateNumber value={selectedVehicle.plate} /> · {selectedVehicle.city}</p>
                           </div>
                         </div>
                       ) : (
-                        <div className="rounded-2xl border border-dashed border-white/15 p-5 text-sm text-carbon-400">
+                        <div className="rounded-2xl border border-dashed border-[var(--app-border)] p-5 text-sm text-[var(--app-text-muted)]">
                           Sélectionnez un véhicule pour afficher le résumé.
                         </div>
                       )}
                     </div>
 
-                    <div className="grid gap-3 rounded-3xl border border-white/10 bg-white/[0.035] p-4 text-sm">
+                    <div className="grid gap-3 rounded-3xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-sm">
                       <div className="flex items-center justify-between gap-3">
-                        <span className="flex items-center gap-2 text-carbon-400"><UserRound className="h-4 w-4" /> Client</span>
-                        <strong className="min-w-0 truncate text-right text-white">{selectedClient?.fullName || 'Non sélectionné'}</strong>
+                        <span className="flex items-center gap-2 text-[var(--app-text-muted)]"><UserRound className="h-4 w-4" /> Client</span>
+                        <strong className="min-w-0 truncate text-right text-[var(--app-text)]">{selectedClient?.fullName || 'Non sélectionné'}</strong>
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <span className="flex items-center gap-2 text-carbon-400"><Car className="h-4 w-4" /> Véhicule</span>
-                        <strong className="min-w-0 truncate text-right text-white">{selectedVehicle ? `${selectedVehicle.brand} ${selectedVehicle.model}` : 'Non sélectionné'}</strong>
+                        <span className="flex items-center gap-2 text-[var(--app-text-muted)]"><Car className="h-4 w-4" /> Véhicule</span>
+                        <strong className="min-w-0 truncate text-right text-[var(--app-text)]">{selectedVehicle ? `${selectedVehicle.brand} ${selectedVehicle.model}` : 'Non sélectionné'}</strong>
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <span className="flex items-center gap-2 text-carbon-400"><CalendarDays className="h-4 w-4" /> Durée</span>
-                        <strong className="text-white">{rentalDays} jour(s)</strong>
+                        <span className="flex items-center gap-2 text-[var(--app-text-muted)]"><CalendarDays className="h-4 w-4" /> Durée</span>
+                        <strong className="text-[var(--app-text)]">{rentalDays} jour(s)</strong>
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <span className="flex items-center gap-2 text-carbon-400"><MapPin className="h-4 w-4" /> Départ</span>
-                        <strong className="min-w-0 truncate text-right text-white">{formatReservationDateTime(draftPickupDate, draftPickupTime)}</strong>
+                        <span className="flex items-center gap-2 text-[var(--app-text-muted)]"><MapPin className="h-4 w-4" /> Départ</span>
+                        <strong className="min-w-0 truncate text-right text-[var(--app-text)]">{formatReservationDateTime(draftPickupDate, draftPickupTime)}</strong>
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <span className="flex items-center gap-2 text-carbon-400"><MapPin className="h-4 w-4" /> Retour</span>
-                        <strong className="min-w-0 truncate text-right text-white">{formatReservationDateTime(draftReturnDate, draftReturnTime)}</strong>
+                        <span className="flex items-center gap-2 text-[var(--app-text-muted)]"><MapPin className="h-4 w-4" /> Retour</span>
+                        <strong className="min-w-0 truncate text-right text-[var(--app-text)]">{formatReservationDateTime(draftReturnDate, draftReturnTime)}</strong>
                       </div>
-                      <div className="h-px bg-white/10" />
+                      <div className="h-px bg-[var(--app-surface-soft)]" />
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-carbon-400">Montant total</span>
-                        <strong className="text-lg text-white">{formatMAD(totalEstimate)}</strong>
-                      </div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="text-carbon-400">Caution</span>
-                        <strong className="text-white">{formatMAD(depositNumber || 0)}</strong>
+                        <span className="text-[var(--app-text-muted)]">Montant total</span>
+                        <strong className="text-lg text-[var(--app-text)]">{formatMAD(totalEstimate)}</strong>
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                        <span className="text-carbon-400">Statut</span>
+                        <span className="text-[var(--app-text-muted)]">Caution</span>
+                        <strong className="text-[var(--app-text)]">{formatMAD(depositNumber || 0)}</strong>
+                      </div>
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-[var(--app-text-muted)]">Statut</span>
                         <Badge>{draftStatus}</Badge>
                       </div>
                     </div>
@@ -1235,7 +1235,7 @@ export default function ReservationsPage() {
 
       <Modal open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} title="Supprimer la réservation">
         <div className="space-y-4">
-          <p className="text-sm text-carbon-300">Voulez-vous vraiment supprimer cette réservation ?</p>
+          <p className="text-sm text-[var(--app-text-soft)]">Voulez-vous vraiment supprimer cette réservation ?</p>
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setDeleteTarget(null)}>Annuler</Button>
             <Button variant="danger" onClick={confirmDeleteReservation}>Supprimer</Button>
@@ -1249,57 +1249,57 @@ export default function ReservationsPage() {
             const detailsPaymentSummary = getReservationPaymentSummary(detailsTarget, payments);
             return (
               <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+8px)]">
-                <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#131821] via-[#0f141c] to-[#07090d] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+                <div className="relative overflow-hidden rounded-3xl border border-[var(--app-border)] bg-[var(--app-card)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
                   <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#D4A017]/10 to-transparent" />
                   <div className="relative flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gold-300">{detailsTarget.id}</p>
-                      <h3 className="mt-1 truncate text-lg font-black text-white">{detailsTarget.vehicle}</h3>
-                      <p className="mt-1 flex items-center gap-2 truncate text-sm font-semibold text-carbon-300"><UserRound className="h-4 w-4 text-carbon-500" /> {detailsTarget.client}</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--app-gold-text)]">{detailsTarget.id}</p>
+                      <h3 className="mt-1 truncate text-lg font-black text-[var(--app-text)]">{detailsTarget.vehicle}</h3>
+                      <p className="mt-1 flex items-center gap-2 truncate text-sm font-semibold text-[var(--app-text-soft)]"><UserRound className="h-4 w-4 text-[var(--app-text-muted)]" /> {detailsTarget.client}</p>
                     </div>
                     <Badge>{detailsTarget.status}</Badge>
                   </div>
                   <div className="relative mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                      <p className="text-xs text-carbon-500">Total</p>
-                      <p className="mt-1 truncate font-black text-white">{formatMAD(detailsPaymentSummary.total)}</p>
+                    <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
+                      <p className="text-xs text-[var(--app-text-muted)]">Total</p>
+                      <p className="mt-1 truncate font-black text-[var(--app-text)]">{formatMAD(detailsPaymentSummary.total)}</p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                      <p className="text-xs text-carbon-500">Payé</p>
-                      <p className="mt-1 truncate font-black text-white">{formatMAD(detailsPaymentSummary.paid)}</p>
+                    <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
+                      <p className="text-xs text-[var(--app-text-muted)]">Payé</p>
+                      <p className="mt-1 truncate font-black text-[var(--app-text)]">{formatMAD(detailsPaymentSummary.paid)}</p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                      <p className="text-xs text-carbon-500">Reste</p>
+                    <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
+                      <p className="text-xs text-[var(--app-text-muted)]">Reste</p>
                       <p className={`mt-1 truncate font-black ${detailsPaymentSummary.remaining > 0 ? 'text-amber-200' : 'text-emerald-200'}`}>{formatMAD(detailsPaymentSummary.remaining)}</p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                      <p className="text-xs text-carbon-500">Caution</p>
-                      <p className="mt-1 truncate font-black text-white">{formatMAD(detailsTarget.deposit || 0)}</p>
+                    <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
+                      <p className="text-xs text-[var(--app-text-muted)]">Caution</p>
+                      <p className="mt-1 truncate font-black text-[var(--app-text)]">{formatMAD(detailsTarget.deposit || 0)}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="grid gap-3 rounded-3xl border border-white/10 bg-white/[0.04] p-4 text-sm text-carbon-300">
+                <div className="grid gap-3 rounded-3xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-sm text-[var(--app-text-soft)]">
               <div className="flex items-start gap-3">
-                <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-gold-200" />
+                <CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-[var(--app-gold-text)]" />
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-carbon-500">Période</p>
-                  <p className="mt-1 text-white">{formatReservationDateTime(detailsTarget.pickupDate, detailsTarget.pickupTime)} → {formatReservationDateTime(detailsTarget.returnDate, detailsTarget.returnTime)}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--app-text-muted)]">Période</p>
+                  <p className="mt-1 text-[var(--app-text)]">{formatReservationDateTime(detailsTarget.pickupDate, detailsTarget.pickupTime)} → {formatReservationDateTime(detailsTarget.returnDate, detailsTarget.returnTime)}</p>
                 </div>
               </div>
-              <div className="h-px bg-white/10" />
+              <div className="h-px bg-[var(--app-surface-soft)]" />
               <div className="flex items-start gap-3">
-                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-gold-200" />
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--app-gold-text)]" />
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-carbon-500">Lieux</p>
-                  <p className="mt-1 text-white">{detailsTarget.pickupLocation || 'Non renseigné'}</p>
-                  <p className="mt-1 text-carbon-400">{detailsTarget.returnLocation || 'Non renseigné'}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--app-text-muted)]">Lieux</p>
+                  <p className="mt-1 text-[var(--app-text)]">{detailsTarget.pickupLocation || 'Non renseigné'}</p>
+                  <p className="mt-1 text-[var(--app-text-muted)]">{detailsTarget.returnLocation || 'Non renseigné'}</p>
                 </div>
               </div>
-              <div className="h-px bg-white/10" />
+              <div className="h-px bg-[var(--app-surface-soft)]" />
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-carbon-500">Notes</p>
-                <p className="mt-1 leading-6 text-carbon-300">{detailsTarget.notes || 'Aucune note'}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--app-text-muted)]">Notes</p>
+                <p className="mt-1 leading-6 text-[var(--app-text-soft)]">{detailsTarget.notes || 'Aucune note'}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:justify-end">

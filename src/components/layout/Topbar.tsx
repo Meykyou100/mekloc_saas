@@ -301,12 +301,12 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/10 bg-black/82 px-4 py-2.5 shadow-[0_12px_40px_rgba(0,0,0,.18)] backdrop-blur-2xl light:bg-white/78 sm:px-6 md:bg-carbon-950/72 md:py-3 lg:px-8">
+    <header className="sticky top-0 z-30 border-b border-[var(--app-border)] bg-[var(--app-topbar)] px-4 py-2.5 shadow-[0_12px_40px_rgba(0,0,0,.18)] backdrop-blur-2xl sm:px-6 md:py-3 lg:px-8">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4A017]/35 to-transparent lg:hidden" />
       <div className="relative flex min-h-12 items-center gap-3">
         <button
           aria-label="Open sidebar"
-          className="focus-ring grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/25 hover:bg-gold-400/10 md:h-11 md:w-11 lg:hidden"
+          className="focus-ring grid h-10 w-10 place-items-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text)] shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/25 hover:bg-[var(--app-gold-soft)] md:h-11 md:w-11 lg:hidden"
           onClick={onMenu}
         >
           <Menu className="h-5 w-5" />
@@ -316,7 +316,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
           <input
             aria-label="Search"
             placeholder="Rechercher une réservation, un client, un véhicule..."
-            className="form-control focus-ring h-11 w-full rounded-2xl border-white/10 bg-zinc-950/80 pl-10 pr-4 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,.04)] placeholder:text-carbon-500 light:bg-carbon-950/[0.04] light:text-carbon-950"
+            className="form-control focus-ring h-11 w-full rounded-2xl pl-10 pr-4 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,.04)] placeholder:text-carbon-500"
           />
         </div>
         <div className="mr-auto md:hidden">
@@ -328,7 +328,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
         <div ref={notificationsMenuRef} className="relative">
           <button
             aria-label="Notifications"
-            className="focus-ring relative grid h-10 w-10 place-items-center rounded-2xl border border-white/10 bg-white/[0.045] text-white shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/25 hover:bg-gold-400/10 light:bg-carbon-950/[0.04] light:text-carbon-800 md:h-11 md:w-11 md:bg-zinc-950/70 md:text-carbon-200"
+            className="focus-ring relative grid h-10 w-10 place-items-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text)] shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/25 hover:bg-[var(--app-gold-soft)] md:h-11 md:w-11"
             onClick={() => {
               setProfileOpen(false);
               setNotificationsOpen((current) => !current);
@@ -342,7 +342,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
             ) : null}
           </button>
           {notificationsOpen ? (
-            <div className="absolute right-0 z-50 mt-3 w-[min(23rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/95 p-2 text-white shadow-[0_28px_80px_rgba(0,0,0,.48),0_0_40px_rgba(212,160,23,.10)] backdrop-blur-2xl light:bg-white/95 light:text-carbon-950">
+            <div className="absolute right-0 z-50 mt-3 w-[min(23rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-[var(--app-border)] bg-[var(--app-card)] p-2 text-[var(--app-text)] shadow-[var(--app-shadow)] backdrop-blur-2xl">
               <div className="mb-2 flex items-center justify-between px-2">
                 <div>
                   <p className="font-semibold text-white light:text-carbon-950">Notifications</p>
@@ -391,7 +391,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
           <button
             aria-label="Profile"
             aria-expanded={profileOpen}
-            className="focus-ring grid h-11 w-11 place-items-center rounded-full border border-[#D4A017]/25 bg-[#D4A017]/16 text-white shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/40 hover:bg-gold-400/20 light:bg-carbon-950/[0.04] light:text-carbon-950 md:flex md:w-auto md:items-center md:gap-3 md:rounded-2xl md:border-white/10 md:bg-zinc-950/70 md:px-3 md:text-sm md:font-semibold"
+            className="focus-ring grid h-11 w-11 place-items-center rounded-full border border-gold-300/25 bg-[var(--app-gold-soft)] text-[var(--app-text)] shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/40 hover:bg-gold-400/20 md:flex md:w-auto md:items-center md:gap-3 md:rounded-2xl md:border-[var(--app-border)] md:bg-[var(--app-surface-soft)] md:px-3 md:text-sm md:font-semibold"
             onClick={() => {
               setNotificationsOpen(false);
               setProfileOpen((current) => !current);
@@ -408,7 +408,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
           </button>
 
           {profileOpen ? (
-            <div className="absolute right-0 z-50 mt-3 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-white/10 bg-zinc-950/95 p-2 text-white shadow-[0_28px_80px_rgba(0,0,0,.48),0_0_40px_rgba(212,160,23,.10)] backdrop-blur-2xl light:bg-white/95 light:text-carbon-950">
+            <div className="absolute right-0 z-50 mt-3 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-[var(--app-border)] bg-[var(--app-card)] p-2 text-[var(--app-text)] shadow-[var(--app-shadow)] backdrop-blur-2xl">
               <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#D4A017]/14 via-white/[0.04] to-transparent p-4 light:border-carbon-950/10 light:from-[#D4A017]/18">
                 <div className="flex items-center gap-3">
                   <div className="grid h-12 w-12 place-items-center rounded-2xl border border-gold-300/25 bg-gold-400/15 text-sm font-black text-gold-100 shadow-[0_0_28px_rgba(212,160,23,.14)]">

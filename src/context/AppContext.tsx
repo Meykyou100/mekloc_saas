@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 
 export type Language = 'fr';
-type Theme = 'dark';
+export type Theme = 'dark' | 'light';
 
 export type Toast = {
   id: number;
@@ -14,6 +14,7 @@ type AppContextValue = {
   language: Language;
   setLanguage: (_language: Language) => void;
   theme: Theme;
+  setTheme: (theme: Theme) => void;
   toggleTheme: () => void;
   toasts: Toast[];
   notify: (toast: Omit<Toast, 'id'>) => void;
@@ -40,16 +41,20 @@ const translations: Record<Language, Record<string, string>> = {
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
+const themeStorageKey = 'mekloc-theme';
+
+function readInitialTheme(): Theme {
+  if (typeof window === 'undefined') return 'dark';
+  return window.localStorage.getItem(themeStorageKey) === 'light' ? 'light' : 'dark';
+}
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [language] = useState<Language>('fr');
-  const [theme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<Theme>(readInitialTheme);
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   useEffect(() => {
-    document.documentElement.classList.add('dark');
-    document.documentElement.classList.remove('light');
-    localStorage.setItem('mekloc-theme', theme);
+    window.localStorage.setItem(themeStorageKey, theme);
   }, [theme]);
 
   useEffect(() => {
@@ -63,7 +68,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       language,
       setLanguage: () => {},
       theme,
-      toggleTheme: () => {},
+      setTheme,
+      toggleTheme: () => setTheme((current) => (current === 'dark' ? 'light' : 'dark')),
       toasts,
       notify: (toast) => {
         const id = Date.now();

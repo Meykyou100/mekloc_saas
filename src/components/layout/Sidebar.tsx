@@ -1,7 +1,6 @@
 import {
   ArrowRight,
   BarChart3,
-  BookOpen,
   CalendarDays,
   Car,
   CheckCircle2,
@@ -36,75 +35,6 @@ const navItems = [
   { label: 'maintenance', to: '/maintenance', icon: Wrench, permission: 'maintenance' as AppPermission },
   { label: 'reports', to: '/reports', icon: BarChart3, permission: 'reports' as AppPermission },
   { label: 'settings', to: '/settings', icon: Settings, permission: 'settings' as AppPermission },
-];
-
-const guideItems = [
-  {
-    title: 'Créer une réservation',
-    description: 'Client, véhicule, dates, lieux, tarif et caution.',
-    steps: [
-      'Ouvrez la page Réservations.',
-      'Cliquez sur Ajouter une réservation.',
-      'Sélectionnez le client et le véhicule.',
-      'Ajoutez les dates, lieux, tarifs et caution.',
-      'Vérifiez puis validez.',
-    ],
-  },
-  {
-    title: 'Ajouter un client',
-    description: 'Coordonnées, permis, CIN et documents.',
-    steps: [
-      'Ouvrez la page Clients.',
-      'Cliquez sur Ajouter un client.',
-      'Renseignez les informations personnelles.',
-      'Ajoutez les pièces d’identité si disponibles.',
-      'Enregistrez la fiche client.',
-    ],
-  },
-  {
-    title: 'Ajouter un véhicule',
-    description: 'Identification, technique, état et photo.',
-    steps: [
-      'Ouvrez la page Véhicules.',
-      'Cliquez sur Ajouter un véhicule.',
-      'Complétez marque, modèle, immatriculation et année.',
-      'Ajoutez les informations techniques, l’état et la photo.',
-      'Vérifiez le récapitulatif puis enregistrez.',
-    ],
-  },
-  {
-    title: 'Générer un contrat',
-    description: 'Contrat PDF lié à une réservation.',
-    steps: [
-      'Ouvrez la page Contrats.',
-      'Sélectionnez une réservation validée.',
-      'Vérifiez les données client, véhicule et dates.',
-      'Générez le contrat.',
-      'Téléchargez le PDF si nécessaire.',
-    ],
-  },
-  {
-    title: 'Enregistrer un paiement',
-    description: 'Suivi payé, partiel et reste à payer.',
-    steps: [
-      'Ouvrez la page Paiements.',
-      'Cliquez sur Ajouter un paiement.',
-      'Sélectionnez la réservation ou facture.',
-      'Saisissez le montant et le mode de paiement.',
-      'Enregistrez pour mettre à jour le solde.',
-    ],
-  },
-  {
-    title: 'Consulter les rapports',
-    description: 'Indicateurs, revenus, retards et exports.',
-    steps: [
-      'Ouvrez la page Rapports.',
-      'Choisissez la période souhaitée.',
-      'Consultez les KPI, revenus et tableaux.',
-      'Vérifiez les paiements en retard.',
-      'Exportez les données si nécessaire.',
-    ],
-  },
 ];
 
 const faqItems = [
@@ -143,7 +73,7 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
   const { profile } = useAuth();
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_20%_0%,rgba(227,177,23,.08),transparent_28%)] pb-3">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_20%_0%,rgba(227,177,23,.08),transparent_28%)] pb-3 text-[var(--app-text)]">
       <div className="shrink-0 px-4 pb-2.5 pt-3.5 lg:px-4 lg:pt-4">
         <div className="flex items-center justify-between gap-3">
         <NavLink to="/" className="group flex min-w-0 items-center gap-2.5" onClick={onClose}>
@@ -185,7 +115,7 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
               `group relative flex min-h-10 items-center gap-2.5 overflow-hidden rounded-[1rem] border px-2.5 py-1.5 text-[13px] font-semibold transition ${
                 isActive
                   ? 'border-gold-200/25 bg-gradient-to-r from-gold-400/[0.18] via-gold-400/[0.08] to-white/[0.025] text-gold-100 shadow-[0_0_24px_rgba(227,177,23,.09),inset_0_1px_0_rgba(255,255,255,.04)] before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-r-full before:bg-gold-300 light:text-gold-800'
-                  : 'border-transparent text-carbon-300 hover:border-white/10 hover:bg-white/[0.045] hover:text-white light:text-carbon-700 light:hover:bg-carbon-950/5'
+                  : 'border-transparent text-[var(--app-text-muted)] hover:border-[var(--app-border)] hover:bg-[var(--app-surface-soft)] hover:text-[var(--app-text)]'
               }`
             }
           >
@@ -244,12 +174,11 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
 export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [helpOpen, setHelpOpen] = useState(false);
   const [proOpen, setProOpen] = useState(false);
-  const [activeGuide, setActiveGuide] = useState(guideItems[0].title);
   const [activeFaq, setActiveFaq] = useState(faqItems[0].question);
 
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-white/10 bg-carbon-950/88 backdrop-blur-2xl light:bg-white/90 lg:block">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-[var(--app-border)] bg-[var(--app-sidebar)] backdrop-blur-2xl lg:block">
         <SidebarContent onHelp={() => setHelpOpen(true)} onPro={() => setProOpen(true)} />
       </aside>
       <div
@@ -257,7 +186,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
         onClick={onClose}
       />
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-80 max-w-[86vw] border-r border-white/10 bg-carbon-950/95 backdrop-blur-2xl transition-transform light:bg-white ${open ? 'translate-x-0' : '-translate-x-full'} lg:hidden`}
+        className={`fixed inset-y-0 left-0 z-50 w-80 max-w-[86vw] border-r border-[var(--app-border)] bg-[var(--app-sidebar)] backdrop-blur-2xl transition-transform ${open ? 'translate-x-0' : '-translate-x-full'} lg:hidden`}
       >
         <SidebarContent onClose={onClose} onHelp={() => setHelpOpen(true)} onPro={() => setProOpen(true)} />
       </aside>
@@ -270,56 +199,6 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
         bodyClassName="bg-[#090B0F]"
       >
         <div className="space-y-5 pb-[calc(env(safe-area-inset-bottom)+8px)]">
-          <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
-            <div className="mb-4 flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-gold-200">
-                <BookOpen className="h-5 w-5" />
-              </span>
-              <div>
-                <h3 className="text-sm font-black uppercase tracking-[0.16em] text-gold-200">Guides rapides</h3>
-                <p className="mt-1 text-xs text-carbon-500">Actions courantes avec les vrais modules MekLoc.</p>
-              </div>
-            </div>
-            <div className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
-              <div className="grid gap-2">
-              {guideItems.map((item) => (
-                <button
-                  key={item.title}
-                  type="button"
-                  onClick={() => setActiveGuide(item.title)}
-                  className={`group flex min-h-12 items-center justify-between gap-3 rounded-2xl border px-3 py-2 text-left text-sm font-semibold transition ${
-                    activeGuide === item.title
-                      ? 'border-gold-300/45 bg-gold-400/12 text-gold-100'
-                      : 'border-white/10 bg-black/20 text-carbon-100 hover:border-gold-300/35 hover:bg-gold-400/10 hover:text-gold-100'
-                  }`}
-                >
-                  <span className="min-w-0">
-                    <span className="block truncate">{item.title}</span>
-                    <span className="mt-0.5 block truncate text-xs font-medium text-carbon-500">{item.description}</span>
-                  </span>
-                  <ArrowRight className="h-4 w-4 shrink-0 text-carbon-500 transition group-hover:translate-x-0.5 group-hover:text-gold-200" />
-                </button>
-              ))}
-              </div>
-              <div className="rounded-2xl border border-gold-300/15 bg-black/25 p-4">
-                {guideItems.filter((item) => item.title === activeGuide).map((guide) => (
-                  <div key={guide.title}>
-                    <p className="text-sm font-black text-white">{guide.title}</p>
-                    <p className="mt-1 text-xs text-carbon-500">{guide.description}</p>
-                    <ol className="mt-4 space-y-2">
-                      {guide.steps.map((step, index) => (
-                        <li key={step} className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2 text-sm text-carbon-200">
-                          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gold-400 text-xs font-black text-carbon-950">{index + 1}</span>
-                          <span className="leading-6">{step}</span>
-                        </li>
-                      ))}
-                    </ol>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-
           <section className="rounded-3xl border border-gold-300/15 bg-gradient-to-br from-[#171410] via-white/[0.045] to-white/[0.02] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
             <div className="mb-4 flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-gold-200">

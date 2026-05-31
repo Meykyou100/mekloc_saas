@@ -11,13 +11,13 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variants: Record<ButtonVariant, string> = {
   primary:
-    'bg-[#D4A017] text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.16)] hover:bg-[#E8B923] border border-[#E8B923]/70',
+    'bg-[var(--app-gold)] text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.16)] hover:bg-[var(--app-gold-hover)] border border-[color-mix(in_srgb,var(--app-gold)_70%,white_30%)]',
   secondary:
-    'bg-white/10 text-white border border-white/10 hover:bg-white/15 light:bg-carbon-950/5 light:text-carbon-950 light:border-carbon-950/10',
+    'bg-[var(--app-surface-soft)] text-[var(--app-text)] border border-[var(--app-border)] hover:bg-[color-mix(in_srgb,var(--app-surface-soft)_70%,var(--app-text)_8%)]',
   ghost:
-    'text-carbon-100 hover:bg-white/10 border border-transparent light:text-carbon-800 light:hover:bg-carbon-950/5',
+    'text-[var(--app-text-soft)] hover:bg-[var(--app-surface-soft)] border border-transparent',
   danger:
-    'bg-rose-500/15 text-rose-100 border border-rose-400/30 hover:bg-rose-500/25 light:text-rose-700',
+    'bg-rose-500/15 text-[var(--app-danger)] border border-rose-400/30 hover:bg-rose-500/25',
 };
 
 export default function Button({
