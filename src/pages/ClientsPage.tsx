@@ -471,20 +471,25 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="relative overflow-x-hidden pb-[calc(118px+env(safe-area-inset-bottom))] md:pb-8">
-      <div className="pointer-events-none absolute right-[-18%] top-10 h-72 w-72 rounded-full bg-[#D4A017]/10 blur-3xl" />
-      <div className="relative pt-4 md:hidden">
-        <section className="space-y-5">
-          <div className="rounded-[28px] border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 shadow-[0_18px_46px_rgba(0,0,0,.24)]">
-            <div className="min-w-0">
-              <p className="text-xs font-black uppercase tracking-[0.28em] text-gold-200">CRM</p>
-              <h1 className="mt-2 text-4xl font-black leading-none text-white">Clients</h1>
-              <p className="mt-2 text-base leading-relaxed text-carbon-300">Gérez vos clients et leurs documents.</p>
+    <div className="relative overflow-x-hidden pb-[calc(92px+env(safe-area-inset-bottom))] md:pb-8">
+      <div className="pointer-events-none absolute right-[-24%] top-8 h-48 w-48 rounded-full bg-[#D4A017]/8 blur-3xl" />
+      <div className="relative pt-2 md:hidden">
+        <section className="space-y-3">
+          <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_14px_34px_rgba(0,0,0,.22)]">
+            <div className="flex min-w-0 items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.22em] text-gold-200">CRM</p>
+                <h1 className="mt-1 text-3xl font-black leading-none text-white">Clients</h1>
+                <p className="mt-1 truncate text-sm text-carbon-400">Clients et documents.</p>
+              </div>
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-gold-200">
+                <Users className="h-5 w-5" />
+              </div>
             </div>
             <button
               type="button"
               onClick={openNewClient}
-              className="focus-ring mt-4 flex h-[52px] w-full items-center justify-center gap-2 rounded-2xl bg-[#D4A017] text-sm font-black text-black shadow-[0_18px_42px_rgba(212,160,23,.22)] transition hover:bg-[#f1c232]"
+              className="focus-ring mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#D4A017] text-sm font-black text-black shadow-[0_12px_28px_rgba(212,160,23,.18)] transition hover:bg-[#f1c232]"
             >
               <UserPlus className="h-4 w-4" />
               Ajouter un client
@@ -492,16 +497,16 @@ export default function ClientsPage() {
           </div>
 
           <label className="relative block">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-carbon-500" />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value.slice(0, 120))}
               placeholder="Nom, téléphone, CIN, permis..."
-              className="form-control focus-ring h-16 w-full rounded-3xl border-white/10 bg-white/[0.045] pl-12 pr-4 text-base text-white placeholder:text-carbon-500"
+              className="form-control focus-ring h-11 w-full rounded-2xl border-white/10 bg-white/[0.045] pl-10 pr-4 text-sm text-white placeholder:text-carbon-500"
             />
           </label>
 
-          <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6">
+          <div className="grid grid-cols-2 gap-2">
             {[
               { label: 'Total clients', value: String(clientsStats.total), icon: Users, active: true, tone: 'text-gold-200', bg: 'bg-[#D4A017]/12' },
               { label: 'Nouveaux ce mois', value: String(clientsStats.newClients), icon: UserPlus, tone: 'text-emerald-200', bg: 'bg-emerald-500/12' },
@@ -511,17 +516,17 @@ export default function ClientsPage() {
             ].map(({ label, value, icon: Icon, active, tone, bg }) => (
               <div
                 key={label}
-                className={`min-w-[138px] rounded-3xl border p-4 shadow-[0_18px_42px_rgba(0,0,0,.24)] ${
+                className={`min-w-0 rounded-2xl border p-3 shadow-[0_12px_28px_rgba(0,0,0,.20)] ${
                   active
                     ? 'border-[#D4A017]/70 bg-[#D4A017]/12'
                     : 'border-white/10 bg-gradient-to-br from-zinc-950/95 to-zinc-900/60'
                 }`}
               >
-                <span className={`grid h-12 w-12 place-items-center rounded-2xl ${bg}`}>
-                  <Icon className={`h-5 w-5 ${tone}`} />
+                <span className={`grid h-8 w-8 place-items-center rounded-xl ${bg}`}>
+                  <Icon className={`h-4 w-4 ${tone}`} />
                 </span>
-                <p className="mt-4 truncate text-2xl font-black text-white">{value}</p>
-                <p className="mt-1 text-sm font-medium leading-snug text-carbon-300">{label}</p>
+                <p className="mt-2 truncate text-lg font-black text-white">{value}</p>
+                <p className="mt-0.5 truncate text-[11px] font-semibold text-carbon-400">{label}</p>
               </div>
             ))}
           </div>
@@ -538,7 +543,7 @@ export default function ClientsPage() {
                 key={value}
                 type="button"
                 onClick={() => setFilter(value)}
-                className={`focus-ring min-h-12 whitespace-nowrap rounded-2xl border px-5 text-sm font-bold transition ${
+                className={`focus-ring min-h-10 whitespace-nowrap rounded-xl border px-3 text-xs font-bold transition ${
                   filter === value
                     ? 'border-[#D4A017]/70 bg-[#D4A017]/18 text-gold-100'
                     : 'border-white/10 bg-white/[0.04] text-carbon-200'
@@ -554,7 +559,7 @@ export default function ClientsPage() {
             <select
               value={sort}
               onChange={(event) => setSort(event.target.value as ClientSort)}
-              className="form-control focus-ring h-12 w-full rounded-2xl border-white/10 bg-black/30 pl-11 pr-4 text-sm font-semibold text-white"
+              className="form-control focus-ring h-11 w-full rounded-2xl border-white/10 bg-black/30 pl-11 pr-4 text-sm font-semibold text-white"
             >
               <option value="recent">Plus récent</option>
               <option value="name">Nom A-Z</option>
@@ -578,28 +583,28 @@ export default function ClientsPage() {
               <p className="mt-1 text-sm text-carbon-400">Essayez une autre recherche ou un autre filtre.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {filteredClients.map((client) => {
                 const documentsReady = hasDocs(client);
                 return (
                   <article
                     key={client.id}
-                    className="rounded-[28px] border border-white/10 bg-gradient-to-br from-zinc-950/95 to-zinc-900/60 p-5 shadow-[0_24px_60px_rgba(0,0,0,.30)] transition active:scale-[0.99]"
+                    className="rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950/95 to-zinc-900/60 p-4 shadow-[0_18px_44px_rgba(0,0,0,.26)] transition active:scale-[0.99]"
                     onClick={() => setMobileClientId(client.id)}
                   >
-                    <div className="flex items-start gap-4">
-                      <div className="grid h-16 w-16 shrink-0 place-items-center rounded-3xl bg-gradient-to-br from-[#F5C542] to-[#B8870E] text-xl font-black text-black shadow-[0_0_30px_rgba(212,160,23,.20)]">
+                    <div className="flex items-start gap-3">
+                      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-[#F5C542] to-[#B8870E] text-base font-black text-black shadow-[0_0_24px_rgba(212,160,23,.16)]">
                         {clientInitials(client.fullName)}
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <h2 className="truncate text-xl font-black text-white">{client.fullName}</h2>
-                            <p className="mt-1 flex min-w-0 items-center gap-2 text-sm text-carbon-300">
+                            <h2 className="truncate text-base font-black text-white">{client.fullName}</h2>
+                            <p className="mt-1 flex min-w-0 items-center gap-2 text-xs text-carbon-300">
                               <Phone className="h-4 w-4 shrink-0" />
                               <span className="truncate">{client.phone || 'Téléphone manquant'}</span>
                             </p>
-                            <p className="mt-1 flex min-w-0 items-center gap-2 text-sm text-carbon-300">
+                            <p className="mt-1 flex min-w-0 items-center gap-2 text-xs text-carbon-300">
                               <Mail className="h-4 w-4 shrink-0" />
                               <span className="truncate">{client.email || 'Email non renseigné'}</span>
                             </p>
@@ -611,27 +616,27 @@ export default function ClientsPage() {
                               event.stopPropagation();
                               setMobileClientId(client.id);
                             }}
-                            className="focus-ring grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-carbon-200"
+                            className="focus-ring grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-carbon-200"
                           >
-                            <MoreVertical className="h-5 w-5" />
+                            <MoreVertical className="h-4 w-4" />
                           </button>
                         </div>
 
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          <span className={`rounded-full border px-3 py-1 text-xs font-bold ${client.status === 'New' ? 'border-[#D4A017]/35 bg-[#D4A017]/12 text-gold-100' : 'border-emerald-300/25 bg-emerald-500/12 text-emerald-200'}`}>
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${client.status === 'New' ? 'border-[#D4A017]/35 bg-[#D4A017]/12 text-gold-100' : 'border-emerald-300/25 bg-emerald-500/12 text-emerald-200'}`}>
                             {client.status === 'New' ? 'New' : 'Actif'}
                           </span>
-                          <span className={`rounded-full border px-3 py-1 text-xs font-bold ${documentsReady ? 'border-emerald-300/25 bg-emerald-500/12 text-emerald-200' : 'border-amber-300/30 bg-amber-500/12 text-amber-100'}`}>
+                          <span className={`rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${documentsReady ? 'border-emerald-300/25 bg-emerald-500/12 text-emerald-200' : 'border-amber-300/30 bg-amber-500/12 text-amber-100'}`}>
                             {documentsReady ? 'Docs complets' : 'Docs manquants'}
                           </span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="mt-4 flex items-center justify-between gap-4 border-t border-white/10 pt-4">
+                    <div className="mt-3 flex items-center justify-between gap-4 border-t border-white/10 pt-3">
                       <div>
-                        <p className="text-lg font-black text-white">{formatMAD(client.computedSpent)}</p>
-                        <p className="text-sm text-carbon-400">
+                        <p className="text-base font-black text-white">{formatMAD(client.computedSpent)}</p>
+                        <p className="text-xs text-carbon-400">
                           {client.computedReservations} {client.computedReservations > 1 ? 'réservations' : 'réservation'}
                         </p>
                         <p className={`mt-1 text-xs font-black ${client.computedRemaining > 0 ? 'text-amber-200' : 'text-emerald-200'}`}>
@@ -640,11 +645,11 @@ export default function ClientsPage() {
                       </div>
                     </div>
 
-                    <div className="mt-4 grid grid-cols-2 gap-2" onClick={(event) => event.stopPropagation()}>
+                    <div className="mt-3 grid grid-cols-2 gap-2" onClick={(event) => event.stopPropagation()}>
                       <button
                         type="button"
                         onClick={() => setMobileClientId(client.id)}
-                        className="focus-ring inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] text-sm font-bold text-white"
+                        className="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] text-sm font-bold text-white"
                       >
                         <Eye className="h-4 w-4" />
                         Voir
@@ -652,7 +657,7 @@ export default function ClientsPage() {
                       <button
                         type="button"
                         onClick={() => openEditClient(client)}
-                        className="focus-ring inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] text-sm font-bold text-white"
+                        className="focus-ring inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] text-sm font-bold text-white"
                       >
                         <Edit3 className="h-4 w-4" />
                         Modifier
@@ -660,7 +665,7 @@ export default function ClientsPage() {
                       <button
                         type="button"
                         onClick={() => navigate('/reservations')}
-                        className="focus-ring col-span-2 inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-[#D4A017]/30 bg-[#D4A017]/10 px-2 text-center text-sm font-bold text-gold-100"
+                        className="focus-ring col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-2xl border border-[#D4A017]/30 bg-[#D4A017]/10 px-2 text-center text-sm font-bold text-gold-100"
                       >
                         <CalendarClock className="h-4 w-4" />
                         Réserver
@@ -1090,19 +1095,6 @@ export default function ClientsPage() {
               </button>
             </div>
           </div>
-        </div>
-      ) : null}
-
-      {clients.length > 0 ? (
-        <div className="fixed inset-x-4 bottom-24 z-40 md:hidden">
-          <button
-            type="button"
-            onClick={openNewClient}
-            className="focus-ring flex h-16 w-full items-center justify-center gap-3 rounded-3xl bg-[#D4A017] text-base font-black text-black shadow-[0_20px_50px_rgba(212,160,23,.30)] transition hover:bg-[#f1c232]"
-          >
-            <UserPlus className="h-5 w-5" />
-            Ajouter un client
-          </button>
         </div>
       ) : null}
 
