@@ -1030,11 +1030,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setReservations((current) => [reservation, ...current]);
           return reservation;
         }
+        if (!agencyId) {
+          throw new Error('Agence introuvable');
+        }
         await assertNoReservationOverlap(reservation, agencyId!);
         let data: unknown = null;
         let error: Error | null = null;
         const payload = toReservationRow(reservation, agencyId!) as Record<string, unknown>;
-        for (let attempt = 0; attempt < 8; attempt += 1) {
+        const removedColumns: string[] = [];
+        const maxAttempts = Object.keys(payload).length + 1;
+        for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
           const result = await supabase!
             .from('reservations')
             .insert(payload)
@@ -1043,11 +1048,29 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           data = result.data;
           error = result.error as Error | null;
           if (!error) break;
-          if (import.meta.env.DEV) console.error('Supabase reservation insert failed', { error, payload });
-          if (removeMissingColumnFromPayload(error, payload)) continue;
+          const missingColumn = getMissingColumnName(error);
+          if (missingColumn && missingColumn in payload) {
+            removedColumns.push(missingColumn);
+            delete payload[missingColumn];
+            continue;
+          }
           break;
         }
         if (error) {
+          console.error('Reservation create failed', {
+            reservationPayload: payload,
+            removedColumns,
+            selectedClientId: reservation.clientId,
+            selectedVehicleId: reservation.vehicleId,
+            startDate: reservation.pickupDate,
+            endDate: reservation.returnDate,
+            pickupLocation: reservation.pickupLocation,
+            returnLocation: reservation.returnLocation,
+            totalPrice: reservation.totalAmount,
+            status: reservation.status,
+            agencyId,
+            supabaseError: error,
+          });
           if (error.message?.includes('overlap_reservation') || error.message?.includes('chevauche')) {
             throw new Error("Ce véhicule est déjà réservé sur cette période.");
           }

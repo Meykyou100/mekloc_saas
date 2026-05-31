@@ -447,10 +447,32 @@ export default function ReservationsPage() {
       setModalOpen(false);
       setEditingReservation(null);
     } catch (error) {
-      if (import.meta.env.DEV) console.error('Reservation save failed', error);
+      console.error('Reservation save failed', {
+        payload,
+        selectedClientId: selectedClient?.id,
+        selectedVehicleId: selectedVehicle?.id,
+        startDate: draftPickupDate,
+        endDate: draftReturnDate,
+        pickupLocation: draftPickupLocation,
+        returnLocation: draftReturnLocation,
+        totalPrice: totalEstimate,
+        status: draftStatus,
+        error,
+      });
+      const rawMessage = error instanceof Error
+        ? error.message
+        : error && typeof error === 'object' && 'message' in error
+          ? String((error as { message?: unknown }).message || '')
+          : '';
+      const friendlyMessage =
+        rawMessage.includes('Client') ? 'Client manquant'
+          : rawMessage.includes('Véhicule') || rawMessage.includes('véhicule') ? 'Véhicule manquant'
+            : rawMessage.includes('Date') || rawMessage.includes('date') ? 'Dates invalides'
+              : rawMessage.includes('Agence') || rawMessage.includes('agency') ? 'Agence introuvable'
+                : rawMessage || 'Réessayez dans quelques instants.';
       notify({
         title: 'Enregistrement impossible',
-        message: error instanceof Error ? error.message : 'Réessayez dans quelques instants.',
+        message: friendlyMessage,
         type: 'warning',
       });
     } finally {
