@@ -108,16 +108,16 @@ function statusFr(status: ReservationStatus) {
 
 function urgencyBadge(reservation: Reservation, todayIso: string) {
   if (reservation.returnDate < todayIso && reservation.status !== 'Completed' && reservation.status !== 'Cancelled') {
-    return { label: 'En retard', className: 'border-rose-300/40 bg-rose-500/15 text-rose-100 light:text-rose-700' };
+    return { label: 'En retard', className: 'border-rose-300/40 bg-rose-500/15 text-rose-700 dark:text-rose-100' };
   }
   if (reservation.pickupDate === todayIso) {
-    return { label: "Départ aujourd'hui", className: 'border-amber-300/40 bg-amber-500/15 text-amber-100 light:text-amber-700' };
+    return { label: "Départ aujourd'hui", className: 'border-amber-300/40 bg-amber-500/15 text-amber-700 dark:text-amber-100' };
   }
   if (reservation.returnDate === todayIso) {
-    return { label: "Retour aujourd'hui", className: 'border-sky-300/40 bg-sky-500/15 text-sky-100 light:text-sky-700' };
+    return { label: "Retour aujourd'hui", className: 'border-sky-300/40 bg-sky-500/15 text-sky-700 dark:text-sky-100' };
   }
   if (reservation.pickupDate > todayIso) {
-    return { label: 'À venir', className: 'border-emerald-300/40 bg-emerald-500/15 text-emerald-100 light:text-emerald-700' };
+    return { label: 'À venir', className: 'border-emerald-300/40 bg-emerald-500/15 text-emerald-700 dark:text-emerald-100' };
   }
   return null;
 }
@@ -638,7 +638,7 @@ export default function ReservationsPage() {
                       <td className="px-5 py-4"><Badge>{reservation.status}</Badge></td>
                       <td className="px-5 py-4">
                         <p className="font-black text-[var(--app-text)]">{formatMAD(paymentSummary.total)}</p>
-                        <p className="mt-1 text-xs text-[var(--app-text-muted)]">Reste: <span className={paymentSummary.remaining > 0 ? 'font-bold text-amber-200' : 'font-bold text-emerald-200'}>{formatMAD(paymentSummary.remaining)}</span></p>
+                        <p className="mt-1 text-xs text-[var(--app-text-muted)]">Reste: <span className={paymentSummary.remaining > 0 ? 'font-bold text-amber-700 dark:text-amber-200' : 'font-bold text-emerald-700 dark:text-emerald-200'}>{formatMAD(paymentSummary.remaining)}</span></p>
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap gap-2">
@@ -707,7 +707,7 @@ export default function ReservationsPage() {
                   </div>
                   <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
                     <p className="text-[var(--app-text-muted)]">Payé: <span className="font-bold text-[var(--app-text)]">{formatMAD(paymentSummary.paid)}</span></p>
-                    <p className="text-[var(--app-text-muted)]">Reste: <span className={paymentSummary.remaining > 0 ? 'font-black text-amber-200' : 'font-black text-emerald-200'}>{paymentSummary.remaining > 0 ? formatMAD(paymentSummary.remaining) : 'Payé intégralement'}</span></p>
+                    <p className="text-[var(--app-text-muted)]">Reste: <span className={paymentSummary.remaining > 0 ? 'font-black text-amber-700 dark:text-amber-200' : 'font-black text-emerald-700 dark:text-emerald-200'}>{paymentSummary.remaining > 0 ? formatMAD(paymentSummary.remaining) : 'Payé intégralement'}</span></p>
                   </div>
                 </div>
 
@@ -894,7 +894,7 @@ export default function ReservationsPage() {
                                       <span className="truncate text-sm font-black text-[var(--app-text)] sm:text-base">{client.fullName}</span>
                                       {client.status === 'New' ? <span className="rounded-full border border-gold-300/25 bg-gold-400/12 px-2 py-0.5 text-[10px] font-black text-[var(--app-gold-text)]">Nouveau</span> : null}
                                       {client.status === 'VIP' ? <span className="rounded-full border border-gold-300/30 bg-gold-400/16 px-2 py-0.5 text-[10px] font-black text-[var(--app-gold-text)]">VIP</span> : null}
-                                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${docsComplete ? 'border-emerald-300/25 bg-emerald-500/12 text-emerald-200' : 'border-amber-300/25 bg-amber-500/12 text-amber-100'}`}>
+                                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${docsComplete ? 'border-emerald-300/25 bg-emerald-500/12 text-emerald-700 dark:text-emerald-200' : 'border-amber-300/25 bg-amber-500/12 text-amber-700 dark:text-amber-100'}`}>
                                         {docsComplete ? 'Documents complets' : 'Docs à compléter'}
                                       </span>
                                     </span>
@@ -997,14 +997,14 @@ export default function ReservationsPage() {
                           </ReservationField>
                         </div>
                         <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3 sm:p-4">
-                          <p className="text-sm font-semibold text-carbon-100">Durée calculée: {rentalDays} jour(s)</p>
+                          <p className="text-sm font-semibold text-[var(--app-text-soft)]">Durée calculée: {rentalDays} jour(s)</p>
                           {overlapReservation ? (
-                            <p className="mt-2 text-sm font-semibold text-rose-200">
+                            <p className="mt-2 text-sm font-semibold text-rose-700 dark:text-rose-200">
                               Ce véhicule est déjà réservé sur cette période.
                               {nextAvailableDate ? ` Prochaine date disponible: ${nextAvailableDate}.` : ''}
                             </p>
                           ) : (
-                            <p className="mt-2 text-sm font-semibold text-emerald-200">Véhicule disponible pour cette période.</p>
+                            <p className="mt-2 text-sm font-semibold text-emerald-700 dark:text-emerald-200">Véhicule disponible pour cette période.</p>
                           )}
                         </div>
                       </section>
@@ -1073,9 +1073,9 @@ export default function ReservationsPage() {
                               <div key={item.label} className="flex items-center justify-between rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 py-2 text-sm">
                                 <span className="text-[var(--app-text-soft)]">{item.label}</span>
                                 {item.ok ? (
-                                  <span className="inline-flex items-center gap-1 text-emerald-300"><CheckCircle2 className="h-4 w-4" /> OK</span>
+                                  <span className="inline-flex items-center gap-1 text-emerald-700 dark:text-emerald-300"><CheckCircle2 className="h-4 w-4" /> OK</span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1 text-amber-200"><CircleAlert className="h-4 w-4" /> À vérifier</span>
+                                  <span className="inline-flex items-center gap-1 text-amber-700 dark:text-amber-200"><CircleAlert className="h-4 w-4" /> À vérifier</span>
                                 )}
                               </div>
                             ))}
@@ -1270,7 +1270,7 @@ export default function ReservationsPage() {
                     </div>
                     <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
                       <p className="text-xs text-[var(--app-text-muted)]">Reste</p>
-                      <p className={`mt-1 truncate font-black ${detailsPaymentSummary.remaining > 0 ? 'text-amber-200' : 'text-emerald-200'}`}>{formatMAD(detailsPaymentSummary.remaining)}</p>
+                      <p className={`mt-1 truncate font-black ${detailsPaymentSummary.remaining > 0 ? 'text-amber-700 dark:text-amber-200' : 'text-emerald-700 dark:text-emerald-200'}`}>{formatMAD(detailsPaymentSummary.remaining)}</p>
                     </div>
                     <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
                       <p className="text-xs text-[var(--app-text-muted)]">Caution</p>

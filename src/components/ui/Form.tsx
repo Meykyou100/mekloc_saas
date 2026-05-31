@@ -6,7 +6,7 @@ export function Field({
   ...props
 }: InputHTMLAttributes<HTMLInputElement> & { label: string }) {
   return (
-    <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
+    <label className="grid gap-2 text-sm font-medium text-[var(--app-text-soft)]">
       <span>{label}</span>
       <input
         className={`form-control focus-ring w-full text-base sm:text-sm ${className}`}
@@ -23,7 +23,7 @@ export function SelectField({
   ...props
 }: SelectHTMLAttributes<HTMLSelectElement> & { label: string }) {
   return (
-    <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
+    <label className="grid gap-2 text-sm font-medium text-[var(--app-text-soft)]">
       <span>{label}</span>
       <select
         className={`form-control focus-ring w-full text-base sm:text-sm ${className}`}
@@ -41,7 +41,7 @@ export function TextAreaField({
   ...props
 }: TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string }) {
   return (
-    <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
+    <label className="grid gap-2 text-sm font-medium text-[var(--app-text-soft)]">
       <span>{label}</span>
       <textarea
         className={`form-control focus-ring min-h-28 w-full text-base sm:text-sm ${className}`}
