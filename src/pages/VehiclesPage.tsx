@@ -253,9 +253,9 @@ export default function VehiclesPage() {
 
   const vehicleStatCards = [
     { label: 'Total', value: String(stats.total), tone: 'text-[var(--app-text)]', helper: 'Véhicules actifs', icon: Car, accent: 'from-gold-400/16' },
-    { label: 'Disponibles', value: String(stats.available), tone: 'text-emerald-300 light:text-emerald-700', helper: 'Prêts à louer', icon: CheckCircle2, accent: 'from-emerald-400/14' },
-    { label: 'Loués', value: String(stats.rented), tone: 'text-sky-300 light:text-sky-700', helper: 'En circulation', icon: Car, accent: 'from-sky-400/14' },
-    { label: 'Maintenance', value: String(stats.maintenance), tone: 'text-amber-300 light:text-amber-700', helper: 'À suivre', icon: Wrench, accent: 'from-amber-400/14' },
+    { label: 'Disponibles', value: String(stats.available), tone: 'text-emerald-700 dark:text-emerald-300', helper: 'Prêts à louer', icon: CheckCircle2, accent: 'from-emerald-400/14' },
+    { label: 'Loués', value: String(stats.rented), tone: 'text-sky-700 dark:text-sky-300', helper: 'En circulation', icon: Car, accent: 'from-sky-400/14' },
+    { label: 'Maintenance', value: String(stats.maintenance), tone: 'text-amber-700 dark:text-amber-300', helper: 'À suivre', icon: Wrench, accent: 'from-amber-400/14' },
     { label: 'Prix moyen / jour', value: formatMAD(stats.avgPrice), tone: 'text-[var(--app-gold-text)]', helper: `Archivés: ${stats.archived}`, icon: AlertTriangle, accent: 'from-violet-400/14' },
   ];
 
@@ -509,7 +509,7 @@ export default function VehiclesPage() {
 
   return (
     <div className="overflow-x-hidden pb-[calc(108px+env(safe-area-inset-bottom))] md:pb-6">
-      <div className="mb-2 rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_14px_34px_rgba(0,0,0,.22)] md:hidden">
+      <div className="mb-2 rounded-2xl border border-[var(--app-border)] bg-[linear-gradient(135deg,var(--app-card),var(--app-surface))] p-3 shadow-[0_14px_34px_rgba(16,24,32,.10)] md:hidden">
         <div className="flex min-w-0 items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--app-gold-text)]">PARC AUTOMOBILE</p>
@@ -548,7 +548,7 @@ export default function VehiclesPage() {
         {vehicleStatCards.map(({ label, value, tone, helper, icon: Icon, accent }) => (
           <div
             key={label}
-            className="relative min-h-[108px] min-w-[132px] overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_14px_36px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.05)] sm:min-w-0 sm:p-4 md:min-h-[118px]"
+            className="relative min-h-[108px] min-w-[132px] overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_14px_34px_rgba(16,24,32,.10),inset_0_1px_0_rgba(255,255,255,.08)] sm:min-w-0 sm:p-4 md:min-h-[118px]"
           >
             <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${accent} to-transparent`} />
             <div className="relative flex h-full flex-col justify-between">
@@ -567,7 +567,7 @@ export default function VehiclesPage() {
         ))}
       </div>
 
-      <Card className="mb-3 rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_18px_46px_rgba(0,0,0,.24)] md:mb-5 md:p-4">
+      <Card className="mb-3 rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_16px_38px_rgba(16,24,32,.10)] md:mb-5 md:p-4">
         <div className="grid gap-2.5 md:gap-3 xl:grid-cols-[minmax(260px,1fr)_auto_auto] xl:items-center">
           <label className="relative">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--app-text-muted)]" />
@@ -614,7 +614,7 @@ export default function VehiclesPage() {
             const insuranceSoon = !insuranceExpired && isDateSoon(vehicle.insuranceExpiry, 30);
             const inspectionSoon = !inspectionExpired && isDateSoon(vehicle.inspectionDate, 30);
             return (
-              <Card key={vehicle.id} interactive className="group flex h-full flex-col overflow-hidden rounded-3xl border border-[var(--app-border)] bg-[var(--app-card)] p-0 shadow-[0_14px_38px_rgba(0,0,0,.30),inset_0_1px_0_rgba(255,255,255,.04)] transition-all hover:border-[#D4A017]/35">
+              <Card key={vehicle.id} interactive className="group flex h-full flex-col overflow-hidden rounded-3xl border border-[var(--app-border)] bg-[var(--app-card)] p-0 shadow-[0_16px_38px_rgba(16,24,32,.12),inset_0_1px_0_rgba(255,255,255,.06)] transition-all hover:border-[#D4A017]/35">
                 <div className="vehicle-visual relative aspect-[16/8.6] w-full overflow-hidden bg-[var(--app-surface-soft)] md:aspect-[16/10]">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(255,255,255,0.14),transparent_58%)]" />
                   <div className="absolute inset-x-0 top-0 z-[1] h-24 bg-gradient-to-b from-black/70 via-black/28 to-transparent" />
@@ -622,7 +622,7 @@ export default function VehiclesPage() {
                   <div className="absolute left-3 top-3 z-10 sm:left-4 sm:top-4">
                     <Badge>{vehicle.archivedAt ? 'Archivé' : vehicle.status}</Badge>
                   </div>
-                  <span className="absolute right-3 top-3 z-10 inline-flex max-w-[72%] items-center rounded-full border border-yellow-500/30 bg-[var(--app-card)] px-3 py-1.5 text-xs font-semibold text-[var(--app-gold-text)] shadow-lg backdrop-blur sm:right-4 sm:top-4">
+                  <span className="absolute right-3 top-3 z-10 inline-flex max-w-[72%] items-center rounded-full border border-yellow-500/30 bg-black/72 px-3 py-1.5 text-xs font-semibold text-gold-100 shadow-lg backdrop-blur sm:right-4 sm:top-4">
                     <PlateNumber value={vehicle.plate} className="max-w-full truncate" />
                   </span>
                   {vehicle.imageUrl ? (
@@ -642,10 +642,10 @@ export default function VehiclesPage() {
                   )}
                   <div className="absolute bottom-3 left-3 right-3 z-10 flex items-end justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-base font-black text-[var(--app-text)] drop-shadow sm:text-xl">{vehicle.brand} {vehicle.model}</p>
-                      <p className="mt-0.5 truncate text-xs font-semibold text-[var(--app-text-soft)]">{vehicle.city || 'Ville non renseignée'} · {vehicle.year || '—'}</p>
+                      <p className="truncate text-base font-black text-white drop-shadow sm:text-xl">{vehicle.brand} {vehicle.model}</p>
+                      <p className="mt-0.5 truncate text-xs font-semibold text-white/82 drop-shadow">{vehicle.city || 'Ville non renseignée'} · {vehicle.year || '—'}</p>
                     </div>
-                    <p className="shrink-0 rounded-full border border-[#D4A017]/25 bg-[#D4A017]/15 px-2.5 py-1 text-xs font-black text-[var(--app-gold-text)]">{formatMAD(vehicle.dailyPrice)}</p>
+                    <p className="shrink-0 rounded-full border border-[#D4A017]/35 bg-black/65 px-2.5 py-1 text-xs font-black text-gold-100 backdrop-blur">{formatMAD(vehicle.dailyPrice)}</p>
                   </div>
                 </div>
 
@@ -671,11 +671,11 @@ export default function VehiclesPage() {
                   <div className="mt-3 grid gap-1.5 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-2.5 text-xs md:mt-4 md:gap-2 md:p-3 md:text-sm">
                     <div className="flex min-w-0 items-center justify-between gap-3">
                       <span className="truncate text-[var(--app-text-muted)]">Expiration assurance</span>
-                      <span className={`${insuranceExpired ? 'text-red-300 light:text-red-700' : insuranceSoon ? 'text-amber-300 light:text-amber-700' : 'text-[var(--app-text-soft)]'} shrink-0 font-semibold`}>{vehicle.insuranceExpiry || '—'}</span>
+                      <span className={`${insuranceExpired ? 'text-red-700 dark:text-red-300' : insuranceSoon ? 'text-amber-700 dark:text-amber-300' : 'text-[var(--app-text-soft)]'} shrink-0 font-semibold`}>{vehicle.insuranceExpiry || '—'}</span>
                     </div>
                     <div className="flex min-w-0 items-center justify-between gap-3">
                       <span className="truncate text-[var(--app-text-muted)]">Visite technique</span>
-                      <span className={`${inspectionExpired ? 'text-red-300 light:text-red-700' : inspectionSoon ? 'text-amber-300 light:text-amber-700' : 'text-[var(--app-text-soft)]'} shrink-0 font-semibold`}>{vehicle.inspectionDate || '—'}</span>
+                      <span className={`${inspectionExpired ? 'text-red-700 dark:text-red-300' : inspectionSoon ? 'text-amber-700 dark:text-amber-300' : 'text-[var(--app-text-soft)]'} shrink-0 font-semibold`}>{vehicle.inspectionDate || '—'}</span>
                     </div>
                     {(insuranceExpired || inspectionExpired || insuranceSoon || inspectionSoon) && (
                       <div className="mt-1 flex flex-wrap gap-2">
@@ -831,7 +831,7 @@ export default function VehiclesPage() {
               </div>
               <div>
                 <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-[var(--app-text-soft)] light:text-carbon-700">Immatriculation *</span>
+                  <span className="mb-2 block text-sm font-semibold text-[var(--app-text-soft)]">Immatriculation *</span>
                   <input
                     className="form-control plate-number w-full"
                     dir="ltr"
@@ -899,7 +899,7 @@ export default function VehiclesPage() {
               <SelectField label="Statut" name="status" value={vehicleStatusDraft} onChange={(event) => setVehicleStatusDraft(event.target.value as VehicleStatus)}>
                 <option>Available</option><option>Rented</option><option>Maintenance</option><option>Unavailable</option>
               </SelectField>
-              <label className="grid gap-2 text-sm font-medium text-[var(--app-text-soft)] light:text-carbon-700">
+              <label className="grid gap-2 text-sm font-medium text-[var(--app-text-soft)]">
                 <span>Ville</span>
                 <input
                   className="form-control focus-ring h-11 w-full text-base sm:text-sm"
@@ -913,7 +913,7 @@ export default function VehiclesPage() {
               </label>
               <div className="relative">
                 <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-[var(--app-text-soft)] light:text-carbon-700">Couleur du véhicule</span>
+                  <span className="mb-2 block text-sm font-semibold text-[var(--app-text-soft)]">Couleur du véhicule</span>
                   <div className="relative">
                     <span
                       className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-[var(--app-border)]"
@@ -1129,7 +1129,7 @@ export default function VehiclesPage() {
       <Modal open={Boolean(vehicleToDelete)} title={vehicleToDelete && vehicleHasLinkedRecords(vehicleToDelete) ? 'Archiver le véhicule' : 'Supprimer le véhicule'} onClose={() => setVehicleToDelete(null)}>
         <div className="space-y-4">
           <div className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
-            <p className="font-semibold text-rose-100 light:text-rose-700">
+            <p className="font-semibold text-rose-700 dark:text-rose-100">
               {vehicleToDelete && vehicleHasLinkedRecords(vehicleToDelete) ? 'Ce véhicule est lié à des opérations existantes.' : 'Cette suppression est définitive.'}
             </p>
             <p className="mt-2 text-sm text-[var(--app-text-soft)]">
@@ -1174,7 +1174,7 @@ function PremiumVehicleSelector({
 }) {
   return (
     <div className="relative">
-      <span className="mb-2 block text-sm font-semibold text-[var(--app-text-soft)] light:text-carbon-700">{label}</span>
+      <span className="mb-2 block text-sm font-semibold text-[var(--app-text-soft)]">{label}</span>
       <button
         type="button"
         className={`focus-ring flex h-11 w-full items-center justify-between gap-3 rounded-2xl border px-3 text-left text-sm transition ${

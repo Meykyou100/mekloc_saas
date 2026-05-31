@@ -301,7 +301,7 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 border-b border-[var(--app-border)] bg-[var(--app-topbar)] px-4 py-2.5 shadow-[0_12px_40px_rgba(0,0,0,.18)] backdrop-blur-2xl sm:px-6 md:py-3 lg:px-8">
+    <header className="sticky top-0 z-30 border-b border-[var(--app-border)] bg-[var(--app-topbar)] px-4 py-2.5 shadow-[0_12px_34px_rgba(16,24,32,.10)] backdrop-blur-2xl sm:px-6 md:py-3 lg:px-8">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#D4A017]/35 to-transparent lg:hidden" />
       <div className="relative flex min-h-12 items-center gap-3">
         <button
@@ -312,11 +312,11 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
           <Menu className="h-5 w-5" />
         </button>
         <div className="relative hidden flex-1 md:block">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-400" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--app-text-muted)]" />
           <input
             aria-label="Search"
             placeholder="Rechercher une réservation, un client, un véhicule..."
-            className="form-control focus-ring h-11 w-full rounded-2xl pl-10 pr-4 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,.04)] placeholder:text-carbon-500"
+            className="form-control focus-ring h-11 w-full rounded-2xl border-[var(--app-border)] bg-[var(--app-input)] pl-10 pr-4 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,.08),0_8px_24px_rgba(16,24,32,.04)] placeholder:text-[var(--app-text-muted)]"
           />
         </div>
         <div className="mr-auto md:hidden">
@@ -345,8 +345,8 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
             <div className="absolute right-0 z-50 mt-3 w-[min(23rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-[var(--app-border)] bg-[var(--app-card)] p-2 text-[var(--app-text)] shadow-[var(--app-shadow)] backdrop-blur-2xl">
               <div className="mb-2 flex items-center justify-between px-2">
                 <div>
-                  <p className="font-semibold text-white light:text-carbon-950">Notifications</p>
-                  <p className="text-xs text-carbon-500">{notificationCount ? `${notificationCount} alerte${notificationCount > 1 ? 's' : ''} active${notificationCount > 1 ? 's' : ''}` : 'Tout est à jour'}</p>
+                  <p className="font-semibold text-[var(--app-text)]">Notifications</p>
+                  <p className="text-xs text-[var(--app-text-muted)]">{notificationCount ? `${notificationCount} alerte${notificationCount > 1 ? 's' : ''} active${notificationCount > 1 ? 's' : ''}` : 'Tout est à jour'}</p>
                 </div>
                 {notificationCount ? <AlertTriangle className="h-4 w-4 text-gold-200" /> : <CheckCircle2 className="h-4 w-4 text-mint-400" />}
               </div>
@@ -356,10 +356,10 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
                     const Icon = notification.icon;
                     const tone =
                       notification.severity === 'danger'
-                        ? 'border-rose-300/20 bg-rose-500/10 text-rose-100'
+                        ? 'border-rose-300/20 bg-rose-500/10 text-rose-700 dark:text-rose-100'
                         : notification.severity === 'warning'
-                          ? 'border-amber-300/20 bg-amber-500/10 text-amber-100'
-                          : 'border-sky-300/20 bg-sky-500/10 text-sky-100';
+                          ? 'border-amber-300/20 bg-amber-500/10 text-amber-700 dark:text-amber-100'
+                          : 'border-sky-300/20 bg-sky-500/10 text-sky-700 dark:text-sky-100';
                     return (
                       <button
                         key={notification.id}
@@ -371,16 +371,16 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
                           <Icon className="h-4 w-4" />
                         </span>
                         <span className="min-w-0 flex-1">
-                          <span className="block text-sm font-black text-white light:text-carbon-950">{notification.title}</span>
-                          <span className="mt-0.5 block truncate text-xs font-semibold text-carbon-300 light:text-carbon-700">{notification.description}</span>
-                          <span className="mt-1 block text-[11px] font-bold uppercase tracking-[0.12em] text-carbon-500">{notification.context}</span>
+                          <span className="block text-sm font-black text-[var(--app-text)]">{notification.title}</span>
+                          <span className="mt-0.5 block truncate text-xs font-semibold text-[var(--app-text-soft)]">{notification.description}</span>
+                          <span className="mt-1 block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--app-text-muted)]">{notification.context}</span>
                         </span>
                       </button>
                     );
                   })}
                 </div>
               ) : (
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-3 py-6 text-center text-sm text-carbon-300">
+                <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 py-6 text-center text-sm text-[var(--app-text-soft)]">
                   Aucune notification
                 </div>
               )}
@@ -402,22 +402,22 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
             </span>
             <span className="hidden min-w-0 text-left md:block">
               <span className="block max-w-36 truncate leading-4">{profile?.fullName || 'Agence MekLoc'}</span>
-              <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-carbon-500">{roleLabel}</span>
+              <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--app-text-muted)]">{roleLabel}</span>
             </span>
-            <ChevronDown className={`hidden h-4 w-4 text-carbon-500 transition-transform duration-200 md:block ${profileOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`hidden h-4 w-4 text-[var(--app-text-muted)] transition-transform duration-200 md:block ${profileOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {profileOpen ? (
             <div className="absolute right-0 z-50 mt-3 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-[var(--app-border)] bg-[var(--app-card)] p-2 text-[var(--app-text)] shadow-[var(--app-shadow)] backdrop-blur-2xl">
-              <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-[#D4A017]/14 via-white/[0.04] to-transparent p-4 light:border-carbon-950/10 light:from-[#D4A017]/18">
+              <div className="rounded-2xl border border-gold-300/20 bg-[linear-gradient(135deg,var(--app-gold-soft),var(--app-surface-soft))] p-4">
                 <div className="flex items-center gap-3">
                   <div className="grid h-12 w-12 place-items-center rounded-2xl border border-gold-300/25 bg-gold-400/15 text-sm font-black text-gold-100 shadow-[0_0_28px_rgba(212,160,23,.14)]">
                     {initials}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-black text-white light:text-carbon-950">{profile?.fullName || profile?.agency?.name || 'Agence MekLoc'}</p>
-                    <p className="mt-0.5 truncate text-xs text-carbon-400 light:text-carbon-600">{profile?.email || 'Email non renseigné'}</p>
-                    <span className="mt-2 inline-flex rounded-full border border-gold-300/25 bg-gold-400/12 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-gold-100 light:text-[#8a6500]">
+                    <p className="truncate text-sm font-black text-[var(--app-text)]">{profile?.fullName || profile?.agency?.name || 'Agence MekLoc'}</p>
+                    <p className="mt-0.5 truncate text-xs text-[var(--app-text-muted)]">{profile?.email || 'Email non renseigné'}</p>
+                    <span className="mt-2 inline-flex rounded-full border border-gold-300/25 bg-gold-400/12 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--app-gold-text)]">
                       {roleLabel}
                     </span>
                   </div>
@@ -431,12 +431,12 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
                 <ProfileMenuItem icon={HelpCircle} label="Support MekLoc" onClick={openSupport} />
               </div>
 
-              <div className="my-2 h-px bg-white/10 light:bg-carbon-950/10" />
+              <div className="my-2 h-px bg-[var(--app-border)]" />
 
               <button
                 type="button"
                 onClick={handleLogout}
-                className="focus-ring flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-rose-100 transition hover:border-rose-300/25 hover:bg-rose-500/10 light:text-rose-700"
+                className="focus-ring flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold text-rose-700 transition hover:border-rose-300/25 hover:bg-rose-500/10 dark:text-rose-100"
               >
                 <span className="grid h-9 w-9 place-items-center rounded-xl border border-rose-300/20 bg-rose-500/10">
                   <LogOut className="h-4 w-4" />
@@ -444,13 +444,13 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
                 Se déconnecter
               </button>
 
-              <p className="px-3 pb-2 pt-1 text-[11px] font-medium text-carbon-500">Connecté à MekLoc</p>
+              <p className="px-3 pb-2 pt-1 text-[11px] font-medium text-[var(--app-text-muted)]">Connecté à MekLoc</p>
             </div>
           ) : null}
         </div>
         <button
           aria-label="Logout"
-          className="focus-ring hidden h-11 w-11 place-items-center rounded-2xl border border-white/10 bg-zinc-950/70 text-carbon-200 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-rose-300/25 hover:bg-rose-400/10 hover:text-white light:bg-carbon-950/[0.04] light:text-carbon-800 md:grid"
+          className="focus-ring hidden h-11 w-11 place-items-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-rose-300/25 hover:bg-rose-400/10 hover:text-[var(--app-text)] md:grid"
           onClick={handleLogout}
         >
           <LogOut className="h-5 w-5" />
@@ -465,9 +465,9 @@ function ProfileMenuItem({ icon: Icon, label, onClick }: { icon: LucideIcon; lab
     <button
       type="button"
       onClick={onClick}
-      className="focus-ring flex w-full items-center gap-3 rounded-2xl border border-transparent px-3 py-3 text-left text-sm font-semibold text-carbon-200 transition hover:border-gold-300/20 hover:bg-gold-400/10 hover:text-white light:text-carbon-700 light:hover:text-carbon-950"
+      className="focus-ring flex w-full items-center gap-3 rounded-2xl border border-transparent px-3 py-3 text-left text-sm font-semibold text-[var(--app-text-soft)] transition hover:border-gold-300/20 hover:bg-gold-400/10 hover:text-[var(--app-text)]"
     >
-      <span className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-gold-200 light:border-carbon-950/10 light:bg-carbon-950/[0.04]">
+      <span className="grid h-9 w-9 place-items-center rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-gold-text)]">
         <Icon className="h-4 w-4" />
       </span>
       <span>{label}</span>
