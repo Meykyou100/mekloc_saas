@@ -1035,14 +1035,14 @@ startxref
 
   return (
     <div className="overflow-x-hidden pb-[calc(108px+env(safe-area-inset-bottom))] md:pb-8">
-      <div className="mb-3 rounded-2xl border border-[var(--app-border)] bg-[radial-gradient(circle_at_top_right,rgba(227,177,23,.16),transparent_36%),linear-gradient(135deg,rgba(12,17,24,.96),rgba(2,3,5,.98))] p-3 shadow-[0_18px_50px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)] md:hidden">
-        <div className="flex items-center justify-between gap-3">
+      <div className="mb-3 rounded-2xl border border-[var(--app-border)] bg-[linear-gradient(135deg,var(--app-card),var(--app-surface))] p-3 shadow-[0_14px_34px_rgba(16,24,32,.10),inset_0_1px_0_rgba(255,255,255,.06)] md:hidden">
+        <div className="grid gap-3">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--app-gold-text)]">WORKSPACE</p>
             <h1 className="mt-0.5 text-2xl font-black leading-none text-[var(--app-text)]">Paramètres</h1>
             <p className="mt-1 truncate text-xs text-[var(--app-text-muted)]">Configurez votre espace agence.</p>
           </div>
-          <div className="flex shrink-0 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <Button className="h-11 rounded-2xl px-3 text-xs" icon={settingsSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} onClick={handleSaveSettings} loading={settingsSaving} disabled={!hasChanges && !settingsSaving}>
               {settingsSaving ? '...' : 'Enregistrer'}
             </Button>

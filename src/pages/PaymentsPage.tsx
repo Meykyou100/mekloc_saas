@@ -481,14 +481,14 @@ export default function PaymentsPage() {
   return (
     <div className="relative overflow-x-hidden pb-[calc(108px+env(safe-area-inset-bottom))] md:pb-28">
       <div className="pointer-events-none absolute -right-20 top-6 h-48 w-48 rounded-full bg-gold-400/10 blur-3xl md:hidden" />
-      <div className="relative mb-3 rounded-2xl border border-[var(--app-border)] bg-[radial-gradient(circle_at_top_right,rgba(227,177,23,.16),transparent_36%),linear-gradient(135deg,rgba(12,17,24,.96),rgba(2,3,5,.98))] p-3 shadow-[0_18px_50px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)] md:hidden">
-        <div className="flex items-center justify-between gap-3">
+      <div className="relative mb-3 rounded-2xl border border-[var(--app-border)] bg-[linear-gradient(135deg,var(--app-card),var(--app-surface))] p-3 shadow-[0_14px_34px_rgba(16,24,32,.10),inset_0_1px_0_rgba(255,255,255,.06)] md:hidden">
+        <div className="grid gap-3">
           <div className="min-w-0">
             <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--app-gold-text)]">FINANCES</p>
             <h1 className="mt-0.5 text-2xl font-black leading-none text-[var(--app-text)]">Paiements</h1>
             <p className="mt-1 truncate text-xs text-[var(--app-text-muted)]">Suivez vos paiements, cautions et restes à payer.</p>
           </div>
-          <Button className="h-11 shrink-0 rounded-2xl px-3 text-xs shadow-[0_14px_34px_rgba(227,177,23,.16)]" icon={<Plus className="h-4 w-4" />} onClick={() => openPaymentModal()}>
+          <Button className="h-11 w-full rounded-2xl px-3 text-xs shadow-[0_14px_34px_rgba(227,177,23,.16)]" icon={<Plus className="h-4 w-4" />} onClick={() => openPaymentModal()}>
             Ajouter
           </Button>
         </div>
@@ -511,7 +511,7 @@ export default function PaymentsPage() {
         ].map(({ label, value, helper, icon: Icon, tone }) => (
           <div
             key={label}
-            className="relative min-h-[106px] min-w-[138px] overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_18px_48px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.04)] transition duration-300 hover:-translate-y-0.5 hover:border-gold-300/30  md:min-h-[112px] md:min-w-0 md:rounded-3xl md:p-4"
+            className="relative min-h-[112px] min-w-[168px] overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_14px_34px_rgba(16,24,32,.10),inset_0_1px_0_rgba(255,255,255,.06)] transition duration-300 hover:-translate-y-0.5 hover:border-gold-300/30 sm:min-w-0 md:min-h-[112px] md:rounded-3xl md:p-4"
           >
             <div className={`pointer-events-none absolute inset-x-0 top-0 h-0.5 ${
               tone === 'green'
@@ -524,14 +524,14 @@ export default function PaymentsPage() {
             }`} />
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="truncate text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-[var(--app-text-muted)]">{label}</p>
-                <p className="mt-2 truncate text-[1.2rem] font-black leading-none text-[var(--app-text)]  md:text-xl">{value}</p>
+                <p className="whitespace-normal text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-[var(--app-text-muted)]">{label}</p>
+                <p className="mt-2 break-words text-[1.05rem] font-black leading-tight text-[var(--app-text)] md:text-xl">{value}</p>
               </div>
               <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border md:h-10 md:w-10 md:rounded-2xl ${
                 tone === 'green'
                   ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-700 dark:text-emerald-200'
                   : tone === 'red'
-                    ? 'border-rose-300/20 bg-rose-400/10 text-rose-200'
+                    ? 'border-rose-300/20 bg-rose-400/10 text-rose-700 dark:text-rose-200'
                     : tone === 'amber'
                       ? 'border-amber-300/25 bg-amber-400/10 text-amber-700 dark:text-amber-200'
                       : 'border-gold-300/25 bg-gold-400/12 text-[var(--app-gold-text)]'
