@@ -1034,24 +1034,41 @@ startxref
   }
 
   return (
-    <div>
-      <PageHeader
-        eyebrow="Workspace"
-        title="Paramètres"
-        description="Configurez le profil agence, les contrats, la devise, la fiscalité, WhatsApp et les rôles."
-        action={<div className="flex gap-2"><Button icon={settingsSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} onClick={handleSaveSettings} loading={settingsSaving} disabled={!hasChanges && !settingsSaving}>{settingsSaving ? 'Enregistrement...' : 'Enregistrer'}</Button><Button variant="secondary" onClick={handleLogout}>Déconnexion</Button></div>}
-      />
-      <div className="mb-3">
+    <div className="overflow-x-hidden pb-[calc(108px+env(safe-area-inset-bottom))] md:pb-8">
+      <div className="mb-3 rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(227,177,23,.16),transparent_36%),linear-gradient(135deg,rgba(12,17,24,.96),rgba(2,3,5,.98))] p-3 shadow-[0_18px_50px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)] md:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gold-200">WORKSPACE</p>
+            <h1 className="mt-0.5 text-2xl font-black leading-none text-white">Paramètres</h1>
+            <p className="mt-1 truncate text-xs text-carbon-400">Configurez votre espace agence.</p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <Button className="h-11 rounded-2xl px-3 text-xs" icon={settingsSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} onClick={handleSaveSettings} loading={settingsSaving} disabled={!hasChanges && !settingsSaving}>
+              {settingsSaving ? '...' : 'Enregistrer'}
+            </Button>
+            <Button variant="secondary" className="h-11 rounded-2xl px-3 text-xs" onClick={handleLogout}>Déconnexion</Button>
+          </div>
+        </div>
+      </div>
+      <div className="hidden md:block">
+        <PageHeader
+          eyebrow="Workspace"
+          title="Paramètres"
+          description="Configurez votre espace agence."
+          action={<div className="flex gap-2"><Button icon={settingsSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} onClick={handleSaveSettings} loading={settingsSaving} disabled={!hasChanges && !settingsSaving}>{settingsSaving ? 'Enregistrement...' : 'Enregistrer'}</Button><Button variant="secondary" onClick={handleLogout}>Déconnexion</Button></div>}
+        />
+      </div>
+      <div className="mb-2 md:mb-3">
         {saveState === 'dirty' ? <p className="text-sm text-gold-200">Modifications non enregistrées</p> : null}
         {saveState === 'saved' ? <p className="text-sm text-emerald-300">Enregistré</p> : null}
       </div>
 
-      <Card className="mb-6 p-2">
-        <div className="flex flex-wrap gap-2">
+      <Card className="sticky top-0 z-20 mb-3 rounded-2xl border-white/10 bg-zinc-950/95 p-2 backdrop-blur md:static md:mb-6 md:rounded-3xl">
+        <div className="no-scrollbar flex gap-2 overflow-x-auto md:flex-wrap md:overflow-visible">
           {tabs.map((item) => (
             <button
               key={item}
-              className={`focus-ring rounded-xl px-4 py-2 text-sm font-semibold transition ${tab === item ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300 hover:bg-white/10 light:text-carbon-700'}`}
+              className={`focus-ring h-9 shrink-0 rounded-full px-3 text-xs font-black transition md:h-10 md:rounded-xl md:px-4 md:text-sm ${tab === item ? 'bg-gold-400 text-carbon-950 shadow-[0_10px_24px_rgba(227,177,23,.14)]' : 'border border-transparent text-carbon-300 hover:border-white/10 hover:bg-white/10 light:text-carbon-700'}`}
               onClick={() => selectSettingsTab(item)}
             >
               {item}
@@ -1061,20 +1078,20 @@ startxref
       </Card>
 
       {tab === 'Général' ? (
-        <div className="grid gap-6 xl:grid-cols-[1fr_0.8fr]">
-          <Card className="p-5">
-            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="grid gap-3 md:gap-6 xl:grid-cols-[1fr_0.8fr]">
+          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between md:mb-5">
               <div className="flex items-center gap-3">
-                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400/12 text-gold-200">
+                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-gold-400/12 text-gold-200 md:h-11 md:w-11">
                   <Building2 className="h-5 w-5" />
                 </div>
                 <div>
                   <h2 className="font-semibold text-white light:text-carbon-950">Profil agence</h2>
-                  <p className="text-sm text-carbon-400">Informations visibles dans vos documents et communications.</p>
+                  <p className="text-xs text-carbon-400 md:text-sm">Informations visibles dans vos documents et communications.</p>
                 </div>
               </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-2 md:gap-4">
               <Field label="Nom de l’agence" value={agencyName} onChange={(e) => setAgencyName(e.target.value)} />
               <Field label="Numéro WhatsApp" value={agencyPhone} onChange={(e) => setAgencyPhone(e.target.value)} />
               <div className="grid gap-2">
@@ -1091,10 +1108,10 @@ startxref
               </div>
               <Field label="Adresse" value={agencyAddress} onChange={(e) => setAgencyAddress(e.target.value)} placeholder="Adresse agence" />
             </div>
-            <div className="mt-5 grid gap-4 rounded-2xl border border-dashed border-gold-300/30 bg-gradient-to-br from-gold-400/10 via-white/[0.025] to-black/10 p-5 lg:grid-cols-[1fr_auto] lg:items-center">
+            <div className="mt-4 grid gap-3 rounded-2xl border border-dashed border-gold-300/30 bg-gradient-to-br from-gold-400/10 via-white/[0.025] to-black/10 p-4 lg:grid-cols-[1fr_auto] lg:items-center md:mt-5 md:gap-4 md:p-5">
               <div className="flex items-center gap-3">
-                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gold-400 text-carbon-950">
-                  <Camera className="h-6 w-6" />
+                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400 text-carbon-950 md:h-14 md:w-14">
+                  <Camera className="h-5 w-5 md:h-6 md:w-6" />
                 </div>
                 <div>
                   <p className="font-bold text-white light:text-carbon-950">Logo agence</p>
@@ -1134,7 +1151,7 @@ startxref
                 ) : null}
               </div>
             </div>
-            <div className="mt-5 rounded-2xl border border-white/10 bg-[#0d1117] p-4 shadow-inner light:bg-white">
+            <div className="mt-4 rounded-2xl border border-white/10 bg-[#0d1117] p-3 shadow-inner light:bg-white md:mt-5 md:p-4">
               <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gold-200">Aperçu du logo</p>
               <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/20 p-3 light:bg-carbon-950">
                 <div className={logoBadgeClass}>
@@ -1156,8 +1173,8 @@ startxref
               </div>
             </div>
           </Card>
-          <Card className="p-5">
-            <div className="mb-5 flex items-center gap-3">
+          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+            <div className="mb-4 flex items-center gap-3 md:mb-5">
               <Globe2 className="h-5 w-5 text-gold-300" />
               <h2 className="font-semibold text-white light:text-carbon-950">Paramètres de devise</h2>
             </div>
@@ -1177,10 +1194,10 @@ startxref
       ) : null}
 
       {tab === 'Contrats' ? (
-        <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        <div className="grid gap-3 md:gap-6 xl:grid-cols-[0.95fr_1.05fr]">
           <div className="grid gap-4">
             {contractSettingCards.map((item, index) => (
-              <Card key={item.title} className="p-5">
+              <Card key={item.title} className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
                 <div className="flex items-start gap-4">
                   <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gold-400/12 text-gold-200">
                     {index === 0 ? <FileSignature className="h-5 w-5" /> : index === 1 ? <ShieldCheck className="h-5 w-5" /> : <Percent className="h-5 w-5" />}
@@ -1193,8 +1210,8 @@ startxref
               </Card>
             ))}
           </div>
-          <Card className="p-5">
-            <div className="mb-5 flex items-center gap-3">
+          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+            <div className="mb-4 flex items-center gap-3">
               <FileSignature className="h-5 w-5 text-gold-300" />
               <h2 className="font-semibold text-white light:text-carbon-950">Paramètres contrats</h2>
             </div>
@@ -1216,9 +1233,9 @@ startxref
       ) : null}
 
       {tab === 'Facturation' ? (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card className="p-5">
-            <div className="mb-5 flex items-start gap-3">
+        <div className="grid gap-3 md:gap-6 lg:grid-cols-2">
+          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+            <div className="mb-4 flex items-start gap-3">
               <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400/12 text-gold-200">
                 <Percent className="h-5 w-5" />
               </div>
@@ -1237,8 +1254,8 @@ startxref
               </div>
             </div>
           </Card>
-          <Card className="p-5">
-            <div className="mb-5 flex items-start gap-3">
+          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+            <div className="mb-4 flex items-start gap-3">
               <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-400/12 text-emerald-200">
                 <ShieldCheck className="h-5 w-5" />
               </div>
@@ -1266,9 +1283,9 @@ startxref
       ) : null}
 
       {tab === 'Abonnement' ? (
-        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <Card className="overflow-hidden p-0">
-            <div className="border-b border-white/10 bg-gradient-to-br from-gold-400/16 via-white/[0.035] to-transparent p-5">
+        <div className="grid gap-3 md:gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+          <Card className="overflow-hidden rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-0 md:rounded-3xl">
+            <div className="border-b border-white/10 bg-gradient-to-br from-gold-400/16 via-white/[0.035] to-transparent p-4 md:p-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-200">Plan actuel</p>
@@ -1278,7 +1295,7 @@ startxref
                 <span className={`inline-flex w-fit rounded-full px-3 py-1.5 text-xs font-bold ${agency?.billingStatus === 'paid' ? 'bg-emerald-400/15 text-emerald-200' : agency?.billingStatus === 'trial' ? 'bg-sky-400/15 text-sky-200' : agency?.billingStatus === 'overdue' ? 'bg-orange-400/15 text-orange-200' : agency?.billingStatus === 'unpaid' ? 'bg-rose-400/15 text-rose-200' : 'bg-slate-400/15 text-slate-200'}`}>{billingStatusFr}</span>
               </div>
             </div>
-            <div className="p-5">
+            <div className="p-4 md:p-5">
               <div className="grid gap-3 sm:grid-cols-2">
               <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Type facturation</p><p className="mt-1 font-semibold">{billingTypeFr}</p></div>
               <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-carbon-500">Statut paiement</p><p className="mt-1 font-semibold">{billingStatusFr}</p></div>
@@ -1290,7 +1307,7 @@ startxref
             {agency?.paymentNotes ? <p className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-sm text-carbon-300">Notes paiement: {agency.paymentNotes}</p> : null}
             </div>
           </Card>
-          <Card className="p-5">
+          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
             <div className="mb-4 flex items-center gap-3">
               <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-400/12 text-sky-200">
                 <BellRing className="h-5 w-5" />
@@ -1306,7 +1323,7 @@ startxref
               {agency?.billingStatus === 'overdue' ? <p className="rounded-2xl border border-orange-300/25 bg-orange-400/10 p-3 text-sm text-orange-100">Votre abonnement est en retard. Contactez MekLoc pour éviter la suspension.</p> : null}
               {endDiff !== null && endDiff < 0 ? <p className="rounded-2xl border border-rose-300/25 bg-rose-400/10 p-3 text-sm text-rose-100">Votre abonnement a expiré.</p> : null}
             </div>
-            <div className="mt-5 grid gap-2">
+            <div className="mt-4 grid gap-2">
               <Button type="button" onClick={() => window.open(`https://wa.me/${contactPhone}`, '_blank', 'noopener,noreferrer')}>Contacter MekLoc sur WhatsApp</Button>
               <Button type="button" variant="secondary" onClick={() => window.location.href = '/pricing'}>Voir les plans</Button>
               <Button type="button" variant="secondary" onClick={downloadBillingReceipt}>Télécharger reçu</Button>
@@ -1317,8 +1334,8 @@ startxref
       ) : null}
 
       {tab === 'Équipe' ? (
-          <Card className="p-5">
-            <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <UsersRound className="h-5 w-5 text-gold-300" />
                 <h2 className="font-semibold text-white light:text-carbon-950">Gestion équipe</h2>
@@ -1426,9 +1443,9 @@ startxref
       ) : null}
 
       {tab === 'Notifications' ? (
-        <div className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
-          <Card className="p-5">
-            <div className="mb-5 flex items-start gap-3">
+        <div className="grid gap-3 md:gap-6 lg:grid-cols-[0.9fr_1.1fr]">
+          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+            <div className="mb-4 flex items-start gap-3">
               <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400/12 text-gold-200">
                 <BellRing className="h-5 w-5" />
               </div>
@@ -1448,8 +1465,8 @@ startxref
               </div>
             </div>
           </Card>
-          <Card className="p-5">
-            <div className="mb-5 flex items-start gap-3">
+          <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
+            <div className="mb-4 flex items-start gap-3">
               <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-400/12 text-emerald-200">
                 <MessageCircle className="h-5 w-5" />
               </div>
@@ -1490,8 +1507,8 @@ startxref
 
       {tab === 'Sécurité' ? (
         <div className="grid gap-5">
-          <Card className="overflow-hidden p-0">
-            <div className="border-b border-white/10 bg-gradient-to-br from-gold-400/12 via-white/[0.03] to-transparent p-5">
+          <Card className="overflow-hidden rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-0 md:rounded-3xl">
+            <div className="border-b border-white/10 bg-gradient-to-br from-gold-400/12 via-white/[0.03] to-transparent p-4 md:p-5">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-start gap-3">
                   <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400/12 text-gold-200">
@@ -1524,7 +1541,7 @@ startxref
           </Card>
 
           <div className="grid gap-5 xl:grid-cols-[0.82fr_1.18fr]">
-            <Card className="p-5">
+            <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
               <div className="mb-4">
                 <h3 className="font-bold text-white light:text-carbon-950">Actions compte</h3>
                 <p className="mt-1 text-sm text-carbon-400">Modifications sensibles et accès au compte.</p>
@@ -1550,7 +1567,7 @@ startxref
               </div>
             </Card>
 
-            <Card className="p-5">
+            <Card className="rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-4 md:rounded-3xl md:p-5">
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h3 className="font-bold text-white light:text-carbon-950">Sessions actives</h3>
