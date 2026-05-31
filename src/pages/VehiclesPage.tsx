@@ -18,6 +18,7 @@ import { storageBuckets, supabase } from '../lib/supabase';
 
 type VehicleFilterStatus = 'All' | VehicleStatus | 'Archived';
 const vehicleStatuses: VehicleFilterStatus[] = ['All', 'Available', 'Rented', 'Maintenance', 'Unavailable', 'Archived'];
+const vehicleWizardSteps = ['Identification', 'Technique', 'État', 'Photos', 'Validation'];
 const vehicleBrandModels: Record<string, string[]> = {
   Dacia: ['Duster', 'Sandero', 'Logan', 'Dokker', 'Lodgy', 'Spring'],
   Renault: ['Clio 4', 'Clio 5', 'Megane', 'Captur', 'Kangoo', 'Express'],
@@ -56,7 +57,7 @@ const vehicleColorOptions = [
 ];
 const quickVehicleColors = vehicleColorOptions.slice(0, 7);
 
-type FormErrors = Partial<Record<'brand' | 'model' | 'plate' | 'year' | 'mileage' | 'dailyPrice' | 'insuranceExpiry' | 'inspectionDate', string>>;
+type FormErrors = Partial<Record<'brand' | 'model' | 'plate' | 'year' | 'mileage' | 'city' | 'dailyPrice' | 'insuranceExpiry' | 'inspectionDate', string>>;
 const accessoryItems: Array<{ key: keyof VehicleAccessories; label: string }> = [
   { key: 'roue_secours', label: 'Roue de secours' },
   { key: 'cric', label: 'Cric' },
@@ -157,6 +158,7 @@ function validateVehicle(vehicle: Vehicle): FormErrors {
   else if (!plateAllowedPattern.test(vehicle.plate)) errors.plate = 'Format matricule invalide. Exemple: 65528-أ-8 ou WW-123456';
   if (!vehicle.year || vehicle.year < 1980 || vehicle.year > currentYear + 1) errors.year = 'Année invalide.';
   if (!vehicle.mileage || vehicle.mileage < 0) errors.mileage = 'Le kilométrage doit être positif.';
+  if (!vehicle.city) errors.city = 'La ville est obligatoire.';
   if (!vehicle.dailyPrice || vehicle.dailyPrice <= 0) errors.dailyPrice = 'Le prix / jour doit être supérieur à 0.';
   if (!vehicle.insuranceExpiry) errors.insuranceExpiry = "Date d’assurance obligatoire";
   else if (!isValidDate(vehicle.insuranceExpiry)) errors.insuranceExpiry = "Date d’assurance invalide";
@@ -182,6 +184,7 @@ export default function VehiclesPage() {
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
   const [damageMarks, setDamageMarks] = useState<VehicleDamageMark[]>([]);
+  const [accessoryDraft, setAccessoryDraft] = useState<VehicleAccessories>({});
   const [damageZone, setDamageZone] = useState<VehicleDamageMark['zone']>('avant');
   const [damageType, setDamageType] = useState<DamageType>('rayure');
   const [damageNote, setDamageNote] = useState('');
@@ -189,9 +192,37 @@ export default function VehiclesPage() {
   const [vehicleModelDraft, setVehicleModelDraft] = useState('');
   const [vehiclePlateDraft, setVehiclePlateDraft] = useState('');
   const [vehicleColorDraft, setVehicleColorDraft] = useState('');
+  const [vehicleYearDraft, setVehicleYearDraft] = useState('2024');
+  const [vehicleMileageDraft, setVehicleMileageDraft] = useState('0');
+  const [vehicleFuelDraft, setVehicleFuelDraft] = useState('Diesel');
+  const [vehicleTransmissionDraft, setVehicleTransmissionDraft] = useState('Automatic');
+  const [vehicleCityDraft, setVehicleCityDraft] = useState('');
+  const [vehicleStatusDraft, setVehicleStatusDraft] = useState<VehicleStatus>('Available');
+  const [vehicleDailyPriceDraft, setVehicleDailyPriceDraft] = useState('0');
+  const [vehicleInsuranceDraft, setVehicleInsuranceDraft] = useState('');
+  const [vehicleInspectionDraft, setVehicleInspectionDraft] = useState('');
+  const [vehicleWizardStep, setVehicleWizardStep] = useState(0);
+  const [brandSelectorOpen, setBrandSelectorOpen] = useState(false);
+  const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
+  const [brandSelectorSearch, setBrandSelectorSearch] = useState('');
+  const [modelSelectorSearch, setModelSelectorSearch] = useState('');
   const [colorSuggestionsOpen, setColorSuggestionsOpen] = useState(false);
   const [highlightedColorIndex, setHighlightedColorIndex] = useState(0);
   const selectedBrandModels = vehicleBrandModels[vehicleBrandDraft] || [];
+  const filteredBrandOptions = useMemo(() => {
+    const q = brandSelectorSearch.trim().toLowerCase();
+    const allBrands = vehicleBrands.filter((brand) => !q || brand.toLowerCase().includes(q));
+    if (q && !allBrands.some((brand) => brand.toLowerCase() === q)) return [...allBrands, brandSelectorSearch.trim()].filter(Boolean);
+    return allBrands;
+  }, [brandSelectorSearch]);
+  const filteredModelOptions = useMemo(() => {
+    const q = modelSelectorSearch.trim().toLowerCase();
+    const baseModels = selectedBrandModels.length ? selectedBrandModels : vehicles.filter((vehicle) => vehicle.brand === vehicleBrandDraft).map((vehicle) => vehicle.model);
+    const uniqueModels = Array.from(new Set(baseModels));
+    const matches = uniqueModels.filter((model) => !q || model.toLowerCase().includes(q));
+    if (q && !matches.some((model) => model.toLowerCase() === q)) return [...matches, modelSelectorSearch.trim()].filter(Boolean);
+    return matches;
+  }, [modelSelectorSearch, selectedBrandModels, vehicleBrandDraft, vehicles]);
   const normalizedQuery = useMemo(() => debouncedQuery.trim().toLowerCase(), [debouncedQuery]);
   const colorSuggestions = useMemo(() => {
     const q = vehicleColorDraft.trim().toLowerCase();
@@ -253,6 +284,7 @@ export default function VehiclesPage() {
     setImagePreview('');
     setErrors({});
     setDamageMarks([]);
+    setAccessoryDraft({});
     setDamageZone('avant');
     setDamageType('rayure');
     setDamageNote('');
@@ -260,6 +292,20 @@ export default function VehiclesPage() {
     setVehicleModelDraft('');
     setVehiclePlateDraft('');
     setVehicleColorDraft('');
+    setVehicleYearDraft('2024');
+    setVehicleMileageDraft('0');
+    setVehicleFuelDraft('Diesel');
+    setVehicleTransmissionDraft('Automatic');
+    setVehicleCityDraft('');
+    setVehicleStatusDraft('Available');
+    setVehicleDailyPriceDraft('0');
+    setVehicleInsuranceDraft('');
+    setVehicleInspectionDraft('');
+    setVehicleWizardStep(0);
+    setBrandSelectorOpen(false);
+    setModelSelectorOpen(false);
+    setBrandSelectorSearch('');
+    setModelSelectorSearch('');
     setColorSuggestionsOpen(false);
     setHighlightedColorIndex(0);
     setModalOpen(true);
@@ -271,6 +317,7 @@ export default function VehiclesPage() {
     setImagePreview(vehicle.imageUrl || '');
     setErrors({});
     setDamageMarks(vehicle.damageMarks || []);
+    setAccessoryDraft(vehicle.accessories || {});
     setDamageZone('avant');
     setDamageType('rayure');
     setDamageNote('');
@@ -278,6 +325,20 @@ export default function VehiclesPage() {
     setVehicleModelDraft(vehicle.model);
     setVehiclePlateDraft(vehicle.plate);
     setVehicleColorDraft(vehicle.vehicleColor || '');
+    setVehicleYearDraft(String(vehicle.year || 2024));
+    setVehicleMileageDraft(String(vehicle.mileage || 0));
+    setVehicleFuelDraft(vehicle.fuel || 'Diesel');
+    setVehicleTransmissionDraft(vehicle.transmission || 'Automatic');
+    setVehicleCityDraft(vehicle.city || '');
+    setVehicleStatusDraft(vehicle.status);
+    setVehicleDailyPriceDraft(String(vehicle.dailyPrice || 0));
+    setVehicleInsuranceDraft(vehicle.insuranceExpiry || '');
+    setVehicleInspectionDraft(vehicle.inspectionDate || '');
+    setVehicleWizardStep(0);
+    setBrandSelectorOpen(false);
+    setModelSelectorOpen(false);
+    setBrandSelectorSearch('');
+    setModelSelectorSearch('');
     setColorSuggestionsOpen(false);
     setHighlightedColorIndex(0);
     setModalOpen(true);
@@ -447,61 +508,81 @@ export default function VehiclesPage() {
   }
 
   return (
-    <div className="overflow-x-hidden pb-[calc(96px+env(safe-area-inset-bottom))] md:pb-6">
-      <PageHeader
-        eyebrow="Parc automobile"
-        title="Véhicules"
-        description="Gérez vos véhicules, leur disponibilité, documents et tarification."
-        action={
-          <Button
-            className="h-12 rounded-2xl px-5 shadow-[0_0_34px_rgba(212,160,23,0.18)]"
-            icon={<Plus className="h-4 w-4" />}
+    <div className="overflow-x-hidden pb-[calc(108px+env(safe-area-inset-bottom))] md:pb-6">
+      <div className="mb-2 rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_14px_34px_rgba(0,0,0,.22)] md:hidden">
+        <div className="flex min-w-0 items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-gold-200">PARC AUTOMOBILE</p>
+            <h1 className="mt-0.5 text-2xl font-black leading-none text-white">Véhicules</h1>
+            <p className="mt-1 truncate text-xs text-carbon-400">Gérez vos véhicules, disponibilité et tarification.</p>
+          </div>
+          <button
+            type="button"
             onClick={openNewVehicle}
+            className="focus-ring inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#D4A017] px-3 text-xs font-black text-black shadow-[0_12px_28px_rgba(212,160,23,.18)] transition hover:bg-[#f1c232]"
           >
-            Ajouter un véhicule
-          </Button>
-        }
-      />
+            <Plus className="h-3.5 w-3.5" />
+            Ajouter
+          </button>
+        </div>
+      </div>
 
-      <div className="no-scrollbar -mx-4 mb-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 md:mb-5 xl:grid-cols-5">
+      <div className="hidden md:block">
+        <PageHeader
+          eyebrow="Parc automobile"
+          title="Véhicules"
+          description="Gérez vos véhicules, leur disponibilité, documents et tarification."
+          action={
+            <Button
+              className="h-12 rounded-2xl px-5 shadow-[0_0_34px_rgba(212,160,23,0.18)]"
+              icon={<Plus className="h-4 w-4" />}
+              onClick={openNewVehicle}
+            >
+              Ajouter un véhicule
+            </Button>
+          }
+        />
+      </div>
+
+      <div className="no-scrollbar -mx-4 mb-2.5 flex gap-2.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 md:mb-5 xl:grid-cols-5">
         {vehicleStatCards.map(({ label, value, tone, helper, icon: Icon, accent }) => (
           <div
             key={label}
-            className="relative min-h-[118px] min-w-[148px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3.5 shadow-[0_14px_36px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.05)] sm:min-w-0 sm:p-4"
+            className="relative min-h-[108px] min-w-[132px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_14px_36px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.05)] sm:min-w-0 sm:p-4 md:min-h-[118px]"
           >
             <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${accent} to-transparent`} />
             <div className="relative flex h-full flex-col justify-between">
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start justify-between gap-2 md:gap-3">
                 <div className="min-w-0">
-                  <p className="line-clamp-2 text-[10px] font-black uppercase leading-4 tracking-[0.12em] text-carbon-400">{label}</p>
-                  <p className={`mt-2 truncate text-[1.45rem] font-black leading-none sm:text-2xl ${tone}`}>{value}</p>
+                  <p className="line-clamp-2 text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-carbon-400 md:leading-4">{label}</p>
+                  <p className={`mt-2 truncate text-[1.35rem] font-black leading-none sm:text-2xl ${tone}`}>{value}</p>
                 </div>
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[14px] border border-[#D4A017]/20 bg-[#D4A017]/10 text-gold-200 shadow-[0_0_20px_rgba(212,160,23,0.10)]">
-                  <Icon className="h-4 w-4" />
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[14px] border border-[#D4A017]/20 bg-[#D4A017]/10 text-gold-200 shadow-[0_0_20px_rgba(212,160,23,0.10)] md:h-9 md:w-9">
+                  <Icon className="h-3.5 w-3.5 md:h-4 md:w-4" />
                 </span>
               </div>
-              <p className="mt-3 text-[11px] font-semibold text-carbon-400">{helper}</p>
+              <p className="mt-2 truncate text-[11px] font-semibold text-carbon-400 md:mt-3">{helper}</p>
             </div>
           </div>
         ))}
       </div>
 
-      <Card className="mb-5 rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_18px_46px_rgba(0,0,0,.24)] md:p-4">
-        <div className="grid gap-3 xl:grid-cols-[minmax(260px,1fr)_auto_auto] xl:items-center">
+      <Card className="mb-3 rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_18px_46px_rgba(0,0,0,.24)] md:mb-5 md:p-4">
+        <div className="grid gap-2.5 md:gap-3 xl:grid-cols-[minmax(260px,1fr)_auto_auto] xl:items-center">
           <label className="relative">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value.slice(0, 120))}
               placeholder="Rechercher marque, modèle, immatriculation, ville"
-              className="form-control h-12 w-full rounded-2xl border-white/[0.08] bg-black/30 pl-10 pr-4 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,.035)]"
+              className="form-control h-10 w-full rounded-xl border-white/[0.08] bg-black/30 pl-10 pr-4 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,.035)] md:h-12 md:rounded-2xl"
             />
           </label>
           <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
             {vehicleStatuses.map((item) => (
               <button
                 key={item}
-                className={`focus-ring h-10 shrink-0 whitespace-nowrap rounded-xl px-3 text-xs font-black transition md:text-sm ${
+                className={`focus-ring h-9 shrink-0 whitespace-nowrap rounded-xl px-3 text-xs font-black transition md:h-10 md:text-sm ${
                   status === item ? 'bg-gold-400 text-carbon-950 shadow-[0_10px_22px_rgba(212,160,23,.14)]' : 'border border-white/10 bg-white/[0.04] text-carbon-300 hover:bg-white/10'
                 }`}
                 onClick={() => setStatus(item)}
@@ -510,9 +591,9 @@ export default function VehiclesPage() {
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-2 rounded-2xl border border-white/10 bg-white/[0.04] p-1 md:flex">
-            <button className={`focus-ring grid h-10 min-w-0 place-items-center rounded-xl ${view === 'grid' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300'}`} onClick={() => setView('grid')} aria-label="Vue cartes"><Grid3X3 className="h-4 w-4" /></button>
-            <button className={`focus-ring grid h-10 min-w-0 place-items-center rounded-xl ${view === 'table' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300'}`} onClick={() => setView('table')} aria-label="Vue tableau"><List className="h-4 w-4" /></button>
+          <div className="grid grid-cols-2 rounded-xl border border-white/10 bg-white/[0.04] p-1 md:flex md:rounded-2xl">
+            <button className={`focus-ring grid h-9 min-w-0 place-items-center rounded-lg md:h-10 md:rounded-xl ${view === 'grid' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300'}`} onClick={() => setView('grid')} aria-label="Vue cartes"><Grid3X3 className="h-4 w-4" /></button>
+            <button className={`focus-ring grid h-9 min-w-0 place-items-center rounded-lg md:h-10 md:rounded-xl ${view === 'table' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300'}`} onClick={() => setView('table')} aria-label="Vue tableau"><List className="h-4 w-4" /></button>
           </div>
         </div>
       </Card>
@@ -526,7 +607,7 @@ export default function VehiclesPage() {
           onAction={openNewVehicle}
         />
       ) : view === 'grid' ? (
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-4">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-4">
           {filteredVehicles.map((vehicle) => {
             const insuranceExpired = isDateExpired(vehicle.insuranceExpiry);
             const inspectionExpired = isDateExpired(vehicle.inspectionDate);
@@ -534,7 +615,7 @@ export default function VehiclesPage() {
             const inspectionSoon = !inspectionExpired && isDateSoon(vehicle.inspectionDate, 30);
             return (
               <Card key={vehicle.id} interactive className="group flex h-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-[#131821] via-[#0f141c] to-[#07090d] p-0 shadow-[0_14px_38px_rgba(0,0,0,.30),inset_0_1px_0_rgba(255,255,255,.04)] transition-all hover:border-[#D4A017]/35">
-                <div className="vehicle-visual relative aspect-[16/10] w-full overflow-hidden bg-gradient-to-br from-zinc-800 via-zinc-900 to-black">
+                <div className="vehicle-visual relative aspect-[16/8.6] w-full overflow-hidden bg-gradient-to-br from-zinc-800 via-zinc-900 to-black md:aspect-[16/10]">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_28%,rgba(255,255,255,0.14),transparent_58%)]" />
                   <div className="absolute inset-x-0 top-0 z-[1] h-24 bg-gradient-to-b from-black/70 via-black/28 to-transparent" />
                   <div className="absolute inset-x-0 bottom-0 z-[1] h-24 bg-gradient-to-t from-black/65 via-black/12 to-transparent" />
@@ -561,33 +642,33 @@ export default function VehiclesPage() {
                   )}
                   <div className="absolute bottom-3 left-3 right-3 z-10 flex items-end justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate text-lg font-black text-white drop-shadow sm:text-xl">{vehicle.brand} {vehicle.model}</p>
+                      <p className="truncate text-base font-black text-white drop-shadow sm:text-xl">{vehicle.brand} {vehicle.model}</p>
                       <p className="mt-0.5 truncate text-xs font-semibold text-carbon-200">{vehicle.city || 'Ville non renseignée'} · {vehicle.year || '—'}</p>
                     </div>
                     <p className="shrink-0 rounded-full border border-[#D4A017]/25 bg-[#D4A017]/15 px-2.5 py-1 text-xs font-black text-gold-100">{formatMAD(vehicle.dailyPrice)}</p>
                   </div>
                 </div>
 
-                <div className="flex flex-1 flex-col p-4 md:p-5">
+                <div className="flex flex-1 flex-col p-3.5 md:p-5">
                   <Link to={`/vehicles/${vehicle.id}`} className="block">
-                    <h3 className="truncate text-lg font-black text-white hover:text-gold-200 md:text-xl">
+                    <h3 className="truncate text-base font-black text-white hover:text-gold-200 md:text-xl">
                       {vehicle.brand} {vehicle.model}
                     </h3>
                   </Link>
-                  <p className="mt-1 truncate text-sm text-carbon-400">{vehicle.city || '—'} · {vehicle.year || '—'} · {vehicle.mileage.toLocaleString()} km</p>
+                  <p className="mt-1 truncate text-xs text-carbon-400 md:text-sm">{vehicle.city || '—'} · {vehicle.year || '—'} · {vehicle.mileage.toLocaleString()} km</p>
 
-                  <div className="mt-4 grid grid-cols-2 gap-2.5">
-                    <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.045] p-3">
+                  <div className="mt-3 grid grid-cols-2 gap-2 md:mt-4 md:gap-2.5">
+                    <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.045] p-2.5 md:p-3">
                       <p className="text-xs text-carbon-500">Prix / jour</p>
-                      <p className="mt-1 truncate text-base font-black text-gold-200">{formatMAD(vehicle.dailyPrice)}</p>
+                      <p className="mt-1 truncate text-sm font-black text-gold-200 md:text-base">{formatMAD(vehicle.dailyPrice)}</p>
                     </div>
-                    <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.045] p-3">
+                    <div className="min-w-0 rounded-2xl border border-white/10 bg-white/[0.045] p-2.5 md:p-3">
                       <p className="text-xs text-carbon-500">Kilométrage</p>
-                      <p className="mt-1 truncate text-base font-bold text-white">{vehicle.mileage.toLocaleString()} km</p>
+                      <p className="mt-1 truncate text-sm font-bold text-white md:text-base">{vehicle.mileage.toLocaleString()} km</p>
                     </div>
                   </div>
 
-                  <div className="mt-4 grid gap-2 rounded-2xl border border-white/10 bg-black/20 p-3 text-sm">
+                  <div className="mt-3 grid gap-1.5 rounded-2xl border border-white/10 bg-black/20 p-2.5 text-xs md:mt-4 md:gap-2 md:p-3 md:text-sm">
                     <div className="flex min-w-0 items-center justify-between gap-3">
                       <span className="truncate text-carbon-400">Expiration assurance</span>
                       <span className={`${insuranceExpired ? 'text-red-300' : insuranceSoon ? 'text-amber-300' : 'text-carbon-200'} shrink-0 font-semibold`}>{vehicle.insuranceExpiry || '—'}</span>
@@ -604,10 +685,10 @@ export default function VehiclesPage() {
                     )}
                   </div>
 
-                  <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2 text-xs sm:h-10" icon={<Edit3 className="h-4 w-4 shrink-0" />} onClick={() => openEditVehicle(vehicle)}>Modifier</Button>
-                    <Link to={`/vehicles/${vehicle.id}`} className="min-w-0"><Button variant="secondary" className="h-11 w-full min-w-0 rounded-xl px-2 text-xs sm:h-10" icon={<Eye className="h-4 w-4 shrink-0" />}>Détails</Button></Link>
-                    <Button variant="danger" className="col-span-2 h-11 min-w-0 rounded-xl px-2 text-xs sm:col-span-1 sm:h-10" icon={<Trash2 className="h-4 w-4 shrink-0" />} onClick={() => setVehicleToDelete(vehicle)}>Supprimer</Button>
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 md:mt-5">
+                    <Button variant="secondary" className="h-10 min-w-0 rounded-xl px-2 text-xs sm:h-10" icon={<Edit3 className="h-4 w-4 shrink-0" />} onClick={() => openEditVehicle(vehicle)}>Modifier</Button>
+                    <Link to={`/vehicles/${vehicle.id}`} className="min-w-0"><Button variant="secondary" className="h-10 w-full min-w-0 rounded-xl px-2 text-xs sm:h-10" icon={<Eye className="h-4 w-4 shrink-0" />}>Détails</Button></Link>
+                    <Button variant="danger" className="col-span-2 h-10 min-w-0 rounded-xl px-2 text-xs sm:col-span-1 sm:h-10" icon={<Trash2 className="h-4 w-4 shrink-0" />} onClick={() => setVehicleToDelete(vehicle)}>Supprimer</Button>
                   </div>
                 </div>
               </Card>
@@ -675,48 +756,76 @@ export default function VehiclesPage() {
         panelClassName="sm:max-w-5xl lg:max-h-[92dvh]"
         bodyClassName="p-0 sm:p-0"
       >
-        <form className="grid min-h-full grid-rows-[1fr_auto]" onSubmit={handleSaveVehicle}>
-          <div className="grid gap-4 overflow-y-auto px-4 py-4 pb-6 sm:px-6 sm:py-5 lg:grid-cols-2">
-          <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+        <form className="grid min-h-full grid-rows-[auto_1fr_auto]" onSubmit={handleSaveVehicle} noValidate>
+          <div className="border-b border-white/10 bg-[#090B0F]/95 px-3 py-2.5 sm:px-6">
+            <div className="no-scrollbar -mx-1 flex gap-1 overflow-x-auto px-1 sm:mx-0 sm:grid sm:grid-cols-5 sm:gap-0 sm:overflow-visible sm:px-0">
+              {vehicleWizardSteps.map((step, index) => (
+                <button
+                  key={step}
+                  type="button"
+                  className="group relative min-w-[82px] px-0.5 text-center sm:min-w-0"
+                  onClick={() => setVehicleWizardStep(index)}
+                >
+                  {index > 0 ? <span className={`absolute left-0 top-3.5 h-px w-1/2 ${vehicleWizardStep >= index ? 'bg-gold-400/80' : 'bg-white/10'}`} /> : null}
+                  {index < vehicleWizardSteps.length - 1 ? <span className={`absolute right-0 top-3.5 h-px w-1/2 ${vehicleWizardStep > index ? 'bg-gold-400/80' : 'bg-white/10'}`} /> : null}
+                  <span className={`relative mx-auto grid h-7 w-7 place-items-center rounded-full border text-[11px] font-black transition sm:h-8 sm:w-8 sm:text-xs ${
+                    vehicleWizardStep === index
+                      ? 'border-gold-300 bg-gold-400 text-carbon-950 shadow-[0_0_22px_rgba(212,160,23,.24)]'
+                      : vehicleWizardStep > index
+                        ? 'border-gold-300/45 bg-gold-400/12 text-gold-100'
+                        : 'border-white/10 bg-white/[0.04] text-carbon-500 group-hover:text-carbon-200'
+                  }`}>
+                    {vehicleWizardStep > index ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
+                  </span>
+                  <span className={`mt-1 block truncate text-[8.5px] font-black uppercase tracking-[0.06em] sm:text-[10px] ${vehicleWizardStep === index ? 'text-gold-200' : 'text-carbon-500'}`}>
+                    {step}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="min-h-0 overflow-y-auto px-3 py-3 pb-6 sm:px-6 sm:py-5">
+          <section className={`${vehicleWizardStep === 0 ? 'block' : 'hidden'} rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] sm:rounded-3xl sm:p-4`}>
             <h3 className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-gold-200">Identification</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-carbon-200 light:text-carbon-700">Marque *</span>
-                  <input
-                    className="form-control w-full"
-                    name="brand"
-                    list="vehicle-brand-presets"
-                    value={vehicleBrandDraft}
-                    onChange={(event) => {
-                      setVehicleBrandDraft(event.target.value);
-                      setVehicleModelDraft('');
-                    }}
-                    placeholder="Choisir ou saisir une marque"
-                    required
-                  />
-                  <datalist id="vehicle-brand-presets">
-                    {vehicleBrands.map((brand) => <option key={brand} value={brand} />)}
-                  </datalist>
-                </label>
+                <PremiumVehicleSelector
+                  label="Marque *"
+                  value={vehicleBrandDraft}
+                  placeholder="Choisir ou saisir une marque"
+                  open={brandSelectorOpen}
+                  search={brandSelectorSearch}
+                  options={filteredBrandOptions}
+                  onOpenChange={setBrandSelectorOpen}
+                  onSearchChange={setBrandSelectorSearch}
+                  onSelect={(brand) => {
+                    setVehicleBrandDraft(brand);
+                    setVehicleModelDraft('');
+                    setBrandSelectorOpen(false);
+                    setBrandSelectorSearch('');
+                  }}
+                />
+                <input type="hidden" name="brand" value={vehicleBrandDraft} required />
                 {errors.brand ? <p className="mt-1 text-xs text-red-300">{errors.brand}</p> : null}
               </div>
               <div>
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-carbon-200 light:text-carbon-700">Modèle *</span>
-                  <input
-                    className="form-control w-full"
-                    name="model"
-                    list="vehicle-model-presets"
-                    value={vehicleModelDraft}
-                    onChange={(event) => setVehicleModelDraft(event.target.value)}
-                    placeholder={selectedBrandModels.length ? 'Choisir ou saisir un modèle' : 'Saisir un modèle'}
-                    required
-                  />
-                  <datalist id="vehicle-model-presets">
-                    {selectedBrandModels.map((model) => <option key={model} value={model} />)}
-                  </datalist>
-                </label>
+                <PremiumVehicleSelector
+                  label="Modèle *"
+                  value={vehicleModelDraft}
+                  placeholder={selectedBrandModels.length ? 'Choisir ou saisir un modèle' : 'Saisir un modèle'}
+                  open={modelSelectorOpen}
+                  search={modelSelectorSearch}
+                  options={filteredModelOptions}
+                  onOpenChange={setModelSelectorOpen}
+                  onSearchChange={setModelSelectorSearch}
+                  onSelect={(model) => {
+                    setVehicleModelDraft(model);
+                    setModelSelectorOpen(false);
+                    setModelSelectorSearch('');
+                  }}
+                />
+                <input type="hidden" name="model" value={vehicleModelDraft} required />
                 {selectedBrandModels.length ? <p className="mt-1 text-xs text-carbon-500">{selectedBrandModels.length} modèles courants disponibles.</p> : null}
                 {errors.model ? <p className="mt-1 text-xs text-red-300">{errors.model}</p> : null}
               </div>
@@ -768,26 +877,26 @@ export default function VehiclesPage() {
                 {errors.plate ? <p className="mt-1 text-xs text-red-300">{errors.plate}</p> : null}
               </div>
               <div>
-                <Field label="Année *" name="year" type="number" defaultValue={editingVehicle?.year || 2024} required />
+                <Field label="Année *" name="year" type="number" value={vehicleYearDraft} onChange={(event) => setVehicleYearDraft(event.target.value)} required />
                 {errors.year ? <p className="mt-1 text-xs text-red-300">{errors.year}</p> : null}
               </div>
             </div>
           </section>
 
-          <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+          <section className={`${vehicleWizardStep === 1 ? 'block' : 'hidden'} rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] sm:rounded-3xl sm:p-4`}>
             <h3 className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-gold-200">Informations techniques</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Field label="Kilométrage *" name="mileage" type="number" defaultValue={editingVehicle?.mileage || 0} required />
+                <Field label="Kilométrage *" name="mileage" type="number" value={vehicleMileageDraft} onChange={(event) => setVehicleMileageDraft(event.target.value)} required />
                 {errors.mileage ? <p className="mt-1 text-xs text-red-300">{errors.mileage}</p> : null}
               </div>
-              <SelectField label="Carburant" name="fuel" defaultValue={editingVehicle?.fuel || 'Diesel'}>
+              <SelectField label="Carburant" name="fuel" value={vehicleFuelDraft} onChange={(event) => setVehicleFuelDraft(event.target.value)}>
                 <option>Diesel</option><option>Petrol</option><option>Hybrid</option><option>Electric</option>
               </SelectField>
-              <SelectField label="Transmission" name="transmission" defaultValue={editingVehicle?.transmission || 'Automatic'}>
+              <SelectField label="Transmission" name="transmission" value={vehicleTransmissionDraft} onChange={(event) => setVehicleTransmissionDraft(event.target.value)}>
                 <option>Automatic</option><option>Manual</option>
               </SelectField>
-              <SelectField label="Statut" name="status" defaultValue={editingVehicle?.status || 'Available'}>
+              <SelectField label="Statut" name="status" value={vehicleStatusDraft} onChange={(event) => setVehicleStatusDraft(event.target.value as VehicleStatus)}>
                 <option>Available</option><option>Rented</option><option>Maintenance</option><option>Unavailable</option>
               </SelectField>
               <label className="grid gap-2 text-sm font-medium text-carbon-200 light:text-carbon-700">
@@ -795,10 +904,12 @@ export default function VehiclesPage() {
                 <input
                   className="form-control focus-ring h-11 w-full text-base sm:text-sm"
                   name="city"
-                  defaultValue={editingVehicle?.city || ''}
+                  value={vehicleCityDraft}
+                  onChange={(event) => setVehicleCityDraft(event.target.value)}
                   placeholder="Ex: Casablanca, Marrakech, Fès"
                   required
                 />
+                {errors.city ? <p className="mt-1 text-xs text-red-300">{errors.city}</p> : null}
               </label>
               <div className="relative">
                 <label className="block">
@@ -865,7 +976,7 @@ export default function VehiclesPage() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] lg:col-span-2">
+          <section className={`${vehicleWizardStep === 2 ? 'block' : 'hidden'} rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] sm:rounded-3xl sm:p-4`}>
             <h3 className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-gold-200">État du véhicule</h3>
             <div className="grid gap-2 sm:grid-cols-2">
               {accessoryItems.map((item) => (
@@ -873,7 +984,8 @@ export default function VehiclesPage() {
                   <input
                     type="checkbox"
                     name={`acc_${item.key}`}
-                    defaultChecked={Boolean(editingVehicle?.accessories?.[item.key])}
+                    checked={Boolean(accessoryDraft[item.key])}
+                    onChange={(event) => setAccessoryDraft((current) => ({ ...current, [item.key]: event.target.checked }))}
                     className="h-4 w-4 accent-[#D4A017]"
                   />
                   <span>{item.label}</span>
@@ -912,25 +1024,46 @@ export default function VehiclesPage() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+          <section className={`${vehicleWizardStep === 4 ? 'block' : 'hidden'} rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] sm:rounded-3xl sm:p-4`}>
             <h3 className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-gold-200">Tarification & documents</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <Field label="Prix / jour *" name="dailyPrice" type="number" defaultValue={editingVehicle?.dailyPrice || 0} required />
+                <Field label="Prix / jour *" name="dailyPrice" type="number" value={vehicleDailyPriceDraft} onChange={(event) => setVehicleDailyPriceDraft(event.target.value)} required />
                 {errors.dailyPrice ? <p className="mt-1 text-xs text-red-300">{errors.dailyPrice}</p> : null}
               </div>
               <div>
-                <Field label="Expiration assurance *" name="insuranceExpiry" type="date" defaultValue={editingVehicle?.insuranceExpiry || ''} required />
+                <Field label="Expiration assurance *" name="insuranceExpiry" type="date" value={vehicleInsuranceDraft} onChange={(event) => setVehicleInsuranceDraft(event.target.value)} required />
                 {errors.insuranceExpiry ? <p className="mt-1 text-xs text-red-300">{errors.insuranceExpiry}</p> : null}
               </div>
               <div>
-                <Field label="Visite technique *" name="inspectionDate" type="date" defaultValue={editingVehicle?.inspectionDate || ''} required />
+                <Field label="Visite technique *" name="inspectionDate" type="date" value={vehicleInspectionDraft} onChange={(event) => setVehicleInspectionDraft(event.target.value)} required />
                 {errors.inspectionDate ? <p className="mt-1 text-xs text-red-300">{errors.inspectionDate}</p> : null}
+              </div>
+            </div>
+            <div className="mt-4 rounded-2xl border border-gold-300/15 bg-gradient-to-br from-[#171410] via-white/[0.04] to-white/[0.02] p-3 sm:p-4">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-gold-200">Récapitulatif final</p>
+                  <h4 className="mt-1 truncate text-lg font-black text-white">{vehicleBrandDraft || 'Marque'} {vehicleModelDraft || 'Modèle'}</h4>
+                  <p className="mt-1 truncate text-sm text-carbon-400"><PlateNumber value={vehiclePlateDraft || '—'} /> · {vehicleYearDraft || 'Année'}</p>
+                </div>
+                <Badge>{vehicleStatusDraft}</Badge>
+              </div>
+              <div className="grid gap-2 text-sm sm:grid-cols-2">
+                <VehicleRecapLine label="Kilométrage" value={`${Number(vehicleMileageDraft || 0).toLocaleString()} km`} />
+                <VehicleRecapLine label="Carburant" value={vehicleFuelDraft || '—'} />
+                <VehicleRecapLine label="Transmission" value={vehicleTransmissionDraft || '—'} />
+                <VehicleRecapLine label="Ville" value={vehicleCityDraft || '—'} />
+                <VehicleRecapLine label="Couleur" value={vehicleColorDraft || '—'} />
+                <VehicleRecapLine label="Prix / jour" value={formatMAD(Number(vehicleDailyPriceDraft || 0))} />
+                <VehicleRecapLine label="Équipements" value={`${accessoryItems.filter((item) => accessoryDraft[item.key]).length} sélectionné(s)`} />
+                <VehicleRecapLine label="Dommages" value={damageMarks.length ? `${damageMarks.length} signalé(s)` : 'Aucun'} />
+                <VehicleRecapLine label="Photo" value={imagePreview ? 'Photo ajoutée' : 'Aucune photo'} />
               </div>
             </div>
           </section>
 
-          <section className="rounded-3xl border border-gold-300/15 bg-gradient-to-br from-[#171410] via-white/[0.045] to-white/[0.02] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+          <section className={`${vehicleWizardStep === 3 ? 'block' : 'hidden'} rounded-2xl border border-gold-300/15 bg-gradient-to-br from-[#171410] via-white/[0.045] to-white/[0.02] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] sm:rounded-3xl sm:p-4`}>
             <h3 className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-gold-200">Photo du véhicule</h3>
             <label className="flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/20 bg-black/20 px-4 py-6 text-center transition hover:border-gold-300/50 hover:bg-white/[0.04]">
               <ImagePlus className="h-6 w-6 text-gold-200" />
@@ -974,10 +1107,20 @@ export default function VehiclesPage() {
           </div>
           <div className="sticky bottom-0 border-t border-white/10 bg-[#090B0F]/95 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur sm:px-6 sm:pb-3">
             <div className="grid grid-cols-2 gap-3 sm:flex sm:justify-end">
-              <Button type="button" variant="secondary" className="h-11 rounded-xl" onClick={() => setModalOpen(false)}>Annuler</Button>
-              <Button type="submit" className="h-11 rounded-xl" loading={saving} icon={!saving ? <CheckCircle2 className="h-4 w-4" /> : undefined}>
-                {saving ? 'Enregistrement...' : 'Enregistrer'}
-              </Button>
+              {vehicleWizardStep === 0 ? (
+                <Button type="button" variant="secondary" className="h-11 rounded-xl" onClick={() => setModalOpen(false)}>Annuler</Button>
+              ) : (
+                <Button type="button" variant="secondary" className="h-11 rounded-xl" disabled={saving} onClick={() => setVehicleWizardStep((step) => Math.max(0, step - 1))}>Retour</Button>
+              )}
+              {vehicleWizardStep < vehicleWizardSteps.length - 1 ? (
+                <Button type="button" className="h-11 rounded-xl" disabled={saving} onClick={() => setVehicleWizardStep((step) => Math.min(vehicleWizardSteps.length - 1, step + 1))}>
+                  Continuer
+                </Button>
+              ) : (
+                <Button type="submit" className="h-11 rounded-xl" loading={saving} icon={!saving ? <CheckCircle2 className="h-4 w-4" /> : undefined}>
+                  {saving ? 'Enregistrement...' : 'Enregistrer'}
+                </Button>
+              )}
             </div>
           </div>
         </form>
@@ -1004,6 +1147,97 @@ export default function VehiclesPage() {
           </div>
         </div>
       </Modal>
+    </div>
+  );
+}
+
+function PremiumVehicleSelector({
+  label,
+  value,
+  placeholder,
+  open,
+  search,
+  options,
+  onOpenChange,
+  onSearchChange,
+  onSelect,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  open: boolean;
+  search: string;
+  options: string[];
+  onOpenChange: (open: boolean) => void;
+  onSearchChange: (value: string) => void;
+  onSelect: (value: string) => void;
+}) {
+  return (
+    <div className="relative">
+      <span className="mb-2 block text-sm font-semibold text-carbon-200 light:text-carbon-700">{label}</span>
+      <button
+        type="button"
+        className={`focus-ring flex h-11 w-full items-center justify-between gap-3 rounded-2xl border px-3 text-left text-sm transition ${
+          open ? 'border-gold-300/45 bg-gold-400/10 text-gold-100' : 'border-white/10 bg-white/[0.04] text-carbon-100 hover:border-gold-300/25'
+        }`}
+        onClick={() => onOpenChange(!open)}
+      >
+        <span className={value ? 'truncate font-semibold text-white' : 'truncate text-carbon-500'}>{value || placeholder}</span>
+        <Search className="h-4 w-4 shrink-0 text-gold-200" />
+      </button>
+      {open ? (
+        <div className="absolute left-0 right-0 top-[74px] z-50 overflow-hidden rounded-2xl border border-white/10 bg-carbon-950/98 shadow-2xl backdrop-blur">
+          <div className="border-b border-white/10 p-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
+              <input
+                className="form-control h-10 w-full rounded-xl pl-9 text-sm"
+                value={search}
+                onChange={(event) => onSearchChange(event.target.value)}
+                placeholder="Rechercher ou saisir..."
+                autoFocus
+              />
+            </div>
+          </div>
+          <div className="max-h-64 overflow-y-auto p-1.5">
+            {options.length ? options.map((option) => {
+              const selected = option === value;
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  className={`flex min-h-11 w-full items-center justify-between rounded-xl px-3 text-left text-sm font-semibold transition ${
+                    selected ? 'bg-gold-400 text-carbon-950' : 'text-carbon-200 hover:bg-white/[0.06] hover:text-white'
+                  }`}
+                  onMouseDown={(event) => event.preventDefault()}
+                  onClick={() => onSelect(option)}
+                >
+                  <span className="truncate">{option}</span>
+                  {selected ? <CheckCircle2 className="h-4 w-4" /> : null}
+                </button>
+              );
+            }) : (
+              <button
+                type="button"
+                className="min-h-11 w-full rounded-xl px-3 text-left text-sm font-semibold text-gold-100 hover:bg-gold-400/10"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => search.trim() && onSelect(search.trim())}
+              >
+                Utiliser “{search.trim() || 'valeur personnalisée'}”
+              </button>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function VehicleRecapLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex min-h-10 items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2">
+      <span className="text-carbon-500">{label}</span>
+      <strong className="min-w-0 truncate text-right text-white">{value}</strong>
     </div>
   );
 }

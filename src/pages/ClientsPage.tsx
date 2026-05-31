@@ -473,99 +473,101 @@ export default function ClientsPage() {
   return (
     <div className="relative overflow-x-hidden pb-[calc(92px+env(safe-area-inset-bottom))] md:pb-8">
       <div className="pointer-events-none absolute right-[-24%] top-8 h-48 w-48 rounded-full bg-[#D4A017]/8 blur-3xl" />
-      <div className="relative pt-2 md:hidden">
-        <section className="space-y-3">
-          <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_14px_34px_rgba(0,0,0,.22)]">
-            <div className="flex min-w-0 items-start justify-between gap-3">
+      <div className="relative md:hidden">
+        <section className="space-y-2.5">
+          <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_14px_34px_rgba(0,0,0,.22)]">
+            <div className="flex min-w-0 items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-[10px] font-black uppercase tracking-[0.22em] text-gold-200">CRM</p>
-                <h1 className="mt-1 text-3xl font-black leading-none text-white">Clients</h1>
-                <p className="mt-1 truncate text-sm text-carbon-400">Clients et documents.</p>
+                <h1 className="mt-0.5 text-2xl font-black leading-none text-white">Clients</h1>
+                <p className="mt-1 truncate text-xs text-carbon-400">Gérez vos clients et leurs documents.</p>
               </div>
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-gold-200">
-                <Users className="h-5 w-5" />
-              </div>
+              <button
+                type="button"
+                onClick={openNewClient}
+                className="focus-ring inline-flex h-11 shrink-0 items-center justify-center gap-1.5 rounded-xl bg-[#D4A017] px-3 text-xs font-black text-black shadow-[0_12px_28px_rgba(212,160,23,.18)] transition hover:bg-[#f1c232]"
+              >
+                <UserPlus className="h-3.5 w-3.5" />
+                Ajouter
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={openNewClient}
-              className="focus-ring mt-3 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-[#D4A017] text-sm font-black text-black shadow-[0_12px_28px_rgba(212,160,23,.18)] transition hover:bg-[#f1c232]"
-            >
-              <UserPlus className="h-4 w-4" />
-              Ajouter un client
-            </button>
           </div>
 
-          <label className="relative block">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value.slice(0, 120))}
-              placeholder="Nom, téléphone, CIN, permis..."
-              className="form-control focus-ring h-11 w-full rounded-2xl border-white/10 bg-white/[0.045] pl-10 pr-4 text-sm text-white placeholder:text-carbon-500"
-            />
-          </label>
-
-          <div className="grid grid-cols-2 gap-2">
+          <div className="no-scrollbar relative -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
             {[
-              { label: 'Total clients', value: String(clientsStats.total), icon: Users, active: true, tone: 'text-gold-200', bg: 'bg-[#D4A017]/12' },
-              { label: 'Nouveaux ce mois', value: String(clientsStats.newClients), icon: UserPlus, tone: 'text-emerald-200', bg: 'bg-emerald-500/12' },
-              { label: 'Actifs', value: String(clientsStats.withReservations), icon: BadgeCheck, tone: 'text-sky-200', bg: 'bg-sky-500/12' },
-              { label: 'Docs manquants', value: String(clientsStats.withMissingDocs), icon: AlertTriangle, tone: 'text-amber-200', bg: 'bg-amber-500/12' },
-              { label: 'Total dépensé', value: formatMAD(clientsStats.totalSpent), icon: Wallet, tone: 'text-violet-200', bg: 'bg-violet-500/12' },
-            ].map(({ label, value, icon: Icon, active, tone, bg }) => (
+              { label: 'Clients', value: String(clientsStats.total), helper: 'Enregistrés', icon: Users, tone: 'text-gold-200', glow: 'from-[#D4A017]/18' },
+              { label: 'Nouveaux', value: String(clientsStats.newClients), helper: 'Ce mois', icon: UserPlus, tone: 'text-emerald-200', glow: 'from-emerald-400/14' },
+              { label: 'Actifs', value: String(clientsStats.withReservations), helper: 'Avec réserv.', icon: BadgeCheck, tone: 'text-sky-200', glow: 'from-sky-400/14' },
+              { label: 'Docs', value: String(clientsStats.withMissingDocs), helper: 'Manquants', icon: AlertTriangle, tone: 'text-amber-200', glow: 'from-amber-400/14' },
+              { label: 'Dépensé', value: formatMAD(clientsStats.totalSpent), helper: 'Total', icon: Wallet, tone: 'text-violet-200', glow: 'from-violet-400/14' },
+            ].map(({ label, value, helper, icon: Icon, tone, glow }) => (
               <div
                 key={label}
-                className={`min-w-0 rounded-2xl border p-3 shadow-[0_12px_28px_rgba(0,0,0,.20)] ${
-                  active
-                    ? 'border-[#D4A017]/70 bg-[#D4A017]/12'
-                    : 'border-white/10 bg-gradient-to-br from-zinc-950/95 to-zinc-900/60'
-                }`}
+                className="group relative min-h-[108px] min-w-[132px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_14px_34px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.05)] transition hover:border-[#D4A017]/35"
               >
-                <span className={`grid h-8 w-8 place-items-center rounded-xl ${bg}`}>
-                  <Icon className={`h-4 w-4 ${tone}`} />
-                </span>
-                <p className="mt-2 truncate text-lg font-black text-white">{value}</p>
-                <p className="mt-0.5 truncate text-[11px] font-semibold text-carbon-400">{label}</p>
+                <div className={`pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b ${glow} to-transparent opacity-80`} />
+                <div className="relative flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-carbon-400">{label}</p>
+                    <p className="mt-2 truncate text-[1.45rem] font-black leading-none text-white">{value}</p>
+                  </div>
+                  <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[14px] border border-[#D4A017]/20 bg-[#D4A017]/10 shadow-[0_0_20px_rgba(212,160,23,0.10)]">
+                    <Icon className={`h-3.5 w-3.5 ${tone}`} />
+                  </span>
+                </div>
+                <div className="relative mt-2">
+                  <p className="truncate text-[11px] font-medium text-carbon-400">{helper}</p>
+                  <span className="mt-1.5 block h-1 w-12 rounded-full bg-gradient-to-r from-[#D4A017]/70 via-white/20 to-transparent" />
+                </div>
               </div>
             ))}
           </div>
 
-          <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6">
-            {([
-              ['all', 'Tous'],
-              ['active', 'Actifs'],
-              ['with-docs', 'Avec docs'],
-              ['missing-docs', 'Docs manquants'],
-              ['new', 'Nouveaux'],
-            ] as const).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setFilter(value)}
-                className={`focus-ring min-h-10 whitespace-nowrap rounded-xl border px-3 text-xs font-bold transition ${
-                  filter === value
-                    ? 'border-[#D4A017]/70 bg-[#D4A017]/18 text-gold-100'
-                    : 'border-white/10 bg-white/[0.04] text-carbon-200'
-                }`}
+          <div className="rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_14px_34px_rgba(0,0,0,.22)]">
+            <label className="relative block">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value.slice(0, 120))}
+                placeholder="Nom, téléphone, CIN..."
+                className="form-control focus-ring h-10 w-full rounded-xl border-white/10 bg-white/[0.045] pl-10 pr-4 text-sm text-white placeholder:text-carbon-500"
+              />
+            </label>
+            <div className="no-scrollbar -mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1">
+              {([
+                ['all', 'Tous'],
+                ['active', 'Actifs'],
+                ['with-docs', 'Avec docs'],
+                ['missing-docs', 'Docs manquants'],
+                ['new', 'Nouveaux'],
+              ] as const).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setFilter(value)}
+                  className={`focus-ring h-9 whitespace-nowrap rounded-xl border px-3 text-xs font-bold transition ${
+                    filter === value
+                      ? 'border-[#D4A017]/70 bg-[#D4A017]/18 text-gold-100'
+                      : 'border-white/10 bg-white/[0.04] text-carbon-200'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <label className="relative mt-2 block">
+              <SlidersHorizontal className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
+              <select
+                value={sort}
+                onChange={(event) => setSort(event.target.value as ClientSort)}
+                className="form-control focus-ring h-10 w-full rounded-xl border-white/10 bg-black/30 pl-10 pr-4 text-sm font-semibold text-white"
               >
-                {label}
-              </button>
-            ))}
+                <option value="recent">Plus récent</option>
+                <option value="name">Nom A-Z</option>
+                <option value="spent">Dépense la plus élevée</option>
+              </select>
+            </label>
           </div>
-
-          <label className="relative block">
-            <SlidersHorizontal className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
-            <select
-              value={sort}
-              onChange={(event) => setSort(event.target.value as ClientSort)}
-              className="form-control focus-ring h-11 w-full rounded-2xl border-white/10 bg-black/30 pl-11 pr-4 text-sm font-semibold text-white"
-            >
-              <option value="recent">Plus récent</option>
-              <option value="name">Nom A-Z</option>
-              <option value="spent">Dépense la plus élevée</option>
-            </select>
-          </label>
 
           {clients.length === 0 ? (
             <div className="rounded-[28px] border border-white/10 bg-gradient-to-br from-zinc-950/95 to-black p-6 text-center shadow-[0_24px_60px_rgba(0,0,0,.30)]">

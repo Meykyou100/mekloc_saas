@@ -58,19 +58,25 @@ function escapePdf(value: string) {
   return value.replace(/[()\\]/g, '');
 }
 
-function MetricCard({ label, value, note, tone = 'gold' }: { label: string; value: string; note: string; tone?: 'gold' | 'green' | 'amber' | 'red' }) {
+function MetricCard({ label, value, note, icon: Icon, tone = 'gold' }: { label: string; value: string; note: string; icon: typeof WalletCards; tone?: 'gold' | 'green' | 'amber' | 'red' }) {
   const toneClass = {
-    gold: 'from-[#D4A017]/16 text-gold-100',
-    green: 'from-emerald-400/14 text-emerald-100',
-    amber: 'from-amber-400/14 text-amber-100',
-    red: 'from-rose-400/14 text-rose-100',
+    gold: 'border-gold-300/25 bg-gold-400/12 text-gold-200',
+    green: 'border-emerald-300/20 bg-emerald-400/10 text-emerald-200',
+    amber: 'border-amber-300/25 bg-amber-400/10 text-amber-200',
+    red: 'border-rose-300/20 bg-rose-400/10 text-rose-200',
   }[tone];
   return (
-    <Card className={`relative flex min-h-[112px] min-w-0 flex-col justify-between overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br ${toneClass} via-white/[0.035] to-black p-3 shadow-[0_14px_38px_rgba(0,0,0,.22)] sm:min-h-[132px] sm:p-5`}>
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-      <p className="line-clamp-2 text-[10px] font-black uppercase tracking-[0.12em] text-carbon-400 light:text-carbon-600 sm:text-xs">{label}</p>
-      <p className="mt-2 break-words text-lg font-black tracking-tight text-white light:text-carbon-950 sm:mt-3 sm:text-2xl">{value}</p>
-      <p className="mt-2 line-clamp-2 text-[11px] font-medium text-carbon-500 light:text-carbon-600 sm:text-sm">{note}</p>
+    <Card className="relative flex min-h-[106px] min-w-[138px] flex-col justify-between overflow-hidden rounded-2xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_14px_38px_rgba(0,0,0,.22),inset_0_1px_0_rgba(255,255,255,.04)] sm:min-h-[132px] sm:min-w-0 sm:rounded-3xl sm:p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-carbon-400 light:text-carbon-600 sm:text-xs">{label}</p>
+          <p className="mt-2 truncate text-[1.2rem] font-black leading-none tracking-tight text-white light:text-carbon-950 sm:mt-3 sm:text-2xl">{value}</p>
+        </div>
+        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border sm:h-10 sm:w-10 sm:rounded-2xl ${toneClass}`}>
+          <Icon className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
+        </span>
+      </div>
+      <p className="mt-2 truncate text-[11px] font-medium text-carbon-500 light:text-carbon-600 sm:text-sm">{note}</p>
     </Card>
   );
 }
@@ -266,29 +272,44 @@ startxref
   }
 
   return (
-    <div className="space-y-6">
-      <PageHeader
-        eyebrow="Comptabilité"
-        title="Rapports financiers"
-        description="Tableau de bord comptable calculé depuis les données réelles de votre agence."
-        action={
-          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
-            <Button variant="secondary" className="h-11 w-full rounded-2xl sm:w-auto" icon={<FileSpreadsheet className="h-4 w-4" />} onClick={exportCsv}>CSV</Button>
-            <Button className="h-11 w-full rounded-2xl sm:w-auto" icon={<Download className="h-4 w-4" />} onClick={exportPdf}>PDF</Button>
+    <div className="space-y-3 overflow-x-hidden pb-[calc(108px+env(safe-area-inset-bottom))] md:space-y-6 md:pb-8">
+      <div className="rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(227,177,23,.16),transparent_36%),linear-gradient(135deg,rgba(12,17,24,.96),rgba(2,3,5,.98))] p-3 shadow-[0_18px_50px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)] md:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gold-200">COMPTABILITÉ</p>
+            <h1 className="mt-0.5 text-2xl font-black leading-none text-white">Rapports</h1>
+            <p className="mt-1 truncate text-xs text-carbon-400">Rapports financiers depuis vos données réelles.</p>
           </div>
-        }
-      />
+          <div className="grid shrink-0 grid-cols-2 gap-2">
+            <Button variant="secondary" className="h-11 rounded-2xl px-3 text-xs" icon={<FileSpreadsheet className="h-4 w-4" />} onClick={exportCsv}>CSV</Button>
+            <Button className="h-11 rounded-2xl px-3 text-xs" icon={<Download className="h-4 w-4" />} onClick={exportPdf}>PDF</Button>
+          </div>
+        </div>
+      </div>
+      <div className="hidden md:block">
+        <PageHeader
+          eyebrow="Comptabilité"
+          title="Rapports financiers"
+          description="Tableau de bord comptable calculé depuis les données réelles de votre agence."
+          action={
+            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
+              <Button variant="secondary" className="h-11 w-full rounded-2xl sm:w-auto" icon={<FileSpreadsheet className="h-4 w-4" />} onClick={exportCsv}>CSV</Button>
+              <Button className="h-11 w-full rounded-2xl sm:w-auto" icon={<Download className="h-4 w-4" />} onClick={exportPdf}>PDF</Button>
+            </div>
+          }
+        />
+      </div>
 
-      <Card className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-[#121720] via-[#0d1118] to-black p-4 shadow-[0_18px_50px_rgba(0,0,0,.26)] sm:p-5">
-        <div className="grid gap-4 lg:grid-cols-[1fr_auto_auto] lg:items-end">
+      <Card className="overflow-hidden rounded-2xl border-white/10 bg-gradient-to-br from-[#121720] via-[#0d1118] to-black p-3 shadow-[0_18px_50px_rgba(0,0,0,.26)] sm:rounded-3xl sm:p-5">
+        <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto] lg:items-end">
           <div className="min-w-0">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-[#D4A017]/20 bg-[#D4A017]/10 text-gold-200">
-                <CalendarDays className="h-4 w-4" />
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-[#D4A017]/20 bg-[#D4A017]/10 text-gold-200 sm:h-10 sm:w-10 sm:rounded-2xl">
+                <CalendarDays className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               </span>
               <div className="min-w-0">
-                <p className="text-base font-black text-white light:text-carbon-950">Filtre de période</p>
-                <p className="mt-1 text-xs leading-5 text-carbon-500">Les montants sont basés sur les réservations, paiements et entretiens de la période.</p>
+                <p className="text-sm font-black text-white light:text-carbon-950 sm:text-base">Filtre de période</p>
+                <p className="mt-1 truncate text-xs leading-5 text-carbon-500">Réservations, paiements et entretiens de la période.</p>
               </div>
             </div>
           </div>
@@ -302,7 +323,7 @@ startxref
               <button
                 key={key}
                 type="button"
-                className={`h-11 shrink-0 rounded-2xl px-4 text-sm font-black transition ${period === key ? 'bg-gold-400 text-carbon-950 shadow-[0_0_28px_rgba(212,160,23,.16)]' : 'border border-white/10 bg-white/[0.035] text-carbon-300 hover:bg-white/[0.06]'}`}
+                className={`h-9 shrink-0 rounded-full px-3 text-xs font-black transition sm:h-11 sm:rounded-2xl sm:px-4 sm:text-sm ${period === key ? 'bg-gold-400 text-carbon-950 shadow-[0_0_28px_rgba(212,160,23,.16)]' : 'border border-white/10 bg-white/[0.035] text-carbon-300 hover:bg-white/[0.06]'}`}
                 onClick={() => setPeriod(key as PeriodKey)}
               >
                 {label}
@@ -322,15 +343,15 @@ startxref
         <MobileEmptyBlock icon={TrendingUp} title="Aucune donnée sur cette période" message="Les revenus, réservations et dépenses apparaîtront dès que votre activité commence." />
       ) : null}
 
-      <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        <MetricCard label="Chiffre d’affaires total" value={formatMAD(report.totalRevenue)} note="Réservations non annulées" tone="gold" />
-        <MetricCard label="Revenus encaissés" value={formatMAD(report.collectedRevenue)} note="Paiements payés ou partiels" tone="green" />
-        <MetricCard label="Paiements en attente" value={formatMAD(report.pendingPayments)} note="En attente et en retard" tone="amber" />
-        <MetricCard label="Profit estimé" value={formatMAD(report.estimatedProfit)} note="Encaissé - entretien" tone={report.estimatedProfit >= 0 ? 'green' : 'red'} />
-        <MetricCard label="Cautions reçues" value={formatMAD(report.depositsReceived)} note="Cautions de la période" tone="gold" />
-        <MetricCard label="Cautions à rembourser" value={formatMAD(report.depositsToRefund)} note="Locations actives ou terminées" tone="amber" />
-        <MetricCard label="Dépenses entretien" value={formatMAD(report.maintenanceExpenses)} note="Coûts garage et maintenance" tone="red" />
-        <MetricCard label="Paiements en retard" value={formatMAD(report.overdue.reduce((sum, item) => sum + item.amount, 0))} note={`${report.overdue.length} facture(s)`} tone="red" />
+      <section className="no-scrollbar -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 xl:grid-cols-4">
+        <MetricCard label="Chiffre d’affaires total" value={formatMAD(report.totalRevenue)} note="Réservations non annulées" icon={TrendingUp} tone="gold" />
+        <MetricCard label="Revenus encaissés" value={formatMAD(report.collectedRevenue)} note="Paiements reçus" icon={WalletCards} tone="green" />
+        <MetricCard label="Paiements en attente" value={formatMAD(report.pendingPayments)} note="Attente et retard" icon={WalletCards} tone="amber" />
+        <MetricCard label="Profit estimé" value={formatMAD(report.estimatedProfit)} note="Encaissé - entretien" icon={Gauge} tone={report.estimatedProfit >= 0 ? 'green' : 'red'} />
+        <MetricCard label="Cautions reçues" value={formatMAD(report.depositsReceived)} note="Période" icon={WalletCards} tone="gold" />
+        <MetricCard label="Cautions à rembourser" value={formatMAD(report.depositsToRefund)} note="Actives/terminées" icon={WalletCards} tone="amber" />
+        <MetricCard label="Dépenses entretien" value={formatMAD(report.maintenanceExpenses)} note="Garage et maintenance" icon={Gauge} tone="red" />
+        <MetricCard label="Paiements en retard" value={formatMAD(report.overdue.reduce((sum, item) => sum + item.amount, 0))} note={`${report.overdue.length} facture(s)`} icon={WalletCards} tone="red" />
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">

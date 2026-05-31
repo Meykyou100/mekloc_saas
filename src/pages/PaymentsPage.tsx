@@ -7,7 +7,6 @@ import Card from '../components/ui/Card';
 import { Field, SelectField, TextAreaField } from '../components/ui/Form';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
-import StatCard from '../components/ui/StatCard';
 import { formatMAD, type Payment, type PaymentStatus, type Reservation } from '../data/mockData';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
@@ -480,28 +479,78 @@ export default function PaymentsPage() {
   }
 
   return (
-    <div>
-      <PageHeader
-        eyebrow="Facturation"
-        title="Paiements"
-        description="Gérez les factures, encaissements partiels, retards et relances clients."
-        action={<Button icon={<Plus className="h-4 w-4" />} onClick={() => openPaymentModal()}>Ajouter un paiement</Button>}
-      />
-
-      <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
-        <StatCard label="Total facturé" value={formatMAD(totalFacture)} trend="Montants des factures" icon={Download} />
-        <StatCard label="Total encaissé" value={formatMAD(totalEncaisse)} trend="Paiements reçus" icon={Download} />
-        <StatCard label="Solde ouvert" value={formatMAD(soldeOuvert)} trend="Reste à encaisser" icon={Download} />
-        <StatCard label="Factures en retard" value={String(enRetard)} trend="Relance requise" icon={MessageCircle} />
+    <div className="relative overflow-x-hidden pb-[calc(108px+env(safe-area-inset-bottom))] md:pb-28">
+      <div className="pointer-events-none absolute -right-20 top-6 h-48 w-48 rounded-full bg-gold-400/10 blur-3xl md:hidden" />
+      <div className="relative mb-3 rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(227,177,23,.16),transparent_36%),linear-gradient(135deg,rgba(12,17,24,.96),rgba(2,3,5,.98))] p-3 shadow-[0_18px_50px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)] md:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gold-200">FINANCES</p>
+            <h1 className="mt-0.5 text-2xl font-black leading-none text-white">Paiements</h1>
+            <p className="mt-1 truncate text-xs text-carbon-400">Suivez vos paiements, cautions et restes à payer.</p>
+          </div>
+          <Button className="h-11 shrink-0 rounded-2xl px-3 text-xs shadow-[0_14px_34px_rgba(227,177,23,.16)]" icon={<Plus className="h-4 w-4" />} onClick={() => openPaymentModal()}>
+            Ajouter
+          </Button>
+        </div>
+      </div>
+      <div className="hidden md:block">
+        <PageHeader
+          eyebrow="FINANCES"
+          title="Paiements"
+          description="Suivez vos paiements, cautions et restes à payer."
+          action={<Button icon={<Plus className="h-4 w-4" />} onClick={() => openPaymentModal()}>Ajouter un paiement</Button>}
+        />
       </div>
 
-      <Card className="mt-6 p-4">
-        <div className="grid gap-3 md:grid-cols-[1fr_auto_auto]">
+      <div className="no-scrollbar -mx-4 mb-3 flex gap-2.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 md:mb-0 md:grid-cols-4 md:gap-4">
+        {[
+          { label: 'Total facturé', value: formatMAD(totalFacture), helper: 'Factures', icon: Download, tone: 'gold' },
+          { label: 'Total encaissé', value: formatMAD(totalEncaisse), helper: 'Reçus', icon: Download, tone: 'green' },
+          { label: 'Solde ouvert', value: formatMAD(soldeOuvert), helper: 'À encaisser', icon: Download, tone: 'amber' },
+          { label: 'En retard', value: String(enRetard), helper: 'Relance', icon: MessageCircle, tone: 'red' },
+        ].map(({ label, value, helper, icon: Icon, tone }) => (
+          <div
+            key={label}
+            className="relative min-h-[106px] min-w-[138px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#090d13] to-black p-3 shadow-[0_18px_48px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.04)] transition duration-300 hover:-translate-y-0.5 hover:border-gold-300/30 light:bg-white md:min-h-[112px] md:min-w-0 md:rounded-3xl md:p-4"
+          >
+            <div className={`pointer-events-none absolute inset-x-0 top-0 h-0.5 ${
+              tone === 'green'
+                ? 'bg-emerald-300/60'
+                : tone === 'red'
+                  ? 'bg-rose-300/60'
+                  : tone === 'amber'
+                    ? 'bg-amber-300/70'
+                    : 'bg-gold-300/70'
+            }`} />
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="truncate text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-carbon-500">{label}</p>
+                <p className="mt-2 truncate text-[1.2rem] font-black leading-none text-white light:text-carbon-950 md:text-xl">{value}</p>
+              </div>
+              <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border md:h-10 md:w-10 md:rounded-2xl ${
+                tone === 'green'
+                  ? 'border-emerald-300/20 bg-emerald-400/10 text-emerald-200'
+                  : tone === 'red'
+                    ? 'border-rose-300/20 bg-rose-400/10 text-rose-200'
+                    : tone === 'amber'
+                      ? 'border-amber-300/25 bg-amber-400/10 text-amber-200'
+                      : 'border-gold-300/25 bg-gold-400/12 text-gold-200'
+              }`}>
+                <Icon className="h-3.5 w-3.5 md:h-5 md:w-5" />
+              </span>
+            </div>
+            <p className="mt-2 truncate text-[11px] text-carbon-500 md:text-xs">{helper}</p>
+          </div>
+        ))}
+      </div>
+
+      <Card className="mt-3 p-3 md:mt-6 md:p-4">
+        <div className="grid gap-2.5 md:grid-cols-[1fr_auto_auto] md:gap-3">
           <label className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
-            <input className="form-control h-10 w-full pl-10 pr-4 text-sm" value={query} onChange={(e) => setQuery(sanitizeText(e.target.value, 120))} placeholder="Rechercher facture, client, véhicule, réservation..." />
+            <input className="form-control h-11 w-full rounded-2xl pl-10 pr-4 text-sm md:h-10" value={query} onChange={(e) => setQuery(sanitizeText(e.target.value, 120))} placeholder="Rechercher facture, client, véhicule..." />
           </label>
-          <select className="form-control h-10 min-w-[170px] text-sm" value={methodFilter} onChange={(event) => setMethodFilter(event.target.value as MethodFilter)}>
+          <select className="form-control h-11 min-w-0 rounded-2xl text-sm md:h-10 md:min-w-[170px]" value={methodFilter} onChange={(event) => setMethodFilter(event.target.value as MethodFilter)}>
             <option value="toutes">Méthodes: Toutes</option>
             <option value="Cash">Espèces</option>
             <option value="Bank transfer">Virement</option>
@@ -509,14 +558,14 @@ export default function PaymentsPage() {
           </select>
           <div className="-mx-1 flex gap-2 overflow-x-auto px-1 no-scrollbar md:mx-0 md:px-0">
             {filters.map((f) => (
-              <button key={f.key} className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-semibold ${filter === f.key ? 'bg-gold-400 text-carbon-950' : 'border border-white/10 bg-white/[0.04] text-carbon-300'}`} onClick={() => setFilter(f.key)}>{f.label}</button>
+              <button key={f.key} className={`h-9 shrink-0 rounded-full border px-3 text-xs font-bold transition ${filter === f.key ? 'border-gold-300/50 bg-gold-400 text-carbon-950 shadow-[0_10px_24px_rgba(227,177,23,.16)]' : 'border-white/10 bg-white/[0.04] text-carbon-300 hover:border-gold-300/25 hover:text-white'}`} onClick={() => setFilter(f.key)}>{f.label}</button>
             ))}
           </div>
         </div>
       </Card>
 
       {filtered.length === 0 ? (
-        <Card className="mt-6 p-10 text-center">
+        <Card className="mt-4 p-6 text-center md:mt-6 md:p-10">
           <p className="text-base font-semibold text-white">Aucun paiement trouvé</p>
           <p className="mt-2 text-sm text-carbon-400">Ajustez vos filtres ou ajoutez un nouveau paiement.</p>
         </Card>
@@ -552,9 +601,9 @@ export default function PaymentsPage() {
         </div>
       </Card>
 
-      <div className={`mt-6 grid gap-4 md:hidden ${filtered.length === 0 ? 'hidden' : ''}`}>
+      <div className={`mt-3 grid gap-3 md:hidden ${filtered.length === 0 ? 'hidden' : ''}`}>
         {filtered.map((item) => (
-          <Card key={item.id} className="overflow-hidden rounded-3xl border-white/10 bg-gradient-to-br from-[#131821] via-[#0f141c] to-[#07090d] p-4 shadow-[0_14px_38px_rgba(0,0,0,.30)]">
+          <Card key={item.id} className="overflow-hidden rounded-2xl border-white/10 bg-gradient-to-br from-[#131821] via-[#0f141c] to-[#07090d] p-3 shadow-[0_14px_38px_rgba(0,0,0,.30)]">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="truncate text-base font-black text-white">{item.invoice}</p>
@@ -563,21 +612,21 @@ export default function PaymentsPage() {
               </div>
               <Badge>{item.statusFr}</Badge>
             </div>
-            <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3"><p className="text-xs text-carbon-500">Total</p><strong className="mt-1 block text-white">{formatMAD(item.total)}</strong></div>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3"><p className="text-xs text-carbon-500">Payé</p><strong className="mt-1 block text-white">{formatMAD(item.paid)}</strong></div>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3"><p className="text-xs text-carbon-500">Reste</p><strong className={`mt-1 block ${item.remaining > 0 ? 'text-amber-200' : 'text-emerald-200'}`}>{item.remaining > 0 ? formatMAD(item.remaining) : 'Payé intégralement'}</strong></div>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-3"><p className="text-xs text-carbon-500">Échéance</p><strong className="mt-1 block text-white">{item.dueDate}</strong></div>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-2.5"><p className="text-[11px] text-carbon-500">Total</p><strong className="mt-1 block truncate text-white">{formatMAD(item.total)}</strong></div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-2.5"><p className="text-[11px] text-carbon-500">Payé</p><strong className="mt-1 block truncate text-white">{formatMAD(item.paid)}</strong></div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-2.5"><p className="text-[11px] text-carbon-500">Reste</p><strong className={`mt-1 block truncate ${item.remaining > 0 ? 'text-amber-200' : 'text-emerald-200'}`}>{item.remaining > 0 ? formatMAD(item.remaining) : 'Payé intégralement'}</strong></div>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-2.5"><p className="text-[11px] text-carbon-500">Échéance</p><strong className="mt-1 block truncate text-white">{item.dueDate}</strong></div>
             </div>
-            <div className="mt-3 h-2 rounded-full bg-white/10"><div className={`h-2 rounded-full ${item.statusFr === 'En retard' ? 'bg-rose-400' : item.statusFr === 'Partiel' ? 'bg-gold-400' : 'bg-mint-400'}`} style={{ width: `${item.progress}%` }} /></div>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2 text-xs" icon={<Eye className="h-4 w-4" />} onClick={() => setDetailPaymentId(item.id)}>Voir</Button>
-              <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2 text-xs" onClick={() => openPaymentModalForRow(item)}>Ajouter</Button>
-              <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2 text-xs" onClick={() => downloadReceipt(item)}>Reçu</Button>
-              <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2 text-xs" disabled={item.remaining <= 0} onClick={() => setReminderPaymentId(item.id)}>
+            <div className="mt-2.5 h-2 rounded-full bg-white/10"><div className={`h-2 rounded-full ${item.statusFr === 'En retard' ? 'bg-rose-400' : item.statusFr === 'Partiel' ? 'bg-gold-400' : 'bg-mint-400'}`} style={{ width: `${item.progress}%` }} /></div>
+            <div className="mt-2.5 grid grid-cols-2 gap-2">
+              <Button variant="secondary" className="h-10 min-w-0 rounded-xl px-2 text-xs" icon={<Eye className="h-4 w-4" />} onClick={() => setDetailPaymentId(item.id)}>Voir</Button>
+              <Button variant="secondary" className="h-10 min-w-0 rounded-xl px-2 text-xs" onClick={() => openPaymentModalForRow(item)}>Ajouter</Button>
+              <Button variant="secondary" className="h-10 min-w-0 rounded-xl px-2 text-xs" onClick={() => downloadReceipt(item)}>Reçu</Button>
+              <Button variant="secondary" className="h-10 min-w-0 rounded-xl px-2 text-xs" disabled={item.remaining <= 0} onClick={() => setReminderPaymentId(item.id)}>
                 {item.remaining <= 0 ? 'Soldé' : 'Rappel'}
               </Button>
-              <Button variant="danger" className="col-span-2 h-11 rounded-xl text-xs" icon={<Trash2 className="h-4 w-4" />} onClick={() => setPaymentToDelete(item)}>Supprimer</Button>
+              <Button variant="danger" className="col-span-2 h-10 rounded-xl text-xs" icon={<Trash2 className="h-4 w-4" />} onClick={() => setPaymentToDelete(item)}>Supprimer</Button>
             </div>
           </Card>
         ))}

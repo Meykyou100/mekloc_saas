@@ -39,8 +39,27 @@ import { getReservationPaymentSummary } from '../lib/paymentBalance';
 
 type ViewMode = 'list' | 'grid';
 type ReservationFilterStatus = 'All' | ReservationStatus;
+type PaymentFilter = 'all' | 'paid' | 'partial' | 'unpaid';
+type AdvancedReservationFilters = {
+  startDate: string;
+  endDate: string;
+  status: ReservationFilterStatus;
+  clientId: string;
+  vehicleId: string;
+  city: string;
+  payment: PaymentFilter;
+};
 const statuses: Array<ReservationFilterStatus> = ['All', 'Confirmed', 'Active', 'Completed', 'Cancelled'];
 const reservationSteps = ['Client', 'Véhicule', 'Dates & lieux', 'Tarif & caution', 'Validation'];
+const emptyAdvancedFilters: AdvancedReservationFilters = {
+  startDate: '',
+  endDate: '',
+  status: 'All',
+  clientId: '',
+  vehicleId: '',
+  city: '',
+  payment: 'all',
+};
 
 const inputClass = 'form-control focus-ring w-full text-sm';
 
@@ -113,6 +132,15 @@ function ReservationField({ label, hint, children }: { label: string; hint?: str
   );
 }
 
+function ReservationFilterField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="grid gap-2 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+      <span className="text-xs font-black uppercase tracking-[0.14em] text-gold-200">{label}</span>
+      {children}
+    </label>
+  );
+}
+
 export default function ReservationsPage() {
   const { clients, vehicles, reservations, payments, refreshData, createReservation, updateReservation, deleteReservation } = useData();
   const { notify } = useApp();
@@ -124,6 +152,9 @@ export default function ReservationsPage() {
   const [clientSearch, setClientSearch] = useState('');
   const [status, setStatus] = useState<ReservationFilterStatus>('All');
   const [view, setView] = useState<ViewMode>('grid');
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedReservationFilters>(emptyAdvancedFilters);
+  const [draftAdvancedFilters, setDraftAdvancedFilters] = useState<AdvancedReservationFilters>(emptyAdvancedFilters);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [reservationStep, setReservationStep] = useState(0);
@@ -188,9 +219,26 @@ export default function ReservationsPage() {
     return reservations.filter((reservation) => {
       const haystack = `${reservation.client} ${reservation.vehicle} ${reservation.city} ${reservation.id}`.toLowerCase();
       const statusMatch = status === 'All' || reservation.status === status;
-      return statusMatch && (!q || haystack.includes(q));
+      const advancedStatusMatch = advancedFilters.status === 'All' || reservation.status === advancedFilters.status;
+      const startMatch = !advancedFilters.startDate || reservation.pickupDate >= advancedFilters.startDate || reservation.returnDate >= advancedFilters.startDate;
+      const endMatch = !advancedFilters.endDate || reservation.pickupDate <= advancedFilters.endDate || reservation.returnDate <= advancedFilters.endDate;
+      const clientMatch = !advancedFilters.clientId || reservation.clientId === advancedFilters.clientId;
+      const vehicleMatch = !advancedFilters.vehicleId || reservation.vehicleId === advancedFilters.vehicleId;
+      const cityMatch = !advancedFilters.city || reservation.city === advancedFilters.city || reservation.pickupLocation === advancedFilters.city || reservation.returnLocation === advancedFilters.city;
+      const paymentSummary = getReservationPaymentSummary(reservation, payments);
+      const paymentMatch =
+        advancedFilters.payment === 'all' ||
+        (advancedFilters.payment === 'paid' && paymentSummary.remaining <= 0) ||
+        (advancedFilters.payment === 'partial' && paymentSummary.paid > 0 && paymentSummary.remaining > 0) ||
+        (advancedFilters.payment === 'unpaid' && paymentSummary.paid <= 0 && paymentSummary.remaining > 0);
+      return statusMatch && advancedStatusMatch && startMatch && endMatch && clientMatch && vehicleMatch && cityMatch && paymentMatch && (!q || haystack.includes(q));
     });
-  }, [query, reservations, status]);
+  }, [advancedFilters, payments, query, reservations, status]);
+
+  const filterOptions = useMemo(() => {
+    const cities = Array.from(new Set(reservations.flatMap((reservation) => [reservation.city, reservation.pickupLocation, reservation.returnLocation]).filter(Boolean))).sort();
+    return { cities };
+  }, [reservations]);
 
   const filteredClientChoices = useMemo(() => {
     const q = clientSearch.trim().toLowerCase();
@@ -488,7 +536,7 @@ export default function ReservationsPage() {
       </div>
 
       <Card className="mb-5 rounded-3xl border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#10141a] to-black p-3 shadow-[0_18px_46px_rgba(0,0,0,.24)] md:p-4">
-        <div className="grid gap-3 xl:grid-cols-[minmax(260px,1fr)_auto_auto] xl:items-center">
+        <div className="grid gap-3 xl:grid-cols-[minmax(260px,1fr)_auto_auto_auto] xl:items-center">
           <label className="relative">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
             <input
@@ -511,6 +559,17 @@ export default function ReservationsPage() {
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            className="focus-ring inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 text-sm font-black text-carbon-200 transition hover:border-gold-300/30 hover:bg-gold-400/10 hover:text-gold-100"
+            onClick={() => {
+              setDraftAdvancedFilters(advancedFilters);
+              setFilterDrawerOpen(true);
+            }}
+          >
+            <ListFilter className="h-4 w-4" />
+            Filtres
+          </button>
           <div className="grid grid-cols-2 rounded-2xl border border-white/10 bg-white/[0.04] p-1 md:flex">
             <button className={`focus-ring grid h-10 min-w-0 place-items-center rounded-xl ${view === 'list' ? 'bg-gold-400 text-carbon-950' : 'text-carbon-300'}`} onClick={() => setView('list')} aria-label="Vue liste">
               <ListFilter className="h-4 w-4" />
@@ -642,6 +701,76 @@ export default function ReservationsPage() {
         </div>
       )}
 
+      <Modal open={filterDrawerOpen} title="Filtres réservations" subtitle="Affinez la liste avec les données existantes." onClose={() => setFilterDrawerOpen(false)} panelClassName="sm:max-w-2xl" bodyClassName="p-0">
+        <div className="grid max-h-[calc(100dvh-9rem)] grid-rows-[1fr_auto] overflow-hidden bg-[#090B0F]">
+          <div className="overflow-y-auto px-4 py-4 sm:px-6">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ReservationFilterField label="Date début">
+                <input className="form-control h-11 rounded-2xl text-sm" type="date" value={draftAdvancedFilters.startDate} onChange={(event) => setDraftAdvancedFilters((current) => ({ ...current, startDate: event.target.value }))} />
+              </ReservationFilterField>
+              <ReservationFilterField label="Date fin">
+                <input className="form-control h-11 rounded-2xl text-sm" type="date" value={draftAdvancedFilters.endDate} onChange={(event) => setDraftAdvancedFilters((current) => ({ ...current, endDate: event.target.value }))} />
+              </ReservationFilterField>
+              <ReservationFilterField label="Statut">
+                <select className="form-control h-11 rounded-2xl text-sm" value={draftAdvancedFilters.status} onChange={(event) => setDraftAdvancedFilters((current) => ({ ...current, status: event.target.value as ReservationFilterStatus }))}>
+                  {statuses.map((item) => <option key={item} value={item}>{item === 'All' ? 'Tous' : statusFr(item)}</option>)}
+                </select>
+              </ReservationFilterField>
+              <ReservationFilterField label="Client">
+                <select className="form-control h-11 rounded-2xl text-sm" value={draftAdvancedFilters.clientId} onChange={(event) => setDraftAdvancedFilters((current) => ({ ...current, clientId: event.target.value }))}>
+                  <option value="">Tous les clients</option>
+                  {clients.map((client) => <option key={client.id} value={client.id}>{client.fullName}</option>)}
+                </select>
+              </ReservationFilterField>
+              <ReservationFilterField label="Véhicule">
+                <select className="form-control h-11 rounded-2xl text-sm" value={draftAdvancedFilters.vehicleId} onChange={(event) => setDraftAdvancedFilters((current) => ({ ...current, vehicleId: event.target.value }))}>
+                  <option value="">Tous les véhicules</option>
+                  {vehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.brand} {vehicle.model}</option>)}
+                </select>
+              </ReservationFilterField>
+              <ReservationFilterField label="Ville / lieu">
+                <select className="form-control h-11 rounded-2xl text-sm" value={draftAdvancedFilters.city} onChange={(event) => setDraftAdvancedFilters((current) => ({ ...current, city: event.target.value }))}>
+                  <option value="">Toutes les villes / lieux</option>
+                  {filterOptions.cities.map((city) => <option key={city} value={city}>{city}</option>)}
+                </select>
+              </ReservationFilterField>
+              <ReservationFilterField label="Paiement">
+                <select className="form-control h-11 rounded-2xl text-sm" value={draftAdvancedFilters.payment} onChange={(event) => setDraftAdvancedFilters((current) => ({ ...current, payment: event.target.value as PaymentFilter }))}>
+                  <option value="all">Tous</option>
+                  <option value="paid">Payé</option>
+                  <option value="partial">Partiel</option>
+                  <option value="unpaid">Impayé</option>
+                </select>
+              </ReservationFilterField>
+            </div>
+          </div>
+          <div className="sticky bottom-0 grid grid-cols-2 gap-3 border-t border-white/10 bg-[#090B0F]/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur sm:flex sm:justify-end sm:px-6">
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-11 rounded-xl"
+              onClick={() => {
+                setDraftAdvancedFilters(emptyAdvancedFilters);
+                setAdvancedFilters(emptyAdvancedFilters);
+                setFilterDrawerOpen(false);
+              }}
+            >
+              Réinitialiser
+            </Button>
+            <Button
+              type="button"
+              className="h-11 rounded-xl"
+              onClick={() => {
+                setAdvancedFilters(draftAdvancedFilters);
+                setFilterDrawerOpen(false);
+              }}
+            >
+              Appliquer les filtres
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
       <AnimatePresence>
         {modalOpen ? (
           <motion.div className="fixed inset-0 z-50 overflow-hidden bg-[#050505]/88 p-0 backdrop-blur-sm sm:p-4 lg:flex lg:items-center lg:justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -653,11 +782,11 @@ export default function ReservationsPage() {
               transition={{ duration: 0.24, ease: 'easeOut' }}
               className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-7xl flex-col overflow-hidden rounded-none border border-white/[0.07] bg-[#090B0F] shadow-[0_26px_80px_rgba(0,0,0,.55)] sm:h-full sm:max-h-none sm:rounded-[1.35rem] lg:h-[92dvh] lg:max-h-[920px]"
             >
-              <div className="shrink-0 border-b border-white/10 bg-[#090B0F]/95 px-4 py-3 backdrop-blur sm:px-6">
+              <div className="shrink-0 border-b border-white/10 bg-[#090B0F]/95 px-4 py-2.5 backdrop-blur sm:px-6 sm:py-3">
                 <div className="flex items-center justify-between gap-4">
                   <div className="min-w-0">
-                    <h2 className="truncate text-lg font-black tracking-tight text-white sm:text-xl">{editingReservation ? 'Modifier une réservation' : 'Ajouter une réservation'}</h2>
-                    <p className="mt-0.5 truncate text-xs font-medium text-carbon-500 sm:text-sm">Création guidée, validation claire, résumé permanent.</p>
+                    <h2 className="truncate text-base font-black tracking-tight text-white sm:text-xl">{editingReservation ? 'Modifier une réservation' : 'Ajouter une réservation'}</h2>
+                    <p className="mt-0.5 truncate text-xs font-medium text-carbon-500">Création guidée, validation claire.</p>
                   </div>
                   <button className="focus-ring grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-carbon-300 transition hover:bg-white/10 hover:text-white" onClick={() => !saving && setModalOpen(false)} type="button">
                     <X className="h-[18px] w-[18px]" />
@@ -665,20 +794,20 @@ export default function ReservationsPage() {
                 </div>
               </div>
 
-              <form className="grid min-h-0 flex-1 overflow-hidden lg:grid-cols-[minmax(0,7fr)_minmax(290px,3fr)]" onSubmit={handleSubmitReservation}>
+              <form className={`grid min-h-0 flex-1 overflow-hidden ${reservationStep === 4 ? 'lg:grid-cols-[minmax(0,7fr)_minmax(290px,3fr)]' : ''}`} onSubmit={handleSubmitReservation}>
                 <div className="flex min-h-0 flex-col">
-                  <div className="shrink-0 border-b border-white/10 bg-[#090B0F]/95 px-4 py-3 backdrop-blur sm:px-6">
-                    <div className="grid grid-cols-5 items-start gap-0">
+                  <div className="shrink-0 border-b border-white/10 bg-[#090B0F]/95 px-3 py-2 backdrop-blur sm:px-6 sm:py-3">
+                    <div className="no-scrollbar -mx-1 flex items-start gap-1 overflow-x-auto px-1 sm:mx-0 sm:grid sm:grid-cols-5 sm:gap-0 sm:overflow-visible sm:px-0">
                       {reservationSteps.map((step, index) => (
                         <button
                           key={step}
                           type="button"
                           onClick={() => setReservationStep(index)}
-                          className="group relative min-w-0 px-0.5 text-center"
+                          className="group relative min-w-[76px] px-0.5 text-center sm:min-w-0"
                         >
-                          {index > 0 ? <span className={`absolute left-0 top-4 h-px w-1/2 ${reservationStep >= index ? 'bg-gold-400/80' : 'bg-white/10'}`} /> : null}
-                          {index < reservationSteps.length - 1 ? <span className={`absolute right-0 top-4 h-px w-1/2 ${reservationStep > index ? 'bg-gold-400/80' : 'bg-white/10'}`} /> : null}
-                          <span className={`relative mx-auto grid h-8 w-8 place-items-center rounded-full border text-xs font-black transition ${
+                          {index > 0 ? <span className={`absolute left-0 top-3.5 h-px w-1/2 ${reservationStep >= index ? 'bg-gold-400/80' : 'bg-white/10'}`} /> : null}
+                          {index < reservationSteps.length - 1 ? <span className={`absolute right-0 top-3.5 h-px w-1/2 ${reservationStep > index ? 'bg-gold-400/80' : 'bg-white/10'}`} /> : null}
+                          <span className={`relative mx-auto grid h-7 w-7 place-items-center rounded-full border text-[11px] font-black transition sm:h-8 sm:w-8 sm:text-xs ${
                             reservationStep === index
                               ? 'border-gold-300 bg-gold-400 text-carbon-950 shadow-[0_0_22px_rgba(212,160,23,.24)]'
                               : reservationStep > index
@@ -687,7 +816,7 @@ export default function ReservationsPage() {
                           }`}>
                             {reservationStep > index ? <CheckCircle2 className="h-4 w-4" /> : index + 1}
                           </span>
-                          <span className={`mt-1 block truncate text-[9px] font-black uppercase tracking-[0.08em] sm:text-[10px] ${
+                          <span className={`mt-1 block truncate text-[8.5px] font-black uppercase tracking-[0.06em] sm:text-[10px] ${
                             reservationStep === index ? 'text-gold-200' : 'text-carbon-500'
                           }`}>
                             {step}
@@ -697,13 +826,13 @@ export default function ReservationsPage() {
                     </div>
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 pb-28 sm:px-6 sm:py-5">
+                  <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 pb-24 sm:px-6 sm:py-5 sm:pb-28">
                     {reservationStep === 0 ? (
-                      <section className="space-y-4">
+                      <section className="space-y-3 sm:space-y-4">
                         <div className="flex items-end justify-between gap-3">
                           <div className="min-w-0">
-                            <h3 className="text-lg font-black text-white">Client</h3>
-                            <p className="mt-1 text-sm text-carbon-500">Recherchez et sélectionnez le client associé.</p>
+                            <h3 className="text-base font-black text-white sm:text-lg">Client</h3>
+                            <p className="mt-0.5 text-xs text-carbon-500 sm:text-sm">Recherchez et sélectionnez le client associé.</p>
                           </div>
                         </div>
                         <div className="relative">
@@ -734,20 +863,20 @@ export default function ReservationsPage() {
                                     : 'border-white/10 bg-white/[0.035] hover:border-gold-300/25 hover:bg-white/[0.055]'
                                 }`}
                               >
-                                <div className="flex min-w-0 items-start gap-3">
-                                  <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-2xl text-sm font-black ${isSelected ? 'bg-gold-400 text-carbon-950' : 'bg-white/10 text-white'}`}>
+                                <div className="flex min-w-0 items-start gap-2.5 sm:gap-3">
+                                  <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-black sm:h-11 sm:w-11 sm:rounded-2xl sm:text-sm ${isSelected ? 'bg-gold-400 text-carbon-950' : 'bg-white/10 text-white'}`}>
                                     {initials || 'CL'}
                                   </span>
                                   <span className="min-w-0 flex-1">
                                     <span className="flex min-w-0 flex-wrap items-center gap-2">
-                                      <span className="truncate text-base font-black text-white">{client.fullName}</span>
+                                      <span className="truncate text-sm font-black text-white sm:text-base">{client.fullName}</span>
                                       {client.status === 'New' ? <span className="rounded-full border border-gold-300/25 bg-gold-400/12 px-2 py-0.5 text-[10px] font-black text-gold-100">Nouveau</span> : null}
                                       {client.status === 'VIP' ? <span className="rounded-full border border-gold-300/30 bg-gold-400/16 px-2 py-0.5 text-[10px] font-black text-gold-100">VIP</span> : null}
                                       <span className={`rounded-full border px-2 py-0.5 text-[10px] font-black ${docsComplete ? 'border-emerald-300/25 bg-emerald-500/12 text-emerald-200' : 'border-amber-300/25 bg-amber-500/12 text-amber-100'}`}>
                                         {docsComplete ? 'Documents complets' : 'Docs à compléter'}
                                       </span>
                                     </span>
-                                    <span className="mt-1 grid gap-x-3 gap-y-1 text-xs text-carbon-400 sm:grid-cols-3">
+                                    <span className="mt-1 grid gap-x-3 gap-y-1 text-[11px] text-carbon-400 sm:grid-cols-3 sm:text-xs">
                                       <span className="truncate">Tél. {client.phone || '—'}</span>
                                       <span className="truncate">CIN {client.cin || '—'}</span>
                                       <span className="truncate">Permis {client.license || '—'}</span>
@@ -768,10 +897,10 @@ export default function ReservationsPage() {
                     ) : null}
 
                     {reservationStep === 1 ? (
-                      <section className="space-y-4">
+                      <section className="space-y-3 sm:space-y-4">
                         <div>
-                          <h3 className="text-lg font-black text-white">Véhicule</h3>
-                          <p className="mt-1 text-sm text-carbon-400">Choisissez le véhicule disponible pour la période.</p>
+                          <h3 className="text-base font-black text-white sm:text-lg">Véhicule</h3>
+                          <p className="mt-0.5 text-xs text-carbon-400 sm:text-sm">Choisissez le véhicule disponible pour la période.</p>
                         </div>
                         <ReservationField label="Véhicule">
                           <select
@@ -788,8 +917,8 @@ export default function ReservationsPage() {
                           </select>
                         </ReservationField>
                         {selectedVehicle ? (
-                          <div className="premium-surface grid gap-3 rounded-3xl p-5 sm:grid-cols-[180px_1fr]">
-                            <div className="relative h-32 overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-800 to-zinc-950 sm:h-28">
+                          <div className="premium-surface grid gap-3 rounded-2xl p-3 sm:grid-cols-[180px_1fr] sm:rounded-3xl sm:p-5">
+                            <div className="relative h-24 overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-800 to-zinc-950 sm:h-28 sm:rounded-3xl">
                               {selectedVehicle.imageUrl ? (
                                 <img
                                   src={selectedVehicle.imageUrl}
@@ -806,11 +935,11 @@ export default function ReservationsPage() {
                             </div>
                             <div>
                               <div className="flex flex-wrap items-center gap-3">
-                                <p className="text-base font-black text-white">{selectedVehicle.brand} {selectedVehicle.model}</p>
+                                <p className="text-sm font-black text-white sm:text-base">{selectedVehicle.brand} {selectedVehicle.model}</p>
                                 <Badge>{selectedVehicle.status}</Badge>
                               </div>
-                              <p className="mt-1 text-sm text-carbon-400"><PlateNumber value={selectedVehicle.plate} /> · {selectedVehicle.city}</p>
-                              <p className="mt-3 text-sm text-carbon-300">{selectedVehicle.mileage.toLocaleString()} km · {formatMAD(selectedVehicle.dailyPrice)} / jour</p>
+                              <p className="mt-1 text-xs text-carbon-400 sm:text-sm"><PlateNumber value={selectedVehicle.plate} /> · {selectedVehicle.city}</p>
+                              <p className="mt-2 text-xs text-carbon-300 sm:mt-3 sm:text-sm">{selectedVehicle.mileage.toLocaleString()} km · {formatMAD(selectedVehicle.dailyPrice)} / jour</p>
                             </div>
                           </div>
                         ) : null}
@@ -818,12 +947,12 @@ export default function ReservationsPage() {
                     ) : null}
 
                     {reservationStep === 2 ? (
-                      <section className="space-y-4">
+                      <section className="space-y-3 sm:space-y-4">
                         <div>
-                          <h3 className="text-lg font-black text-white">Dates & lieux</h3>
-                          <p className="mt-1 text-sm text-carbon-400">Définissez les dates, lieux et validez la disponibilité.</p>
+                          <h3 className="text-base font-black text-white sm:text-lg">Dates & lieux</h3>
+                          <p className="mt-0.5 text-xs text-carbon-400 sm:text-sm">Définissez les dates, lieux et validez la disponibilité.</p>
                         </div>
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-3 md:grid-cols-2 md:gap-4">
                           <ReservationField label="Date de départ">
                             <input className={inputClass} type="date" value={draftPickupDate} onChange={(event) => setDraftPickupDate(event.target.value)} required />
                           </ReservationField>
@@ -837,7 +966,7 @@ export default function ReservationsPage() {
                             <input className={inputClass} type="time" value={draftReturnTime} onChange={(event) => setDraftReturnTime(event.target.value)} />
                           </ReservationField>
                         </div>
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-3 md:grid-cols-2 md:gap-4">
                           <ReservationField label="Lieu de départ" hint="Obligatoire pour le contrat">
                             <input className={inputClass} value={draftPickupLocation} onChange={(event) => setDraftPickupLocation(event.target.value)} placeholder="Aéroport, hôtel, agence..." required />
                           </ReservationField>
@@ -845,7 +974,7 @@ export default function ReservationsPage() {
                             <input className={inputClass} value={draftReturnLocation} onChange={(event) => setDraftReturnLocation(event.target.value)} placeholder="Adresse de retour..." />
                           </ReservationField>
                         </div>
-                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:p-4">
                           <p className="text-sm font-semibold text-carbon-100">Durée calculée: {rentalDays} jour(s)</p>
                           {overlapReservation ? (
                             <p className="mt-2 text-sm font-semibold text-rose-200">
@@ -860,25 +989,25 @@ export default function ReservationsPage() {
                     ) : null}
 
                     {reservationStep === 3 ? (
-                      <section className="space-y-4">
+                      <section className="space-y-3 sm:space-y-4">
                         <div>
-                          <h3 className="text-lg font-black text-white">Tarif & caution</h3>
-                          <p className="mt-1 text-sm text-carbon-400">Ajustez le prix journalier, la caution et le statut.</p>
+                          <h3 className="text-base font-black text-white sm:text-lg">Tarif & caution</h3>
+                          <p className="mt-0.5 text-xs text-carbon-400 sm:text-sm">Ajustez le prix journalier, la caution et le statut.</p>
                         </div>
-                        <div className="grid gap-4 md:grid-cols-[1fr_1fr_1.25fr]">
+                        <div className="grid gap-3 md:grid-cols-[1fr_1fr_1.25fr] md:gap-4">
                           <ReservationField label="Prix journalier">
                             <input className={inputClass} type="number" value={draftDailyPrice} onChange={(event) => setDraftDailyPrice(event.target.value)} min={1} required />
                           </ReservationField>
                           <ReservationField label="Caution">
                             <input className={inputClass} type="number" value={draftDeposit} onChange={(event) => setDraftDeposit(event.target.value)} min={0} />
                           </ReservationField>
-                          <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3">
+                          <div className="rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-3 sm:px-4">
                             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-carbon-500">Montant total</p>
                             <p className="mt-1 text-lg font-black text-white">{formatMAD(totalEstimate)}</p>
                             <p className="mt-1 text-xs text-carbon-500">{rentalDays} jours × {formatMAD(dailyPriceNumber || 0)}</p>
                           </div>
                         </div>
-                        <div className="grid gap-4 md:grid-cols-2">
+                        <div className="grid gap-3 md:grid-cols-2 md:gap-4">
                           <ReservationField label="Kilométrage sortie">
                             <input className={inputClass} type="number" value={draftMileageOut} onChange={(event) => setDraftMileageOut(event.target.value)} min={0} />
                           </ReservationField>
@@ -901,12 +1030,12 @@ export default function ReservationsPage() {
                     ) : null}
 
                     {reservationStep === 4 ? (
-                      <section className="space-y-4">
+                      <section className="space-y-3 sm:space-y-4">
                         <div>
-                          <h3 className="text-lg font-black text-white">Validation</h3>
-                          <p className="mt-1 text-sm text-carbon-400">Vérifiez les informations avant enregistrement.</p>
+                          <h3 className="text-base font-black text-white sm:text-lg">Validation</h3>
+                          <p className="mt-0.5 text-xs text-carbon-400 sm:text-sm">Vérifiez les informations avant enregistrement.</p>
                         </div>
-                        <div className="premium-surface rounded-3xl p-5">
+                        <div className="premium-surface rounded-2xl p-4 sm:rounded-3xl sm:p-5">
                           <p className="text-base font-black text-white">{selectedClient?.fullName || 'Client non sélectionné'}</p>
                           <p className="mt-1 text-sm text-carbon-400">{selectedVehicle?.brand} {selectedVehicle?.model} · <PlateNumber value={selectedVehicle?.plate} /></p>
                           <p className="mt-2 text-sm text-carbon-300">{formatReservationDateTime(draftPickupDate, draftPickupTime)} → {formatReservationDateTime(draftReturnDate, draftReturnTime)} · {rentalDays} jours</p>
@@ -915,7 +1044,7 @@ export default function ReservationsPage() {
                           <p className="text-sm text-carbon-400">Caution: {formatMAD(depositNumber || 0)}</p>
                         </div>
 
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 sm:p-4">
                           <p className="mb-3 text-xs font-black uppercase tracking-wide text-gold-200">Checklist</p>
                           <div className="grid gap-2">
                             {stepChecklist.map((item) => (
@@ -933,11 +1062,12 @@ export default function ReservationsPage() {
                       </section>
                     ) : null}
 
-                    <div className="mt-5 rounded-3xl border border-gold-300/15 bg-gradient-to-br from-[#171410] via-white/[0.045] to-white/[0.02] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] lg:hidden">
+                    {reservationStep === 4 ? (
+                    <div className="mt-3 rounded-2xl border border-gold-300/15 bg-gradient-to-br from-[#171410] via-white/[0.045] to-white/[0.02] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] sm:mt-5 sm:rounded-3xl sm:p-4 lg:hidden">
                       <div className="mb-4 flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <p className="text-xs font-black uppercase tracking-[0.18em] text-gold-200">Aperçu avant validation</p>
-                          <p className="mt-1 truncate text-sm text-carbon-400">Résumé compact de la réservation</p>
+                          <p className="mt-1 truncate text-xs text-carbon-400 sm:text-sm">Résumé final de la réservation</p>
                         </div>
                         <Badge>{draftStatus}</Badge>
                       </div>
@@ -975,9 +1105,10 @@ export default function ReservationsPage() {
                         </div>
                       </div>
                     </div>
+                    ) : null}
                   </div>
 
-                  <div className="sticky bottom-0 grid grid-cols-2 gap-3 border-t border-white/10 bg-[#090B0F]/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+10px)] backdrop-blur sm:flex sm:items-center sm:justify-end sm:px-6 sm:py-3 sm:pb-3">
+                  <div className="sticky bottom-0 grid grid-cols-2 gap-2.5 border-t border-white/10 bg-[#090B0F]/95 px-3 py-2.5 pb-[calc(env(safe-area-inset-bottom)+10px)] backdrop-blur sm:flex sm:items-center sm:justify-end sm:px-6 sm:py-3 sm:pb-3">
                     <button
                       className="focus-ring h-11 min-w-0 rounded-xl border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-carbon-200 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40 sm:h-10"
                       disabled={reservationStep === 0 || saving}
@@ -1004,12 +1135,13 @@ export default function ReservationsPage() {
                         type="submit"
                         disabled={saving}
                       >
-                        {saving ? 'Enregistrement...' : editingReservation ? 'Enregistrer les modifications' : 'Créer la réservation'}
+                        {saving ? 'Enregistrement...' : editingReservation ? 'Valider' : 'Créer'}
                       </button>
                     )}
                   </div>
                 </div>
 
+                {reservationStep === 4 ? (
                 <aside className="hidden border-t border-white/[0.07] bg-[#0D1015] p-5 lg:block lg:border-l lg:border-t-0">
                   <div className="sticky top-5 space-y-4">
                     <div>
@@ -1072,6 +1204,7 @@ export default function ReservationsPage() {
                     </div>
                   </div>
                 </aside>
+                ) : null}
               </form>
             </motion.aside>
           </motion.div>

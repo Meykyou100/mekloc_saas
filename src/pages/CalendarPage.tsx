@@ -135,8 +135,18 @@ function vehicleStatusClass(status: string, archived?: boolean) {
   return 'border-amber-300/30 bg-amber-500/12 text-amber-100';
 }
 
+function formatMoroccoTel(phone?: string) {
+  const cleaned = (phone || '').replace(/[^\d+]/g, '');
+  if (!cleaned) return '';
+  if (cleaned.startsWith('+212')) return cleaned;
+  if (cleaned.startsWith('00212')) return `+${cleaned.slice(2)}`;
+  if (cleaned.startsWith('212')) return `+${cleaned}`;
+  if (cleaned.startsWith('0')) return `+212${cleaned.slice(1)}`;
+  return cleaned.startsWith('+') ? cleaned : `+212${cleaned}`;
+}
+
 export default function CalendarPage() {
-  const { vehicles, reservations, maintenance, loading } = useData();
+  const { vehicles, reservations, maintenance, clients, loading } = useData();
   const navigate = useNavigate();
   const [daysToShow, setDaysToShow] = useState(() => (typeof window !== 'undefined' && window.innerWidth < 768 ? 7 : 14));
   const [windowStart, setWindowStart] = useState(() => toDateOnly(new Date()));
@@ -787,6 +797,9 @@ export default function CalendarPage() {
                   <div className="space-y-2">
                     {items.slice(0, 3).map((reservation) => {
                       const vehicle = vehiclesById.get(reservation.vehicleId);
+                      const client = clients.find((item) => item.id === reservation.clientId) ||
+                        clients.find((item) => item.fullName.trim().toLowerCase() === reservation.client.trim().toLowerCase());
+                      const phoneHref = formatMoroccoTel(client?.phone);
                       return (
                         <button
                           key={`${title}-${reservation.id}`}
@@ -814,7 +827,29 @@ export default function CalendarPage() {
                                 <span className="truncate">{reservation.client}</span>
                               </div>
                             </div>
-                            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-white/10 bg-black/20 text-carbon-300">
+                            <span
+                              role="link"
+                              tabIndex={phoneHref ? 0 : -1}
+                              title={phoneHref ? `Appeler ${client?.phone || phoneHref}` : 'Téléphone indisponible'}
+                              aria-label={phoneHref ? `Appeler ${reservation.client}` : 'Téléphone indisponible'}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                if (phoneHref) window.location.href = `tel:${phoneHref}`;
+                              }}
+                              onKeyDown={(event) => {
+                                if (!phoneHref) return;
+                                if (event.key === 'Enter' || event.key === ' ') {
+                                  event.preventDefault();
+                                  event.stopPropagation();
+                                  window.location.href = `tel:${phoneHref}`;
+                                }
+                              }}
+                              className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border transition ${
+                                phoneHref
+                                  ? 'border-gold-300/20 bg-gold-400/10 text-gold-100 hover:border-gold-300/45 hover:bg-gold-400/15'
+                                  : 'cursor-not-allowed border-white/10 bg-black/20 text-carbon-600'
+                              }`}
+                            >
                               <Phone className="h-3.5 w-3.5" />
                             </span>
                           </div>

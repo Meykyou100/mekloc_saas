@@ -4,6 +4,7 @@ import {
   BookOpen,
   CalendarDays,
   Car,
+  CheckCircle2,
   CreditCard,
   FileSignature,
   HelpCircle,
@@ -37,15 +38,107 @@ const navItems = [
   { label: 'settings', to: '/settings', icon: Settings, permission: 'settings' as AppPermission },
 ];
 
-const documentationItems = [
-  'Comment créer une réservation',
-  'Comment ajouter un véhicule',
-  'Comment ajouter un client',
-  'Comment générer un contrat',
-  'Comment enregistrer un paiement',
+const guideItems = [
+  {
+    title: 'Créer une réservation',
+    description: 'Client, véhicule, dates, lieux, tarif et caution.',
+    steps: [
+      'Ouvrez la page Réservations.',
+      'Cliquez sur Ajouter une réservation.',
+      'Sélectionnez le client et le véhicule.',
+      'Ajoutez les dates, lieux, tarifs et caution.',
+      'Vérifiez puis validez.',
+    ],
+  },
+  {
+    title: 'Ajouter un client',
+    description: 'Coordonnées, permis, CIN et documents.',
+    steps: [
+      'Ouvrez la page Clients.',
+      'Cliquez sur Ajouter un client.',
+      'Renseignez les informations personnelles.',
+      'Ajoutez les pièces d’identité si disponibles.',
+      'Enregistrez la fiche client.',
+    ],
+  },
+  {
+    title: 'Ajouter un véhicule',
+    description: 'Identification, technique, état et photo.',
+    steps: [
+      'Ouvrez la page Véhicules.',
+      'Cliquez sur Ajouter un véhicule.',
+      'Complétez marque, modèle, immatriculation et année.',
+      'Ajoutez les informations techniques, l’état et la photo.',
+      'Vérifiez le récapitulatif puis enregistrez.',
+    ],
+  },
+  {
+    title: 'Générer un contrat',
+    description: 'Contrat PDF lié à une réservation.',
+    steps: [
+      'Ouvrez la page Contrats.',
+      'Sélectionnez une réservation validée.',
+      'Vérifiez les données client, véhicule et dates.',
+      'Générez le contrat.',
+      'Téléchargez le PDF si nécessaire.',
+    ],
+  },
+  {
+    title: 'Enregistrer un paiement',
+    description: 'Suivi payé, partiel et reste à payer.',
+    steps: [
+      'Ouvrez la page Paiements.',
+      'Cliquez sur Ajouter un paiement.',
+      'Sélectionnez la réservation ou facture.',
+      'Saisissez le montant et le mode de paiement.',
+      'Enregistrez pour mettre à jour le solde.',
+    ],
+  },
+  {
+    title: 'Consulter les rapports',
+    description: 'Indicateurs, revenus, retards et exports.',
+    steps: [
+      'Ouvrez la page Rapports.',
+      'Choisissez la période souhaitée.',
+      'Consultez les KPI, revenus et tableaux.',
+      'Vérifiez les paiements en retard.',
+      'Exportez les données si nécessaire.',
+    ],
+  },
 ];
 
-function SidebarContent({ onClose, onHelp }: { onClose?: () => void; onHelp: () => void }) {
+const faqItems = [
+  {
+    question: 'Comment créer une réservation ?',
+    answer: 'Depuis Réservations, utilisez Ajouter une réservation, puis suivez les étapes client, véhicule, dates, tarif et validation.',
+  },
+  {
+    question: 'Comment modifier un véhicule ?',
+    answer: 'Depuis Véhicules, ouvrez l’action Modifier sur le véhicule concerné, ajustez les champs puis enregistrez.',
+  },
+  {
+    question: 'Comment télécharger un contrat ?',
+    answer: 'Depuis Contrats, sélectionnez la réservation ou un contrat archivé, puis utilisez Télécharger PDF.',
+  },
+  {
+    question: 'Comment suivre les paiements ?',
+    answer: 'La page Paiements affiche total, payé, reste à payer et statut. Les factures partielles ou en retard restent visibles dans les filtres.',
+  },
+  {
+    question: 'Comment gérer les documents client ?',
+    answer: 'Depuis Clients, ouvrez la fiche ou le formulaire client pour ajouter ou vérifier les pièces d’identité disponibles.',
+  },
+];
+
+const proBenefits = [
+  'Centralisation des réservations',
+  'Contrats professionnels',
+  'Suivi paiements & cautions',
+  'Rapports financiers',
+  'Support prioritaire',
+];
+
+function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHelp: () => void; onPro: () => void }) {
   const { t } = useApp();
   const { profile } = useAuth();
 
@@ -104,16 +197,27 @@ function SidebarContent({ onClose, onHelp }: { onClose?: () => void; onHelp: () 
         ))}
       </nav>
       <div className="mt-auto shrink-0 space-y-2 px-3 pb-3 pt-2">
-        <div className="rounded-2xl border border-gold-200/12 bg-[linear-gradient(180deg,rgba(212,160,23,.08),rgba(255,255,255,.025))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] [@media(max-height:700px)]:py-2">
+        <div className="rounded-2xl border border-gold-200/12 bg-[linear-gradient(180deg,rgba(212,160,23,.09),rgba(255,255,255,.025))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] [@media(max-height:700px)]:py-2">
           <div className="flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-gold-300" />
             <p className="text-[13px] font-bold text-white light:text-carbon-950">MekLoc Pro</p>
           </div>
-          <p className="mt-1.5 text-[11px] leading-4 text-carbon-300 light:text-carbon-700">
-            Flotte, contrats et paiements sécurisés.
-          </p>
-          <div className="mt-2 h-px bg-gradient-to-r from-gold-200/30 via-white/10 to-transparent [@media(max-height:700px)]:hidden" />
-          <p className="mt-2 text-[10px] font-semibold uppercase text-carbon-500 [@media(max-height:700px)]:hidden">Rental Management Platform</p>
+          <p className="mt-1 text-[11px] font-semibold leading-4 text-carbon-300 light:text-carbon-700">Espace agence activé</p>
+          <div className="mt-2 grid grid-cols-2 gap-1 text-[10px] font-semibold text-carbon-400 [@media(max-height:700px)]:hidden">
+            {['Gestion flotte', 'Contrats PDF', 'Paiements suivis', 'Rapports financiers'].map((feature) => (
+              <span key={feature} className="truncate rounded-lg border border-white/10 bg-black/20 px-2 py-1">{feature}</span>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              onPro();
+              onClose?.();
+            }}
+            className="mt-2 flex h-8 w-full items-center justify-center rounded-xl border border-gold-300/20 bg-gold-400/10 text-[11px] font-black text-gold-100 transition hover:border-gold-300/45 hover:bg-gold-400/15"
+          >
+            Voir les avantages
+          </button>
         </div>
         <button
           type="button"
@@ -139,11 +243,14 @@ function SidebarContent({ onClose, onHelp }: { onClose?: () => void; onHelp: () 
 
 export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [helpOpen, setHelpOpen] = useState(false);
+  const [proOpen, setProOpen] = useState(false);
+  const [activeGuide, setActiveGuide] = useState(guideItems[0].title);
+  const [activeFaq, setActiveFaq] = useState(faqItems[0].question);
 
   return (
     <>
       <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-white/10 bg-carbon-950/88 backdrop-blur-2xl light:bg-white/90 lg:block">
-        <SidebarContent onHelp={() => setHelpOpen(true)} />
+        <SidebarContent onHelp={() => setHelpOpen(true)} onPro={() => setProOpen(true)} />
       </aside>
       <div
         className={`fixed inset-0 z-40 bg-carbon-950/70 backdrop-blur-sm transition lg:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
@@ -152,14 +259,14 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
       <aside
         className={`fixed inset-y-0 left-0 z-50 w-80 max-w-[86vw] border-r border-white/10 bg-carbon-950/95 backdrop-blur-2xl transition-transform light:bg-white ${open ? 'translate-x-0' : '-translate-x-full'} lg:hidden`}
       >
-        <SidebarContent onClose={onClose} onHelp={() => setHelpOpen(true)} />
+        <SidebarContent onClose={onClose} onHelp={() => setHelpOpen(true)} onPro={() => setProOpen(true)} />
       </aside>
       <Modal
         open={helpOpen}
-        title="Centre d'assistance"
-        subtitle="Documentation, support et réponses rapides pour votre agence."
+        title="Centre d’assistance MekLoc"
+        subtitle="Trouvez rapidement de l’aide pour utiliser votre espace de gestion."
         onClose={() => setHelpOpen(false)}
-        panelClassName="sm:max-w-3xl"
+        panelClassName="sm:max-w-5xl"
         bodyClassName="bg-[#090B0F]"
       >
         <div className="space-y-5 pb-[calc(env(safe-area-inset-bottom)+8px)]">
@@ -169,21 +276,47 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                 <BookOpen className="h-5 w-5" />
               </span>
               <div>
-                <h3 className="text-sm font-black uppercase tracking-[0.16em] text-gold-200">Documentation</h3>
-                <p className="mt-1 text-xs text-carbon-500">Guides essentiels pour les actions courantes.</p>
+                <h3 className="text-sm font-black uppercase tracking-[0.16em] text-gold-200">Guides rapides</h3>
+                <p className="mt-1 text-xs text-carbon-500">Actions courantes avec les vrais modules MekLoc.</p>
               </div>
             </div>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {documentationItems.map((item) => (
+            <div className="grid gap-3 lg:grid-cols-[0.95fr_1.05fr]">
+              <div className="grid gap-2">
+              {guideItems.map((item) => (
                 <button
-                  key={item}
+                  key={item.title}
                   type="button"
-                  className="group flex min-h-12 items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-left text-sm font-semibold text-carbon-100 transition hover:border-gold-300/35 hover:bg-gold-400/10 hover:text-gold-100"
+                  onClick={() => setActiveGuide(item.title)}
+                  className={`group flex min-h-12 items-center justify-between gap-3 rounded-2xl border px-3 py-2 text-left text-sm font-semibold transition ${
+                    activeGuide === item.title
+                      ? 'border-gold-300/45 bg-gold-400/12 text-gold-100'
+                      : 'border-white/10 bg-black/20 text-carbon-100 hover:border-gold-300/35 hover:bg-gold-400/10 hover:text-gold-100'
+                  }`}
                 >
-                  <span className="min-w-0 truncate">{item}</span>
+                  <span className="min-w-0">
+                    <span className="block truncate">{item.title}</span>
+                    <span className="mt-0.5 block truncate text-xs font-medium text-carbon-500">{item.description}</span>
+                  </span>
                   <ArrowRight className="h-4 w-4 shrink-0 text-carbon-500 transition group-hover:translate-x-0.5 group-hover:text-gold-200" />
                 </button>
               ))}
+              </div>
+              <div className="rounded-2xl border border-gold-300/15 bg-black/25 p-4">
+                {guideItems.filter((item) => item.title === activeGuide).map((guide) => (
+                  <div key={guide.title}>
+                    <p className="text-sm font-black text-white">{guide.title}</p>
+                    <p className="mt-1 text-xs text-carbon-500">{guide.description}</p>
+                    <ol className="mt-4 space-y-2">
+                      {guide.steps.map((step, index) => (
+                        <li key={step} className="flex gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-2 text-sm text-carbon-200">
+                          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gold-400 text-xs font-black text-carbon-950">{index + 1}</span>
+                          <span className="leading-6">{step}</span>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
+                ))}
+              </div>
             </div>
           </section>
 
@@ -197,7 +330,7 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                 <p className="mt-1 text-xs text-carbon-500">Choisissez le canal le plus adapté.</p>
               </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-3">
               <a
                 href={`${WHATSAPP_URL}?text=${encodeURIComponent("Bonjour MekLoc, j'ai besoin d'aide sur la plateforme.")}`}
                 target="_blank"
@@ -228,11 +361,25 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                   </div>
                 </div>
               </a>
+              <a
+                href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Demande de démo d'aide MekLoc")}`}
+                className="group rounded-2xl border border-white/10 bg-black/20 p-4 transition hover:border-gold-300/35 hover:bg-gold-400/10"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="grid h-10 w-10 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-gold-200">
+                    <CalendarDays className="h-5 w-5" />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="font-black text-white">Demander une démo d’aide</p>
+                    <p className="mt-1 truncate text-xs text-carbon-500">Session guidée</p>
+                  </div>
+                </div>
+              </a>
             </div>
           </section>
 
           <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
-            <div className="flex items-center justify-between gap-4">
+            <div className="mb-4 flex items-center justify-between gap-4">
               <div className="flex min-w-0 items-center gap-3">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-white/10 bg-white/[0.055] text-gold-200">
                   <HelpCircle className="h-5 w-5" />
@@ -242,9 +389,55 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
                   <p className="mt-1 truncate text-xs text-carbon-500">Questions fréquentes</p>
                 </div>
               </div>
-              <ArrowRight className="h-4 w-4 text-carbon-500" />
+            </div>
+            <div className="grid gap-2">
+              {faqItems.map((item) => {
+                const active = activeFaq === item.question;
+                return (
+                  <button
+                    key={item.question}
+                    type="button"
+                    onClick={() => setActiveFaq(active ? '' : item.question)}
+                    className={`rounded-2xl border px-3 py-3 text-left transition ${
+                      active ? 'border-gold-300/35 bg-gold-400/10' : 'border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/[0.045]'
+                    }`}
+                  >
+                    <span className="flex items-center justify-between gap-3">
+                      <span className="font-bold text-white">{item.question}</span>
+                      <ArrowRight className={`h-4 w-4 shrink-0 text-carbon-500 transition ${active ? 'rotate-90 text-gold-200' : ''}`} />
+                    </span>
+                    {active ? <span className="mt-2 block text-sm leading-6 text-carbon-300">{item.answer}</span> : null}
+                  </button>
+                );
+              })}
             </div>
           </section>
+        </div>
+      </Modal>
+      <Modal
+        open={proOpen}
+        title="MekLoc Pro"
+        subtitle="Un espace agence conçu pour centraliser vos opérations de location."
+        onClose={() => setProOpen(false)}
+        panelClassName="sm:max-w-2xl"
+        bodyClassName="bg-[#090B0F]"
+      >
+        <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+8px)]">
+          <div className="rounded-3xl border border-gold-300/15 bg-gradient-to-br from-[#171410] via-white/[0.045] to-white/[0.02] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-gold-200">Espace agence activé</p>
+            <h3 className="mt-2 text-2xl font-black text-white">Pilotez votre agence depuis un seul endroit.</h3>
+            <p className="mt-2 text-sm leading-6 text-carbon-300">MekLoc Pro rassemble les modules essentiels pour suivre les réservations, véhicules, clients, contrats, paiements et rapports sans multiplier les fichiers.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {proBenefits.map((benefit) => (
+              <div key={benefit} className="flex min-h-14 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-3 py-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-gold-300/20 bg-gold-400/10 text-gold-200">
+                  <CheckCircle2 className="h-4 w-4" />
+                </span>
+                <span className="text-sm font-bold text-white">{benefit}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </Modal>
     </>

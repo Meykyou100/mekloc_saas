@@ -984,10 +984,22 @@ export default function ContractsPage() {
   }
 
   return (
-    <div className="relative overflow-x-hidden pb-28">
-      <div className="pointer-events-none absolute -right-24 top-10 h-80 w-80 rounded-full bg-gold-400/10 blur-3xl" />
-      <div className="pointer-events-none absolute left-1/3 top-80 h-72 w-72 rounded-full bg-gold-400/5 blur-3xl" />
-      <div className="relative">
+    <div className="relative overflow-x-hidden pb-[calc(108px+env(safe-area-inset-bottom))] md:pb-28">
+      <div className="pointer-events-none absolute -right-20 top-6 h-48 w-48 rounded-full bg-gold-400/10 blur-3xl md:-right-24 md:top-10 md:h-80 md:w-80" />
+      <div className="pointer-events-none absolute left-1/3 top-80 hidden h-72 w-72 rounded-full bg-gold-400/5 blur-3xl md:block" />
+      <div className="relative mb-3 rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(227,177,23,.16),transparent_36%),linear-gradient(135deg,rgba(12,17,24,.96),rgba(2,3,5,.98))] p-3 shadow-[0_18px_50px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)] md:hidden">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-gold-200">DOCUMENTS</p>
+            <h1 className="mt-0.5 text-2xl font-black leading-none text-white">Contrats</h1>
+            <p className="mt-1 truncate text-xs text-carbon-400">Créez, vérifiez et exportez vos contrats de location.</p>
+          </div>
+          <Button className="h-11 shrink-0 rounded-2xl px-3 text-xs shadow-[0_14px_34px_rgba(227,177,23,.16)]" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!hasPreviewSource}>
+            PDF
+          </Button>
+        </div>
+      </div>
+      <div className="relative hidden md:block">
         <PageHeader
           eyebrow="DOCUMENTS"
           title="Contrats"
@@ -1002,13 +1014,7 @@ export default function ContractsPage() {
         />
       </div>
 
-      <div className="mb-3 md:hidden">
-        <Button className="w-full" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!hasPreviewSource}>
-          {downloadingPdf ? 'Préparation du PDF...' : 'Télécharger PDF'}
-        </Button>
-      </div>
-
-      <div className="relative mb-6 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="no-scrollbar relative -mx-4 mb-3 flex gap-2.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 md:mb-6 xl:grid-cols-4">
         {[
           { label: 'Contrats générés', value: String(stats.total), helper: 'Total enregistré', icon: FileSignature, tone: 'gold' },
           { label: 'Brouillons', value: String(stats.drafts), helper: 'En préparation', icon: PenLine, tone: 'violet' },
@@ -1017,14 +1023,23 @@ export default function ContractsPage() {
         ].map(({ label, value, helper, icon: Icon, tone }) => (
           <div
             key={label}
-            className="group min-h-[96px] rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#090d13] to-black p-4 shadow-[0_24px_70px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)] transition duration-300 hover:-translate-y-0.5 hover:border-gold-300/30 hover:shadow-[0_28px_80px_rgba(0,0,0,.34),0_0_34px_rgba(227,177,23,.08)] light:bg-white"
+            className="group relative min-h-[106px] min-w-[138px] overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#090d13] to-black p-3 shadow-[0_18px_48px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.04)] transition duration-300 hover:-translate-y-0.5 hover:border-gold-300/30 hover:shadow-[0_28px_80px_rgba(0,0,0,.34),0_0_34px_rgba(227,177,23,.08)] light:bg-white md:min-h-[96px] md:min-w-0 md:rounded-3xl md:p-4"
           >
+            <div className={`pointer-events-none absolute inset-x-0 top-0 h-0.5 ${
+              tone === 'violet'
+                ? 'bg-violet-300/60'
+                : tone === 'teal'
+                  ? 'bg-emerald-300/60'
+                  : tone === 'blue'
+                    ? 'bg-sky-300/60'
+                    : 'bg-gold-300/70'
+            }`} />
             <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-carbon-500">{label}</p>
-                <p className="mt-2 truncate text-2xl font-black text-white light:text-carbon-950">{value}</p>
+              <div className="min-w-0">
+                <p className="truncate text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-carbon-500">{label}</p>
+                <p className="mt-2 truncate text-[1.35rem] font-black leading-none text-white light:text-carbon-950 md:text-2xl">{value}</p>
               </div>
-              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl border ${
+              <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border md:h-10 md:w-10 md:rounded-2xl ${
                 tone === 'violet'
                   ? 'border-violet-300/20 bg-violet-400/10 text-violet-200'
                   : tone === 'teal'
@@ -1033,29 +1048,29 @@ export default function ContractsPage() {
                       ? 'border-sky-300/20 bg-sky-400/10 text-sky-200'
                       : 'border-gold-300/25 bg-gold-400/12 text-gold-200'
               } shadow-[0_0_24px_rgba(227,177,23,.08)]`}>
-                <Icon className="h-5 w-5" />
+                <Icon className="h-3.5 w-3.5 md:h-5 md:w-5" />
               </span>
             </div>
-            <p className="mt-2 text-xs text-carbon-500">{helper}</p>
+            <p className="mt-2 truncate text-[11px] text-carbon-500 md:text-xs">{helper}</p>
           </div>
         ))}
       </div>
 
-      <div className="relative mb-6 max-w-full overflow-x-auto rounded-3xl border border-white/10 bg-gradient-to-r from-zinc-950/90 via-black/80 to-zinc-950/90 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+      <div className="relative mb-3 max-w-full overflow-x-auto rounded-3xl border border-white/10 bg-gradient-to-r from-zinc-950/90 via-black/80 to-zinc-950/90 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] md:mb-6 md:p-2">
         <div className="flex min-w-max items-center gap-2 lg:min-w-0 lg:justify-between">
           {['Réservation', 'Données', '2ème conducteur', 'Aperçu', 'Export'].map((label, index) => {
             const step = index + 1;
             const isActive = activeStep === step;
             const isDone = activeStep > step;
             return (
-              <div key={label} className={`relative shrink-0 rounded-2xl border px-3 py-2.5 transition duration-300 lg:flex-1 ${isActive ? 'border-gold-300/50 bg-gold-400/15 text-gold-100 shadow-[0_0_24px_rgba(227,177,23,.10)]' : isDone ? 'border-emerald-400/20 bg-emerald-400/5 text-carbon-200' : 'border-white/10 bg-white/[0.025] text-carbon-400'}`}>
-                <div className="flex items-center gap-2.5">
-                  <span className={`grid h-8 w-8 place-items-center rounded-full border text-xs font-black transition ${isActive ? 'border-gold-300 bg-gold-400 text-carbon-950' : isDone ? 'border-emerald-300/30 bg-emerald-400/15 text-emerald-200' : 'border-white/15 bg-white/[0.04]'}`}>
+              <div key={label} className={`relative shrink-0 rounded-xl border px-2 py-2 transition duration-300 md:rounded-2xl md:px-3 md:py-2.5 lg:flex-1 ${isActive ? 'border-gold-300/50 bg-gold-400/15 text-gold-100 shadow-[0_0_24px_rgba(227,177,23,.10)]' : isDone ? 'border-emerald-400/20 bg-emerald-400/5 text-carbon-200' : 'border-white/10 bg-white/[0.025] text-carbon-400'}`}>
+                <div className="flex items-center gap-2 md:gap-2.5">
+                  <span className={`grid h-7 w-7 place-items-center rounded-full border text-[11px] font-black transition md:h-8 md:w-8 md:text-xs ${isActive ? 'border-gold-300 bg-gold-400 text-carbon-950' : isDone ? 'border-emerald-300/30 bg-emerald-400/15 text-emerald-200' : 'border-white/15 bg-white/[0.04]'}`}>
                     {isDone ? <CheckCircle2 className="h-4 w-4" /> : step}
                   </span>
                   <div>
-                    <p className="whitespace-nowrap text-xs font-black sm:text-sm">{label}</p>
-                    <p className="whitespace-nowrap text-[10px] opacity-70">{step === 1 ? 'Sélectionnez' : step === 5 ? 'Génération' : step === 3 ? 'Optionnel' : 'Vérification'}</p>
+                    <p className="whitespace-nowrap text-[11px] font-black sm:text-sm">{label}</p>
+                    <p className="hidden whitespace-nowrap text-[10px] opacity-70 sm:block">{step === 1 ? 'Sélectionnez' : step === 5 ? 'Génération' : step === 3 ? 'Optionnel' : 'Vérification'}</p>
                   </div>
                 </div>
               </div>
@@ -1064,9 +1079,9 @@ export default function ContractsPage() {
         </div>
       </div>
 
-      <div className="relative grid gap-5 xl:grid-cols-[320px_minmax(420px,1fr)] 2xl:grid-cols-[320px_minmax(420px,1fr)_minmax(440px,0.85fr)]">
-        <Card className="border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#0b1017] to-black p-4 shadow-[0_24px_80px_rgba(0,0,0,.30),inset_0_1px_0_rgba(255,255,255,.04)] lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]">
-          <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="relative grid gap-3 md:gap-5 xl:grid-cols-[320px_minmax(420px,1fr)] 2xl:grid-cols-[320px_minmax(420px,1fr)_minmax(440px,0.85fr)]">
+        <Card className="border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#0b1017] to-black p-3 shadow-[0_24px_80px_rgba(0,0,0,.30),inset_0_1px_0_rgba(255,255,255,.04)] md:p-4 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)]">
+          <div className="mb-3 flex items-center justify-between gap-3 md:mb-4">
             <div>
               <h2 className="font-black text-white light:text-carbon-950">Réservations validées</h2>
               <p className="text-xs text-carbon-400">{filteredReservations.length} réservation{filteredReservations.length > 1 ? 's' : ''}</p>
@@ -1082,7 +1097,7 @@ export default function ContractsPage() {
               onChange={(event) => setReservationSearch(event.target.value)}
             />
           </label>
-          <div className="space-y-3 overflow-y-auto pr-1 xl:max-h-[calc(100vh-15rem)]">
+          <div className="space-y-2.5 overflow-y-auto pr-1 md:space-y-3 xl:max-h-[calc(100vh-15rem)]">
             {filteredReservations.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-white/10 p-4 text-sm text-carbon-400">Aucune réservation trouvée.</p>
             ) : filteredReservations.map((item) => {
@@ -1092,15 +1107,15 @@ export default function ContractsPage() {
                   key={item.id}
                   type="button"
                   onClick={() => setReservationId(item.id)}
-                  className={`group w-full rounded-3xl border p-4 text-left transition duration-300 ${selected ? 'border-gold-300/60 bg-[linear-gradient(135deg,rgba(227,177,23,.14),rgba(255,255,255,.035))] shadow-[0_0_34px_rgba(212,160,23,.14)]' : 'border-white/10 bg-white/[0.035] hover:-translate-y-0.5 hover:border-gold-300/25 hover:bg-white/[0.055]'}`}
+                  className={`group w-full rounded-2xl border p-3 text-left transition duration-300 md:rounded-3xl md:p-4 ${selected ? 'border-gold-300/60 bg-[linear-gradient(135deg,rgba(227,177,23,.14),rgba(255,255,255,.035))] shadow-[0_0_34px_rgba(212,160,23,.14)]' : 'border-white/10 bg-white/[0.035] hover:-translate-y-0.5 hover:border-gold-300/25 hover:bg-white/[0.055]'}`}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <p className="text-lg font-black text-white">{item.id}</p>
+                    <p className="text-base font-black text-white md:text-lg">{item.id}</p>
                     <span className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${selected ? 'border-emerald-300/25 bg-emerald-400/15 text-emerald-200' : 'border-white/10 bg-white/[0.04] text-carbon-300'}`}>{item.status}</span>
                   </div>
                   <p className="mt-2 text-sm font-semibold text-carbon-200">{item.client}</p>
                   <p className="mt-1 text-sm text-carbon-400">{item.vehicle}</p>
-                  <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-xs text-carbon-400">
+                  <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-xs text-carbon-400 md:mt-3">
                     <CalendarDays className="h-3.5 w-3.5 text-gold-300" />
                     {formatDateFr(item.pickupDate)} → {formatDateFr(item.returnDate)}
                   </p>
@@ -1113,8 +1128,8 @@ export default function ContractsPage() {
           </a>
         </Card>
 
-        <div className="space-y-4">
-          <Card className="border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#0c1118] to-black p-5 shadow-[0_24px_80px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)]">
+        <div className="space-y-3 md:space-y-4">
+          <Card className="border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#0c1118] to-black p-4 shadow-[0_24px_80px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)] md:p-5">
             <div className="mb-4 flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-gold-200">
                 <CalendarDays className="h-5 w-5" />
@@ -1145,7 +1160,7 @@ export default function ContractsPage() {
             )}
           </Card>
 
-          <Card className="border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#0c1118] to-black p-5 shadow-[0_24px_80px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.04)]">
+          <Card className="border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#0c1118] to-black p-4 shadow-[0_24px_80px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.04)] md:p-5">
             <div className="mb-4 flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-gold-200">
                 <FileText className="h-5 w-5" />
@@ -1167,7 +1182,7 @@ export default function ContractsPage() {
             </div>
           </Card>
 
-          <Card className="border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#0c1118] to-black p-5 shadow-[0_24px_80px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.04)]">
+          <Card className="border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#0c1118] to-black p-4 shadow-[0_24px_80px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.04)] md:p-5">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <span className="grid h-10 w-10 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-gold-200">
@@ -1271,7 +1286,7 @@ export default function ContractsPage() {
         </div>
       </div>
 
-      <div className="mt-5 rounded-3xl border border-gold-300/15 bg-[linear-gradient(135deg,rgba(227,177,23,.10),rgba(255,255,255,.035),rgba(0,0,0,.20))] p-4 shadow-[0_20px_70px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.04)]">
+      <div className="mt-3 rounded-3xl border border-gold-300/15 bg-[linear-gradient(135deg,rgba(227,177,23,.10),rgba(255,255,255,.035),rgba(0,0,0,.20))] p-3 shadow-[0_20px_70px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.04)] md:mt-5 md:p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/12 text-gold-200">
@@ -1289,35 +1304,35 @@ export default function ContractsPage() {
         </div>
       </div>
 
-      <div className="mt-5 grid gap-3 rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#0b0f15] to-black p-4 shadow-[0_20px_70px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)] md:grid-cols-3">
-        <Button type="button" className="h-12" icon={<FileSignature className="h-4 w-4" />} onClick={handleGenerateContract} loading={generating} disabled={!selectedReservation}>
+      <div className="mt-3 grid gap-2.5 rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-950/95 via-[#0b0f15] to-black p-3 shadow-[0_20px_70px_rgba(0,0,0,.26),inset_0_1px_0_rgba(255,255,255,.04)] md:mt-5 md:grid-cols-3 md:gap-3 md:p-4">
+        <Button type="button" className="h-11 md:h-12" icon={<FileSignature className="h-4 w-4" />} onClick={handleGenerateContract} loading={generating} disabled={!selectedReservation}>
           Générer contrat
         </Button>
-        <Button type="button" variant="secondary" className="h-12" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!hasPreviewSource}>
+        <Button type="button" variant="secondary" className="h-11 md:h-12" icon={<Download className="h-4 w-4" />} onClick={downloadContractPreview} loading={downloadingPdf} disabled={!hasPreviewSource}>
           Télécharger PDF
         </Button>
         {!notificationPreferences.contractSending ? (
-          <Button type="button" variant="secondary" className="h-12" disabled>
+          <Button type="button" variant="secondary" className="h-11 md:h-12" disabled>
             WhatsApp désactivé
           </Button>
         ) : contractWhatsAppUrl ? (
           <a href={contractWhatsAppUrl} target="_blank" rel="noreferrer" className="block">
-            <Button type="button" variant="secondary" className="h-12 w-full" icon={<MessageCircle className="h-4 w-4" />}>
+            <Button type="button" variant="secondary" className="h-11 w-full md:h-12" icon={<MessageCircle className="h-4 w-4" />}>
               Envoyer WhatsApp
             </Button>
           </a>
         ) : (
-          <Button type="button" variant="secondary" className="h-12" disabled>
+          <Button type="button" variant="secondary" className="h-11 md:h-12" disabled>
             Téléphone manquant
           </Button>
         )}
       </div>
 
-      <Card className="mt-6 border-white/10 bg-gradient-to-br from-[#0d1118] to-[#080b10] p-5 shadow-[0_20px_70px_rgba(0,0,0,.24)]">
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <Card className="mt-4 border-white/10 bg-gradient-to-br from-[#0d1118] to-[#080b10] p-4 shadow-[0_20px_70px_rgba(0,0,0,.24)] md:mt-6 md:p-5">
+        <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between md:mb-4">
           <div>
             <p className="text-[11px] font-black uppercase tracking-[0.18em] text-gold-200">Archives</p>
-            <h2 className="mt-1 text-xl font-black text-white light:text-carbon-950">Archives des contrats</h2>
+            <h2 className="mt-1 text-lg font-black text-white light:text-carbon-950 md:text-xl">Archives des contrats</h2>
             <p className="mt-1 text-sm text-carbon-400">Retrouvez, téléchargez ou renvoyez vos anciens contrats générés.</p>
           </div>
           <Badge>{contracts.length} contrat{contracts.length > 1 ? 's' : ''}</Badge>
@@ -1367,7 +1382,7 @@ export default function ContractsPage() {
             {filteredContracts.map((contract) => {
               const archiveWhatsappUrl = getArchiveWhatsappUrl(contract);
               return (
-              <div key={contract.id} className="grid gap-4 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 transition hover:border-yellow-500/20 lg:grid-cols-[1.2fr_1fr_auto] lg:items-center">
+              <div key={contract.id} className="grid gap-3 rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-3 transition hover:border-yellow-500/20 md:p-4 lg:grid-cols-[1.2fr_1fr_auto] lg:items-center">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate font-black text-white light:text-carbon-950">{contract.contractNumber}</p>
