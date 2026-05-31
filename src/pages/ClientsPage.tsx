@@ -1106,8 +1106,16 @@ export default function ClientsPage() {
         </div>
       ) : null}
 
-      <Modal open={modalOpen} title={editingClient ? 'Modifier un client' : 'Ajouter un client'} onClose={closeModal}>
-        <form className="relative space-y-4 pb-20" onSubmit={handleSaveClient}>
+      <Modal
+        open={modalOpen}
+        title={editingClient ? 'Modifier un client' : 'Ajouter un client'}
+        subtitle="Enregistrez un client et ses documents."
+        onClose={closeModal}
+        panelClassName="sm:max-w-4xl lg:max-h-[92dvh]"
+        bodyClassName="p-0 sm:p-0"
+      >
+        <form className="grid min-h-full grid-rows-[1fr_auto]" onSubmit={handleSaveClient}>
+          <div className="grid gap-4 overflow-y-auto px-4 py-4 pb-6 sm:px-6 sm:py-5 lg:grid-cols-2">
           <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
             <h3 className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-gold-200">Informations personnelles</h3>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -1126,7 +1134,7 @@ export default function ClientsPage() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+          <section className="rounded-3xl border border-gold-300/15 bg-gradient-to-br from-[#171410] via-white/[0.045] to-white/[0.02] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] lg:col-span-2">
             <h3 className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-gold-200">Pièces d’identité</h3>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <DocumentUploadBox
@@ -1157,7 +1165,8 @@ export default function ClientsPage() {
             ) : null}
           </section>
 
-          <div className="sticky bottom-0 left-0 right-0 -mx-4 border-t border-white/10 bg-[#0f141c]/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur sm:-mx-5 sm:px-5 sm:pb-3">
+          </div>
+          <div className="sticky bottom-0 left-0 right-0 border-t border-white/10 bg-[#090B0F]/95 px-4 py-3 pb-[calc(env(safe-area-inset-bottom)+12px)] backdrop-blur sm:px-6 sm:pb-3">
             <div className="grid grid-cols-2 gap-3 sm:flex sm:justify-end">
               <Button type="button" variant="secondary" className="h-11 rounded-xl" onClick={closeModal} disabled={saving}>Annuler</Button>
               <Button type="submit" className="h-11 rounded-xl" loading={saving}>
@@ -1252,8 +1261,9 @@ type DocumentUploadBoxProps = {
 
 function DocumentUploadBox({ title, previewUrl, onPick, onCapture, onRemove }: DocumentUploadBoxProps) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-black/20 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.035)]">
-      <p className="mb-3 text-sm font-black text-white">{title}</p>
+    <div className="rounded-3xl border border-gold-300/15 bg-black/22 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.035)]">
+      <p className="mb-1 text-sm font-black text-white">{title}</p>
+      <p className="mb-3 text-xs text-carbon-500">Importez une image nette ou prenez une photo.</p>
       {previewUrl ? (
         <div className="space-y-3">
           <img src={previewUrl} alt={title} loading="lazy" decoding="async" className="aspect-[16/10] w-full rounded-2xl border border-white/10 object-cover" />
@@ -1278,8 +1288,10 @@ function DocumentUploadBox({ title, previewUrl, onPick, onCapture, onRemove }: D
         </div>
       ) : (
         <div className="space-y-2">
-          <label className="focus-ring flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-white/20 bg-black/15 px-4 py-6 text-center transition hover:border-[#D4A017]/60 hover:bg-[#D4A017]/8">
-            <FileImage className="h-6 w-6 text-gold-200" />
+          <label className="focus-ring flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-gold-300/30 bg-black/15 px-4 py-6 text-center transition hover:border-[#D4A017]/70 hover:bg-[#D4A017]/8">
+            <span className="grid h-11 w-11 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-gold-200">
+              <FileImage className="h-5 w-5" />
+            </span>
             <span className="text-sm font-semibold text-white">Importer une image</span>
             <span className="text-xs text-carbon-400">PNG, JPG ou WEBP · Max 5MB</span>
             <input type="file" className="hidden" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={onPick} />

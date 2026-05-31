@@ -111,7 +111,7 @@ const plans = [
 ];
 
 const faqs: Array<[string, string]> = [
-  ['Comment demander un accès ?', 'Cliquez sur Essai gratuit, remplissez la demande d’accès et notre équipe valide votre espace agence.'],
+  ['Comment demander un accès ?', 'Réservez une session de cadrage : notre équipe qualifie votre besoin et vous guide vers le bon accès MekLoc.'],
   ['Est-ce adapté aux agences marocaines ?', 'Oui. MekLoc est pensé pour les agences de location au Maroc avec MAD, cautions, contrats PDF et alertes véhicules.'],
   ['Puis-je gérer plusieurs utilisateurs ?', 'Oui. Le plan Business permet de travailler à plusieurs avec des rôles et accès sécurisés.'],
   ['Les contrats PDF sont-ils personnalisés avec mon logo ?', 'Oui. Les contrats utilisent les informations, logo et identité de votre agence.'],
@@ -130,6 +130,8 @@ const socialLinks = [
 function whatsappUrl(message: string) {
   return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 }
+
+const quickCadrageUrl = whatsappUrl('Bonjour MekLoc, je souhaite réserver une session de cadrage.');
 
 function Logo({ compact = false }: { compact?: boolean }) {
   return (
@@ -217,13 +219,13 @@ function LandingHeader() {
         </nav>
         <div className="hidden items-center justify-end gap-3 lg:flex">
           <Link to="/login"><Button variant="secondary" className="h-11 rounded-xl border-white/15 bg-white/[0.045] px-6">Connexion</Button></Link>
-          <Link to="/demande-acces"><Button className="h-11 rounded-xl bg-[#E3B117] px-6 text-[#070807] hover:bg-[#F5C542]">Essai gratuit</Button></Link>
+          <a href={quickCadrageUrl} target="_blank" rel="noreferrer"><Button className="h-11 rounded-xl bg-[#E3B117] px-6 text-[#070807] hover:bg-[#F5C542]">Réserver une session</Button></a>
         </div>
-        <Link to="/demande-acces" className="lg:hidden">
+        <a href={quickCadrageUrl} target="_blank" rel="noreferrer" className="lg:hidden">
           <Button className="h-10 rounded-xl bg-[#E3B117] px-3 text-xs font-black text-[#070807] hover:bg-[#F5C542] sm:px-4">
-            Essai gratuit
+            Session cadrage
           </Button>
-        </Link>
+        </a>
         <button
           type="button"
           onClick={() => setOpen((current) => !current)}
@@ -281,14 +283,14 @@ function LandingHeader() {
                   Connexion
                 </Button>
               </Link>
-              <Link to="/demande-acces" onClick={() => setOpen(false)}>
+              <a href={quickCadrageUrl} target="_blank" rel="noreferrer" onClick={() => setOpen(false)}>
                 <Button
                   className="h-14 w-full rounded-2xl bg-[#E3B117] font-black text-[#070807] shadow-[0_14px_34px_rgba(227,177,23,.20)] hover:bg-[#F5C542]"
-                  icon={<Zap className="h-4 w-4" />}
+                  icon={<CalendarDays className="h-4 w-4" />}
                 >
-                  Essai gratuit
+                  Réserver une session
                 </Button>
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -530,8 +532,8 @@ export default function LandingPage() {
                 MekLoc centralise la location de voitures au Maroc : réservations, véhicules, clients, contrats PDF, paiements, cautions, entretien et alertes dans une seule plateforme.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <Link to="/demande-acces" className="block w-full sm:w-auto"><Button className="h-14 w-full rounded-2xl bg-[#E3B117] px-7 font-black text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.22)] hover:bg-[#F5C542] sm:w-auto" icon={<Zap className="h-4 w-4" />}>Essai gratuit 14 jours</Button></Link>
-                <a href={demoUrl} target="_blank" rel="noreferrer" className="block w-full sm:w-auto"><Button variant="secondary" className="h-14 w-full rounded-2xl border-white/15 bg-white/[0.06] px-7 hover:border-[#E3B117]/35 sm:w-auto" icon={<MessageCircle className="h-4 w-4" />}>Réserver une démo</Button></a>
+                <a href={cadrageWhatsappUrl} target="_blank" rel="noreferrer" className="block w-full sm:w-auto"><Button className="h-14 w-full rounded-2xl bg-[#E3B117] px-7 font-black text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.22)] hover:bg-[#F5C542] sm:w-auto" icon={<CalendarDays className="h-4 w-4" />}>Réserver une session de cadrage</Button></a>
+                <a href={demoUrl} target="_blank" rel="noreferrer" className="block w-full sm:w-auto"><Button variant="secondary" className="h-14 w-full rounded-2xl border-white/15 bg-white/[0.06] px-7 hover:border-[#E3B117]/35 sm:w-auto" icon={<MessageCircle className="h-4 w-4" />}>Voir la démo</Button></a>
               </div>
               <div className="mt-7 hidden grid-cols-2 gap-3 text-sm text-white/75 sm:flex sm:flex-wrap sm:gap-5 sm:text-white/68 lg:flex">
                 {[
@@ -841,7 +843,7 @@ export default function LandingPage() {
                     <div className="mt-2 grid gap-3 sm:grid-cols-[1.05fr_0.95fr]">
                       <a href={cadrageWhatsappUrl} target="_blank" rel="noreferrer" className="block">
                         <Button className="h-14 w-full rounded-2xl bg-[#E3B117] font-black text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.16)] hover:bg-[#F5C542]" icon={<CalendarDays className="h-4 w-4" />}>
-                          Demander une démo
+                          Réserver la session
                         </Button>
                       </a>
                       <a href={cadrageEmailUrl} className="block">
@@ -909,7 +911,7 @@ export default function LandingPage() {
                 <div className="mt-5 space-y-3 text-sm text-zinc-400">
                   <a href="#fonctionnalites" className="block hover:text-[#F5C542]">Fonctionnalités</a>
                   <a href="#tarifs" className="block hover:text-[#F5C542]">Tarifs</a>
-                  <Link to="/demande-acces" className="block hover:text-[#F5C542]">Essai gratuit</Link>
+                  <a href="#contact" className="block hover:text-[#F5C542]">Session de cadrage</a>
                   <a href="#faq" className="block hover:text-[#F5C542]">Foire aux questions</a>
                 </div>
               </div>

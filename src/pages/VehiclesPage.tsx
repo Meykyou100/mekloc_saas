@@ -667,8 +667,16 @@ export default function VehiclesPage() {
         </Card>
       )}
 
-      <Modal open={modalOpen} title={editingVehicle ? 'Modifier un véhicule' : 'Ajouter un véhicule'} onClose={() => setModalOpen(false)}>
-        <form className="grid gap-4 pb-2" onSubmit={handleSaveVehicle}>
+      <Modal
+        open={modalOpen}
+        title={editingVehicle ? 'Modifier un véhicule' : 'Ajouter un véhicule'}
+        subtitle="Ajoutez un véhicule à votre flotte."
+        onClose={() => setModalOpen(false)}
+        panelClassName="sm:max-w-5xl lg:max-h-[92dvh]"
+        bodyClassName="p-0 sm:p-0"
+      >
+        <form className="grid min-h-full grid-rows-[1fr_auto]" onSubmit={handleSaveVehicle}>
+          <div className="grid gap-4 overflow-y-auto px-4 py-4 pb-6 sm:px-6 sm:py-5 lg:grid-cols-2">
           <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
             <h3 className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-gold-200">Identification</h3>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -857,7 +865,7 @@ export default function VehiclesPage() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+          <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] lg:col-span-2">
             <h3 className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-gold-200">État du véhicule</h3>
             <div className="grid gap-2 sm:grid-cols-2">
               {accessoryItems.map((item) => (
@@ -922,7 +930,7 @@ export default function VehiclesPage() {
             </div>
           </section>
 
-          <section className="rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.055] to-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+          <section className="rounded-3xl border border-gold-300/15 bg-gradient-to-br from-[#171410] via-white/[0.045] to-white/[0.02] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
             <h3 className="mb-3 text-xs font-black uppercase tracking-[0.18em] text-gold-200">Photo du véhicule</h3>
             <label className="flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-white/20 bg-black/20 px-4 py-6 text-center transition hover:border-gold-300/50 hover:bg-white/[0.04]">
               <ImagePlus className="h-6 w-6 text-gold-200" />
@@ -963,7 +971,8 @@ export default function VehiclesPage() {
             </div>
           </section>
 
-          <div className="sticky bottom-0 -mx-4 mt-2 border-t border-white/10 bg-carbon-950/95 px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:-mx-5 sm:px-5">
+          </div>
+          <div className="sticky bottom-0 border-t border-white/10 bg-[#090B0F]/95 px-4 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-3 backdrop-blur sm:px-6 sm:pb-3">
             <div className="grid grid-cols-2 gap-3 sm:flex sm:justify-end">
               <Button type="button" variant="secondary" className="h-11 rounded-xl" onClick={() => setModalOpen(false)}>Annuler</Button>
               <Button type="submit" className="h-11 rounded-xl" loading={saving} icon={!saving ? <CheckCircle2 className="h-4 w-4" /> : undefined}>
