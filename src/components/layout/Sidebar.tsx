@@ -127,15 +127,18 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
         ))}
       </nav>
       <div className="mt-auto shrink-0 space-y-2 px-3 pb-3 pt-2">
-        <div className="rounded-2xl border border-gold-300/20 bg-[linear-gradient(180deg,var(--app-gold-soft),var(--app-card))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,.08),0_14px_32px_rgba(16,24,32,.08)] [@media(max-height:700px)]:py-2">
-          <div className="flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-gold-300" />
-            <p className="text-[13px] font-bold text-[var(--app-text)]">MekLoc Pro</p>
+        <div className="relative overflow-hidden rounded-2xl border border-gold-300/25 bg-[linear-gradient(145deg,#101820,#050505)] p-2.5 text-white shadow-[0_16px_34px_rgba(16,24,32,.18),inset_0_1px_0_rgba(255,255,255,.10)] [@media(max-height:700px)]:py-2">
+          <div className="pointer-events-none absolute -right-8 -top-10 h-24 w-24 rounded-full bg-gold-400/18 blur-2xl" />
+          <div className="relative flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-[13px] font-black leading-4 text-white">MekLoc Pro</p>
+              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-gold-100/75">Espace agence activé</p>
+            </div>
+            <span className="rounded-full border border-gold-300/25 bg-gold-400/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-gold-100">Pro</span>
           </div>
-          <p className="mt-1 text-[11px] font-semibold leading-4 text-[var(--app-text-muted)]">Espace agence activé</p>
-          <div className="mt-2 grid grid-cols-2 gap-1 text-[10px] font-semibold text-[var(--app-text-muted)] [@media(max-height:700px)]:hidden">
+          <div className="relative mt-2 grid grid-cols-2 gap-1 text-[10px] font-semibold text-white/78 [@media(max-height:700px)]:hidden">
             {['Gestion flotte', 'Contrats PDF', 'Paiements suivis', 'Rapports financiers'].map((feature) => (
-              <span key={feature} className="truncate rounded-lg border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-2 py-1">{feature}</span>
+              <span key={feature} className="truncate rounded-lg border border-white/10 bg-white/[0.07] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">{feature}</span>
             ))}
           </div>
           <button
@@ -144,7 +147,7 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
               onPro();
               onClose?.();
             }}
-            className="mt-2 flex h-8 w-full items-center justify-center rounded-xl border border-gold-300/25 bg-gold-400/12 text-[11px] font-black text-[var(--app-gold-text)] transition hover:border-gold-300/45 hover:bg-gold-400/18"
+            className="relative mt-2 flex h-8 w-full items-center justify-center rounded-xl border border-gold-300/30 bg-gold-400 text-[11px] font-black text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.18)] transition hover:bg-gold-300"
           >
             Voir les avantages
           </button>
@@ -155,15 +158,15 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
             onHelp();
             onClose?.();
           }}
-          className="group flex cursor-pointer items-center gap-2.5 rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-2.5 transition hover:border-gold-300/30 hover:bg-[var(--app-gold-soft)] [@media(max-height:640px)]:hidden"
+          className="group flex cursor-pointer items-center gap-2.5 rounded-2xl border border-[var(--app-border)] bg-[linear-gradient(135deg,var(--app-card),var(--app-surface))] p-2.5 shadow-[0_12px_26px_rgba(16,24,32,.08),inset_0_1px_0_rgba(255,255,255,.06)] transition hover:border-gold-300/30 hover:bg-[var(--app-gold-soft)] [@media(max-height:640px)]:hidden"
         >
-          <span className="relative grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-gold-300/15 bg-gold-400/10 text-gold-200 transition group-hover:border-gold-300/35 group-hover:bg-gold-400/15">
+          <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-gold-300/25 bg-carbon-950 text-gold-100 shadow-[0_8px_18px_rgba(16,24,32,.14)] transition group-hover:border-gold-300/45">
             <Headphones className="h-4 w-4" />
-            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-[var(--app-card)]" />
+            <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-carbon-950" />
           </span>
           <span className="min-w-0">
             <span className="block text-[13px] font-bold text-[var(--app-text)]">Besoin d’aide ?</span>
-            <span className="mt-0.5 block text-[11px] font-medium text-[var(--app-text-muted)]">Support MekLoc</span>
+            <span className="mt-0.5 block text-[11px] font-semibold text-[var(--app-text-muted)]">Centre d’assistance</span>
           </span>
         </button>
       </div>

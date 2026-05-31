@@ -11,8 +11,10 @@ import {
   HelpCircle,
   LogOut,
   Menu,
+  Moon,
   Search,
   Shield,
+  Sun,
   UserRound,
   Wrench,
   type LucideIcon,
@@ -91,7 +93,7 @@ function isMaintenanceDue(item: MaintenanceItem) {
 }
 
 export default function Topbar({ onMenu }: { onMenu: () => void }) {
-  const { notify } = useApp();
+  const { notify, theme, toggleTheme } = useApp();
   const { signOut, profile, isSupabaseEnabled } = useAuth();
   const { reservations, payments, vehicles, maintenance, clients } = useData();
   const navigate = useNavigate();
@@ -391,20 +393,20 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
           <button
             aria-label="Profile"
             aria-expanded={profileOpen}
-            className="focus-ring grid h-11 w-11 place-items-center rounded-full border border-gold-300/25 bg-[var(--app-gold-soft)] text-[var(--app-text)] shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/40 hover:bg-gold-400/20 md:flex md:w-auto md:items-center md:gap-3 md:rounded-2xl md:border-[var(--app-border)] md:bg-[var(--app-surface-soft)] md:px-3 md:text-sm md:font-semibold"
+            className="focus-ring grid h-11 w-11 place-items-center rounded-full border border-gold-300/25 bg-carbon-950 text-white shadow-[0_10px_26px_rgba(16,24,32,.16),inset_0_1px_0_rgba(255,255,255,.08)] transition hover:border-gold-300/40 md:flex md:w-auto md:items-center md:gap-3 md:rounded-2xl md:px-2.5 md:pr-3 md:text-sm md:font-semibold"
             onClick={() => {
               setNotificationsOpen(false);
               setProfileOpen((current) => !current);
             }}
           >
-            <span className="grid h-9 w-9 place-items-center rounded-full text-xs font-black text-gold-100 md:h-8 md:w-8 md:border md:border-gold-300/20 md:bg-gold-400/12">
+            <span className="grid h-9 w-9 place-items-center rounded-full border border-gold-300/30 bg-[linear-gradient(135deg,#111827,#050505)] text-xs font-black text-gold-100 shadow-[inset_0_1px_0_rgba(255,255,255,.10)] md:h-8 md:w-8">
               {initials}
             </span>
             <span className="hidden min-w-0 text-left md:block">
-              <span className="block max-w-36 truncate leading-4">{profile?.fullName || 'Agence MekLoc'}</span>
-              <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-[var(--app-text-muted)]">{roleLabel}</span>
+              <span className="block max-w-36 truncate leading-4 text-white">{profile?.fullName || 'Agence MekLoc'}</span>
+              <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-gold-100/70">{roleLabel}</span>
             </span>
-            <ChevronDown className={`hidden h-4 w-4 text-[var(--app-text-muted)] transition-transform duration-200 md:block ${profileOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`hidden h-4 w-4 text-gold-100/70 transition-transform duration-200 md:block ${profileOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {profileOpen ? (
@@ -448,6 +450,20 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
             </div>
           ) : null}
         </div>
+        <button
+          type="button"
+          aria-label={theme === 'dark' ? 'Activer le mode clair' : 'Activer le mode sombre'}
+          aria-pressed={theme === 'light'}
+          onClick={toggleTheme}
+          className="focus-ring group grid h-11 w-11 place-items-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-1 text-[var(--app-text)] shadow-[inset_0_1px_0_rgba(255,255,255,.05)] transition hover:border-gold-300/30 hover:bg-[var(--app-gold-soft)] md:inline-flex md:w-auto md:gap-1"
+        >
+          <span className={`grid h-9 w-9 place-items-center rounded-xl transition ${theme === 'light' ? 'bg-gold-400 text-carbon-950 shadow-[0_8px_18px_rgba(212,160,23,.18)]' : 'hidden text-[var(--app-text-muted)] group-hover:text-[var(--app-text)] md:grid'}`}>
+            <Sun className="h-4 w-4" />
+          </span>
+          <span className={`grid h-9 w-9 place-items-center rounded-xl transition ${theme === 'dark' ? 'bg-carbon-950 text-gold-100 shadow-[0_8px_18px_rgba(16,24,32,.18)]' : 'hidden text-[var(--app-text-muted)] group-hover:text-[var(--app-text)] md:grid'}`}>
+            <Moon className="h-4 w-4" />
+          </span>
+        </button>
         <button
           aria-label="Logout"
           className="focus-ring hidden h-11 w-11 place-items-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-rose-300/25 hover:bg-rose-400/10 hover:text-[var(--app-text)] md:grid"
