@@ -556,9 +556,9 @@ export default function PaymentsPage() {
             <option value="Bank transfer">Virement</option>
             <option value="Card">Carte</option>
           </select>
-          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 no-scrollbar md:mx-0 md:px-0">
+          <div className="-mx-1 flex gap-2 overflow-x-auto px-1 no-scrollbar md:mx-0 md:rounded-2xl md:border md:border-[var(--app-border)] md:bg-[var(--app-surface-soft)] md:p-1">
             {filters.map((f) => (
-              <button key={f.key} className={`h-9 shrink-0 rounded-full border px-3 text-xs font-bold transition ${filter === f.key ? 'border-gold-300/50 bg-gold-400 text-[#101820] shadow-[0_10px_24px_rgba(227,177,23,.16)]' : 'border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] hover:border-gold-300/25 hover:text-[var(--app-text)]'}`} onClick={() => setFilter(f.key)}>{f.label}</button>
+              <button key={f.key} className={`h-9 shrink-0 rounded-full border px-3 text-xs font-bold transition md:h-8 md:border-transparent ${filter === f.key ? 'border-gold-300/50 bg-gold-400 text-[#101820] shadow-[0_10px_24px_rgba(227,177,23,.16)]' : 'border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] hover:border-gold-300/25 hover:bg-[var(--app-card)] hover:text-[var(--app-text)] md:bg-transparent'}`} onClick={() => setFilter(f.key)}>{f.label}</button>
             ))}
           </div>
         </div>
@@ -573,25 +573,29 @@ export default function PaymentsPage() {
 
       <Card className={`mt-6 hidden overflow-hidden md:block ${filtered.length === 0 ? 'hidden' : ''}`}>
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1120px] text-left text-sm">
+          <table className="w-full min-w-[1240px] text-left text-sm">
             <thead className="border-b border-[var(--app-border)] text-xs uppercase tracking-wide text-[var(--app-text-muted)]">
               <tr>
-                <th className="px-5 py-4">Facture</th><th className="px-5 py-4">Client</th><th className="px-5 py-4">Véhicule</th><th className="px-5 py-4">Réservation</th><th className="px-5 py-4">Montant</th><th className="px-5 py-4">Payé</th><th className="px-5 py-4">Reste</th><th className="px-5 py-4">Échéance</th><th className="px-5 py-4">Méthode</th><th className="px-5 py-4">Statut</th><th className="px-5 py-4">Actions</th>
+                <th className="px-5 py-4">Facture</th><th className="px-5 py-4">Client</th><th className="px-5 py-4">Véhicule</th><th className="px-5 py-4">Réservation</th><th className="px-5 py-4">Montant</th><th className="px-5 py-4">Payé</th><th className="px-5 py-4">Reste</th><th className="px-5 py-4">Échéance</th><th className="px-5 py-4">Méthode</th><th className="px-5 py-4">Statut</th><th className="px-5 py-4 min-w-[310px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--app-border)]">
               {filtered.map((item) => (
                 <tr key={item.id} className="hover:bg-[var(--app-surface-soft)]">
                   <td className="px-5 py-4 font-semibold">{item.invoice}</td><td className="px-5 py-4">{item.client}</td><td className="px-5 py-4">{item.vehicleLabel}</td><td className="px-5 py-4">{item.reservationCode}</td><td className="px-5 py-4">{formatMAD(item.total)}</td><td className="px-5 py-4">{formatMAD(item.paid)}</td><td className="px-5 py-4">{formatMAD(item.remaining)}</td><td className="px-5 py-4">{item.dueDate}</td><td className="px-5 py-4">{item.method}</td><td className="px-5 py-4"><Badge>{item.statusFr}</Badge></td>
-                  <td className="px-5 py-4">
-                    <div className="flex flex-wrap gap-2">
-                      <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setDetailPaymentId(item.id)}>Voir</Button>
-                      <Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => openPaymentModalForRow(item)}>Ajouter paiement</Button>
-                      <Button variant="secondary" className="h-8 px-2.5 text-xs" onClick={() => downloadReceipt(item)}>Télécharger reçu</Button>
-                      <Button variant="secondary" className="h-8 px-2.5 text-xs" disabled={item.remaining <= 0} onClick={() => setReminderPaymentId(item.id)}>
-                        {item.remaining <= 0 ? 'Payé intégralement' : 'Envoyer rappel'}
-                      </Button>
-                      <Button variant="danger" className="h-8 px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setPaymentToDelete(item)}>Supprimer</Button>
+                  <td className="px-5 py-4 align-top">
+                    <div className="w-[310px] rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <Button variant="secondary" className="h-9 min-w-0 rounded-xl px-2.5 text-xs font-black" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setDetailPaymentId(item.id)}>Voir</Button>
+                        <Button className="h-9 min-w-0 rounded-xl px-2.5 text-xs font-black" onClick={() => openPaymentModalForRow(item)}>Ajouter</Button>
+                      </div>
+                      <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+                        <Button variant="ghost" className="h-9 min-w-0 rounded-xl border-[var(--app-border)] bg-[var(--app-card)] px-2.5 text-xs" icon={<Download className="h-3.5 w-3.5" />} onClick={() => downloadReceipt(item)}>Reçu</Button>
+                        <Button variant="ghost" className="h-9 min-w-0 rounded-xl border-[var(--app-border)] bg-[var(--app-card)] px-2.5 text-xs" icon={<MessageCircle className="h-3.5 w-3.5" />} disabled={item.remaining <= 0} onClick={() => setReminderPaymentId(item.id)}>
+                          {item.remaining <= 0 ? 'Soldé' : 'Rappel'}
+                        </Button>
+                      </div>
+                      <Button variant="danger" className="mt-1.5 h-9 w-full rounded-xl px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setPaymentToDelete(item)}>Supprimer</Button>
                     </div>
                   </td>
                 </tr>
@@ -619,14 +623,18 @@ export default function PaymentsPage() {
               <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-2.5"><p className="text-[11px] text-[var(--app-text-muted)]">Échéance</p><strong className="mt-1 block truncate text-[var(--app-text)]">{item.dueDate}</strong></div>
             </div>
             <div className="mt-2.5 h-2 rounded-full bg-[var(--app-surface-soft)]"><div className={`h-2 rounded-full ${item.statusFr === 'En retard' ? 'bg-rose-400' : item.statusFr === 'Partiel' ? 'bg-gold-400' : 'bg-mint-400'}`} style={{ width: `${item.progress}%` }} /></div>
-            <div className="mt-2.5 grid grid-cols-2 gap-2">
-              <Button variant="secondary" className="h-10 min-w-0 rounded-xl px-2 text-xs" icon={<Eye className="h-4 w-4" />} onClick={() => setDetailPaymentId(item.id)}>Voir</Button>
-              <Button variant="secondary" className="h-10 min-w-0 rounded-xl px-2 text-xs" onClick={() => openPaymentModalForRow(item)}>Ajouter</Button>
-              <Button variant="secondary" className="h-10 min-w-0 rounded-xl px-2 text-xs" onClick={() => downloadReceipt(item)}>Reçu</Button>
-              <Button variant="secondary" className="h-10 min-w-0 rounded-xl px-2 text-xs" disabled={item.remaining <= 0} onClick={() => setReminderPaymentId(item.id)}>
+            <div className="mt-2.5 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-2">
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="secondary" className="h-10 min-w-0 rounded-xl px-2 text-xs font-black" icon={<Eye className="h-4 w-4" />} onClick={() => setDetailPaymentId(item.id)}>Voir</Button>
+                <Button className="h-10 min-w-0 rounded-xl px-2 text-xs font-black" onClick={() => openPaymentModalForRow(item)}>Ajouter</Button>
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+              <Button variant="ghost" className="h-10 min-w-0 rounded-xl border-[var(--app-border)] bg-[var(--app-card)] px-2 text-xs" icon={<Download className="h-4 w-4" />} onClick={() => downloadReceipt(item)}>Reçu</Button>
+              <Button variant="ghost" className="h-10 min-w-0 rounded-xl border-[var(--app-border)] bg-[var(--app-card)] px-2 text-xs" icon={<MessageCircle className="h-4 w-4" />} disabled={item.remaining <= 0} onClick={() => setReminderPaymentId(item.id)}>
                 {item.remaining <= 0 ? 'Soldé' : 'Rappel'}
               </Button>
-              <Button variant="danger" className="col-span-2 h-10 rounded-xl text-xs" icon={<Trash2 className="h-4 w-4" />} onClick={() => setPaymentToDelete(item)}>Supprimer</Button>
+              </div>
+              <Button variant="danger" className="mt-2 h-10 w-full rounded-xl text-xs" icon={<Trash2 className="h-4 w-4" />} onClick={() => setPaymentToDelete(item)}>Supprimer</Button>
             </div>
           </Card>
         ))}
