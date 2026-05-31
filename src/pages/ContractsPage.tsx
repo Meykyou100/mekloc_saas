@@ -34,6 +34,7 @@ import { useData } from '../context/DataContext';
 import { formatMAD, type Client, type Contract, type Vehicle } from '../data/mockData';
 import { buildWhatsAppReminderUrl } from '../lib/assistantDuJour';
 import { getNotificationPreferences } from '../lib/notificationPreferences';
+import { getReservationPaymentSummary } from '../lib/paymentBalance';
 import { supabase } from '../lib/supabase';
 
 const templates = ['Standard location', 'Véhicule premium', 'Compte entreprise'];
@@ -572,16 +573,11 @@ export default function ContractsPage() {
 
   const effectiveLogoUrl = logoPublicUrl || agencyMeta.logo_url || null;
 
-  const selectedReservationPayments = useMemo(() => {
-    if (!selectedReservation?.id) return [];
-    return payments.filter((payment) => payment.reservationId === selectedReservation.id);
-  }, [payments, selectedReservation?.id]);
-
-  const paidAmount = useMemo(() => {
-    return selectedReservationPayments
-      .filter((payment) => payment.status === 'Paid' || payment.status === 'Partial')
-      .reduce((sum, payment) => sum + (payment.amount || 0), 0);
-  }, [selectedReservationPayments]);
+  const selectedReservationPaymentSummary = useMemo(() => (
+    selectedReservation ? getReservationPaymentSummary(selectedReservation, payments) : null
+  ), [payments, selectedReservation]);
+  const selectedReservationPayments = selectedReservationPaymentSummary?.relatedPayments || [];
+  const paidAmount = selectedReservationPaymentSummary?.paid || 0;
 
   const clientNameParts = useMemo(() => splitClientName(client.fullName || selectedReservation?.client || ''), [client.fullName, selectedReservation?.client]);
 

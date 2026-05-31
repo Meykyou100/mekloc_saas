@@ -662,60 +662,77 @@ export default function ReservationsPage() {
             const urgency = urgencyBadge(reservation, todayIso);
             const paymentSummary = getReservationPaymentSummary(reservation, payments);
             return (
-              <Card key={reservation.id} interactive className="group relative overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-4 shadow-[0_14px_38px_rgba(0,0,0,.30),inset_0_1px_0_rgba(255,255,255,.04)] transition-all hover:border-[#D4A017]/35 md:p-5">
-                <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#D4A017]/8 to-transparent opacity-80" />
-                <div className="relative mb-3 flex items-start justify-between gap-3">
+              <Card key={reservation.id} interactive className="group relative overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-0 shadow-[0_16px_42px_rgba(16,24,32,.12),inset_0_1px_0_rgba(255,255,255,.06)] transition-all hover:border-[#D4A017]/35 dark:shadow-[0_18px_48px_rgba(0,0,0,.28),inset_0_1px_0_rgba(255,255,255,.04)]">
+                <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#D4A017]/10 to-transparent opacity-80" />
+                <div className="relative border-b border-[var(--app-border)] px-4 pb-3 pt-4 md:px-5 md:pt-5">
+                  <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--app-gold-text)] opacity-80">{reservation.id}</p>
-                    <h3 className="mt-1 truncate text-base font-black text-[var(--app-text)]">{reservation.vehicle}</h3>
+                    <p className="inline-flex rounded-full border border-gold-300/25 bg-gold-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--app-gold-text)]">{reservation.id}</p>
+                    <h3 className="mt-2 truncate text-base font-black text-[var(--app-text)] md:text-lg">{reservation.vehicle}</h3>
                     <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-sm font-semibold text-[var(--app-text-soft)]">
                       <UserRound className="h-3.5 w-3.5 shrink-0 text-[var(--app-text-muted)]" />
                       <span className="truncate">{reservation.client}</span>
                     </p>
                   </div>
-                  <div className="shrink-0"><Badge>{reservation.status}</Badge></div>
-                </div>
-
-                {urgency ? (
-                  <div className={`relative mb-3 inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${urgency.className}`}>
-                    {urgency.label}
+                    <div className="flex shrink-0 flex-col items-end gap-2">
+                      <Badge>{reservation.status}</Badge>
+                      {urgency ? (
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${urgency.className}`}>
+                          {urgency.label}
+                        </span>
+                      ) : null}
+                    </div>
                   </div>
-                ) : null}
 
-                <div className="relative grid gap-2.5 text-sm text-[var(--app-text-soft)]">
-                  <p className="flex min-w-0 items-start gap-2 leading-5"><CalendarDays className="mt-0.5 h-4 w-4 shrink-0 text-[var(--app-gold-text)]" /> <span className="min-w-0">{formatReservationDateTime(reservation.pickupDate, reservation.pickupTime)} → {formatReservationDateTime(reservation.returnDate, reservation.returnTime)} <span className="text-[var(--app-text-muted)]">({days} jours)</span></span></p>
-                  <p className="flex min-w-0 items-start gap-2 leading-5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--app-gold-text)]" /> <span className="truncate">{reservation.pickupLocation || 'Lieu départ non renseigné'}</span></p>
-                  <p className="flex min-w-0 items-start gap-2 leading-5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--app-gold-text)]" /> <span className="truncate">{reservation.returnLocation || 'Lieu retour non renseigné'}</span></p>
-                </div>
-
-                <div className="relative mt-4 grid grid-cols-2 gap-2.5">
-                  <div className="min-w-0 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
-                    <p className="text-xs text-[var(--app-text-muted)]">Total</p>
-                    <p className="mt-1 truncate font-black text-[var(--app-text)]">{formatMAD(reservation.totalAmount ?? reservation.dailyPrice)}</p>
-                  </div>
-                  <div className="min-w-0 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
-                    <p className="text-xs text-[var(--app-text-muted)]">Caution</p>
-                    <p className="mt-1 truncate font-black text-[var(--app-text)]">{formatMAD(reservation.deposit || 0)}</p>
+                  <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 py-2.5 text-xs">
+                    <div className="min-w-0">
+                      <p className="font-black text-[var(--app-text)]">{formatReservationDateTime(reservation.pickupDate, reservation.pickupTime)}</p>
+                      <p className="mt-0.5 truncate text-[var(--app-text-muted)]">Départ</p>
+                    </div>
+                    <span className="rounded-full border border-gold-300/25 bg-gold-400/10 px-2 py-1 font-black text-[var(--app-gold-text)]">{days}j</span>
+                    <div className="min-w-0 text-right">
+                      <p className="font-black text-[var(--app-text)]">{formatReservationDateTime(reservation.returnDate, reservation.returnTime)}</p>
+                      <p className="mt-0.5 truncate text-[var(--app-text-muted)]">Retour</p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="relative mt-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <Wallet className="h-4 w-4 shrink-0 text-[var(--app-gold-text)]" />
-                    <span className="text-xs font-semibold text-[var(--app-text-muted)]">Paiement</span>
+                <div className="relative px-4 py-3 md:px-5">
+                  <div className="grid gap-2 text-sm text-[var(--app-text-soft)]">
+                    <p className="flex min-w-0 items-start gap-2 leading-5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--app-gold-text)]" /> <span className="truncate">Départ: {reservation.pickupLocation || 'Lieu non renseigné'}</span></p>
+                    <p className="flex min-w-0 items-start gap-2 leading-5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--app-gold-text)]" /> <span className="truncate">Retour: {reservation.returnLocation || 'Lieu non renseigné'}</span></p>
+                  </div>
+
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <ReservationMoneyTile label="Total" value={formatMAD(paymentSummary.total)} />
+                    <ReservationMoneyTile label="Caution" value={formatMAD(reservation.deposit || 0)} />
+                    <ReservationMoneyTile label="Payé" value={formatMAD(paymentSummary.paid)} />
+                    <ReservationMoneyTile
+                      label="Reste"
+                      value={paymentSummary.remaining > 0 ? formatMAD(paymentSummary.remaining) : 'Payé intégralement'}
+                      valueClassName={paymentSummary.remaining > 0 ? 'text-amber-700 dark:text-amber-200' : 'text-emerald-700 dark:text-emerald-200'}
+                    />
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 py-2.5">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-gold-300/20 bg-gold-400/10 text-[var(--app-gold-text)]">
+                        <Wallet className="h-4 w-4" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--app-text-muted)]">Paiement</p>
+                        <p className="mt-0.5 truncate text-xs font-semibold text-[var(--app-text-soft)]">{paymentSummary.relatedPayments.length} paiement(s) lié(s)</p>
+                      </div>
+                    </div>
                     <Badge>{paymentSummary.statusFr}</Badge>
                   </div>
-                  <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                    <p className="text-[var(--app-text-muted)]">Payé: <span className="font-bold text-[var(--app-text)]">{formatMAD(paymentSummary.paid)}</span></p>
-                    <p className="text-[var(--app-text-muted)]">Reste: <span className={paymentSummary.remaining > 0 ? 'font-black text-amber-700 dark:text-amber-200' : 'font-black text-emerald-700 dark:text-emerald-200'}>{paymentSummary.remaining > 0 ? formatMAD(paymentSummary.remaining) : 'Payé intégralement'}</span></p>
-                  </div>
                 </div>
 
-                <div className="relative mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                  <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2.5 text-xs sm:h-9 sm:px-3" icon={<Pencil className="h-3.5 w-3.5 shrink-0" />} onClick={() => openEditReservation(reservation)}>Modifier</Button>
-                  <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2.5 text-xs sm:h-9 sm:px-3" icon={<Eye className="h-3.5 w-3.5 shrink-0" />} onClick={() => setDetailsTarget(reservation)}>Détails</Button>
-                  <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2.5 text-xs sm:h-9 sm:px-3" icon={<FileSignature className="h-3.5 w-3.5 shrink-0" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}`)}>Générer</Button>
-                  <Button variant="danger" className="h-11 min-w-0 rounded-xl px-2.5 text-xs sm:h-9 sm:px-3" icon={<Trash2 className="h-3.5 w-3.5 shrink-0" />} onClick={() => setDeleteTarget(reservation)}>Supprimer</Button>
+                <div className="relative grid grid-cols-2 gap-2 border-t border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3 sm:grid-cols-4">
+                  <Button variant="secondary" className="h-10 min-w-0 rounded-xl px-2 text-xs" icon={<Pencil className="h-3.5 w-3.5 shrink-0" />} onClick={() => openEditReservation(reservation)}>Modifier</Button>
+                  <Button variant="secondary" className="h-10 min-w-0 rounded-xl px-2 text-xs" icon={<Eye className="h-3.5 w-3.5 shrink-0" />} onClick={() => setDetailsTarget(reservation)}>Détails</Button>
+                  <Button variant="secondary" className="h-10 min-w-0 rounded-xl px-2 text-xs" icon={<FileSignature className="h-3.5 w-3.5 shrink-0" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}`)}>Générer</Button>
+                  <Button variant="danger" className="h-10 min-w-0 rounded-xl px-2 text-xs" icon={<Trash2 className="h-3.5 w-3.5 shrink-0" />} onClick={() => setDeleteTarget(reservation)}>Supprimer</Button>
                 </div>
               </Card>
             );
@@ -1341,6 +1358,15 @@ export default function ReservationsPage() {
           })()
         ) : null}
       </Modal>
+    </div>
+  );
+}
+
+function ReservationMoneyTile({ label, value, valueClassName = 'text-[var(--app-text)]' }: { label: string; value: string; valueClassName?: string }) {
+  return (
+    <div className="min-w-0 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
+      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--app-text-muted)]">{label}</p>
+      <p className={`mt-1 truncate text-sm font-black md:text-base ${valueClassName}`}>{value}</p>
     </div>
   );
 }
