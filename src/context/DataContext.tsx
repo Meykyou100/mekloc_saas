@@ -618,7 +618,8 @@ function byId<T extends { id: string }>(items: T[]) {
 }
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const { agencyId, isSupabaseEnabled, loading: authLoading, profile } = useAuth();
+  const { agencyId: authAgencyId, isSupabaseEnabled, loading: authLoading, profile } = useAuth();
+  const agencyId = authAgencyId || profile?.agencyId || profile?.agency?.id || null;
   const [loading, setLoading] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [clients, setClients] = useState<Client[]>([]);

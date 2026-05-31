@@ -203,9 +203,11 @@ function mapAgency(row: AgencyRow | AgencyRow[] | null): AgencySubscription | nu
 }
 
 function mapProfile(row: ProfileRow): UserProfile {
+  const agency = mapAgency(row.agencies);
+
   return {
     id: row.id,
-    agencyId: row.agency_id,
+    agencyId: row.agency_id || agency?.id || null,
     fullName: row.full_name || 'MekLoc User',
     email: row.email || '',
     phone: row.phone || '',
@@ -214,7 +216,7 @@ function mapProfile(row: ProfileRow): UserProfile {
     deletionRequestedAt: row.deletion_requested_at || null,
     deletionScheduledAt: row.deletion_scheduled_at || null,
     isSuperAdmin: Boolean(row.is_super_admin),
-    agency: mapAgency(row.agencies),
+    agency,
   };
 }
 
@@ -827,7 +829,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       checkRevokedSession(session.user).catch(() => undefined);
     }, 2 * 60 * 1000);
     return () => window.clearInterval(interval);
-  }, [session?.user, profile?.agencyId]);
+  }, [session?.user, profile?.agencyId, profile?.agency?.id]);
 
   useEffect(() => {
     if (!supabase || !session?.user || !profile) return undefined;
@@ -881,7 +883,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user,
       profile,
       profileLoadError,
-      agencyId: profile?.agencyId ?? null,
+      agencyId: profile?.agencyId || profile?.agency?.id || null,
       loading,
       isInitialized,
       signIn: async (email, password) => {
