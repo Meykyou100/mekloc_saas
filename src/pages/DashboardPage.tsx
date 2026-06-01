@@ -137,6 +137,41 @@ function PriorityBadge({ priority }: { priority: AssistantPriority }) {
   return <span className="rounded-full border border-[var(--app-border)] bg-white/[0.04] px-2.5 py-1 text-[11px] font-semibold text-[var(--app-text-soft)]">À surveiller</span>;
 }
 
+function QuickActionsCard() {
+  return (
+    <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[var(--app-shadow)] sm:rounded-[28px] sm:p-5">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--app-gold-text)]">Commandes</p>
+          <h2 className="mt-1 text-lg font-black tracking-tight text-[var(--app-text)]">Actions rapides</h2>
+        </div>
+        <span className="hidden rounded-full border border-gold-300/20 bg-[var(--app-gold-soft)] px-3 py-1 text-[11px] font-black text-[var(--app-gold-text)] sm:inline-flex">
+          Accès direct
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-1">
+        {actionItems.map(({ label, to, icon: Icon }, index) => (
+          <Link
+            key={label}
+            to={to}
+            className={`focus-ring flex min-h-11 items-center justify-between rounded-2xl border px-3 py-2.5 text-xs font-black transition sm:text-sm ${
+              index === 0
+                ? 'border-[#E8B923]/70 bg-[#D4A017] text-carbon-950 shadow-[0_14px_30px_rgba(212,160,23,.18)] hover:bg-[#E8B923]'
+                : 'border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] hover:border-gold-300/25 hover:bg-[var(--app-gold-soft)]'
+            }`}
+          >
+            <span className="flex min-w-0 items-center gap-2">
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{label}</span>
+            </span>
+            <Plus className="h-4 w-4 shrink-0" />
+          </Link>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
 export default function DashboardPage() {
   const {
     loading,
@@ -233,7 +268,8 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      <section className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[var(--app-shadow)] sm:rounded-[28px] sm:p-6">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[var(--app-shadow)] sm:rounded-[28px] sm:p-5">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3 sm:mb-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--app-gold-text)]">Assistant du jour</p>
@@ -248,13 +284,13 @@ export default function DashboardPage() {
         </div>
 
         {loading ? (
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-4">
             {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="h-40 animate-pulse rounded-3xl border border-[var(--app-border)] bg-[var(--app-surface-soft)]" />
+              <div key={index} className="h-36 animate-pulse rounded-3xl border border-[var(--app-border)] bg-[var(--app-surface-soft)]" />
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-4">
             <PriorityCard title="Départs aujourd’hui" priority="today" icon={CalendarClock} emptyText="Aucun départ prévu.">
               {todayPickups.length === 0 ? (
                 null
@@ -441,6 +477,8 @@ export default function DashboardPage() {
             </PriorityCard>
           </div>
         )}
+      </div>
+      <QuickActionsCard />
       </section>
 
       <section className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -450,7 +488,7 @@ export default function DashboardPage() {
         <KpiCard label="Paiements en attente" value={String(pendingPayments)} helper="Factures en attente ou en retard" icon={Banknote} tone="violet" />
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+      <section>
         <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 sm:rounded-3xl sm:p-6">
           <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -466,32 +504,6 @@ export default function DashboardPage() {
             <ActivityRow label="Retours aujourd’hui" value={String(returnsToday)} icon={ArrowRight} />
             <ActivityRow label="Paiements en retard" value={String(latePayments)} icon={Banknote} tone="warning" />
             <ActivityRow label="Alertes entretien" value={String(urgentMaintenance)} icon={Wrench} tone="warning" />
-          </div>
-        </Card>
-
-        <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 sm:rounded-3xl sm:p-6">
-          <div className="mb-6">
-              <h2 className="text-xl font-semibold tracking-tight text-[var(--app-text)]">Actions rapides</h2>
-              <p className="mt-1 text-sm text-[var(--app-text-muted)]">Lancez les actions les plus fréquentes.</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            {actionItems.map(({ label, to, icon: Icon }, index) => (
-              <Link
-                key={label}
-                to={to}
-                className={`focus-ring flex items-center justify-between rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
-                  index === 0
-                    ? 'border-[#E8B923]/70 bg-[#D4A017] text-carbon-950 hover:bg-[#E8B923]'
-                    : 'border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] hover:border-gold-300/25 hover:bg-[var(--app-gold-soft)]'
-                }`}
-              >
-                <span className="flex items-center gap-3">
-                  <Icon className="h-4 w-4" />
-                  {label}
-                </span>
-                <Plus className="h-4 w-4" />
-              </Link>
-            ))}
           </div>
         </Card>
       </section>
