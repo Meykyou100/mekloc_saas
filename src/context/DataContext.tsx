@@ -618,7 +618,7 @@ function byId<T extends { id: string }>(items: T[]) {
 }
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const { agencyId: authAgencyId, isSupabaseEnabled, loading: authLoading, profile } = useAuth();
+  const { agencyId: authAgencyId, isSupabaseEnabled, loading: authLoading, profile, refreshProfile } = useAuth();
   const agencyId = authAgencyId || profile?.agencyId || profile?.agency?.id || null;
   const [loading, setLoading] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -768,6 +768,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<DataContextValue>(() => {
     const hasBackend = Boolean(isSupabaseEnabled && supabase && agencyId);
+    const resolveAgencyId = async () => {
+      if (agencyId) return agencyId;
+      const nextProfile = await refreshProfile();
+      return nextProfile?.agencyId || nextProfile?.agency?.id || null;
+    };
     const assertPermission = (permission: AppPermission) => {
       if (profile?.isSuperAdmin) return;
       if (!canAccess(profile?.role, permission)) {
@@ -1027,17 +1032,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       },
       createReservation: async (reservation) => {
         assertPermission('reservations');
-        if (!hasBackend) {
+        if (!isSupabaseEnabled || !supabase) {
           setReservations((current) => [reservation, ...current]);
           return reservation;
         }
-        if (!agencyId) {
+        const activeAgencyId = await resolveAgencyId();
+        if (!activeAgencyId) {
           throw new Error('Agence introuvable');
         }
-        await assertNoReservationOverlap(reservation, agencyId!);
+        await assertNoReservationOverlap(reservation, activeAgencyId);
         let data: unknown = null;
         let error: Error | null = null;
-        const payload = toReservationRow(reservation, agencyId!) as Record<string, unknown>;
+        const payload = toReservationRow(reservation, activeAgencyId) as Record<string, unknown>;
         const removedColumns: string[] = [];
         const maxAttempts = Object.keys(payload).length + 1;
         for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
@@ -1069,7 +1075,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             returnLocation: reservation.returnLocation,
             totalPrice: reservation.totalAmount,
             status: reservation.status,
-            agencyId,
+            agencyId: activeAgencyId,
             supabaseError: error,
           });
           if (error.message?.includes('overlap_reservation') || error.message?.includes('chevauche')) {
@@ -1096,17 +1102,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       },
       updateReservation: async (reservation) => {
         assertPermission('reservations');
-        if (!hasBackend) {
+        if (!isSupabaseEnabled || !supabase) {
           setReservations((current) => current.map((item) => (item.id === reservation.id ? reservation : item)));
           return reservation;
         }
-        if (!agencyId) {
+        const activeAgencyId = await resolveAgencyId();
+        if (!activeAgencyId) {
           throw new Error('Agence introuvable');
         }
-        await assertNoReservationOverlap(reservation, agencyId!, reservation.id);
+        await assertNoReservationOverlap(reservation, activeAgencyId, reservation.id);
         let data: unknown = null;
         let error: Error | null = null;
-        const payload = toReservationRow(reservation, agencyId!) as Record<string, unknown>;
+        const payload = toReservationRow(reservation, activeAgencyId) as Record<string, unknown>;
         const removedColumns: string[] = [];
         const matchers = [
           { column: 'reservation_number', value: reservation.id },
@@ -1153,7 +1160,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             returnLocation: reservation.returnLocation,
             totalPrice: reservation.totalAmount,
             status: reservation.status,
-            agencyId,
+            agencyId: activeAgencyId,
             supabaseError: error,
           });
           if (error.message?.includes('overlap_reservation') || error.message?.includes('chevauche')) {
@@ -1393,6 +1400,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     profile?.isSuperAdmin,
     profile?.role,
     refreshData,
+    refreshProfile,
     reservations,
     vehicles,
   ]);
