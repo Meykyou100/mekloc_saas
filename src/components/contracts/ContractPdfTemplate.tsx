@@ -381,7 +381,8 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           padding: 6px 7px;
         }
         .cp-field-row {
-          display: flex;
+          display: grid;
+          grid-template-columns: 98px minmax(0, 1fr) auto;
           align-items: center;
           gap: 5px;
           height: 20px;
@@ -390,22 +391,25 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           font-size: 10.7px;
           line-height: 20px;
         }
+        .cp-field-row-narrow {
+          grid-template-columns: 82px minmax(0, 1fr) auto;
+        }
         .cp-field-label {
-          flex: 0 0 98px;
           color: var(--cp-mid);
           font-weight: 700;
           line-height: 20px;
+          white-space: nowrap;
         }
-        .cp-field-label-narrow { flex-basis: 70px; }
+        .cp-field-label-narrow { font-size: 9.7px; }
         .cp-field-value {
-          display: block;
-          flex: 1 1 auto;
+          display: flex;
+          align-items: center;
           min-width: 0;
           height: 16px;
           box-sizing: border-box;
           color: var(--cp-ink);
           font-weight: 700;
-          line-height: 16px;
+          line-height: 1;
           padding: 0 4px;
           overflow: hidden;
           white-space: nowrap;
@@ -423,7 +427,8 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           box-shadow: none;
         }
         .cp-detail-row {
-          display: flex;
+          display: grid;
+          grid-template-columns: 86px minmax(0, 1fr);
           gap: 6px;
           align-items: center;
           min-height: 19px;
@@ -433,14 +438,14 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           line-height: 17px;
         }
         .cp-detail-label {
-          flex: 0 0 86px;
           color: var(--cp-mid);
           font-weight: 800;
           line-height: 17px;
+          white-space: nowrap;
         }
         .cp-detail-value {
-          display: block;
-          flex: 1 1 auto;
+          display: flex;
+          align-items: center;
           min-width: 0;
           min-height: 16px;
           box-sizing: border-box;
@@ -452,7 +457,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           word-break: break-word;
           color: var(--cp-ink);
           font-weight: 700;
-          line-height: 16px;
+          line-height: 1.15;
         }
         .cp-detail-value-empty {
           background: transparent;

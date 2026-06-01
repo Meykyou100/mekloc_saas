@@ -799,6 +799,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         .maybeSingle();
       return (byEmail.data?.agency_id as string | null) || null;
     };
+    const resolveAgencyIdFromRecord = async (table: 'vehicles' | 'clients', id: string) => {
+      if (!supabase || !id) return null;
+      const { data, error } = await supabase
+        .from(table)
+        .select('agency_id')
+        .eq('id', id)
+        .maybeSingle();
+      if (error) return null;
+      return (data?.agency_id as string | null) || null;
+    };
     const resolveReservationAgencyId = async (reservation: Reservation) => {
       const selectedVehicle = vehicles.find((item) => item.id === reservation.vehicleId);
       const selectedClient = clients.find((item) => item.id === reservation.clientId);
@@ -806,6 +816,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         await resolveAgencyId()
         || selectedVehicle?.agencyId
         || selectedClient?.agencyId
+        || await resolveAgencyIdFromRecord('vehicles', reservation.vehicleId)
+        || await resolveAgencyIdFromRecord('clients', reservation.clientId)
         || null
       );
     };

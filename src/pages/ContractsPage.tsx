@@ -300,6 +300,7 @@ function createPdfCaptureSource(source: HTMLElement, logoDataUrl?: string | null
   host.style.background = '#ffffff';
   host.style.pointerEvents = 'none';
   host.style.zIndex = '-1';
+  host.style.fontSynthesis = 'none';
 
   const clone = source.cloneNode(true) as HTMLElement;
   clone.removeAttribute('id');
@@ -312,6 +313,7 @@ function createPdfCaptureSource(source: HTMLElement, logoDataUrl?: string | null
   clone.style.borderRadius = '0';
   clone.style.margin = '0';
   clone.style.background = '#ffffff';
+  clone.style.setProperty('-webkit-font-smoothing', 'antialiased');
 
   if (logoDataUrl) {
     const logoImages = clone.querySelectorAll<HTMLImageElement>('img[data-pdf-logo="agency"]');
@@ -773,7 +775,7 @@ export default function ContractsPage() {
 
       const pages = Array.from(captureSource.element.querySelectorAll<HTMLElement>('.contract-pdf-page'));
       const captureTargets = pages.length ? pages : [captureSource.element];
-      const scale = Math.min(Math.max(window.devicePixelRatio || 2, 2), 2.5);
+      const scale = Math.min(Math.max(window.devicePixelRatio || 3, 3), 4);
       const canvases: HTMLCanvasElement[] = [];
 
       for (const page of captureTargets) {
@@ -817,7 +819,7 @@ export default function ContractsPage() {
       canvases.forEach((canvas, index) => {
         if (index > 0) pdf.addPage();
         const imageData = canvas.toDataURL('image/png');
-        pdf.addImage(imageData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+        pdf.addImage(imageData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'NONE');
       });
 
       pdf.save(contractFileName);
