@@ -62,7 +62,22 @@ function toDateOnly(value: Date) {
 }
 
 function isoDate(value: Date) {
-  return toDateOnly(value).toISOString().slice(0, 10);
+  const localDate = toDateOnly(value);
+  const year = localDate.getFullYear();
+  const month = String(localDate.getMonth() + 1).padStart(2, '0');
+  const day = String(localDate.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function dateKey(value?: string | Date) {
+  if (!value) return '';
+  if (value instanceof Date) return isoDate(value);
+  return value.slice(0, 10);
+}
+
+function dateFromKey(value: string) {
+  const [year, month, day] = dateKey(value).split('-').map(Number);
+  return toDateOnly(new Date(year, (month || 1) - 1, day || 1));
 }
 
 function addDays(value: Date, days: number) {
@@ -71,12 +86,17 @@ function addDays(value: Date, days: number) {
   return copy;
 }
 
-function dayDiff(from: Date, to: Date) {
-  return Math.floor((toDateOnly(to).getTime() - toDateOnly(from).getTime()) / 86_400_000);
+function dayDiff(from: Date | string, to: Date | string) {
+  const fromDate = from instanceof Date ? toDateOnly(from) : dateFromKey(from);
+  const toDate = to instanceof Date ? toDateOnly(to) : dateFromKey(to);
+  const fromUtc = Date.UTC(fromDate.getFullYear(), fromDate.getMonth(), fromDate.getDate());
+  const toUtc = Date.UTC(toDate.getFullYear(), toDate.getMonth(), toDate.getDate());
+  return Math.round((toUtc - fromUtc) / 86_400_000);
 }
 
-function formatCalendarDate(value: Date) {
-  return `${String(value.getDate()).padStart(2, '0')} ${MONTHS_FR[value.getMonth()]}`;
+function formatCalendarDate(value: Date | string) {
+  const date = value instanceof Date ? toDateOnly(value) : dateFromKey(value);
+  return `${String(date.getDate()).padStart(2, '0')} ${MONTHS_FR[date.getMonth()]}`;
 }
 
 function reservationLabel(status: ReservationStatus) {
@@ -87,10 +107,10 @@ function reservationLabel(status: ReservationStatus) {
 }
 
 function blockClass(reservation: Reservation, dayIso: string) {
-  if (reservation.pickupDate === dayIso) {
+  if (dateKey(reservation.pickupDate) === dayIso) {
     return 'border-amber-300/60 bg-gradient-to-r from-amber-500/35 to-amber-500/18 text-amber-50 light:text-amber-900';
   }
-  if (reservation.returnDate === dayIso) {
+  if (dateKey(reservation.returnDate) === dayIso) {
     return 'border-cyan-300/55 bg-gradient-to-r from-cyan-500/30 to-teal-500/18 text-cyan-50 light:text-cyan-900';
   }
   return 'border-emerald-300/35 bg-gradient-to-r from-emerald-500/30 to-emerald-500/14 text-white light:text-emerald-900';
@@ -178,9 +198,11 @@ export default function CalendarPage() {
       .filter((reservation) => reservation.status === 'Confirmed' || reservation.status === 'Active')
       .filter((reservation) => visibleVehicleIds.has(reservation.vehicleId))
       .forEach((reservation) => {
-        if (reservation.returnDate < firstDayIso || reservation.pickupDate > lastDayIso) return;
-        const startIndex = Math.max(0, dayDiff(windowStart, new Date(reservation.pickupDate)));
-        const endIndex = Math.min(days.length - 1, dayDiff(windowStart, new Date(reservation.returnDate)));
+        const pickupIso = dateKey(reservation.pickupDate);
+        const returnIso = dateKey(reservation.returnDate);
+        if (returnIso < firstDayIso || pickupIso > lastDayIso) return;
+        const startIndex = Math.max(0, dayDiff(windowStart, pickupIso));
+        const endIndex = Math.min(days.length - 1, dayDiff(windowStart, returnIso));
         if (endIndex < 0 || startIndex >= days.length || endIndex < startIndex) return;
         const current = grouped.get(reservation.vehicleId) || [];
         current.push({ reservation, startIndex, endIndex });
@@ -212,7 +234,7 @@ export default function CalendarPage() {
       .filter((reservation) => visibleVehicleIds.has(reservation.vehicleId));
   }, [reservations, visibleVehicleIds]);
 
-  const selectedDate = useMemo(() => toDateOnly(new Date(selectedDayIso)), [selectedDayIso]);
+  const selectedDate = useMemo(() => dateFromKey(selectedDayIso), [selectedDayIso]);
   const selectedDateLabel = useMemo(() => {
     return selectedDate.toLocaleDateString('fr-FR', {
       weekday: 'long',
@@ -223,10 +245,10 @@ export default function CalendarPage() {
   }, [selectedDate]);
 
   const dayDetails = useMemo(() => {
-    const departures = activeReservationsInWindow.filter((reservation) => reservation.pickupDate === selectedDayIso);
-    const returns = activeReservationsInWindow.filter((reservation) => reservation.returnDate === selectedDayIso);
+    const departures = activeReservationsInWindow.filter((reservation) => dateKey(reservation.pickupDate) === selectedDayIso);
+    const returns = activeReservationsInWindow.filter((reservation) => dateKey(reservation.returnDate) === selectedDayIso);
     const active = activeReservationsInWindow.filter(
-      (reservation) => reservation.pickupDate <= selectedDayIso && reservation.returnDate >= selectedDayIso,
+      (reservation) => dateKey(reservation.pickupDate) <= selectedDayIso && dateKey(reservation.returnDate) >= selectedDayIso,
     );
     const maintenanceItems = maintenance.filter((item) => {
       if (!visibleVehicleIds.has(item.vehicleId)) return false;
@@ -238,13 +260,13 @@ export default function CalendarPage() {
   const calendarStats = useMemo(() => {
     const activeVehicles = visibleVehicles.filter((vehicle) => !isArchivedVehicle(vehicle)).length;
     const reservationsToday = activeReservationsInWindow.filter(
-      (reservation) => reservation.pickupDate <= todayIso && reservation.returnDate >= todayIso,
+      (reservation) => dateKey(reservation.pickupDate) <= todayIso && dateKey(reservation.returnDate) >= todayIso,
     ).length;
-    const returnsToday = activeReservationsInWindow.filter((reservation) => reservation.returnDate === todayIso).length;
+    const returnsToday = activeReservationsInWindow.filter((reservation) => dateKey(reservation.returnDate) === todayIso).length;
     const maintenanceCount = visibleVehicles.filter((vehicle) => vehicle.status === 'Maintenance').length;
     const occupiedVehicleIds = new Set(
       activeReservationsInWindow
-        .filter((reservation) => reservation.pickupDate <= todayIso && reservation.returnDate >= todayIso)
+        .filter((reservation) => dateKey(reservation.pickupDate) <= todayIso && dateKey(reservation.returnDate) >= todayIso)
         .map((reservation) => reservation.vehicleId),
     );
     const occupancy = activeVehicles ? Math.round((occupiedVehicleIds.size / activeVehicles) * 100) : 0;
@@ -257,7 +279,7 @@ export default function CalendarPage() {
   }, [days]);
 
   const goToReservationCreate = (vehicleId: string, dateIso: string) => {
-    const returnDate = isoDate(addDays(new Date(dateIso), 1));
+    const returnDate = isoDate(addDays(dateFromKey(dateIso), 1));
     navigate(
       `/reservations?create=1&vehicleId=${encodeURIComponent(vehicleId)}&pickup=${encodeURIComponent(dateIso)}&return=${encodeURIComponent(returnDate)}`,
     );
@@ -265,14 +287,14 @@ export default function CalendarPage() {
 
   const getCellState = (vehicleId: string, dayIso: string, blocks: CalendarBlock[]): CellState => {
     const activeReservation = blocks.find(
-      (block) => block.reservation.pickupDate <= dayIso && block.reservation.returnDate >= dayIso,
+      (block) => dateKey(block.reservation.pickupDate) <= dayIso && dateKey(block.reservation.returnDate) >= dayIso,
     );
     const isMaintenanceDay =
       maintenanceDatesByVehicle.get(vehicleId)?.has(dayIso) ||
       vehicles.find((vehicle) => vehicle.id === vehicleId)?.status === 'Maintenance';
 
-    if (activeReservation?.reservation.pickupDate === dayIso) return 'departure_today';
-    if (activeReservation?.reservation.returnDate === dayIso) return 'return_today';
+    if (activeReservation && dateKey(activeReservation.reservation.pickupDate) === dayIso) return 'departure_today';
+    if (activeReservation && dateKey(activeReservation.reservation.returnDate) === dayIso) return 'return_today';
     if (isMaintenanceDay) return 'maintenance';
     if (activeReservation) return 'reserved';
     return 'available';
@@ -595,12 +617,12 @@ export default function CalendarPage() {
                                   style={{ left, width, minHeight: 50 }}
                                   onClick={() => {
                                     setSelectedReservation(block.reservation);
-                                    setSelectedDayIso(block.reservation.pickupDate);
+                                    setSelectedDayIso(dateKey(block.reservation.pickupDate));
                                   }}
                                 >
                                   <span className="block truncate text-[11px] font-black">{block.reservation.id} · {block.reservation.client}</span>
                                   <span className="mt-1 block truncate text-[11px] opacity-85">
-                                    {formatCalendarDate(new Date(block.reservation.pickupDate))} → {formatCalendarDate(new Date(block.reservation.returnDate))}
+                                    {formatCalendarDate(block.reservation.pickupDate)} → {formatCalendarDate(block.reservation.returnDate)}
                                   </span>
                                 </button>
                               );
@@ -614,7 +636,7 @@ export default function CalendarPage() {
                                 onClick={() => setSelectedDayIso(dayIso)}
                               >
                                 <span className="block truncate text-xs font-black">Maintenance programmée</span>
-                                <span className="mt-1 block truncate text-[11px] opacity-85">{formatCalendarDate(new Date(dayIso))}</span>
+                                <span className="mt-1 block truncate text-[11px] opacity-85">{formatCalendarDate(dayIso)}</span>
                               </button>
                             ))}
                           </div>
@@ -748,7 +770,7 @@ export default function CalendarPage() {
                                 style={{ left, width, minHeight: BLOCK_HEIGHT }}
                                 onClick={() => {
                                   setSelectedReservation(block.reservation);
-                                  setSelectedDayIso(block.reservation.pickupDate);
+                                  setSelectedDayIso(dateKey(block.reservation.pickupDate));
                                 }}
                                 title={`${block.reservation.id} • ${block.reservation.client}`}
                               >
