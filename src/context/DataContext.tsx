@@ -1166,6 +1166,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           if (/row-level security|permission denied/i.test(error.message || '')) {
             throw new Error('Permission Supabase refusée pour créer la réservation.');
           }
+          if (/duplicate key|unique constraint|reservations_agency_id_reservation_number/i.test(error.message || '')) {
+            throw new Error('Numéro de réservation déjà utilisé. Réessayez pour générer un nouveau numéro.');
+          }
           if (/deposit|deposit_amount|caution/i.test(error.message || '')) {
             throw new Error(`Erreur caution Supabase: ${error.message}`);
           }

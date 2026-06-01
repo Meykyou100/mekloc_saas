@@ -148,6 +148,21 @@ function ReservationFilterField({ label, children }: { label: string; children: 
   );
 }
 
+function generateReservationNumber(reservations: Reservation[]) {
+  const usedNumbers = new Set(reservations.map((reservation) => reservation.id));
+  const maxNumber = reservations.reduce((max, reservation) => {
+    const match = reservation.id.match(/^RS-(\d+)$/i);
+    return match ? Math.max(max, Number(match[1])) : max;
+  }, 1024);
+
+  for (let next = maxNumber + 1; next < maxNumber + 10_000; next += 1) {
+    const candidate = `RS-${next}`;
+    if (!usedNumbers.has(candidate)) return candidate;
+  }
+
+  return `RS-${Date.now().toString().slice(-8)}`;
+}
+
 export default function ReservationsPage() {
   const { clients, vehicles, reservations, payments, refreshData, createReservation, updateReservation, deleteReservation } = useData();
   const { notify } = useApp();
@@ -439,7 +454,7 @@ export default function ReservationsPage() {
     }
 
     const payload: Reservation = {
-      id: editingReservation?.id || `RS-${1024 + reservations.length + 1}`,
+      id: editingReservation?.id || generateReservationNumber(reservations),
       agencyId: editingReservation?.agencyId || selectedVehicle.agencyId || selectedClient.agencyId || profile?.agencyId || profile?.agency?.id || null,
       client: selectedClient.fullName,
       clientId: selectedClient.id,
