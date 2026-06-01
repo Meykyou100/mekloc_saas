@@ -1100,16 +1100,70 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setReservations((current) => current.map((item) => (item.id === reservation.id ? reservation : item)));
           return reservation;
         }
+        if (!agencyId) {
+          throw new Error('Agence introuvable');
+        }
         await assertNoReservationOverlap(reservation, agencyId!, reservation.id);
-        const { data, error } = await supabase!
-          .from('reservations')
-          .update(toReservationRow(reservation, agencyId!))
-          .eq('reservation_number', reservation.id)
-          .select('*')
-          .single();
+        let data: unknown = null;
+        let error: Error | null = null;
+        const payload = toReservationRow(reservation, agencyId!) as Record<string, unknown>;
+        const removedColumns: string[] = [];
+        const matchers = [
+          { column: 'reservation_number', value: reservation.id },
+          reservation.recordId ? { column: 'id', value: reservation.recordId } : null,
+        ].filter(Boolean) as Array<{ column: string; value: string }>;
+        const maxAttempts = Object.keys(payload).length + 1;
+
+        for (const matcher of matchers) {
+          for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+            const result = await supabase!
+              .from('reservations')
+              .update(payload)
+              .eq(matcher.column, matcher.value)
+              .select('*')
+              .single();
+            data = result.data;
+            error = result.error as Error | null;
+            if (!error) break;
+            const missingColumn = getMissingColumnName(error);
+            if (missingColumn && missingColumn in payload) {
+              removedColumns.push(missingColumn);
+              delete payload[missingColumn];
+              continue;
+            }
+            break;
+          }
+          const noRows = error && (
+            'code' in error && error.code === 'PGRST116'
+            || /0 rows|no rows|JSON object requested/i.test(error.message || '')
+          );
+          if (!error || !noRows) break;
+        }
         if (error) {
+          console.error('Reservation update failed', {
+            reservationPayload: payload,
+            removedColumns,
+            reservationId: reservation.id,
+            recordId: reservation.recordId,
+            selectedClientId: reservation.clientId,
+            selectedVehicleId: reservation.vehicleId,
+            startDate: reservation.pickupDate,
+            endDate: reservation.returnDate,
+            pickupLocation: reservation.pickupLocation,
+            returnLocation: reservation.returnLocation,
+            totalPrice: reservation.totalAmount,
+            status: reservation.status,
+            agencyId,
+            supabaseError: error,
+          });
           if (error.message?.includes('overlap_reservation') || error.message?.includes('chevauche')) {
             throw new Error("Ce véhicule est déjà réservé sur cette période.");
+          }
+          if (/row-level security|permission denied/i.test(error.message || '')) {
+            throw new Error('Permission Supabase refusée pour modifier la réservation.');
+          }
+          if (/deposit|deposit_amount|caution/i.test(error.message || '')) {
+            throw new Error(`Erreur caution Supabase: ${error.message}`);
           }
           throw error;
         }
