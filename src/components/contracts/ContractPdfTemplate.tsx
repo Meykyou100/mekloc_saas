@@ -683,19 +683,24 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           display: flex;
           align-items: center;
           gap: 6px;
+          min-height: 18px;
           margin-bottom: 5px;
-          padding: 4px 6px 3px;
+          padding: 4px 6px;
           background: var(--cp-ink);
           color: #fff;
-          font-size: 10.4px;
+          font-size: 9.7px;
           font-weight: 800;
-          letter-spacing: .1em;
-          line-height: 1;
+          letter-spacing: .075em;
+          line-height: 12px;
+          overflow: visible;
           text-transform: uppercase;
         }
         .cp-cg-article-num {
+          flex: 0 0 auto;
+          white-space: nowrap;
           opacity: .75;
-          font-size: 9px;
+          font-size: 8.5px;
+          line-height: 12px;
         }
         .cp-cg-article p,
         .cp-cg-article li {
@@ -828,10 +833,8 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
               <FieldRow label="Nationalité :" value={client.nationality} narrow />
             </div>
             <FieldRow label="Adresse :" value={client.address} />
-            <div className="cp-field-inline-2">
-              <FieldRow label="Téléphone :" value={client.phone} narrow />
-              <FieldRow label="CIN / Passeport :" value={client.idNumber} narrow />
-            </div>
+            <FieldRow label="Téléphone :" value={client.phone} />
+            <FieldRow label="CIN / Passeport :" value={client.idNumber} />
             <FieldRow label="Permis N° :" value={client.licenseNumber} />
             <div className="cp-field-inline-2">
               <FieldRow label="Délivré le :" value={client.licenseIssuedAt} narrow />
