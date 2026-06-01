@@ -101,6 +101,7 @@ type ContractPdfTemplateProps = {
 };
 
 const emptyLine = '........................';
+const missingMark = '—';
 
 function valueOrLine(value: unknown) {
   if (value === null || value === undefined) return emptyLine;
@@ -169,6 +170,16 @@ function FieldRow({
   );
 }
 
+function DetailRow({ label, value }: { label: string; value?: ReactNode }) {
+  const missing = isBlankValue(value);
+  return (
+    <div className="cp-detail-row">
+      <span className="cp-detail-label">{label}</span>
+      <span className={`cp-detail-value ${missing ? 'cp-detail-value-empty' : ''}`}>{missing ? missingMark : value}</span>
+    </div>
+  );
+}
+
 function Section({ title, children, className = '' }: { title: string; children: ReactNode; className?: string }) {
   return (
     <section className={`cp-section ${className}`}>
@@ -218,6 +229,16 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
   const { agency, reservation, client, secondDriver, vehicle, payment, contract } = data;
   const secondDriverName = secondDriver.enabled ? fullSecondDriverName(secondDriver) : '';
   const agencyName = optionalValue(agency.name);
+  const agencyContactLines = [
+    optionalValue(agency.address),
+    [agency.phone ? `Tél : ${agency.phone}` : '', agency.email ? `Email : ${agency.email}` : ''].filter(Boolean).join(' · '),
+  ].filter(Boolean);
+  const agencyLegalItems = [
+    ['RC', agency.rc],
+    ['IF', agency.ifNumber],
+    ['ICE', agency.ice],
+    ['CNSS', agency.cnss],
+  ].map(([label, value]) => ({ label, value: optionalValue(value) })).filter((item) => item.value);
   const remainingAmount =
     typeof payment.remainingAmount === 'number'
       ? payment.remainingAmount
@@ -296,6 +317,12 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           color: var(--cp-mid);
           font-size: 9.6px;
           line-height: 1.45;
+        }
+        .cp-reg-row {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+          gap: 3px 9px;
         }
         .cp-header-right {
           max-width: 300px;
@@ -387,6 +414,32 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           border-bottom: 0;
           background: #f8f6f1;
           box-shadow: inset 0 -1px 0 rgba(28,27,25,.10);
+        }
+        .cp-detail-row {
+          display: grid;
+          grid-template-columns: 86px minmax(0, 1fr);
+          gap: 6px;
+          align-items: start;
+          min-height: 17px;
+          margin-bottom: 3px;
+          color: var(--cp-mid);
+          font-size: 9.8px;
+          line-height: 1.28;
+        }
+        .cp-detail-label {
+          color: var(--cp-mid);
+          font-weight: 800;
+        }
+        .cp-detail-value {
+          min-width: 0;
+          overflow-wrap: anywhere;
+          word-break: break-word;
+          color: var(--cp-ink);
+          font-weight: 700;
+        }
+        .cp-detail-value-empty {
+          color: var(--cp-light);
+          font-weight: 600;
         }
         .cp-field-unit {
           color: var(--cp-light);
@@ -669,16 +722,23 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
             <div>
               <div className="cp-agency-name">{valueOrLine(agency.name)}</div>
               <div className="cp-agency-sub">
-                <div>{valueOrLine(agency.address)}</div>
-                <div>Tél : {valueOrLine(agency.phone)} &nbsp;·&nbsp; Email : {valueOrLine(agency.email)}</div>
+                {agencyContactLines.length ? (
+                  agencyContactLines.map((line) => <div key={line}>{line}</div>)
+                ) : (
+                  <div>Informations agence non renseignées</div>
+                )}
               </div>
             </div>
           </div>
-          <div className="cp-header-right">
-            <div className="cp-reg-row">
-              RC : {valueOrLine(agency.rc)} &nbsp;|&nbsp; IF : {valueOrLine(agency.ifNumber)} &nbsp;|&nbsp; ICE : {valueOrLine(agency.ice)} &nbsp;|&nbsp; CNSS : {valueOrLine(agency.cnss)}
+          {agencyLegalItems.length ? (
+            <div className="cp-header-right">
+              <div className="cp-reg-row">
+                {agencyLegalItems.map((item) => (
+                  <span key={item.label}>{item.label} : {item.value}</span>
+                ))}
+              </div>
             </div>
-          </div>
+          ) : null}
         </header>
 
         <div className="cp-title-bar">
@@ -734,12 +794,12 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
 
           <div className="cp-stack">
             <Section title="2ème conducteur">
-              <FieldRow label="Nom complet :" value={secondDriverName} />
-              <div className="cp-field-inline-2">
-                <FieldRow label="CIN / Passeport :" value={secondDriver.idNumber} narrow />
-                <FieldRow label="Téléphone :" value={secondDriver.phone} narrow />
-              </div>
-              <FieldRow label="Permis N° :" value={secondDriver.licenseNumber} />
+              <DetailRow label="Nom complet :" value={secondDriverName} />
+              <DetailRow label="CIN / Passeport :" value={secondDriver.idNumber} />
+              <DetailRow label="Téléphone :" value={secondDriver.phone} />
+              <DetailRow label="Permis N° :" value={secondDriver.licenseNumber} />
+              <DetailRow label="Naissance :" value={secondDriver.birthDate} />
+              <DetailRow label="Nationalité :" value={secondDriver.nationality} />
             </Section>
             <Section title="Papiers du véhicule">
               <div className="cp-check-grid">

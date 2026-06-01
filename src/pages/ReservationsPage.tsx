@@ -81,6 +81,13 @@ function formatReservationDateTime(date: string, time?: string) {
   return `${date || '—'}${time ? ` ${time}` : ''}`;
 }
 
+function formatShortDate(date: string) {
+  if (!date) return '—';
+  const parsed = new Date(`${date}T00:00:00`);
+  if (Number.isNaN(parsed.getTime())) return date;
+  return new Intl.DateTimeFormat('fr-MA', { day: '2-digit', month: 'short' }).format(parsed);
+}
+
 function parseOptionalNumber(value: string) {
   if (value.trim() === '') return null;
   const parsed = Number(value.replace(',', '.'));
@@ -199,6 +206,23 @@ export default function ReservationsPage() {
       ),
     [draftVehicleId, editingReservation?.id, reservations],
   );
+  const bookedVehiclePeriods = useMemo(
+    () =>
+      [...vehicleReservations].sort((a, b) => new Date(a.pickupDate).getTime() - new Date(b.pickupDate).getTime()),
+    [vehicleReservations],
+  );
+  const availabilityDays = useMemo(() => {
+    const baseDate = draftPickupDate || todayIso;
+    const start = new Date(`${baseDate}T00:00:00`);
+    const safeStart = Number.isNaN(start.getTime()) ? new Date(`${todayIso}T00:00:00`) : start;
+    return Array.from({ length: 14 }).map((_, index) => {
+      const date = new Date(safeStart);
+      date.setDate(safeStart.getDate() + index);
+      const iso = date.toISOString().slice(0, 10);
+      const booked = bookedVehiclePeriods.find((reservation) => isDateOverlap(iso, iso, reservation.pickupDate, reservation.returnDate));
+      return { iso, booked };
+    });
+  }, [bookedVehiclePeriods, draftPickupDate, todayIso]);
 
   const overlapReservation = useMemo(() => {
     if (!draftPickupDate || !draftReturnDate || !draftVehicleId) return null;
@@ -1015,6 +1039,66 @@ export default function ReservationsPage() {
                           <ReservationField label="Lieu de retour">
                             <input className={inputClass} value={draftReturnLocation} onChange={(event) => setDraftReturnLocation(event.target.value)} placeholder="Adresse de retour..." />
                           </ReservationField>
+                        </div>
+                        <div className="rounded-3xl border border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] sm:p-4">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="grid h-8 w-8 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-[var(--app-gold-text)]">
+                                  <CalendarDays className="h-4 w-4" />
+                                </span>
+                                <h4 className="text-sm font-black text-[var(--app-text)]">Disponibilité du véhicule</h4>
+                              </div>
+                              <p className="mt-1 text-xs text-[var(--app-text-muted)]">Consultez les périodes déjà réservées avant de choisir vos dates.</p>
+                            </div>
+                            {selectedVehicle ? (
+                              <span className="w-fit rounded-full border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 py-1 text-[11px] font-black text-[var(--app-text-soft)]">
+                                {selectedVehicle.brand} {selectedVehicle.model}
+                              </span>
+                            ) : null}
+                          </div>
+
+                          <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
+                            {availabilityDays.map((day) => (
+                              <div
+                                key={day.iso}
+                                className={`min-w-[74px] rounded-2xl border px-2.5 py-2 text-center ${
+                                  day.booked
+                                    ? 'border-rose-300/40 bg-rose-500/12 text-rose-700 dark:text-rose-100'
+                                    : 'border-emerald-300/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200'
+                                }`}
+                                title={day.booked ? `${day.booked.id} · ${day.booked.client}` : 'Disponible'}
+                              >
+                                <p className="text-[10px] font-black uppercase tracking-[0.12em]">{formatShortDate(day.iso)}</p>
+                                <p className="mt-1 truncate text-[11px] font-bold">{day.booked ? 'Réservé' : 'Libre'}</p>
+                              </div>
+                            ))}
+                          </div>
+
+                          <div className="mt-3 grid gap-2">
+                            {bookedVehiclePeriods.length ? (
+                              bookedVehiclePeriods.map((reservation) => (
+                                <div
+                                  key={reservation.id}
+                                  className={`rounded-2xl border px-3 py-2 ${
+                                    overlapReservation?.id === reservation.id
+                                      ? 'border-rose-300/50 bg-rose-500/12'
+                                      : 'border-[var(--app-border)] bg-[var(--app-surface-soft)]'
+                                  }`}
+                                >
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <p className="text-sm font-black text-[var(--app-text)]">{formatShortDate(reservation.pickupDate)} → {formatShortDate(reservation.returnDate)}</p>
+                                    <Badge>{reservation.status}</Badge>
+                                  </div>
+                                  <p className="mt-1 truncate text-xs font-semibold text-[var(--app-text-soft)]">{reservation.client || 'Client non renseigné'} · {reservation.id}</p>
+                                </div>
+                              ))
+                            ) : (
+                              <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 py-3 text-sm font-semibold text-[var(--app-text-muted)]">
+                                Aucune réservation prévue pour ce véhicule.
+                              </div>
+                            )}
+                          </div>
                         </div>
                         <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3 sm:p-4">
                           <p className="text-sm font-semibold text-[var(--app-text-soft)]">Durée calculée: {rentalDays} jour(s)</p>

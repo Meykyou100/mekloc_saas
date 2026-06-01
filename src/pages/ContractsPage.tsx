@@ -25,7 +25,6 @@ import ContractPdfTemplate, { type ContractPdfData } from '../components/contrac
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
-import { SelectField, TextAreaField } from '../components/ui/Form';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import { useApp } from '../context/AppContext';
@@ -698,7 +697,6 @@ export default function ContractsPage() {
     { label: 'Client sélectionné', ok: Boolean(client.id) },
     { label: 'Véhicule sélectionné', ok: Boolean(vehicle.id) },
     { label: 'Réservation sélectionnée', ok: Boolean(selectedReservation?.id) },
-    { label: 'Conditions ajoutées', ok: Boolean(terms.trim()) },
     { label: 'Logo agence présent', ok: Boolean(effectiveLogoUrl && !logoBroken) },
   ];
 
@@ -1159,22 +1157,26 @@ export default function ContractsPage() {
           <Card className="border-[var(--app-border)] bg-[var(--app-card)] p-4 shadow-[0_24px_80px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.04)] md:p-5">
             <div className="mb-4 flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-[var(--app-gold-text)]">
-                <FileText className="h-5 w-5" />
+                <CheckCircle2 className="h-5 w-5" />
               </span>
               <div>
-                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--app-gold-text)]">Informations contrat</p>
-                <p className="text-xs text-[var(--app-text-muted)]">Modèle, référence et conditions.</p>
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--app-gold-text)]">Préparation PDF</p>
+                <p className="text-xs text-[var(--app-text-muted)]">Vérifiez les données essentielles avant l’export.</p>
               </div>
             </div>
-            <div className="grid gap-3">
-              <SelectField label="Modèle du contrat" className="h-12 rounded-2xl border-[var(--app-border)] bg-[var(--app-input)]" value={template} onChange={(event) => setTemplate(event.target.value)}>
-                {templates.map((item) => <option key={item}>{item}</option>)}
-              </SelectField>
-              <div className="grid gap-2 rounded-2xl border border-[var(--app-border)] bg-[var(--app-input)] px-4 py-3 text-xs text-[var(--app-text-soft)] sm:grid-cols-2">
-                <p><span className="text-[var(--app-text-muted)]">Référence:</span> <span className="font-semibold text-[var(--app-text)]">{contractReference}</span></p>
-                <p><span className="text-[var(--app-text-muted)]">Date du contrat:</span> <span className="font-semibold text-[var(--app-text)]">{new Date().toLocaleDateString('fr-MA')}</span></p>
-              </div>
-              <TextAreaField label="Notes / conditions" value={terms} onChange={(event) => setTerms(event.target.value)} className="min-h-28 rounded-2xl border-[var(--app-border)] bg-[var(--app-input)]" />
+            <div className="grid gap-2">
+              {checklist.map((item) => (
+                <div key={item.label} className="flex items-center justify-between gap-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-input)] px-3 py-2 text-sm">
+                  <span className="font-semibold text-[var(--app-text-soft)]">{item.label}</span>
+                  <span className={item.ok ? 'font-black text-emerald-700 dark:text-emerald-300' : 'font-black text-amber-700 dark:text-amber-300'}>
+                    {item.ok ? 'OK' : 'À compléter'}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 rounded-2xl border border-gold-300/15 bg-gold-400/[0.06] px-4 py-3 text-xs text-[var(--app-text-soft)]">
+              <p><span className="text-[var(--app-text-muted)]">Référence:</span> <span className="font-semibold text-[var(--app-text)]">{contractReference}</span></p>
+              <p className="mt-1"><span className="text-[var(--app-text-muted)]">Date:</span> <span className="font-semibold text-[var(--app-text)]">{new Date().toLocaleDateString('fr-MA')}</span></p>
             </div>
           </Card>
 
@@ -1202,6 +1204,8 @@ export default function ContractsPage() {
                 <input className="form-control rounded-2xl border-[var(--app-border)] bg-[var(--app-input)] text-base sm:text-sm" placeholder="CIN / Passeport" value={secondDriver.idNumber} onChange={(event) => setSecondDriver((current) => ({ ...current, idNumber: event.target.value }))} />
                 <input className="form-control rounded-2xl border-[var(--app-border)] bg-[var(--app-input)] text-base sm:text-sm" placeholder="Permis N°" value={secondDriver.licenseNumber} onChange={(event) => setSecondDriver((current) => ({ ...current, licenseNumber: event.target.value }))} />
                 <input className="form-control rounded-2xl border-[var(--app-border)] bg-[var(--app-input)] text-base sm:text-sm" placeholder="Téléphone" value={secondDriver.phone} onChange={(event) => setSecondDriver((current) => ({ ...current, phone: event.target.value }))} />
+                <input className="form-control rounded-2xl border-[var(--app-border)] bg-[var(--app-input)] text-base sm:text-sm" placeholder="Date de naissance" value={secondDriver.birthDate} onChange={(event) => setSecondDriver((current) => ({ ...current, birthDate: event.target.value }))} />
+                <input className="form-control rounded-2xl border-[var(--app-border)] bg-[var(--app-input)] text-base sm:text-sm" placeholder="Nationalité" value={secondDriver.nationality} onChange={(event) => setSecondDriver((current) => ({ ...current, nationality: event.target.value }))} />
                 <input className="form-control rounded-2xl border-[var(--app-border)] bg-[var(--app-input)] text-base sm:text-sm" placeholder="Adresse" value={secondDriver.address} onChange={(event) => setSecondDriver((current) => ({ ...current, address: event.target.value }))} />
               </div>
             ) : (
