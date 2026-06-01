@@ -232,11 +232,14 @@ function parseSecondDriverFromContractTerms(terms: string) {
   const block = terms.slice(start + '[2EME_CONDUCTEUR]'.length, end);
   const cleanTerms = `${terms.slice(0, start)}${terms.slice(end + '[/2EME_CONDUCTEUR]'.length)}`.trim();
   const values = new Map<string, string>();
-  block.split('\n').forEach((line) => {
-    const [label, ...rest] = line.split(':');
-    if (!label || !rest.length) return;
-    const value = rest.join(':').trim();
-    values.set(label.trim().toLowerCase(), value === '—' ? '' : value);
+  const labelPattern = /(Nom|Prénom|Prenom|Date de naissance|Nationalité|Nationalite|CIN\/Passeport|Permis N°|Permis N|Téléphone|Telephone|Adresse)\s*:/gi;
+  const matches = Array.from(block.matchAll(labelPattern));
+  matches.forEach((match, index) => {
+    const label = String(match[1] || '').trim().toLowerCase();
+    const valueStart = (match.index || 0) + match[0].length;
+    const nextStart = matches[index + 1]?.index ?? block.length;
+    const value = block.slice(valueStart, nextStart).replace(/\s+/g, ' ').trim();
+    values.set(label, value === '—' ? '' : value);
   });
 
   return {

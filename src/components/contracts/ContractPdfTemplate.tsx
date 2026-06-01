@@ -162,7 +162,7 @@ function FieldRow({
 }) {
   const missing = isBlankValue(value);
   return (
-    <div className="cp-field-row">
+    <div className={`cp-field-row${narrow ? ' cp-field-row-narrow' : ''}`}>
       <span className={`cp-field-label${narrow ? ' cp-field-label-narrow' : ''}`}>{label}</span>
       <span className={`cp-field-value ${missing ? 'cp-field-value-empty' : 'cp-field-value-filled'}`}>{missing ? emptyLine : value}</span>
       {unit ? <span className="cp-field-unit">{unit}</span> : null}
@@ -381,34 +381,43 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           padding: 6px 7px;
         }
         .cp-field-row {
-          display: flex;
-          align-items: flex-end;
+          display: grid;
+          grid-template-columns: 98px minmax(0, 1fr) auto;
+          align-items: center;
           gap: 5px;
-          min-height: 18.5px;
-          margin-bottom: 3px;
+          min-height: 20px;
+          margin-bottom: 3.5px;
           color: var(--cp-mid);
           font-size: 10.7px;
+          line-height: 1.15;
         }
         .cp-field-label {
-          flex: 0 0 98px;
           color: var(--cp-mid);
           font-weight: 700;
+          line-height: 1.15;
         }
-        .cp-field-label-narrow { flex-basis: 70px; }
+        .cp-field-row-narrow {
+          grid-template-columns: 70px minmax(0, 1fr) auto;
+        }
         .cp-field-value {
-          flex: 1 1 auto;
+          display: flex;
+          align-items: center;
           min-width: 0;
+          min-height: 17px;
+          box-sizing: border-box;
           color: var(--cp-ink);
           font-weight: 700;
-          padding: 0 3px 1px;
-          white-space: nowrap;
+          line-height: 1.12;
+          padding: 2px 4px;
           overflow: hidden;
-          text-overflow: ellipsis;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
         .cp-field-value-empty {
           color: var(--cp-light);
           font-weight: 500;
           border-bottom: 1px dotted #999;
+          background: transparent;
         }
         .cp-field-value-filled {
           border-bottom: 0;
@@ -419,31 +428,43 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           display: grid;
           grid-template-columns: 86px minmax(0, 1fr);
           gap: 6px;
-          align-items: start;
-          min-height: 17px;
+          align-items: center;
+          min-height: 19px;
           margin-bottom: 3px;
           color: var(--cp-mid);
           font-size: 9.8px;
-          line-height: 1.28;
+          line-height: 1.15;
         }
         .cp-detail-label {
           color: var(--cp-mid);
           font-weight: 800;
+          line-height: 1.15;
         }
         .cp-detail-value {
+          display: flex;
+          align-items: center;
           min-width: 0;
+          min-height: 16px;
+          box-sizing: border-box;
+          padding: 2px 4px;
+          background: #f8f6f1;
+          box-shadow: inset 0 -1px 0 rgba(28,27,25,.10);
           overflow-wrap: anywhere;
           word-break: break-word;
           color: var(--cp-ink);
           font-weight: 700;
+          line-height: 1.12;
         }
         .cp-detail-value-empty {
+          background: transparent;
+          box-shadow: none;
           color: var(--cp-light);
           font-weight: 600;
         }
         .cp-field-unit {
           color: var(--cp-light);
           font-size: 9.3px;
+          line-height: 1.1;
         }
         .cp-field-inline-2 {
           display: grid;
@@ -530,15 +551,19 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           width: 100%;
           border-collapse: collapse;
           font-size: 10.4px;
+          line-height: 1.15;
         }
         .cp-payment-table td {
-          padding: 3px 6px;
+          height: 21px;
+          padding: 4px 6px;
           border-bottom: 1px solid #e0ddd8;
+          vertical-align: middle;
         }
         .cp-payment-table td:last-child {
           text-align: right;
           font-weight: 700;
           color: var(--cp-ink);
+          white-space: nowrap;
         }
         .cp-payment-table tr.cp-total td {
           border-top: 1.5px solid var(--cp-ink);
