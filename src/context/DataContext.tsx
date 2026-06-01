@@ -165,6 +165,7 @@ function setMockDataState(
 
 type VehicleRow = {
   id: string;
+  agency_id?: string | null;
   brand: string;
   model: string;
   plate_number: string;
@@ -188,6 +189,7 @@ type VehicleRow = {
 
 type ClientRow = {
   id: string;
+  agency_id?: string | null;
   full_name: string;
   phone: string;
   email: string;
@@ -277,6 +279,7 @@ function vehicleName(vehicle?: Vehicle) {
 function mapVehicle(row: VehicleRow): Vehicle {
   return {
     id: row.id,
+    agencyId: row.agency_id || null,
     brand: row.brand,
     model: row.model,
     plate: row.plate_number,
@@ -352,6 +355,7 @@ function getMissingColumnName(error: Error | null) {
 function mapClient(row: ClientRow): Client {
   return {
     id: row.id,
+    agencyId: row.agency_id || null,
     fullName: row.full_name,
     phone: row.phone,
     email: row.email,
@@ -773,6 +777,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const nextProfile = await refreshProfile();
       return nextProfile?.agencyId || nextProfile?.agency?.id || null;
     };
+    const resolveReservationAgencyId = async (reservation: Reservation) => {
+      const selectedVehicle = vehicles.find((item) => item.id === reservation.vehicleId);
+      const selectedClient = clients.find((item) => item.id === reservation.clientId);
+      return (
+        await resolveAgencyId()
+        || selectedVehicle?.agencyId
+        || selectedClient?.agencyId
+        || null
+      );
+    };
     const assertPermission = (permission: AppPermission) => {
       if (profile?.isSuperAdmin) return;
       if (!canAccess(profile?.role, permission)) {
@@ -1036,7 +1050,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setReservations((current) => [reservation, ...current]);
           return reservation;
         }
-        const activeAgencyId = await resolveAgencyId();
+        const activeAgencyId = await resolveReservationAgencyId(reservation);
         if (!activeAgencyId) {
           throw new Error('Agence introuvable');
         }
@@ -1106,7 +1120,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           setReservations((current) => current.map((item) => (item.id === reservation.id ? reservation : item)));
           return reservation;
         }
-        const activeAgencyId = await resolveAgencyId();
+        const activeAgencyId = await resolveReservationAgencyId(reservation);
         if (!activeAgencyId) {
           throw new Error('Agence introuvable');
         }

@@ -56,6 +56,7 @@ export type VehicleAccessories = {
 
 export type Vehicle = {
   id: string;
+  agencyId?: string | null;
   brand: string;
   model: string;
   plate: string;
@@ -79,6 +80,7 @@ export type Vehicle = {
 
 export type Client = {
   id: string;
+  agencyId?: string | null;
   fullName: string;
   phone: string;
   email: string;
