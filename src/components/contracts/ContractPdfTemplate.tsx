@@ -405,12 +405,12 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           display: flex;
           align-items: center;
           min-width: 0;
-          height: 16px;
+          min-height: 16px;
           box-sizing: border-box;
           color: var(--cp-ink);
           font-weight: 700;
-          line-height: 1;
-          padding: 0 4px;
+          line-height: 1.15;
+          padding: 1px 4px 0;
           overflow: hidden;
           white-space: nowrap;
           text-overflow: ellipsis;
@@ -422,7 +422,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           background: transparent;
         }
         .cp-field-value-filled {
-          border-bottom: 1px dotted #bdb7ad;
+          border-bottom: 0;
           background: transparent;
           box-shadow: none;
         }
@@ -449,9 +449,9 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           min-width: 0;
           min-height: 16px;
           box-sizing: border-box;
-          padding: 0 4px;
+          padding: 1px 4px 0;
           background: transparent;
-          border-bottom: 1px dotted #bdb7ad;
+          border-bottom: 0;
           box-shadow: none;
           overflow-wrap: anywhere;
           word-break: break-word;
