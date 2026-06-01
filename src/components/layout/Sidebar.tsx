@@ -73,7 +73,7 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
   const { profile } = useAuth();
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_20%_0%,rgba(227,177,23,.12),transparent_30%),linear-gradient(180deg,var(--app-sidebar),var(--app-bg))] pb-3 text-[var(--app-text)]">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_18%_0%,rgba(227,177,23,.16),transparent_30%),radial-gradient(circle_at_100%_82%,rgba(227,177,23,.08),transparent_24%),linear-gradient(180deg,var(--app-sidebar),var(--app-bg))] pb-3 text-[var(--app-text)]">
       <div className="shrink-0 px-4 pb-2.5 pt-3.5 lg:px-4 lg:pt-4">
         <div className="flex items-center justify-between gap-3">
         <NavLink to="/" className="group flex min-w-0 items-center gap-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/25" onClick={onClose}>
@@ -103,7 +103,10 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
         </button>
         </div>
       </div>
-      <nav className="grid shrink-0 gap-1 px-2.5 py-1">
+      <nav className="grid shrink-0 gap-1 px-3 py-1">
+        <p className="px-2 pb-1 pt-1.5 text-[10px] font-black uppercase tracking-[0.26em] text-[var(--app-gold-text)]/80 [@media(max-height:700px)]:hidden">
+          Navigation
+        </p>
         {navItems
           .filter((item) => canAccess(profile?.role, item.permission))
           .map(({ label, to, icon: Icon }) => (
@@ -112,14 +115,14 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
             to={to}
             onClick={onClose}
             className={({ isActive }) =>
-              `group relative flex min-h-10 items-center gap-2.5 overflow-hidden rounded-[1rem] border px-2.5 py-1.5 text-[13px] font-semibold transition ${
+              `group relative flex min-h-10 items-center gap-2.5 overflow-hidden rounded-[1rem] border px-2.5 py-1.5 text-[13px] font-bold transition [@media(max-height:700px)]:min-h-9 [@media(max-height:700px)]:py-1 ${
                 isActive
-                  ? 'border-gold-300/35 bg-[var(--app-gold-soft)] text-[var(--app-gold-text)] shadow-[0_12px_28px_rgba(212,160,23,.10),inset_0_1px_0_rgba(255,255,255,.08)] before:absolute before:inset-y-2 before:left-0 before:w-0.5 before:rounded-r-full before:bg-gold-400'
-                  : 'border-transparent text-[var(--app-text-muted)] hover:border-[var(--app-border)] hover:bg-[var(--app-surface-soft)] hover:text-[var(--app-text)]'
+                  ? 'active border-gold-300/45 bg-[linear-gradient(135deg,rgba(212,160,23,.24),rgba(212,160,23,.10))] text-[var(--app-gold-text)] shadow-[0_14px_30px_rgba(212,160,23,.16),inset_0_1px_0_rgba(255,255,255,.10)] before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-r-full before:bg-gold-400'
+                  : 'border-transparent text-[var(--app-text-soft)] hover:border-[var(--app-border)] hover:bg-[var(--app-surface-soft)] hover:text-[var(--app-text)]'
               }`
             }
           >
-            <span className="relative grid h-7 w-7 shrink-0 place-items-center rounded-[0.8rem] border border-[var(--app-border-soft)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] transition group-hover:border-gold-300/25 group-hover:bg-gold-400/10 group-hover:text-[var(--app-gold-text)]">
+            <span className="relative grid h-7 w-7 shrink-0 place-items-center rounded-[0.8rem] border border-[var(--app-border-soft)] bg-[var(--app-surface-soft)] text-[var(--app-text-muted)] transition group-[.active]:border-gold-300/35 group-[.active]:bg-gold-400/15 group-[.active]:text-[var(--app-gold-text)] group-hover:border-gold-300/25 group-hover:bg-gold-400/10 group-hover:text-[var(--app-gold-text)] [@media(max-height:700px)]:h-6 [@media(max-height:700px)]:w-6">
               <Icon className="h-3.5 w-3.5" />
             </span>
             <span className="relative">{t(label)}</span>
@@ -127,8 +130,9 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
         ))}
       </nav>
       <div className="mt-auto shrink-0 space-y-2 px-3 pb-3 pt-2">
-        <div className="relative overflow-hidden rounded-2xl border border-gold-300/25 bg-[linear-gradient(145deg,#101820,#050505)] p-2.5 text-white shadow-[0_16px_34px_rgba(16,24,32,.18),inset_0_1px_0_rgba(255,255,255,.10)] [@media(max-height:700px)]:py-2">
+        <div className="relative overflow-hidden rounded-2xl border border-gold-300/30 bg-[linear-gradient(145deg,#101820,#050505)] p-3 text-white shadow-[0_18px_38px_rgba(16,24,32,.22),inset_0_1px_0_rgba(255,255,255,.10)] [@media(max-height:700px)]:p-2.5">
           <div className="pointer-events-none absolute -right-8 -top-10 h-24 w-24 rounded-full bg-gold-400/18 blur-2xl" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold-300/35 to-transparent" />
           <div className="relative flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-[13px] font-black leading-4 text-white">MekLoc Pro</p>
@@ -136,9 +140,11 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
             </div>
             <span className="rounded-full border border-gold-300/25 bg-gold-400/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-gold-100">Pro</span>
           </div>
-          <div className="relative mt-2 grid grid-cols-2 gap-1 text-[10px] font-semibold text-white/78 [@media(max-height:700px)]:hidden">
+          <div className="relative mt-2 grid grid-cols-2 gap-1 text-[10px] font-semibold text-white/82 [@media(max-height:760px)]:hidden">
             {['Gestion flotte', 'Contrats PDF', 'Paiements suivis', 'Rapports financiers'].map((feature) => (
-              <span key={feature} className="truncate rounded-lg border border-white/10 bg-white/[0.07] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">{feature}</span>
+              <span key={feature} className="truncate rounded-lg border border-white/10 bg-white/[0.075] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">
+                {feature}
+              </span>
             ))}
           </div>
           <button
@@ -147,7 +153,7 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
               onPro();
               onClose?.();
             }}
-            className="relative mt-2 flex h-8 w-full items-center justify-center rounded-xl border border-gold-300/30 bg-gold-400 text-[11px] font-black text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.18)] transition hover:bg-gold-300"
+            className="relative mt-2 flex h-9 w-full items-center justify-center rounded-xl border border-gold-300/30 bg-gold-400 text-[11px] font-black text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.22)] transition hover:bg-gold-300 [@media(max-height:700px)]:h-8"
           >
             Voir les avantages
           </button>
@@ -158,7 +164,7 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
             onHelp();
             onClose?.();
           }}
-          className="group flex cursor-pointer items-center gap-2.5 rounded-2xl border border-[var(--app-border)] bg-[linear-gradient(135deg,var(--app-card),var(--app-surface))] p-2.5 shadow-[0_12px_26px_rgba(16,24,32,.08),inset_0_1px_0_rgba(255,255,255,.06)] transition hover:border-gold-300/30 hover:bg-[var(--app-gold-soft)] [@media(max-height:640px)]:hidden"
+          className="group flex cursor-pointer items-center gap-2.5 rounded-2xl border border-[var(--app-border)] bg-[linear-gradient(135deg,var(--app-card),var(--app-surface-soft))] p-2.5 shadow-[0_12px_26px_rgba(16,24,32,.10),inset_0_1px_0_rgba(255,255,255,.06)] transition hover:border-gold-300/35 hover:bg-[var(--app-gold-soft)] [@media(max-height:640px)]:hidden"
         >
           <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-gold-300/25 bg-carbon-950 text-gold-100 shadow-[0_8px_18px_rgba(16,24,32,.14)] transition group-hover:border-gold-300/45">
             <Headphones className="h-4 w-4" />
