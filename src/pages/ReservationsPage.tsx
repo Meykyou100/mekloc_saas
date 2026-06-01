@@ -322,7 +322,6 @@ export default function ReservationsPage() {
     setDraftPickupDate(pickup);
     setDraftReturnDate(returnDate);
     setDraftPickupLocation(nextVehicle?.city || '');
-    setReservationStep(2);
 
     setSearchParams((current) => {
       const next = new URLSearchParams(current);
@@ -394,6 +393,10 @@ export default function ReservationsPage() {
 
   async function handleSubmitReservation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (reservationStep !== reservationSteps.length - 1) {
+      notify({ title: 'Validation finale requise', message: 'Cliquez sur Continuer jusqu’à l’étape Validation avant de créer la réservation.', type: 'warning' });
+      return;
+    }
     if (!selectedClient || !selectedVehicle) {
       notify({ title: 'Données incomplètes', message: 'Veuillez sélectionner un client et un véhicule.', type: 'warning' });
       return;

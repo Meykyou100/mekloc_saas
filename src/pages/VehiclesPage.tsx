@@ -402,13 +402,14 @@ export default function VehiclesPage() {
     if (!supabase || !agencyId) return null;
     const validation = validateFileUpload(file, {
       maxSizeMb: 5,
-      allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'],
+      allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/heic', 'image/heif', 'image/avif'],
+      allowedExtensions: ['png', 'jpg', 'jpeg', 'webp', 'heic', 'heif', 'avif'],
     });
     if (validation) throw new Error(validation);
     const filePath = safeStoragePath(agencyId, `vehicles-${vehicleId}`, file.name || 'photo.jpg');
     const { error: uploadError } = await supabase.storage.from(storageBuckets.vehicleImages).upload(filePath, file, {
       upsert: true,
-      contentType: file.type,
+      contentType: file.type || 'application/octet-stream',
     });
     if (uploadError) throw uploadError;
     const { data } = supabase.storage.from(storageBuckets.vehicleImages).getPublicUrl(filePath);
@@ -417,6 +418,10 @@ export default function VehiclesPage() {
 
   async function handleSaveVehicle(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (vehicleWizardStep !== vehicleWizardSteps.length - 1) {
+      notify({ title: 'Validation finale requise', message: 'Cliquez sur Continuer jusqu’à l’étape Validation avant d’enregistrer le véhicule.', type: 'warning' });
+      return;
+    }
     const form = new FormData(event.currentTarget);
     form.set('damageMarks', JSON.stringify(damageMarks));
     const vehicle = normalizeVehicleForm(form, editingVehicle || undefined);

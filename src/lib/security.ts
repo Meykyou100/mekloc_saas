@@ -54,12 +54,16 @@ export function validateDateRange(start: string, end: string) {
 type FileUploadOptions = {
   maxSizeMb: number;
   allowedMimeTypes: string[];
+  allowedExtensions?: string[];
 };
 
 export function validateFileUpload(file: File, options: FileUploadOptions) {
   if (!file) return 'Fichier non autorisé';
-  const { maxSizeMb, allowedMimeTypes } = options;
-  if (!allowedMimeTypes.includes(file.type)) return 'Fichier non autorisé';
+  const { maxSizeMb, allowedMimeTypes, allowedExtensions = [] } = options;
+  const mimeAllowed = Boolean(file.type && allowedMimeTypes.includes(file.type));
+  const extension = file.name.includes('.') ? (file.name.split('.').pop() || '').toLowerCase() : '';
+  const extensionAllowed = Boolean(extension && allowedExtensions.includes(extension));
+  if (!mimeAllowed && !extensionAllowed) return 'Fichier non autorisé';
   const maxSize = maxSizeMb * 1024 * 1024;
   if (file.size > maxSize) return `Fichier trop volumineux (max ${maxSizeMb} MB)`;
   return null;
@@ -92,4 +96,3 @@ export function escapeForPdf(value: string, maxLength = 1000) {
     .replace(/[–—]/g, '-');
   return clean;
 }
-
