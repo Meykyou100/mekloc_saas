@@ -830,10 +830,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const resolveReservationAgencyId = async (reservation: Reservation) => {
       const selectedVehicle = vehicles.find((item) => item.id === reservation.vehicleId);
       const selectedClient = clients.find((item) => item.id === reservation.clientId);
+      const relatedReservation = reservations.find(
+        (item) =>
+          Boolean(item.agencyId) &&
+          (item.vehicleId === reservation.vehicleId || item.clientId === reservation.clientId),
+      );
+      const loadedAgencyIds = Array.from(new Set([
+        ...vehicles.map((item) => item.agencyId).filter(Boolean),
+        ...clients.map((item) => item.agencyId).filter(Boolean),
+        ...reservations.map((item) => item.agencyId).filter(Boolean),
+      ])) as string[];
       return (
         reservation.agencyId
         || selectedVehicle?.agencyId
         || selectedClient?.agencyId
+        || relatedReservation?.agencyId
+        || (loadedAgencyIds.length === 1 ? loadedAgencyIds[0] : null)
         || await resolveAgencyId()
         || await resolveAgencyIdFromRecord('vehicles', reservation.vehicleId)
         || await resolveAgencyIdFromRecord('clients', reservation.clientId)
