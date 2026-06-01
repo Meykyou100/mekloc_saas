@@ -783,6 +783,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const activeUser = authData.user;
       if (!activeUser) return null;
 
+      try {
+        const rpcAgency = await supabase.rpc('current_agency_id');
+        if (rpcAgency.data) return String(rpcAgency.data);
+      } catch {
+        // Older deployments may not expose the helper RPC; continue with direct profile lookups.
+      }
+
       const byUserId = await supabase
         .from('users_profiles')
         .select('agency_id')
@@ -797,7 +804,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         .select('agency_id')
         .ilike('email', activeEmail)
         .maybeSingle();
-      return (byEmail.data?.agency_id as string | null) || null;
+      if (byEmail.data?.agency_id) return byEmail.data.agency_id as string;
+
+      const byCreatedAgency = await supabase
+        .from('agencies')
+        .select('id')
+        .eq('created_by', activeUser.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return (byCreatedAgency.data?.id as string | null) || null;
     };
     const resolveAgencyIdFromRecord = async (table: 'vehicles' | 'clients', id: string) => {
       if (!supabase || !id) return null;
