@@ -418,9 +418,9 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           background: transparent;
         }
         .cp-field-value-filled {
-          border-bottom: 0;
-          background: #f8f6f1;
-          box-shadow: inset 0 -1px 0 rgba(28,27,25,.10);
+          border-bottom: 1px dotted #bdb7ad;
+          background: transparent;
+          box-shadow: none;
         }
         .cp-detail-row {
           display: flex;
@@ -445,8 +445,9 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           min-height: 16px;
           box-sizing: border-box;
           padding: 0 4px;
-          background: #f8f6f1;
-          box-shadow: inset 0 -1px 0 rgba(28,27,25,.10);
+          background: transparent;
+          border-bottom: 1px dotted #bdb7ad;
+          box-shadow: none;
           overflow-wrap: anywhere;
           word-break: break-word;
           color: var(--cp-ink);
@@ -455,6 +456,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         }
         .cp-detail-value-empty {
           background: transparent;
+          border-bottom: 1px dotted #bdb7ad;
           box-shadow: none;
           color: var(--cp-light);
           font-weight: 600;
@@ -774,8 +776,8 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
 
         <div className="cp-grid-2">
           <Section title="Durée de location">
-            <FieldRow label="Départ :" value={reservation.pickupDate} unit={reservation.pickupTime ? `à ${reservation.pickupTime} h` : 'à ........ h'} />
-            <FieldRow label="Retour :" value={reservation.returnDate} unit={reservation.returnTime ? `à ${reservation.returnTime} h` : 'à ........ h'} />
+            <FieldRow label="Départ :" value={reservation.pickupDate} unit={reservation.pickupTime ? `à ${reservation.pickupTime}` : 'à ........'} />
+            <FieldRow label="Retour :" value={reservation.returnDate} unit={reservation.returnTime ? `à ${reservation.returnTime}` : 'à ........'} />
             <FieldRow label="Durée :" value={reservation.rentalDays} unit="jour(s)" />
             <FieldRow label="Lieu de livraison :" value={reservation.pickupLocation} />
             <FieldRow label="Lieu de reprise :" value={reservation.returnLocation} />
