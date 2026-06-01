@@ -440,6 +440,7 @@ export default function ReservationsPage() {
 
     const payload: Reservation = {
       id: editingReservation?.id || `RS-${1024 + reservations.length + 1}`,
+      agencyId: editingReservation?.agencyId || selectedVehicle.agencyId || selectedClient.agencyId || profile?.agencyId || profile?.agency?.id || null,
       client: selectedClient.fullName,
       clientId: selectedClient.id,
       vehicle: `${selectedVehicle.brand} ${selectedVehicle.model}`,

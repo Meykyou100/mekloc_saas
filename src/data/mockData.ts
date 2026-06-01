@@ -98,6 +98,7 @@ export type Client = {
 export type Reservation = {
   id: string;
   recordId?: string;
+  agencyId?: string | null;
   client: string;
   clientId: string;
   vehicle: string;

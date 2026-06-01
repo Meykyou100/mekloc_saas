@@ -206,6 +206,7 @@ type ClientRow = {
 
 type ReservationRow = {
   id: string;
+  agency_id?: string | null;
   reservation_number: string | null;
   client_id: string;
   vehicle_id: string;
@@ -403,6 +404,7 @@ function mapReservation(row: ReservationRow, client?: Client, vehicle?: Vehicle)
   return {
     id: row.reservation_number || row.id,
     recordId: row.id,
+    agencyId: row.agency_id || vehicle?.agencyId || client?.agencyId || null,
     client: client?.fullName || 'Unknown client',
     clientId: row.client_id,
     vehicle: vehicleName(vehicle),
@@ -829,9 +831,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       const selectedVehicle = vehicles.find((item) => item.id === reservation.vehicleId);
       const selectedClient = clients.find((item) => item.id === reservation.clientId);
       return (
-        await resolveAgencyId()
+        reservation.agencyId
         || selectedVehicle?.agencyId
         || selectedClient?.agencyId
+        || await resolveAgencyId()
         || await resolveAgencyIdFromRecord('vehicles', reservation.vehicleId)
         || await resolveAgencyIdFromRecord('clients', reservation.clientId)
         || null
