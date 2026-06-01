@@ -343,6 +343,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           letter-spacing: .08em;
           font-size: 18.5px;
           font-weight: 800;
+          line-height: 1;
         }
         .cp-contract-meta {
           display: flex;
@@ -350,6 +351,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           font-size: 10.4px;
           font-weight: 600;
           letter-spacing: .04em;
+          line-height: 1;
         }
         .cp-grid-2 {
           display: grid;
@@ -370,11 +372,12 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         .cp-section-title {
           background: #f1eee9;
           border-bottom: 1px solid var(--cp-line);
-          padding: 4px 7px;
+          padding: 5px 7px 3px;
           color: var(--cp-ink);
           font-size: 10.5px;
           font-weight: 800;
           letter-spacing: .11em;
+          line-height: 1;
           text-transform: uppercase;
         }
         .cp-section-body {
@@ -385,7 +388,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           grid-template-columns: 98px minmax(0, 1fr) auto;
           align-items: center;
           gap: 5px;
-          min-height: 21px;
+          min-height: 22px;
           margin-bottom: 2px;
           color: var(--cp-mid);
           font-size: 10.7px;
@@ -407,14 +410,14 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         .cp-field-value {
           display: block;
           position: relative;
-          top: -1px;
+          top: -3px;
           align-items: center;
           min-width: 0;
-          min-height: 18px;
+          min-height: 19px;
           box-sizing: border-box;
           color: var(--cp-ink);
           font-weight: 700;
-          line-height: 18px;
+          line-height: 19px;
           padding: 0 4px;
           overflow: visible;
           white-space: nowrap;
@@ -454,10 +457,10 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         .cp-detail-value {
           display: block;
           position: relative;
-          top: -1px;
+          top: -3px;
           align-items: center;
           min-width: 0;
-          min-height: 18px;
+          min-height: 19px;
           box-sizing: border-box;
           padding: 0 4px;
           background: transparent;
@@ -467,7 +470,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           word-break: break-word;
           color: var(--cp-ink);
           font-weight: 700;
-          line-height: 18px;
+          line-height: 19px;
         }
         .cp-detail-value-empty {
           background: transparent;
@@ -573,7 +576,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         }
         .cp-payment-table td {
           height: 21px;
-          padding: 4px 6px;
+          padding: 3px 6px 5px;
           border-bottom: 1px solid #e0ddd8;
           vertical-align: middle;
         }
@@ -681,12 +684,13 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           align-items: center;
           gap: 6px;
           margin-bottom: 5px;
-          padding: 3px 6px;
+          padding: 4px 6px 3px;
           background: var(--cp-ink);
           color: #fff;
           font-size: 10.4px;
           font-weight: 800;
           letter-spacing: .1em;
+          line-height: 1;
           text-transform: uppercase;
         }
         .cp-cg-article-num {
