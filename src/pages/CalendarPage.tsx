@@ -108,12 +108,12 @@ function reservationLabel(status: ReservationStatus) {
 
 function blockClass(reservation: Reservation, dayIso: string) {
   if (dateKey(reservation.pickupDate) === dayIso) {
-    return 'border-amber-300/60 bg-gradient-to-r from-amber-500/35 to-amber-500/18 text-amber-50 light:text-amber-900';
+    return 'border-amber-300/60 bg-gradient-to-r from-amber-500/35 to-amber-500/18 text-[var(--app-text)]';
   }
   if (dateKey(reservation.returnDate) === dayIso) {
-    return 'border-cyan-300/55 bg-gradient-to-r from-cyan-500/30 to-teal-500/18 text-cyan-50 light:text-cyan-900';
+    return 'border-cyan-300/55 bg-gradient-to-r from-cyan-500/30 to-teal-500/18 text-[var(--app-text)]';
   }
-  return 'border-emerald-300/35 bg-gradient-to-r from-emerald-500/30 to-emerald-500/14 text-white light:text-emerald-900';
+  return 'border-emerald-300/35 bg-gradient-to-r from-emerald-500/30 to-emerald-500/14 text-[var(--app-text)]';
 }
 
 type CellState = 'available' | 'reserved' | 'maintenance' | 'departure_today' | 'return_today';
@@ -366,11 +366,11 @@ export default function CalendarPage() {
 
       <div className="no-scrollbar relative -mx-4 mb-3 flex gap-2.5 overflow-x-auto px-4 pb-1 md:mx-0 md:mb-6 md:grid md:grid-cols-2 md:overflow-visible md:px-0 md:pb-0 xl:grid-cols-5">
         {[
-          { label: 'Véhicules', value: String(calendarStats.activeVehicles), helper: 'Dans votre flotte', icon: Car, tone: 'text-emerald-200 light:text-emerald-700', glow: 'from-emerald-400/14' },
-          { label: 'Réserv.', value: String(calendarStats.reservationsToday), helper: 'Aujourd’hui', icon: CalendarDays, tone: 'text-violet-200 light:text-violet-700', glow: 'from-violet-400/14' },
-          { label: 'Retours', value: String(calendarStats.returnsToday), helper: 'Aujourd’hui', icon: RefreshCcw, tone: 'text-cyan-200 light:text-cyan-700', glow: 'from-cyan-400/14' },
-          { label: 'Maintenance', value: String(calendarStats.maintenanceCount), helper: 'Non disponibles', icon: Wrench, tone: 'text-amber-200 light:text-amber-700', glow: 'from-amber-400/14' },
-          { label: 'Occupation', value: `${calendarStats.occupancy}%`, helper: 'Cette semaine', icon: TrendingUp, tone: 'text-sky-200 light:text-sky-700', glow: 'from-sky-400/14' },
+          { label: 'Véhicules', value: String(calendarStats.activeVehicles), helper: 'Dans votre flotte', icon: Car, tone: 'text-emerald-500', glow: 'from-emerald-400/14' },
+          { label: 'Réserv.', value: String(calendarStats.reservationsToday), helper: 'Aujourd’hui', icon: CalendarDays, tone: 'text-violet-500', glow: 'from-violet-400/14' },
+          { label: 'Retours', value: String(calendarStats.returnsToday), helper: 'Aujourd’hui', icon: RefreshCcw, tone: 'text-cyan-500', glow: 'from-cyan-400/14' },
+          { label: 'Maintenance', value: String(calendarStats.maintenanceCount), helper: 'Non disponibles', icon: Wrench, tone: 'text-amber-500', glow: 'from-amber-400/14' },
+          { label: 'Occupation', value: `${calendarStats.occupancy}%`, helper: 'Cette semaine', icon: TrendingUp, tone: 'text-sky-500', glow: 'from-sky-400/14' },
         ].map(({ label, value, helper, icon: Icon, tone, glow }) => (
           <div key={label} className="group relative min-h-[118px] min-w-[136px] overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[var(--app-shadow)] transition hover:border-[#D4A017]/35 md:min-h-[126px] md:min-w-0 md:rounded-3xl md:p-4">
             <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${glow} to-transparent opacity-80`} />
@@ -450,11 +450,11 @@ export default function CalendarPage() {
             </div>
             <div className="flex flex-wrap gap-x-2.5 gap-y-1.5 text-[10px] leading-4 md:gap-x-3 md:gap-y-2 md:text-xs">
               {[
-                ['Disponible', 'bg-emerald-400', 'text-emerald-200 light:text-emerald-700'],
-                ['Réservé', 'bg-sky-400', 'text-sky-200 light:text-sky-700'],
-                ['Départ aujourd’hui', 'bg-amber-400', 'text-amber-200 light:text-amber-700'],
-                ['Retour aujourd’hui', 'bg-cyan-400', 'text-cyan-200 light:text-cyan-700'],
-                ['Maintenance', 'bg-violet-400', 'text-violet-200 light:text-violet-700'],
+                ['Disponible', 'bg-emerald-500', 'text-[var(--app-text-soft)]'],
+                ['Réservé', 'bg-sky-500', 'text-[var(--app-text-soft)]'],
+                ['Départ aujourd’hui', 'bg-amber-500', 'text-[var(--app-text-soft)]'],
+                ['Retour aujourd’hui', 'bg-cyan-500', 'text-[var(--app-text-soft)]'],
+                ['Maintenance', 'bg-violet-500', 'text-[var(--app-text-soft)]'],
               ].map(([label, dot, text]) => (
                 <span key={label} className={`inline-flex items-center gap-2 ${text}`}>
                   <span className={`h-2 w-2 rounded-full ${dot} md:h-2.5 md:w-2.5`} />
@@ -806,9 +806,9 @@ export default function CalendarPage() {
 
           <div className="mt-4 space-y-3 md:mt-5 md:space-y-5">
             {[
-              { title: 'Départs aujourd’hui', items: dayDetails.departures, tone: 'text-amber-200 light:text-amber-700', badge: 'Départ' },
-              { title: 'Retours aujourd’hui', items: dayDetails.returns, tone: 'text-cyan-200 light:text-cyan-700', badge: 'Retour' },
-              { title: 'Réservations actives', items: dayDetails.active, tone: 'text-emerald-200 light:text-emerald-700', badge: 'Actif' },
+              { title: 'Départs aujourd’hui', items: dayDetails.departures, tone: 'text-amber-500', badge: 'Départ' },
+              { title: 'Retours aujourd’hui', items: dayDetails.returns, tone: 'text-cyan-500', badge: 'Retour' },
+              { title: 'Réservations actives', items: dayDetails.active, tone: 'text-emerald-500', badge: 'Actif' },
             ].map(({ title, items, tone, badge }) => (
               <div key={title}>
                 <div className="mb-2 flex items-center justify-between">
@@ -887,7 +887,7 @@ export default function CalendarPage() {
 
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-[13px] font-black text-violet-200 light:text-violet-700 md:text-sm">Maintenance</p>
+                <p className="text-[13px] font-black text-violet-500 md:text-sm">Maintenance</p>
                 <span className="rounded-full border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-2 py-0.5 text-xs font-bold text-[var(--app-text-soft)]">{dayDetails.maintenanceItems.length}</span>
               </div>
               {dayDetails.maintenanceItems.length ? (
