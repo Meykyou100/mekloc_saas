@@ -495,7 +495,8 @@ export default function ReservationsPage() {
         rawMessage.includes('Client') ? 'Client manquant'
           : rawMessage.includes('Véhicule') || rawMessage.includes('véhicule') ? 'Véhicule manquant'
             : rawMessage.includes('Date') || rawMessage.includes('date') ? 'Dates invalides'
-              : rawMessage.includes('Agence') || rawMessage.includes('agency') ? 'Agence introuvable'
+              : rawMessage.includes('agence liée') ? rawMessage
+                : rawMessage.includes('Agence') || rawMessage.includes('agency') ? 'Agence introuvable'
                 : rawMessage || 'Réessayez dans quelques instants.';
       notify({
         title: 'Enregistrement impossible',

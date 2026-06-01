@@ -146,6 +146,25 @@ function formatSecurityDate(value: string | null | undefined) {
   });
 }
 
+function normalizeDateValue(value: string | null | undefined) {
+  if (!value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return trimmed.slice(0, 10);
+}
+
+function formatBillingDate(value: string | null | undefined) {
+  const dateKey = normalizeDateValue(value);
+  if (!dateKey) return '—';
+  const [year, month, day] = dateKey.split('-').map(Number);
+  if (!year || !month || !day) return dateKey;
+  return new Intl.DateTimeFormat('fr-FR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(year, month - 1, day));
+}
+
 function sessionDeviceLabel(sessionItem: AccountSession) {
   return sessionItem.device_label || sessionItem.device_name || sessionItem.browser || 'Appareil';
 }
@@ -170,10 +189,13 @@ export default function SettingsPage() {
     agency?.billingStatus === 'overdue' ? 'En retard' : 'Annulé';
   const billingTypeFr = (agency as { billingType?: 'monthly' | 'annual' } | null)?.billingType === 'annual' ? 'Annuel' : 'Mensuel';
   const nextPaymentDate = agency?.nextPaymentDueDate || null;
-  const endDate = agency?.subscriptionEndDate || null;
+  const effectiveLastPaymentDate =
+    agency?.lastPaymentDate ||
+    (agency?.billingStatus === 'paid' ? agency?.subscriptionStartDate || normalizeDateValue(agency?.createdAt) : null);
+  const effectiveSubscriptionEndDate = agency?.subscriptionEndDate || agency?.nextPaymentDueDate || null;
   const now = new Date();
   const nextDiff = nextPaymentDate ? Math.ceil((new Date(nextPaymentDate).getTime() - now.getTime()) / 86400000) : null;
-  const endDiff = endDate ? Math.ceil((new Date(endDate).getTime() - now.getTime()) / 86400000) : null;
+  const endDiff = effectiveSubscriptionEndDate ? Math.ceil((new Date(effectiveSubscriptionEndDate).getTime() - now.getTime()) / 86400000) : null;
   const contactPhone = SUPPORT_PHONE.replace(/^\+/, '');
   const contactEmail = SUPPORT_EMAIL;
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -627,8 +649,9 @@ export default function SettingsPage() {
       `Plan: ${(agency?.plan || 'starter').toUpperCase()}`,
       `Statut paiement: ${billingStatusFr}`,
       `Date: ${new Date().toLocaleDateString('fr-MA')}`,
-      `Prochain paiement: ${agency?.nextPaymentDueDate || '-'}`,
-      `Fin abonnement: ${agency?.subscriptionEndDate || '-'}`,
+      `Dernier paiement: ${formatBillingDate(effectiveLastPaymentDate)}`,
+      `Prochain paiement: ${formatBillingDate(agency?.nextPaymentDueDate || null)}`,
+      `Fin abonnement: ${formatBillingDate(effectiveSubscriptionEndDate)}`,
     ];
     const textStream = lines.map((line, i) => `BT /F1 11 Tf 50 ${780 - i * 18} Td (${line.replace(/[()\\]/g, '')}) Tj ET`).join('\n');
     const pdf = `%PDF-1.4
@@ -1333,9 +1356,9 @@ startxref
               <div className="grid gap-3 sm:grid-cols-2">
               <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-[var(--app-text-muted)]">Type facturation</p><p className="mt-1 font-semibold">{billingTypeFr}</p></div>
               <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-[var(--app-text-muted)]">Statut paiement</p><p className="mt-1 font-semibold">{billingStatusFr}</p></div>
-              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-[var(--app-text-muted)]">Dernier paiement</p><p className="mt-1 font-semibold">{agency?.lastPaymentDate || '—'}</p></div>
-              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-[var(--app-text-muted)]">Prochain paiement</p><p className="mt-1 font-semibold">{agency?.nextPaymentDueDate || '—'}</p></div>
-              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-[var(--app-text-muted)]">Fin d’abonnement</p><p className="mt-1 font-semibold">{agency?.subscriptionEndDate || '—'}</p></div>
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-[var(--app-text-muted)]">Dernier paiement</p><p className="mt-1 font-semibold">{formatBillingDate(effectiveLastPaymentDate)}</p></div>
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-[var(--app-text-muted)]">Prochain paiement</p><p className="mt-1 font-semibold">{formatBillingDate(agency?.nextPaymentDueDate || null)}</p></div>
+              <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-[var(--app-text-muted)]">Fin d’abonnement</p><p className="mt-1 font-semibold">{formatBillingDate(effectiveSubscriptionEndDate)}</p></div>
               <div className="premium-surface rounded-2xl p-4"><p className="text-xs text-[var(--app-text-muted)]">Méthode de paiement</p><p className="mt-1 font-semibold">{agency?.paymentMethod || 'other'}</p></div>
             </div>
             {agency?.paymentNotes ? <p className="mt-4 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3 text-sm text-[var(--app-text-soft)]">Notes paiement: {agency.paymentNotes}</p> : null}

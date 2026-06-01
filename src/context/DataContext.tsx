@@ -774,8 +774,30 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     const hasBackend = Boolean(isSupabaseEnabled && supabase && agencyId);
     const resolveAgencyId = async () => {
       if (agencyId) return agencyId;
-      const nextProfile = await refreshProfile();
-      return nextProfile?.agencyId || nextProfile?.agency?.id || null;
+      const nextProfile = await refreshProfile().catch(() => null);
+      if (nextProfile?.agencyId || nextProfile?.agency?.id) {
+        return nextProfile.agencyId || nextProfile.agency?.id || null;
+      }
+      if (!supabase) return null;
+      const { data: authData } = await supabase.auth.getUser();
+      const activeUser = authData.user;
+      if (!activeUser) return null;
+
+      const byUserId = await supabase
+        .from('users_profiles')
+        .select('agency_id')
+        .eq('id', activeUser.id)
+        .maybeSingle();
+      if (byUserId.data?.agency_id) return byUserId.data.agency_id as string;
+
+      const activeEmail = activeUser.email?.trim();
+      if (!activeEmail) return null;
+      const byEmail = await supabase
+        .from('users_profiles')
+        .select('agency_id')
+        .ilike('email', activeEmail)
+        .maybeSingle();
+      return (byEmail.data?.agency_id as string | null) || null;
     };
     const resolveReservationAgencyId = async (reservation: Reservation) => {
       const selectedVehicle = vehicles.find((item) => item.id === reservation.vehicleId);
@@ -1052,7 +1074,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }
         const activeAgencyId = await resolveReservationAgencyId(reservation);
         if (!activeAgencyId) {
-          throw new Error('Agence introuvable');
+          throw new Error("Impossible de trouver l’agence liée à votre compte. Veuillez contacter le support.");
         }
         await assertNoReservationOverlap(reservation, activeAgencyId);
         let data: unknown = null;
@@ -1122,7 +1144,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }
         const activeAgencyId = await resolveReservationAgencyId(reservation);
         if (!activeAgencyId) {
-          throw new Error('Agence introuvable');
+          throw new Error("Impossible de trouver l’agence liée à votre compte. Veuillez contacter le support.");
         }
         await assertNoReservationOverlap(reservation, activeAgencyId, reservation.id);
         let data: unknown = null;
