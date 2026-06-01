@@ -62,17 +62,17 @@ function KpiCard({
   };
 
   return (
-    <Card className="group flex min-h-[108px] flex-col justify-between rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-3 transition hover:border-gold-300/25 hover:shadow-[0_18px_50px_rgba(0,0,0,0.35)] sm:min-h-[148px] sm:rounded-3xl sm:p-5">
+    <Card className="group flex min-h-[104px] flex-col justify-between rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-3 transition hover:border-gold-300/25 hover:shadow-[0_18px_50px_rgba(0,0,0,0.20)] sm:min-h-[124px] sm:p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-[var(--app-text-muted)] sm:text-[11px]">{label}</p>
-          <p className="mt-2 truncate text-[1.35rem] font-black leading-none tracking-tight text-[var(--app-text)] sm:mt-3 sm:text-3xl">{value}</p>
+          <p className="mt-2 truncate text-[1.35rem] font-black leading-none tracking-tight text-[var(--app-text)] sm:text-2xl">{value}</p>
         </div>
         <div className={`rounded-xl border p-2 sm:rounded-2xl sm:p-2.5 ${toneClasses[tone]}`}>
           <Icon className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
         </div>
       </div>
-      <p className="mt-2 line-clamp-1 text-[11px] text-[var(--app-text-muted)] sm:mt-4 sm:text-sm">{helper}</p>
+      <p className="mt-2 line-clamp-1 text-[11px] text-[var(--app-text-muted)] sm:text-xs">{helper}</p>
     </Card>
   );
 }
@@ -115,13 +115,13 @@ function PriorityCard({
   children?: ReactNode;
 }) {
   return (
-    <Card className="min-h-[136px] rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-3 transition hover:border-gold-300/20 sm:min-h-[168px] sm:rounded-3xl sm:p-5">
-      <div className="mb-4 flex items-start justify-between gap-3">
+    <Card className="min-h-[150px] rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-3.5 transition hover:border-gold-300/20 sm:rounded-3xl sm:p-4">
+      <div className="mb-3 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="rounded-2xl border border-gold-300/20 bg-[var(--app-gold-soft)] p-2.5 text-[var(--app-gold-text)]">
             <Icon className="h-4 w-4" />
           </div>
-          <h3 className="text-base font-semibold text-[var(--app-text)] sm:text-lg">{title}</h3>
+          <h3 className="text-base font-black leading-tight text-[var(--app-text)]">{title}</h3>
         </div>
         <PriorityBadge priority={priority} />
       </div>
@@ -139,7 +139,7 @@ function PriorityBadge({ priority }: { priority: AssistantPriority }) {
 
 function QuickActionsCard() {
   return (
-    <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[var(--app-shadow)] sm:rounded-[28px] sm:p-5">
+    <Card className="self-start rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[var(--app-shadow)] sm:rounded-[28px] sm:p-4">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--app-gold-text)]">Commandes</p>
@@ -149,12 +149,12 @@ function QuickActionsCard() {
           Accès direct
         </span>
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-1">
+      <div className="grid grid-cols-2 gap-2 xl:grid-cols-1">
         {actionItems.map(({ label, to, icon: Icon }, index) => (
           <Link
             key={label}
             to={to}
-            className={`focus-ring flex min-h-11 items-center justify-between rounded-2xl border px-3 py-2.5 text-xs font-black transition sm:text-sm ${
+            className={`focus-ring flex min-h-11 items-center justify-between rounded-2xl border px-3 py-2.5 text-xs font-black transition ${
               index === 0
                 ? 'border-[#E8B923]/70 bg-[#D4A017] text-carbon-950 shadow-[0_14px_30px_rgba(212,160,23,.18)] hover:bg-[#E8B923]'
                 : 'border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] hover:border-gold-300/25 hover:bg-[var(--app-gold-soft)]'
@@ -268,7 +268,7 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,3fr)_minmax(260px,1fr)]">
       <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[var(--app-shadow)] sm:rounded-[28px] sm:p-5">
         <div className="mb-3 flex flex-wrap items-end justify-between gap-3 sm:mb-5">
           <div>
@@ -284,13 +284,13 @@ export default function DashboardPage() {
         </div>
 
         {loading ? (
-          <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-2">
             {Array.from({ length: 4 }).map((_, index) => (
               <div key={index} className="h-36 animate-pulse rounded-3xl border border-[var(--app-border)] bg-[var(--app-surface-soft)]" />
             ))}
           </div>
         ) : (
-          <div className="grid gap-3 lg:grid-cols-2 2xl:grid-cols-4">
+          <div className="grid gap-3 md:grid-cols-2">
             <PriorityCard title="Départs aujourd’hui" priority="today" icon={CalendarClock} emptyText="Aucun départ prévu.">
               {todayPickups.length === 0 ? (
                 null
@@ -319,24 +319,24 @@ export default function DashboardPage() {
                           {reservation.pickupLocation || 'Lieu à confirmer'} · {reservation.pickupDate}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <Link to="/reservations" className="rounded-lg border border-[var(--app-border)] px-3 py-1.5 text-xs font-semibold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
+                          <Link to="/reservations" className="rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
                             Voir réservation
                           </Link>
                           {!contractExists ? (
-                            <Link to="/contracts" className="rounded-lg border border-gold-300/40 bg-[var(--app-gold-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--app-gold-text)] hover:bg-gold-500/20">
+                            <Link to="/contracts" className="rounded-xl border border-gold-300/40 bg-[var(--app-gold-soft)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-gold-text)] hover:bg-gold-500/20">
                               Générer contrat
                             </Link>
                           ) : null}
                           {!notificationPreferences.reservationConfirmation ? (
-                            <button type="button" disabled className="cursor-not-allowed rounded-lg border border-[var(--app-border)] px-3 py-1.5 text-xs font-semibold text-[var(--app-text-muted)]">
+                            <button type="button" disabled className="cursor-not-allowed rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-muted)]">
                               WhatsApp désactivé
                             </button>
                           ) : whatsappUrl ? (
-                            <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-[var(--app-border)] px-3 py-1.5 text-xs font-semibold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
+                            <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
                               <MessageCircle className="h-3.5 w-3.5" /> Envoyer WhatsApp
                             </a>
                           ) : (
-                            <button type="button" disabled className="cursor-not-allowed rounded-lg border border-[var(--app-border)] px-3 py-1.5 text-xs font-semibold text-[var(--app-text-muted)]">
+                            <button type="button" disabled className="cursor-not-allowed rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-muted)]">
                               Téléphone manquant
                             </button>
                           )}
@@ -375,23 +375,23 @@ export default function DashboardPage() {
                           <button
                             type="button"
                             onClick={() => void markReservationCompleted(reservation.id)}
-                            className="rounded-lg border border-gold-300/40 bg-[var(--app-gold-soft)] px-3 py-1.5 text-xs font-semibold text-[var(--app-gold-text)] hover:bg-gold-500/20"
+                            className="rounded-xl border border-gold-300/40 bg-[var(--app-gold-soft)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-gold-text)] hover:bg-gold-500/20"
                           >
                             Marquer terminée
                           </button>
-                          <Link to="/reservations" className="rounded-lg border border-[var(--app-border)] px-3 py-1.5 text-xs font-semibold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
+                          <Link to="/reservations" className="rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
                             Voir détails
                           </Link>
                           {!notificationPreferences.returnReminder ? (
-                            <button type="button" disabled className="cursor-not-allowed rounded-lg border border-[var(--app-border)] px-3 py-1.5 text-xs font-semibold text-[var(--app-text-muted)]">
+                            <button type="button" disabled className="cursor-not-allowed rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-muted)]">
                               WhatsApp désactivé
                             </button>
                           ) : whatsappUrl ? (
-                            <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-[var(--app-border)] px-3 py-1.5 text-xs font-semibold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
+                            <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
                               <MessageCircle className="h-3.5 w-3.5" /> Envoyer WhatsApp
                             </a>
                           ) : (
-                            <button type="button" disabled className="cursor-not-allowed rounded-lg border border-[var(--app-border)] px-3 py-1.5 text-xs font-semibold text-[var(--app-text-muted)]">
+                            <button type="button" disabled className="cursor-not-allowed rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-muted)]">
                               Téléphone manquant
                             </button>
                           )}
@@ -416,7 +416,7 @@ export default function DashboardPage() {
                       <p className="text-sm font-semibold text-[var(--app-text)]">{reservation.client} · {reservation.vehicle}</p>
                       <p className="mt-1 text-xs text-rose-200 light:text-rose-700">Retour en retard depuis le {reservation.returnDate}</p>
                       <div className="mt-3">
-                        <Link to="/reservations" className="inline-flex items-center gap-1 rounded-lg border border-rose-200/30 px-3 py-1.5 text-xs font-semibold text-rose-200 hover:bg-rose-500/10 light:text-rose-700">
+                        <Link to="/reservations" className="inline-flex items-center gap-1 rounded-xl border border-rose-200/30 px-2.5 py-1.5 text-[11px] font-bold text-rose-200 hover:bg-rose-500/10 light:text-rose-700">
                           <AlertTriangle className="h-3.5 w-3.5" /> Voir réservation
                         </Link>
                       </div>
@@ -449,19 +449,19 @@ export default function DashboardPage() {
                           Reste à payer: {formatMAD(item.remaining)} {item.cautionMissing ? '· Caution manquante' : ''}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <Link to="/payments" className="rounded-lg border border-[var(--app-border)] px-3 py-1.5 text-xs font-semibold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
+                          <Link to="/payments" className="rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
                             Ajouter paiement
                           </Link>
                           {!notificationPreferences.paymentReminder ? (
-                            <button type="button" disabled className="cursor-not-allowed rounded-lg border border-[var(--app-border)] px-3 py-1.5 text-xs font-semibold text-[var(--app-text-muted)]">
+                            <button type="button" disabled className="cursor-not-allowed rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-muted)]">
                               WhatsApp désactivé
                             </button>
                           ) : whatsappUrl ? (
-                            <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-[var(--app-border)] px-3 py-1.5 text-xs font-semibold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
+                            <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
                               <MessageCircle className="h-3.5 w-3.5" /> Envoyer WhatsApp
                             </a>
                           ) : (
-                            <button type="button" disabled className="cursor-not-allowed rounded-lg border border-[var(--app-border)] px-3 py-1.5 text-xs font-semibold text-[var(--app-text-muted)]">
+                            <button type="button" disabled className="cursor-not-allowed rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-muted)]">
                               Téléphone manquant
                             </button>
                           )}
@@ -508,8 +508,8 @@ export default function DashboardPage() {
         </Card>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-3">
-        <Card className="rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-5 sm:p-6">
+      <section className="grid items-start gap-4 xl:grid-cols-3">
+        <Card className="rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-4 sm:p-5">
           <h2 className="text-xl font-semibold tracking-tight text-[var(--app-text)]">Départs à venir</h2>
           <div className="mt-5 grid gap-3">
             {upcomingPickups.length === 0 ? (
@@ -527,7 +527,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-5 sm:p-6">
+        <Card className="rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-4 sm:p-5">
           <h2 className="text-xl font-semibold tracking-tight text-[var(--app-text)]">Retours à venir</h2>
           <div className="mt-5 grid gap-3">
             {upcomingReturns.length === 0 ? (
@@ -545,7 +545,7 @@ export default function DashboardPage() {
           </div>
         </Card>
 
-        <Card className="rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-5 sm:p-6">
+        <Card className="rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-4 sm:p-5">
           <h2 className="text-xl font-semibold tracking-tight text-[var(--app-text)]">Paiements à relancer</h2>
           <div className="mt-5 grid gap-3">
             {latePaymentItems.length === 0 ? (
@@ -564,7 +564,7 @@ export default function DashboardPage() {
         </Card>
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+      <section className="grid items-start gap-4 xl:grid-cols-[1.2fr_0.8fr]">
         <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)]">
           <div className="flex items-center justify-between border-b border-[var(--app-border)] p-5 sm:p-6">
             <div>
