@@ -187,7 +187,10 @@ export default function SettingsPage() {
     agency?.billingStatus === 'paid' ? 'Payé' :
     agency?.billingStatus === 'unpaid' ? 'Non payé' :
     agency?.billingStatus === 'overdue' ? 'En retard' : 'Annulé';
-  const billingTypeFr = (agency as { billingType?: 'monthly' | 'annual' } | null)?.billingType === 'annual' ? 'Annuel' : 'Mensuel';
+  const billingTypeFr = agency?.billingType === 'lifetime' ? 'Lifetime' : agency?.billingType === 'annual' ? 'Annuel' : 'Mensuel';
+  const displayedPlanPrice = agency?.billingType === 'lifetime'
+    ? `${agency.annualPrice || agency.monthlyPrice || 5999} MAD à vie`
+    : `${agency?.monthlyPrice || 199} MAD / mois`;
   const nextPaymentDate = agency?.nextPaymentDueDate || null;
   const effectiveLastPaymentDate =
     agency?.lastPaymentDate ||
@@ -1325,8 +1328,10 @@ startxref
               <div className="grid gap-4">
               <SelectField label="Plan actuel" defaultValue="Pro">
                 <option>Gratuit</option>
+                <option>Starter</option>
                 <option>Pro</option>
                 <option>Business</option>
+                <option>Lifetime</option>
               </SelectField>
               <SelectField label="Méthode de paiement" defaultValue="Virement bancaire">
                 <option>Espèces</option>
@@ -1347,7 +1352,7 @@ startxref
                 <div>
                   <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--app-gold-text)]">Plan actuel</p>
                   <h2 className="mt-2 text-3xl font-black capitalize text-[var(--app-text)] ">{agency?.plan || 'starter'}</h2>
-                  <p className="mt-1 text-sm text-[var(--app-text-muted)]">{billingTypeFr} · {agency?.monthlyPrice ? `${agency.monthlyPrice} MAD / mois` : '99 MAD / mois'}</p>
+                  <p className="mt-1 text-sm text-[var(--app-text-muted)]">{billingTypeFr} · {displayedPlanPrice}</p>
                 </div>
                 <span className={`inline-flex w-fit rounded-full px-3 py-1.5 text-xs font-bold ${agency?.billingStatus === 'paid' ? 'bg-emerald-400/15 text-emerald-700 dark:text-emerald-200' : agency?.billingStatus === 'trial' ? 'bg-sky-400/15 text-sky-700 dark:text-sky-200' : agency?.billingStatus === 'overdue' ? 'bg-orange-400/15 text-orange-700 dark:text-orange-200' : agency?.billingStatus === 'unpaid' ? 'bg-rose-400/15 text-rose-700 dark:text-rose-200' : 'bg-slate-400/15 text-slate-700 dark:text-slate-200'}`}>{billingStatusFr}</span>
               </div>

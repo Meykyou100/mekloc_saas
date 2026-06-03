@@ -18,7 +18,7 @@ export type UserProfile = {
 };
 
 export type AccountStatus = 'pending' | 'active' | 'rejected' | 'suspended' | 'pending_deletion';
-export type AgencyPlan = 'starter' | 'pro' | 'business';
+export type AgencyPlan = 'starter' | 'pro' | 'business' | 'lifetime';
 export type BillingStatus = 'trial' | 'paid' | 'unpaid' | 'overdue' | 'cancelled';
 export type PaymentMethod = 'cash' | 'bank_transfer' | 'card' | 'other';
 
@@ -38,7 +38,9 @@ export type AgencySubscription = {
   subscriptionEndDate: string | null;
   lastPaymentDate: string | null;
   nextPaymentDueDate: string | null;
+  billingType?: 'monthly' | 'annual' | 'lifetime';
   monthlyPrice: number;
+  annualPrice?: number;
   paymentMethod: PaymentMethod;
   paymentNotes: string;
   createdAt: string;
@@ -121,7 +123,9 @@ type AgencyRow = {
   subscription_end_date: string | null;
   last_payment_date: string | null;
   next_payment_due_date: string | null;
+  billing_type?: 'monthly' | 'annual' | 'lifetime' | null;
   monthly_price: number | null;
+  annual_price?: number | null;
   payment_method: PaymentMethod | null;
   payment_notes: string | null;
   created_at: string;
@@ -194,7 +198,9 @@ function mapAgency(row: AgencyRow | AgencyRow[] | null): AgencySubscription | nu
     subscriptionEndDate: agency.subscription_end_date,
     lastPaymentDate: agency.last_payment_date,
     nextPaymentDueDate: agency.next_payment_due_date,
+    billingType: agency.billing_type || 'monthly',
     monthlyPrice: Number(agency.monthly_price ?? 0),
+    annualPrice: Number(agency.annual_price ?? 0),
     paymentMethod: agency.payment_method || 'other',
     paymentNotes: agency.payment_notes || '',
     createdAt: agency.created_at,

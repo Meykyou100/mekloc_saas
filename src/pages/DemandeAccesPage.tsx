@@ -45,8 +45,19 @@ const plans = [
     features: ['Véhicules illimités', 'Réservations illimitées', 'Clients illimités', 'Contrats PDF illimités', 'Paiements & factures', 'Entretien véhicules avancé', 'Alertes WhatsApp', 'Équipe / multi-utilisateurs', 'Rapports', 'Support prioritaire'],
     cta: 'Choisir Business',
   },
+  {
+    id: 'lifetime',
+    name: 'Lifetime',
+    monthly: MEKLOC_PLANS.lifetime.lifetimePrice,
+    annual: MEKLOC_PLANS.lifetime.lifetimePrice,
+    annualBillingLabel: MEKLOC_PLANS.lifetime.annualBillingLabel,
+    note: 'Paiement unique',
+    features: ['Accès à vie MekLoc', 'Véhicules illimités', 'Réservations illimitées', 'Contrats PDF illimités', 'Paiements & cautions', 'Rapports', 'Support prioritaire'],
+    cta: 'Choisir Lifetime',
+  },
 ] as const;
 type PlanId = MekLocPlanId;
+type BillingType = 'monthly' | 'annual' | 'lifetime';
 
 function isProductionHost() {
   if (typeof window === 'undefined') return false;
@@ -82,10 +93,12 @@ export default function DemandeAccesPage() {
   const prefilledEmail = searchParams.get('email') || '';
   const fromLogin = searchParams.get('from') === 'login';
   const isEmailTestMode = canShowEmailTestCode();
-  const requestedPlan = searchParams.get('plan') === 'starter' || searchParams.get('plan') === 'business'
+  const requestedPlan = searchParams.get('plan') === 'starter' || searchParams.get('plan') === 'business' || searchParams.get('plan') === 'lifetime'
     ? (searchParams.get('plan') as PlanId)
     : 'business';
-  const requestedBilling = searchParams.get('billing') === 'annual' ? 'annual' : 'monthly';
+  const requestedBilling: BillingType = requestedPlan === 'lifetime' || searchParams.get('billing') === 'lifetime'
+    ? 'lifetime'
+    : searchParams.get('billing') === 'annual' ? 'annual' : 'monthly';
   const [email, setEmail] = useState(normalizeEmail(prefilledEmail));
   const [emailVerificationCode, setEmailVerificationCode] = useState('');
   const [emailVerificationStatus, setEmailVerificationStatus] = useState<'idle' | 'sent' | 'verified'>('idle');
@@ -98,7 +111,15 @@ export default function DemandeAccesPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PlanId>(requestedPlan);
-  const [billingType, setBillingType] = useState<'monthly' | 'annual'>(requestedBilling);
+  const [billingType, setBillingType] = useState<BillingType>(requestedBilling);
+
+  useEffect(() => {
+    if (selectedPlan === 'lifetime') {
+      setBillingType('lifetime');
+    } else if (billingType === 'lifetime') {
+      setBillingType('monthly');
+    }
+  }, [billingType, selectedPlan]);
 
   function isBlockedEmailDomain(value: string) {
     const domain = value.split('@')[1] || '';
@@ -365,20 +386,26 @@ export default function DemandeAccesPage() {
           <aside className="grid gap-5">
             <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-5 shadow-[0_24px_80px_rgba(0,0,0,.42)] backdrop-blur-xl sm:p-6">
               <h2 className="text-lg font-black">1. Choisissez votre plan</h2>
-              <div className="mt-5 grid grid-cols-2 rounded-2xl border border-white/10 bg-black/40 p-1">
-                <button type="button" onClick={() => setBillingType('monthly')} className={`rounded-xl px-4 py-2.5 text-sm font-black transition ${billingType === 'monthly' ? 'bg-[#E3B117] text-[#070807]' : 'text-zinc-400 hover:text-white'}`}>Mensuel</button>
-                <button type="button" onClick={() => setBillingType('annual')} className={`rounded-xl px-4 py-2.5 text-sm font-black transition ${billingType === 'annual' ? 'bg-[#E3B117] text-[#070807]' : 'text-zinc-400 hover:text-white'}`}>Annuel</button>
+              <div className="mt-5 grid grid-cols-3 rounded-2xl border border-white/10 bg-black/40 p-1">
+                <button type="button" onClick={() => setBillingType('monthly')} disabled={selectedPlan === 'lifetime'} className={`rounded-xl px-3 py-2.5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-35 ${billingType === 'monthly' ? 'bg-[#E3B117] text-[#070807]' : 'text-zinc-400 hover:text-white'}`}>Mensuel</button>
+                <button type="button" onClick={() => setBillingType('annual')} disabled={selectedPlan === 'lifetime'} className={`rounded-xl px-3 py-2.5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-35 ${billingType === 'annual' ? 'bg-[#E3B117] text-[#070807]' : 'text-zinc-400 hover:text-white'}`}>Annuel</button>
+                <button type="button" onClick={() => setSelectedPlan('lifetime')} className={`rounded-xl px-3 py-2.5 text-sm font-black transition ${billingType === 'lifetime' ? 'bg-[#E3B117] text-[#070807]' : 'text-zinc-400 hover:text-white'}`}>Lifetime</button>
               </div>
 
               <div className="mt-5 grid gap-3">
                 {plans.map((plan) => {
                   const active = selectedPlan === plan.id;
-                  const price = billingType === 'annual' ? plan.annual : plan.monthly;
+                  const isLifetime = plan.id === 'lifetime';
+                  const price = isLifetime ? plan.annual : billingType === 'annual' ? plan.annual : plan.monthly;
                   return (
                     <button
                       key={plan.id}
                       type="button"
-                      onClick={() => setSelectedPlan(plan.id)}
+                      onClick={() => {
+                        setSelectedPlan(plan.id);
+                        if (plan.id === 'lifetime') setBillingType('lifetime');
+                        if (plan.id !== 'lifetime' && billingType === 'lifetime') setBillingType('monthly');
+                      }}
                       className={`relative rounded-2xl border p-5 text-left transition ${
                         active
                           ? 'border-[#E3B117]/60 bg-[#E3B117]/5 shadow-[0_0_50px_rgba(227,177,23,0.12)]'
@@ -389,13 +416,14 @@ export default function DemandeAccesPage() {
                         <CheckCircle2 className="h-3.5 w-3.5" />
                       </span>
                       {plan.id === 'business' ? <span className="absolute right-12 top-4 rounded-full bg-[#E3B117] px-2.5 py-1 text-[10px] font-black text-[#070807]">Populaire</span> : null}
+                      {isLifetime ? <span className="absolute right-12 top-4 rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-[#070807]">À vie</span> : null}
                       <h3 className="text-xl font-black">{plan.name}</h3>
                       <p className="mt-1 text-sm text-zinc-400">{plan.note}</p>
                       <p className="mt-5 text-4xl font-black">
                         {price.toLocaleString('fr-FR')} MAD
-                        <span className="ml-1 text-base font-semibold text-zinc-500">{billingType === 'annual' ? '/an' : '/mois'}</span>
+                        <span className="ml-1 text-base font-semibold text-zinc-500">{isLifetime ? 'à vie' : billingType === 'annual' ? '/an' : '/mois'}</span>
                       </p>
-                      {billingType === 'annual' ? <p className="mt-2 text-sm font-semibold text-[#F5C542]">{plan.annualBillingLabel}</p> : null}
+                      {isLifetime ? <p className="mt-2 text-sm font-semibold text-[#F5C542]">Paiement unique 5 999 MAD</p> : billingType === 'annual' ? <p className="mt-2 text-sm font-semibold text-[#F5C542]">{plan.annualBillingLabel}</p> : null}
                       <div className="mt-5 space-y-2.5">
                         {plan.features.map((feature) => (
                           <p key={feature} className="flex items-center gap-2 text-sm text-zinc-300">

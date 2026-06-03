@@ -95,6 +95,7 @@ function formatDate(value: string) {
 }
 
 function billingLabel(value: string) {
+  if (value === 'lifetime') return 'Lifetime / paiement unique';
   if (value === 'annual') return 'Annuel';
   if (value === 'monthly') return 'Mensuel';
   return value || 'Non renseigné';

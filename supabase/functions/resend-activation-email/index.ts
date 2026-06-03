@@ -29,6 +29,7 @@ function escapeHtml(value: string) {
 
 function formatPlanName(plan: string) {
   const value = plan.trim().toLowerCase();
+  if (value === 'lifetime') return 'Lifetime';
   if (value === 'business') return 'Business';
   if (value === 'pro') return 'Pro';
   return 'Starter';

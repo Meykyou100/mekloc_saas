@@ -22,7 +22,7 @@ type AccessRequestRow = {
   country: string;
   city: string;
   selected_plan: AgencyPlan;
-  billing_type: 'monthly' | 'annual';
+  billing_type: 'monthly' | 'annual' | 'lifetime';
   vehicle_count: number;
   status: AccessRequestStatus;
   admin_notes: string | null;
@@ -74,7 +74,7 @@ type UserSessionRow = {
   revoked_at: string | null;
 };
 
-const monthlyPriceByPlan: Record<AgencyPlan, number> = { starter: 99, pro: 250, business: 499 };
+const monthlyPriceByPlan: Record<AgencyPlan, number> = { starter: 199, pro: 250, business: 319, lifetime: 5999 };
 
 function addDays(baseDate: string | null, days: number) {
   const d = baseDate ? new Date(baseDate) : new Date();
@@ -101,6 +101,7 @@ function pickAgencyOwnerProfile<T extends { agency_id: string | null; role?: str
 }
 
 function planLabel(plan: AgencyPlan) {
+  if (plan === 'lifetime') return 'Plan Lifetime';
   if (plan === 'business') return 'Plan Business';
   if (plan === 'pro') return 'Plan Pro';
   return 'Plan Starter';
@@ -159,7 +160,7 @@ export default function SuperAdminPage() {
   const [expandedSessionAgencyId, setExpandedSessionAgencyId] = useState<string | null>(null);
   const [expandedAdvancedAgencyId, setExpandedAdvancedAgencyId] = useState<string | null>(null);
   const [agencySearch, setAgencySearch] = useState('');
-  const [agencyPlanFilter, setAgencyPlanFilter] = useState<'all' | 'starter' | 'business'>('all');
+  const [agencyPlanFilter, setAgencyPlanFilter] = useState<'all' | 'starter' | 'pro' | 'business' | 'lifetime'>('all');
   const [agencyStatusFilter, setAgencyStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [agencyPaymentFilter, setAgencyPaymentFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
   const [showSessionHistoryAgencyId, setShowSessionHistoryAgencyId] = useState<string | null>(null);
@@ -723,7 +724,7 @@ export default function SuperAdminPage() {
                 <div className="mt-2 grid gap-2 text-sm text-carbon-300 md:grid-cols-3">
                   <p><strong>Agence:</strong> {req.agency_name}</p><p><strong>Responsable:</strong> {req.owner_name}</p><p><strong>Email:</strong> {req.email}</p>
                   <p><strong>Téléphone:</strong> {req.phone_country_code} {req.phone_number}</p><p><strong>Pays:</strong> {req.country}</p><p><strong>Ville:</strong> {req.city}</p>
-                  <p><strong>Plan demandé:</strong> {req.selected_plan}</p><p><strong>Facturation:</strong> {req.billing_type === 'annual' ? 'Annuel' : 'Mensuel'}</p><p><strong>Nombre de véhicules:</strong> {req.vehicle_count}</p>
+                  <p><strong>Plan demandé:</strong> {planLabel(req.selected_plan)}</p><p><strong>Facturation:</strong> {req.billing_type === 'lifetime' ? 'Lifetime' : req.billing_type === 'annual' ? 'Annuel' : 'Mensuel'}</p><p><strong>Nombre de véhicules:</strong> {req.vehicle_count}</p>
                   <p>
                     <strong>Date de demande:</strong>{' '}
                     {new Date(req.created_at).toLocaleString('fr-MA', {
@@ -842,7 +843,9 @@ export default function SuperAdminPage() {
             <select className="form-control min-w-36" value={agencyPlanFilter} onChange={(e) => setAgencyPlanFilter(e.target.value as typeof agencyPlanFilter)}>
               <option value="all">Tous les plans</option>
               <option value="starter">Starter</option>
+              <option value="pro">Pro</option>
               <option value="business">Business</option>
+              <option value="lifetime">Lifetime</option>
             </select>
             <select className="form-control min-w-36" value={agencyStatusFilter} onChange={(e) => setAgencyStatusFilter(e.target.value as typeof agencyStatusFilter)}>
               <option value="all">Tous statuts</option>
@@ -876,7 +879,7 @@ export default function SuperAdminPage() {
                   <p><strong className="text-white">Prix:</strong> {formatMAD(agency.monthlyPrice)}</p>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <Button variant="secondary" icon={<Crown className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-plan-${agency.id}`])} onClick={() => runAction(`agency-plan-${agency.id}`, async () => changeAgencyPlan(agency, agency.plan === 'starter' ? 'pro' : agency.plan === 'pro' ? 'business' : 'starter'))}>Changer plan</Button>
+                  <Button variant="secondary" icon={<Crown className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-plan-${agency.id}`])} onClick={() => runAction(`agency-plan-${agency.id}`, async () => changeAgencyPlan(agency, agency.plan === 'starter' ? 'pro' : agency.plan === 'pro' ? 'business' : agency.plan === 'business' ? 'lifetime' : 'starter'))}>Changer plan</Button>
                   <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-paid-${agency.id}`])} onClick={() => runAction(`agency-paid-${agency.id}`, async () => markBilling(agency, 'paid'))}>Marquer payé</Button>
                   <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-unpaid-${agency.id}`])} onClick={() => runAction(`agency-unpaid-${agency.id}`, async () => markBilling(agency, 'unpaid'))}>Marquer non payé</Button>
                   <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-extend-${agency.id}`])} onClick={() => runAction(`agency-extend-${agency.id}`, async () => extendSubscription(agency, 30))}>Prolonger abonnement</Button>

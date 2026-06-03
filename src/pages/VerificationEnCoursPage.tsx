@@ -13,6 +13,14 @@ function statusLabel(status: string) {
   return status || 'En cours de vérification';
 }
 
+function planLabel(plan: string) {
+  const value = plan.trim().toLowerCase();
+  if (value === 'lifetime') return 'Lifetime';
+  if (value === 'business') return 'Business';
+  if (value === 'pro') return 'Pro';
+  return 'Starter';
+}
+
 export default function VerificationEnCoursPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -80,7 +88,7 @@ export default function VerificationEnCoursPage() {
         <div className="mt-6 space-y-2 rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-carbon-300">
           <p><strong className="text-white">Email:</strong> {email || '-'}</p>
           <p><strong className="text-white">Agence:</strong> {agency}</p>
-          <p><strong className="text-white">Plan demandé:</strong> {plan}</p>
+          <p><strong className="text-white">Plan demandé:</strong> {planLabel(plan)}</p>
           <p><strong className="text-white">Statut:</strong> {statusLabel(status)}</p>
           <p><strong className="text-white">Date de demande:</strong> {formattedCreatedAt}</p>
         </div>

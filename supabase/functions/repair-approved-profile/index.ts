@@ -4,8 +4,9 @@ function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || 'agence';
 }
 
-function normalizePlan(rawPlan: unknown): 'starter' | 'pro' | 'business' {
+function normalizePlan(rawPlan: unknown): 'starter' | 'pro' | 'business' | 'lifetime' {
   const value = String(rawPlan || '').trim().toLowerCase();
+  if (value === 'lifetime' || value === 'life_time') return 'lifetime';
   if (value === 'pro') return 'pro';
   if (value === 'business') return 'business';
   return 'starter';
@@ -80,6 +81,9 @@ Deno.serve(async (req) => {
       const today = new Date();
       const nextDue = new Date(today);
       nextDue.setDate(nextDue.getDate() + 30);
+      const plan = normalizePlan(accessRequest.selected_plan);
+      const monthlyPriceByPlan: Record<typeof plan, number> = { starter: 199, pro: 250, business: 319, lifetime: 5999 };
+      const annualPriceByPlan: Record<typeof plan, number> = { starter: 2390, pro: 2500, business: 3830, lifetime: 5999 };
       const createAgencyRes = await fetch(`${projectUrl}/rest/v1/agencies`, {
         method: 'POST',
         headers: { ...headers, Prefer: 'return=representation' },
@@ -87,10 +91,13 @@ Deno.serve(async (req) => {
           name: agencyName,
           slug: `${slugify(agencyName)}-${Date.now().toString().slice(-5)}`,
           created_by: userId,
-          plan: normalizePlan(accessRequest.selected_plan),
+          plan,
           billing_status: 'trial',
           subscription_start_date: today.toISOString().slice(0, 10),
           next_payment_due_date: nextDue.toISOString().slice(0, 10),
+          billing_type: String(accessRequest.billing_type || (plan === 'lifetime' ? 'lifetime' : 'monthly')),
+          monthly_price: monthlyPriceByPlan[plan],
+          annual_price: annualPriceByPlan[plan],
         }]),
       });
       const createdAgency = await readRows<{ id: string }>(createAgencyRes);

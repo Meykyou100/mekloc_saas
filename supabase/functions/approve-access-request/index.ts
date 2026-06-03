@@ -22,8 +22,9 @@ function getAppOrigin(redirectTo?: string) {
   }
 }
 
-function normalizePlan(rawPlan: string): 'starter' | 'pro' | 'business' {
+function normalizePlan(rawPlan: string): 'starter' | 'pro' | 'business' | 'lifetime' {
   const value = rawPlan.trim().toLowerCase();
+  if (value === 'lifetime' || value === 'life_time' || value === 'à vie' || value === 'a vie') return 'lifetime';
   if (value === 'pro') return 'pro';
   if (value === 'business') return 'business';
   if (value === 'gratuit' || value === 'free' || value === 'starter') return 'starter';
@@ -49,6 +50,7 @@ function escapeHtml(value: string) {
 
 function formatPlanName(plan: string) {
   const value = plan.trim().toLowerCase();
+  if (value === 'lifetime') return 'Lifetime';
   if (value === 'business') return 'Business';
   if (value === 'pro') return 'Pro';
   return 'Starter';
@@ -368,6 +370,8 @@ Deno.serve(async (req) => {
     const ownerName = String(row.owner_name || 'Responsable');
     const plan = normalizePlan(String(row.selected_plan || 'starter'));
     const billingType = String(row.billing_type || 'monthly');
+    const monthlyPriceByPlan: Record<typeof plan, number> = { starter: 199, pro: 250, business: 319, lifetime: 5999 };
+    const annualPriceByPlan: Record<typeof plan, number> = { starter: 2390, pro: 2500, business: 3830, lifetime: 5999 };
     const phone = `${String(row.phone_country_code || '+212')} ${String(row.phone_number || '')}`.trim();
     const today = new Date();
     const startDate = today.toISOString().slice(0, 10);
@@ -415,6 +419,9 @@ Deno.serve(async (req) => {
           billing_status: 'trial',
           subscription_start_date: startDate,
           next_payment_due_date: nextDueDate,
+          billing_type: billingType,
+          monthly_price: monthlyPriceByPlan[plan],
+          annual_price: annualPriceByPlan[plan],
         }]),
       });
       const createAgencyText = await createAgencyRes.text();
@@ -432,6 +439,9 @@ Deno.serve(async (req) => {
           plan,
           billing_status: 'trial',
           next_payment_due_date: nextDueDate,
+          billing_type: billingType,
+          monthly_price: monthlyPriceByPlan[plan],
+          annual_price: annualPriceByPlan[plan],
         }),
       });
       if (!updateAgencyRes.ok) {

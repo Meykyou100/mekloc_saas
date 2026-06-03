@@ -16,7 +16,7 @@ create table if not exists public.agencies (
   slug text unique,
   logo_path text,
   created_by uuid not null references auth.users(id) on delete cascade,
-  plan text not null default 'free' check (plan in ('free', 'pro', 'business')),
+  plan text not null default 'free' check (plan in ('free', 'pro', 'business', 'lifetime')),
   billing_status text not null default 'trial' check (billing_status in ('trial', 'paid', 'unpaid', 'overdue', 'cancelled')),
   subscription_start_date date,
   subscription_end_date date,

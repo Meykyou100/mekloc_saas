@@ -1,4 +1,4 @@
-import { ArrowLeft, CheckCircle2, Crown, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Crown, Infinity, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -28,7 +28,7 @@ export default function PricingPage() {
             Choisissez votre plan selon la taille de votre parc et de votre équipe.
           </p>
         </div>
-        <div className="mt-12 grid gap-5 lg:grid-cols-2">
+        <div className="mt-12 grid gap-5 lg:grid-cols-3">
           {plans.map((plan) => (
             <Card
               key={plan.name}
@@ -36,7 +36,7 @@ export default function PricingPage() {
             >
               <div className="mb-6 flex items-center justify-between">
                 <div className="rounded-2xl border border-gold-300/20 bg-gold-400/10 p-3 text-gold-200">
-                  {plan.name === 'Business' ? <Crown className="h-6 w-6" /> : <ShieldCheck className="h-6 w-6" />}
+                  {plan.name === 'Lifetime' ? <Infinity className="h-6 w-6" /> : plan.name === 'Business' ? <Crown className="h-6 w-6" /> : <ShieldCheck className="h-6 w-6" />}
                 </div>
                 {plan.featured ? <span className="rounded-full bg-gold-400 px-3 py-1 text-xs font-black text-carbon-950">{(plan as { badge?: string }).badge || 'Recommandé'}</span> : null}
               </div>
@@ -54,7 +54,7 @@ export default function PricingPage() {
                   </p>
                 ))}
               </div>
-              <Link to={`/demande-acces?plan=${encodeURIComponent((plan as { id?: string }).id || plan.name.toLowerCase())}`} className="mt-8 block">
+              <Link to={`/demande-acces?plan=${encodeURIComponent((plan as { id?: string }).id || plan.name.toLowerCase())}&billing=${plan.name === 'Lifetime' ? 'lifetime' : 'monthly'}`} className="mt-8 block">
                 <Button className="w-full" variant={plan.featured ? 'primary' : 'secondary'}>
                   Choisir {plan.name}
                 </Button>

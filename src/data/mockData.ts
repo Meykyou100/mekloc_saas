@@ -628,6 +628,16 @@ export const plans = [
     badge: 'Recommandé',
     features: ['Véhicules illimités', 'Réservations illimitées', 'Clients illimités', 'Contrats PDF illimités', 'Paiements & factures', 'Entretien véhicules avancé', 'Alertes WhatsApp', 'Équipe / multi-utilisateurs', 'Rapports', 'Support prioritaire'],
   },
+  {
+    id: 'lifetime',
+    name: 'Lifetime',
+    price: '5 999 MAD',
+    cadence: ' à vie',
+    note: 'Paiement unique',
+    featured: true,
+    badge: 'À vie',
+    features: ['Accès à vie MekLoc', 'Véhicules illimités', 'Réservations illimitées', 'Contrats PDF illimités', 'Paiements & cautions', 'Rapports financiers', 'Support prioritaire'],
+  },
 ];
 
 export const activityFeed = [

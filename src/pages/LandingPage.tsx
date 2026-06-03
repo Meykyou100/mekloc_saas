@@ -108,6 +108,16 @@ const plans = [
     recommended: true,
     features: ['Véhicules illimités', 'Réservations illimitées', 'Contrats illimités', 'Paiements & cautions', 'Alertes & WhatsApp', 'Rapports avancés', 'Support prioritaire'],
   },
+  {
+    id: 'lifetime',
+    name: 'Lifetime',
+    monthlyPrice: MEKLOC_PLANS.lifetime.lifetimePrice,
+    annualPrice: MEKLOC_PLANS.lifetime.lifetimePrice,
+    annualBillingLabel: MEKLOC_PLANS.lifetime.annualBillingLabel,
+    note: 'Paiement unique',
+    lifetime: true,
+    features: ['Accès à vie MekLoc', 'Véhicules illimités', 'Réservations illimitées', 'Contrats PDF illimités', 'Paiements & cautions', 'Rapports financiers', 'Support prioritaire'],
+  },
 ];
 
 const faqs: Array<[string, string]> = [
@@ -702,32 +712,37 @@ export default function LandingPage() {
                 Annuel (-20%)
               </button>
             </div>
-            <div className="mt-8 grid gap-5 md:grid-cols-2 md:gap-7">
+            <div className="mt-8 grid gap-5 md:grid-cols-3 md:gap-5 xl:gap-7">
               {plans.map((plan) => {
-                const displayPrice = billingCycle === 'annual' ? plan.annualPrice : plan.monthlyPrice;
-                const planUrl = `/demande-acces?plan=${plan.id}&billing=${billingCycle}`;
+                const isLifetime = 'lifetime' in plan && plan.lifetime;
+                const displayPrice = isLifetime ? plan.annualPrice : billingCycle === 'annual' ? plan.annualPrice : plan.monthlyPrice;
+                const cadence = isLifetime ? 'à vie' : billingCycle === 'annual' ? '/an' : '/mois';
+                const planUrl = `/demande-acces?plan=${plan.id}&billing=${isLifetime ? 'lifetime' : billingCycle}`;
 
                 return (
-                  <Card key={plan.id} className={`relative p-6 hover:border-[#E3B117]/30 sm:p-9 ${plan.recommended ? 'order-first border-[#E3B117]/65 bg-gradient-to-br from-[#E3B117]/12 via-zinc-950/90 to-black shadow-[0_0_70px_rgba(227,177,23,.16)] md:order-none' : ''}`}>
+                  <Card key={plan.id} className={`relative flex min-h-full flex-col p-6 hover:border-[#E3B117]/30 sm:p-7 ${plan.recommended ? 'border-[#E3B117]/65 bg-gradient-to-br from-[#E3B117]/12 via-zinc-950/90 to-black shadow-[0_0_70px_rgba(227,177,23,.16)]' : ''} ${isLifetime ? 'border-[#F5C542]/70 bg-gradient-to-br from-[#E3B117]/18 via-zinc-950/92 to-black shadow-[0_0_90px_rgba(227,177,23,.22)]' : ''}`}>
                     {plan.recommended ? <span className="absolute right-5 top-5 rounded-full bg-[#E3B117] px-3 py-1 text-xs font-black text-[#070807] sm:right-6 sm:top-6">Recommandé</span> : null}
+                    {isLifetime ? <span className="absolute right-5 top-5 rounded-full bg-white px-3 py-1 text-xs font-black text-[#070807] sm:right-6 sm:top-6">Meilleure valeur</span> : null}
                     <span className="grid h-14 w-14 place-items-center rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542]"><Sparkles className="h-6 w-6" /></span>
                     <h3 className="mt-5 text-2xl font-black">{plan.name}</h3>
                     <p className="mt-1 text-sm text-white/50">{plan.note}</p>
                     <p className="mt-6 text-4xl font-black sm:mt-7 sm:text-5xl">
                       {displayPrice.toLocaleString('fr-FR')}
                       <span className="ml-2 text-lg">MAD</span>
-                      <span className="text-base font-medium text-white/55"> {billingCycle === 'annual' ? '/an' : '/mois'}</span>
+                      <span className="text-base font-medium text-white/55"> {cadence}</span>
                     </p>
-                    {billingCycle === 'annual' ? (
+                    {isLifetime ? (
+                      <p className="mt-2 text-sm font-semibold text-[#F5C542]">Paiement unique, accès durable</p>
+                    ) : billingCycle === 'annual' ? (
                       <p className="mt-2 text-sm font-semibold text-[#F5C542]">{plan.annualBillingLabel}</p>
                     ) : (
                       <p className="mt-2 text-sm font-semibold text-white/38">Facturation mensuelle</p>
                     )}
-                    <div className="mt-7 space-y-3 sm:mt-8 sm:space-y-3.5">
+                    <div className="mt-7 grow space-y-3 sm:mt-8 sm:space-y-3.5">
                       {plan.features.map((feature) => <p key={feature} className="flex gap-3 text-base text-white/75"><Check className="h-5 w-5 shrink-0 text-[#F5C542]" />{feature}</p>)}
                     </div>
                     <Link to={planUrl} className="mt-7 block">
-                      <Button className={`h-14 w-full rounded-2xl font-black ${plan.recommended ? 'bg-[#E3B117] text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.18)] hover:bg-[#F5C542]' : 'border-white/15 bg-white/[0.05] hover:border-[#E3B117]/30'}`} variant={plan.recommended ? 'primary' : 'secondary'}>
+                      <Button className={`h-14 w-full rounded-2xl font-black ${plan.recommended || isLifetime ? 'bg-[#E3B117] text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.18)] hover:bg-[#F5C542]' : 'border-white/15 bg-white/[0.05] hover:border-[#E3B117]/30'}`} variant={plan.recommended || isLifetime ? 'primary' : 'secondary'}>
                         Choisir {plan.name}
                       </Button>
                     </Link>
