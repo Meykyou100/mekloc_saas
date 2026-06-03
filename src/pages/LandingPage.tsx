@@ -387,108 +387,55 @@ function MobileCommandHero() {
 }
 
 function InterfaceDashboardMockup({ activeTab }: { activeTab: number }) {
-  const menuItems = ['Tableau de bord', 'Réservations', 'Véhicules', 'Clients', 'Contrats PDF', 'Paiements', 'Entretien'];
-  const reservationRows = [
-    ['Ilyas Sidi Hida', 'Audi A3', 'Demain'],
-    ['Sara El Amrani', 'Dacia Duster', '26 Mai'],
-    ['Youssef Benali', 'Renault Clio 5', '27 Mai'],
+  const screens = [
+    {
+      title: 'Tableau de bord',
+      subtitle: 'Vue quotidienne: priorités, réservations, flotte, paiements et alertes.',
+      image: '/landing/app-dashboard.png',
+      metric: 'Vue agence',
+    },
+    {
+      title: 'Véhicules',
+      subtitle: 'Votre flotte réelle avec photos, statuts, documents et tarification.',
+      image: '/landing/app-vehicles.jpeg',
+      metric: 'Parc automobile',
+    },
+    {
+      title: 'Contrats PDF',
+      subtitle: 'Sélection, validation, aperçu et téléchargement de contrats professionnels.',
+      image: '/landing/app-contracts.jpeg',
+      metric: 'Documents',
+    },
   ];
+  const activeScreen = screens[activeTab] || screens[0];
 
   return (
-    <div className="relative mx-auto max-w-[1100px] overflow-hidden rounded-[26px] border border-[#E3B117]/25 bg-gradient-to-br from-zinc-950 via-black to-zinc-950 shadow-[0_0_100px_rgba(227,177,23,0.16)] sm:rounded-[32px]">
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#F5C542] to-transparent" />
-      <div className="grid bg-[radial-gradient(circle_at_72%_12%,rgba(227,177,23,.10),transparent_35%)] sm:grid-cols-[180px_1fr] lg:grid-cols-[210px_1fr]">
-        <aside className="hidden border-r border-white/10 bg-black/35 p-4 sm:flex sm:flex-col lg:p-5">
-          <div className="flex items-center gap-2 text-lg font-black">
-            <span className="text-[#F5C542]">M</span>
-            MekLoc
+    <div className="relative mx-auto max-w-[1180px] overflow-hidden rounded-[26px] border border-[#E3B117]/25 bg-gradient-to-br from-zinc-950 via-black to-zinc-950 p-2 shadow-[0_0_100px_rgba(227,177,23,0.16)] sm:rounded-[34px] sm:p-3">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-[#F5C542] to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_74%_8%,rgba(227,177,23,.14),transparent_34%)]" />
+      <div className="relative overflow-hidden rounded-[20px] border border-white/10 bg-[#050606] sm:rounded-[26px]">
+        <div className="flex flex-col gap-3 border-b border-white/10 bg-black/55 px-3 py-3 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="min-w-0">
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#F5C542]">{activeScreen.metric}</p>
+            <h3 className="mt-1 text-lg font-black text-white sm:text-xl">{activeScreen.title}</h3>
+            <p className="mt-1 max-w-2xl text-xs leading-5 text-zinc-400 sm:text-sm">{activeScreen.subtitle}</p>
           </div>
-          <div className="mt-6 space-y-1.5">
-            {menuItems.map((item, index) => (
-              <div key={item} className={`rounded-xl px-3 py-2 text-xs font-bold ${index === activeTab || (activeTab === 2 && item === 'Contrats PDF') ? 'bg-[#E3B117]/14 text-[#F5C542]' : 'text-white/55'}`}>
-                {item}
-              </div>
-            ))}
+          <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.035] p-1">
+            <span className="h-2.5 w-2.5 rounded-full bg-rose-400/80" />
+            <span className="h-2.5 w-2.5 rounded-full bg-amber-300/80" />
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-400/80" />
           </div>
-        </aside>
-
-        <div className="min-w-0 p-4 sm:p-5 lg:p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="rounded-xl border border-white/10 bg-black/35 px-4 py-2.5 text-sm text-white/42 sm:w-64">Rechercher une réservation...</div>
-            <button className="rounded-xl bg-[#E3B117] px-4 py-2.5 text-sm font-black text-[#070807]">Nouvelle réservation</button>
-          </div>
-
-          <div className="mt-5">
-            <h3 className="text-2xl font-black text-white">Vue d’ensemble</h3>
-            <p className="mt-1 text-sm text-zinc-400">Voici ce qui se passe aujourd’hui dans votre agence.</p>
-          </div>
-
-          <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-            {[
-              [CalendarDays, 'Réservations', '12', 'Aujourd’hui'],
-              [Car, 'Véhicules', '34', 'Disponibles'],
-              [FileText, 'Contrats PDF', '8', 'Prêts'],
-              [CircleDollarSign, 'Revenus', '42 800', 'MAD'],
-            ].map(([Icon, label, value, sub]) => (
-              <div key={label as string} className="rounded-2xl border border-white/10 bg-white/[0.045] p-3.5">
-                <Icon className="h-5 w-5 text-[#F5C542]" />
-                <p className="mt-2.5 text-2xl font-black">{value as string}</p>
-                <p className="mt-1 text-xs text-white/45">{label as string}</p>
-                <p className="mt-1.5 text-[10px] text-emerald-300">{sub as string}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-4 grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-3.5 sm:p-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-black">Réservations à venir</h4>
-                <ArrowRight className="h-4 w-4 text-[#F5C542]" />
-              </div>
-              <div className="mt-4 space-y-3">
-                {reservationRows.map(([client, vehicle, date]) => (
-                  <div key={client} className="flex items-center justify-between rounded-xl bg-white/[0.035] p-3">
-                    <span>
-                      <span className="block text-sm font-bold">{client}</span>
-                      <span className="text-xs text-white/45">{vehicle}</span>
-                    </span>
-                    <span className="rounded-full bg-[#E3B117]/15 px-2.5 py-1 text-[10px] font-black text-[#F5C542]">{date}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-3.5 sm:p-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-sm font-black">Planning des réservations</h4>
-                <span className="text-xs font-bold text-[#F5C542]">7 jours</span>
-              </div>
-              <div className="mt-5 grid h-36 grid-cols-7 items-end gap-2">
-                {[42, 58, 48, 74, 55, 68, 82].map((height, item) => (
-                  <div key={item} className="flex h-full flex-col justify-end gap-2">
-                    <span className="rounded-t-lg bg-gradient-to-t from-[#E3B117] to-[#F5C542]/80" style={{ height: `${height}%` }} />
-                    <span className="text-center text-[10px] text-white/45">{item + 1}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-3.5 sm:p-4">
-            <h4 className="text-sm font-black">Alertes récentes</h4>
-            <div className="mt-4 grid gap-3 lg:grid-cols-3">
-              {[
-                ['Entretien à prévoir', 'Dacia Duster · 45 000 km'],
-                ['Paiement en attente', 'Réservation #RES-1025'],
-                ['Contrat prêt à envoyer', '#CTR-2026-1025'],
-              ].map(([title, text]) => (
-                <div key={title} className="rounded-xl bg-white/[0.035] p-3">
-                  <p className="text-xs font-black">{title}</p>
-                  <p className="mt-1 text-[11px] text-white/45">{text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+        </div>
+        <div className="relative aspect-[4/5] overflow-hidden bg-black sm:aspect-[16/10] lg:aspect-[16/9]">
+          <img
+            key={activeScreen.image}
+            src={activeScreen.image}
+            alt={`Interface MekLoc - ${activeScreen.title}`}
+            className="h-full w-full object-cover object-top"
+            loading="lazy"
+            decoding="async"
+          />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/65 to-transparent" />
         </div>
       </div>
     </div>
