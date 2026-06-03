@@ -928,7 +928,7 @@ export default function LandingPage() {
           </Card>
           <div className="relative mt-6 flex flex-col gap-3 border-t border-white/10 pt-6 text-sm text-white/45 sm:flex-row sm:items-center sm:justify-between">
             <p>© 2026 MekLoc. Tous droits réservés.</p>
-            <p>Made with ♥ in Morocco</p>
+            <p>Made with mekwebagency</p>
           </div>
         </div>
       </footer>
