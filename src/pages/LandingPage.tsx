@@ -218,11 +218,23 @@ function LandingHeader() {
           ))}
         </nav>
         <div className="hidden items-center justify-end gap-3 lg:flex">
-          <Link to="/login"><Button variant="secondary" className="h-11 rounded-xl border-white/15 bg-white/[0.045] px-6">Connexion</Button></Link>
-          <a href={quickCadrageUrl} target="_blank" rel="noreferrer"><Button className="h-11 rounded-xl bg-[#E3B117] px-6 text-[#070807] hover:bg-[#F5C542]">Réserver une session</Button></a>
+          <Link
+            to="/login"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-white/15 bg-white/[0.055] px-6 text-sm font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,.08)] transition hover:border-[#E3B117]/35 hover:bg-white/[0.08]"
+          >
+            Connexion
+          </Link>
+          <a
+            href={quickCadrageUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-[#F5C542]/40 bg-[#E3B117] px-6 text-sm font-black text-[#070807] shadow-[0_12px_30px_rgba(227,177,23,.22),inset_0_1px_0_rgba(255,255,255,.28)] transition hover:bg-[#F5C542]"
+          >
+            Réserver une session
+          </a>
         </div>
         <a href={quickCadrageUrl} target="_blank" rel="noreferrer" className="lg:hidden">
-          <Button className="h-10 rounded-xl bg-[#E3B117] px-3 text-xs font-black text-[#070807] hover:bg-[#F5C542] sm:px-4">
+          <Button className="h-10 rounded-xl border border-[#F5C542]/40 bg-[#E3B117] px-3 text-xs font-black text-[#070807] hover:bg-[#F5C542] sm:px-4">
             Session cadrage
           </Button>
         </a>
@@ -301,10 +313,21 @@ function LandingHeader() {
 
 function DashboardVisual() {
   return (
-    <div className="relative w-full max-w-[780px] justify-self-end rounded-2xl border border-[#E3B117]/25 bg-[#070807] p-1.5 shadow-[0_26px_80px_rgba(227,177,23,.12)] sm:rounded-[2rem] sm:border-[#E3B117]/40 sm:p-2.5 sm:shadow-[0_36px_120px_rgba(0,0,0,.62)]">
-      <div className="absolute -inset-4 -z-10 rounded-full bg-[#E3B117]/14 blur-2xl sm:-inset-10 sm:bg-[#E3B117]/16 sm:blur-3xl" />
-      <div className="absolute -inset-px -z-10 rounded-2xl bg-gradient-to-r from-[#E3B117]/30 via-transparent to-[#F5C542]/16 blur-sm sm:rounded-[2rem]" />
-      <img src="/landing/luxury-dashboard.png" alt="Aperçu MekLoc" className="block w-full rounded-xl object-contain sm:rounded-[1.45rem]" />
+    <div className="relative w-full max-w-[820px] justify-self-end">
+      <div className="absolute -left-10 top-8 z-10 rounded-2xl border border-white/10 bg-black/70 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl">
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Aujourd’hui</p>
+        <p className="mt-1 text-sm font-black text-white">12 réservations suivies</p>
+      </div>
+      <div className="absolute -bottom-6 right-8 z-10 rounded-2xl border border-[#E3B117]/25 bg-[#0b0b09]/80 px-4 py-3 shadow-[0_18px_50px_rgba(227,177,23,.16)] backdrop-blur-xl">
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Alertes</p>
+        <p className="mt-1 text-sm font-black text-white">Paiements, contrats, flotte</p>
+      </div>
+      <div className="relative rounded-[2.15rem] border border-[#E3B117]/32 bg-[#070807] p-2.5 shadow-[0_42px_130px_rgba(0,0,0,.66)]">
+        <div className="absolute -inset-8 -z-10 rounded-full bg-[#E3B117]/16 blur-3xl" />
+        <div className="absolute -inset-px -z-10 rounded-[2.15rem] bg-gradient-to-r from-[#E3B117]/50 via-transparent to-[#F5C542]/24 blur-sm" />
+        <div className="absolute inset-2 rounded-[1.7rem] border border-white/10" />
+        <img src="/landing/luxury-dashboard.png" alt="Aperçu MekLoc" className="block w-full rounded-[1.55rem] object-contain" />
+      </div>
     </div>
   );
 }
@@ -513,16 +536,18 @@ export default function LandingPage() {
       />
       <LandingHeader />
 
-      <main className="bg-[radial-gradient(circle_at_22%_3%,rgba(227,177,23,.10),transparent_34%),linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:auto,72px_72px,72px_72px]">
-        <section className="border-b border-white/10">
-          <div className="mx-auto grid w-full max-w-[1440px] items-center gap-8 px-4 py-9 sm:px-6 sm:py-14 lg:grid-cols-[0.9fr_1.1fr] lg:px-8 lg:py-20 xl:gap-14 xl:px-10">
+      <main className="bg-[radial-gradient(circle_at_18%_6%,rgba(245,197,66,.16),transparent_30%),radial-gradient(circle_at_82%_24%,rgba(227,177,23,.12),transparent_32%),linear-gradient(rgba(255,255,255,.026)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:auto,auto,72px_72px,72px_72px]">
+        <section className="relative overflow-hidden border-b border-white/10">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#E3B117]/10 to-transparent" />
+          <div className="pointer-events-none absolute -left-28 top-40 h-80 w-80 rounded-full bg-[#E3B117]/10 blur-3xl" />
+          <div className="mx-auto grid w-full max-w-[1440px] items-center gap-9 px-4 py-9 sm:px-6 sm:py-14 lg:min-h-[calc(100vh-80px)] lg:grid-cols-[0.88fr_1.12fr] lg:px-8 lg:py-16 xl:gap-16 xl:px-10">
             <div className="max-w-[680px]">
               <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#E3B117]/30 bg-[#E3B117]/10 px-3.5 py-2 text-xs font-bold leading-5 text-[#F5C542] sm:px-4 sm:text-sm">
                 <Zap className="h-4 w-4" />
                 <span className="lg:hidden">SaaS de gestion pour agences au Maroc</span>
                 <span className="hidden lg:inline">SaaS de gestion pour agences de location au Maroc</span>
               </div>
-              <h1 className="mt-6 text-[42px] font-black leading-[1.04] text-white sm:text-6xl lg:text-[4.35rem] lg:leading-[1.05]">
+              <h1 className="mt-6 text-[42px] font-black leading-[1.02] tracking-[-0.035em] text-white sm:text-6xl lg:text-[4.15rem] lg:leading-[1.02] xl:text-[4.55rem]">
                 Logiciel de gestion pour agences de location de voitures <span className="text-[#E3B117]">au Maroc</span>
               </h1>
               <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg sm:leading-8 lg:hidden">
@@ -532,8 +557,36 @@ export default function LandingPage() {
                 MekLoc centralise la location de voitures au Maroc : réservations, véhicules, clients, contrats PDF, paiements, cautions, entretien et alertes dans une seule plateforme.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <a href={cadrageWhatsappUrl} target="_blank" rel="noreferrer" className="block w-full sm:w-auto"><Button className="h-14 w-full rounded-2xl bg-[#E3B117] px-7 font-black text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.22)] hover:bg-[#F5C542] sm:w-auto" icon={<CalendarDays className="h-4 w-4" />}>Réserver une session de cadrage</Button></a>
-                <a href={demoUrl} target="_blank" rel="noreferrer" className="block w-full sm:w-auto"><Button variant="secondary" className="h-14 w-full rounded-2xl border-white/15 bg-white/[0.06] px-7 hover:border-[#E3B117]/35 sm:w-auto" icon={<MessageCircle className="h-4 w-4" />}>Voir la démo</Button></a>
+                <a
+                  href={cadrageWhatsappUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-[#F5C542]/45 bg-[#E3B117] px-7 text-sm font-black text-[#070807] shadow-[0_18px_52px_rgba(227,177,23,.25),inset_0_1px_0_rgba(255,255,255,.30)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] sm:w-auto"
+                >
+                  <CalendarDays className="h-4 w-4" />
+                  Réserver une session de cadrage
+                </a>
+                <a
+                  href={demoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.07] px-7 text-sm font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,.08)] transition hover:-translate-y-0.5 hover:border-[#E3B117]/40 hover:bg-white/[0.10] sm:w-auto"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Voir la démo
+                </a>
+              </div>
+              <div className="mt-6 grid grid-cols-3 gap-2.5 sm:max-w-xl sm:gap-3">
+                {[
+                  ['10 min', 'prise en main'],
+                  ['MAD', 'prêt Maroc'],
+                  ['PDF', 'contrats propres'],
+                ].map(([value, label]) => (
+                  <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.045] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.06)] backdrop-blur">
+                    <p className="text-lg font-black leading-none text-white sm:text-xl">{value}</p>
+                    <p className="mt-1 text-[11px] font-semibold leading-4 text-zinc-400 sm:text-xs">{label}</p>
+                  </div>
+                ))}
               </div>
               <div className="mt-7 hidden grid-cols-2 gap-3 text-sm text-white/75 sm:flex sm:flex-wrap sm:gap-5 sm:text-white/68 lg:flex">
                 {[
