@@ -77,6 +77,20 @@ type UserSessionRow = {
   revoked_at: string | null;
 };
 
+type SuperAdminView =
+  | 'overview'
+  | 'agencies'
+  | 'subscriptions'
+  | 'payments'
+  | 'users'
+  | 'sessions'
+  | 'access'
+  | 'deletions'
+  | 'alerts'
+  | 'reports'
+  | 'settings'
+  | 'support';
+
 const monthlyPriceByPlan: Record<AgencyPlan, number> = { starter: 199, pro: 250, business: 319, lifetime: 5999 };
 
 function addDays(baseDate: string | null, days: number) {
@@ -178,27 +192,31 @@ function MiniMetric({ label, value, icon: Icon, tone = 'gold' }: { label: string
 function SuperAdminSidebar({
   revenue,
   profileName,
+  activeView,
+  onSelectView,
   mode = 'desktop',
   onClose,
 }: {
   revenue: number;
   profileName: string;
+  activeView: SuperAdminView;
+  onSelectView: (view: SuperAdminView) => void;
   mode?: 'desktop' | 'mobile';
   onClose?: () => void;
 }) {
   const nav = [
-    ['Tableau de bord', Users, 'admin-overview'],
-    ['Agences', BuildingIcon, 'admin-agencies'],
-    ['Abonnements', Crown, 'admin-subscriptions'],
-    ['Paiements', Banknote, 'admin-payments'],
-    ['Utilisateurs', UserPlus, 'admin-users'],
-    ['Sessions', Laptop2, 'admin-sessions'],
-    ['Demandes d’accès', Mail, 'admin-access'],
-    ['Comptes en suppression', Trash2, 'admin-deletions'],
-    ['Alertes', AlertTriangle, 'admin-alerts'],
-    ['Rapports', Activity, 'admin-reports'],
-    ['Paramètres', ShieldAlert, 'admin-settings'],
-    ['Support', HelpIcon, 'admin-support'],
+    ['Tableau de bord', Users, 'overview'],
+    ['Agences', BuildingIcon, 'agencies'],
+    ['Abonnements', Crown, 'subscriptions'],
+    ['Paiements', Banknote, 'payments'],
+    ['Utilisateurs', UserPlus, 'users'],
+    ['Sessions', Laptop2, 'sessions'],
+    ['Demandes d’accès', Mail, 'access'],
+    ['Comptes en suppression', Trash2, 'deletions'],
+    ['Alertes', AlertTriangle, 'alerts'],
+    ['Rapports', Activity, 'reports'],
+    ['Paramètres', ShieldAlert, 'settings'],
+    ['Support', HelpIcon, 'support'],
   ] as const;
 
   return (
@@ -218,20 +236,23 @@ function SuperAdminSidebar({
 
         <p className="mt-5 px-2 text-[11px] font-black uppercase tracking-[0.28em] text-carbon-500">Navigation</p>
         <nav className="mt-3 grid gap-1.5 overflow-y-auto pr-1">
-          {nav.map(([label, Icon, target], index) => (
-            <a
+          {nav.map(([label, Icon, target]) => (
+            <button
               key={label}
-              href={`#${target}`}
-              onClick={onClose}
+              type="button"
+              onClick={() => {
+                onSelectView(target);
+                onClose?.();
+              }}
               className={`flex h-10 items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold transition ${
-                index === 0
+                activeView === target
                   ? 'border border-[#E3B117]/35 bg-[#E3B117]/16 text-[#F5C542] shadow-[0_0_24px_rgba(227,177,23,.10)]'
                   : 'text-carbon-300 hover:bg-white/[0.045] hover:text-white'
               }`}
             >
               <Icon className="h-4 w-4 shrink-0" />
               <span className="truncate">{label}</span>
-            </a>
+            </button>
           ))}
         </nav>
 
@@ -296,6 +317,7 @@ export default function SuperAdminPage() {
   const [agencyDueFilter, setAgencyDueFilter] = useState<'all' | 'soon' | 'overdue' | 'deletion'>('all');
   const [selectedAgencyDetails, setSelectedAgencyDetails] = useState<AdminAgency | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [activeView, setActiveView] = useState<SuperAdminView>('overview');
   const [showSessionHistoryAgencyId, setShowSessionHistoryAgencyId] = useState<string | null>(null);
 
   const pendingDeletionAccounts = useMemo(() => {
@@ -898,10 +920,26 @@ export default function SuperAdminPage() {
 
   if (!isSupabaseEnabled || !profile?.isSuperAdmin) return <Navigate to="/dashboard" replace />;
 
+  const viewMeta: Record<SuperAdminView, { eyebrow: string; title: string; description: string }> = {
+    overview: { eyebrow: 'Super Admin', title: 'Gestion des agences', description: 'Gérez toutes les agences, abonnements, paiements et accès.' },
+    agencies: { eyebrow: 'Agences', title: 'Comptes agences', description: 'Suivez les agences approuvées, leurs accès et leurs actions.' },
+    subscriptions: { eyebrow: 'Abonnements', title: 'Plans et abonnements', description: 'Gérez les plans, limites, tarifs et abonnements des agences.' },
+    payments: { eyebrow: 'Paiements', title: 'Paiements agences', description: 'Suivez les paiements des agences et abonnements.' },
+    users: { eyebrow: 'Utilisateurs', title: 'Utilisateurs agences', description: 'Gérez les utilisateurs des agences.' },
+    sessions: { eyebrow: 'Sessions', title: 'Connexions actives', description: 'Surveillez les connexions actives des utilisateurs.' },
+    access: { eyebrow: 'Demandes d’accès', title: 'Nouvelles agences', description: 'Validez les nouvelles agences qui demandent l’accès à MekLoc.' },
+    deletions: { eyebrow: 'Comptes en suppression', title: 'Période de grâce', description: 'Suivez les comptes avant suppression définitive.' },
+    alerts: { eyebrow: 'Alertes', title: 'Alertes importantes', description: 'Suivez les anomalies importantes de la plateforme.' },
+    reports: { eyebrow: 'Rapports', title: 'Performance plateforme', description: 'Analysez les performances de la plateforme.' },
+    settings: { eyebrow: 'Paramètres', title: 'Paramètres Super Admin', description: 'Configuration disponible pour l’espace Super Admin.' },
+    support: { eyebrow: 'Support', title: 'Support plateforme', description: 'Outils de support disponibles pour l’administration.' },
+  };
+  const currentView = viewMeta[activeView];
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_20%_0%,rgba(227,177,23,.08),transparent_28%),linear-gradient(135deg,#050606,#090a0b_45%,#030303)] px-3 py-4 text-white sm:px-4 lg:px-5">
       <div className="mx-auto flex max-w-[1760px] gap-5">
-        <SuperAdminSidebar revenue={agencySummary.revenue} profileName={profile.fullName || 'Younes Mekki'} />
+        <SuperAdminSidebar revenue={agencySummary.revenue} profileName={profile.fullName || 'Younes Mekki'} activeView={activeView} onSelectView={setActiveView} />
         <main className="min-w-0 flex-1 pb-10">
         <button
           type="button"
@@ -912,13 +950,14 @@ export default function SuperAdminPage() {
           Menu Super Admin
         </button>
         <PageHeader
-          eyebrow="Espace sécurisé"
-          title="Super Admin"
-          description="Gestion des demandes d’accès et des comptes agences."
+          eyebrow={currentView.eyebrow}
+          title={currentView.title}
+          description={currentView.description}
           action={<div className="flex gap-2"><Button variant="secondary" icon={<RefreshCw className="h-4 w-4" />} loading={loading} onClick={loadAll}>Actualiser</Button><Button variant="secondary" onClick={async () => { await signOut(); navigate('/auth'); }}>Déconnexion</Button></div>}
         />
 
-        <div id="admin-overview" className="mt-5 scroll-mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
+        {(activeView === 'overview' || activeView === 'agencies') ? (
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
           <MiniMetric label="Agences actives" value={String(agencySummary.active)} icon={Users} tone="green" />
           <MiniMetric label="En essai" value={String(agencySummary.trial)} icon={CalendarClock} tone="blue" />
           <MiniMetric label="Payés" value={String(agencySummary.paid)} icon={CheckCircle2} tone="green" />
@@ -927,8 +966,10 @@ export default function SuperAdminPage() {
           <MiniMetric label="Échéances proches" value={String(agencySummary.closeDue)} icon={AlertTriangle} tone="gold" />
           <MiniMetric label="À surveiller" value={String(agencySummary.suspendedOrWatch)} icon={Activity} tone="red" />
         </div>
+        ) : null}
 
-        <Card id="admin-alerts" className="mt-5 scroll-mt-6 overflow-hidden border-[#E3B117]/18">
+        {(activeView === 'overview' || activeView === 'alerts') ? (
+        <Card className="mt-5 overflow-hidden border-[#E3B117]/18">
           <div className="flex flex-col gap-2 border-b border-white/10 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Alertes admin</p>
@@ -958,6 +999,7 @@ export default function SuperAdminPage() {
             ))}
           </div>
         </Card>
+        ) : null}
 
         {activationLinkToCopy ? (
           <Card className="mt-4 p-5">
@@ -985,7 +1027,8 @@ export default function SuperAdminPage() {
           </Card>
         ) : null}
 
-        <Card id="admin-access" className="mt-4 scroll-mt-6 overflow-hidden">
+        {activeView === 'access' ? (
+        <Card className="mt-4 overflow-hidden">
           <div className="border-b border-white/10 p-5">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Demandes d’accès</p>
             <h2 className="mt-1 text-xl font-bold">Nouvelles agences</h2>
@@ -1046,8 +1089,10 @@ export default function SuperAdminPage() {
             ))}
           </div>
         </Card>
+        ) : null}
 
-        <Card id="admin-deletions" className="mt-6 scroll-mt-6 overflow-hidden">
+        {activeView === 'deletions' ? (
+        <Card className="mt-6 overflow-hidden">
           <div className="border-b border-white/10 p-5">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Comptes en suppression</p>
             <h2 className="mt-1 text-xl font-bold">Période de grâce</h2>
@@ -1103,8 +1148,10 @@ export default function SuperAdminPage() {
             ))}
           </div>
         </Card>
+        ) : null}
 
-        <Card id="admin-agencies" className="mt-6 scroll-mt-6 overflow-hidden">
+        {(activeView === 'overview' || activeView === 'agencies') ? (
+        <Card className="mt-6 overflow-hidden">
           <div className="border-b border-white/10 p-5">
             <h2 className="text-xl font-bold">Comptes agences approuvés</h2>
             <p className="mt-1 text-sm text-carbon-400">Suivi des agences, paiements, accès et sessions.</p>
@@ -1354,8 +1401,10 @@ export default function SuperAdminPage() {
             ))}
           </div>
         </Card>
+        ) : null}
 
-        <Card id="admin-subscriptions" className="mt-6 scroll-mt-6 overflow-hidden">
+        {activeView === 'subscriptions' ? (
+        <Card className="mt-6 overflow-hidden">
           <div className="border-b border-white/10 p-5">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Abonnements</p>
             <h2 className="mt-1 text-xl font-bold">Plans et abonnements agences</h2>
@@ -1389,8 +1438,10 @@ export default function SuperAdminPage() {
             ))}
           </div>
         </Card>
+        ) : null}
 
-        <Card id="admin-payments" className="mt-6 scroll-mt-6 overflow-hidden">
+        {activeView === 'payments' ? (
+        <Card className="mt-6 overflow-hidden">
           <div className="border-b border-white/10 p-5">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Paiements</p>
             <h2 className="mt-1 text-xl font-bold">Suivi des paiements agences</h2>
@@ -1428,8 +1479,10 @@ export default function SuperAdminPage() {
             ))}
           </div>
         </Card>
+        ) : null}
 
-        <Card id="admin-users" className="mt-6 scroll-mt-6 overflow-hidden">
+        {activeView === 'users' ? (
+        <Card className="mt-6 overflow-hidden">
           <div className="border-b border-white/10 p-5">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Utilisateurs</p>
             <h2 className="mt-1 text-xl font-bold">Gestion des utilisateurs</h2>
@@ -1464,8 +1517,10 @@ export default function SuperAdminPage() {
             })}
           </div>
         </Card>
+        ) : null}
 
-        <Card id="admin-sessions" className="mt-6 scroll-mt-6 overflow-hidden">
+        {activeView === 'sessions' ? (
+        <Card className="mt-6 overflow-hidden">
           <div className="border-b border-white/10 p-5">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Sessions</p>
             <h2 className="mt-1 text-xl font-bold">Connexions actives</h2>
@@ -1501,8 +1556,10 @@ export default function SuperAdminPage() {
             })}
           </div>
         </Card>
+        ) : null}
 
-        <Card id="admin-reports" className="mt-6 scroll-mt-6 overflow-hidden">
+        {activeView === 'reports' ? (
+        <Card className="mt-6 overflow-hidden">
           <div className="border-b border-white/10 p-5">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Rapports</p>
             <h2 className="mt-1 text-xl font-bold">Performance plateforme</h2>
@@ -1541,19 +1598,26 @@ export default function SuperAdminPage() {
             </div>
           </div>
         </Card>
+        ) : null}
 
+        {(activeView === 'settings' || activeView === 'support') ? (
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
-          <Card id="admin-settings" className="scroll-mt-6 p-5">
+          {activeView === 'settings' ? (
+          <Card className="p-5">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Paramètres</p>
             <h2 className="mt-1 text-xl font-bold text-white">Paramètres Super Admin</h2>
             <p className="mt-2 text-sm leading-6 text-carbon-400">Aucun module de paramètres Super Admin séparé n’est disponible dans cette page. Les actions existantes restent accessibles depuis les cartes agences.</p>
           </Card>
-          <Card id="admin-support" className="scroll-mt-6 p-5">
+          ) : null}
+          {activeView === 'support' ? (
+          <Card className="p-5">
             <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Support</p>
             <h2 className="mt-1 text-xl font-bold text-white">Support plateforme</h2>
             <p className="mt-2 text-sm leading-6 text-carbon-400">Aucun backend support dédié n’existe ici. Les emails d’activation et liens client utilisent les handlers déjà présents.</p>
           </Card>
+          ) : null}
         </div>
+        ) : null}
         </main>
       </div>
 
@@ -1561,7 +1625,7 @@ export default function SuperAdminPage() {
         <div className="fixed inset-0 z-50 lg:hidden">
           <button type="button" aria-label="Fermer le menu" className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setMobileSidebarOpen(false)} />
           <div className="absolute inset-y-0 left-0 w-[min(86vw,320px)]">
-            <SuperAdminSidebar revenue={agencySummary.revenue} profileName={profile.fullName || 'Younes Mekki'} mode="mobile" onClose={() => setMobileSidebarOpen(false)} />
+            <SuperAdminSidebar revenue={agencySummary.revenue} profileName={profile.fullName || 'Younes Mekki'} activeView={activeView} onSelectView={setActiveView} mode="mobile" onClose={() => setMobileSidebarOpen(false)} />
           </div>
         </div>
       ) : null}
