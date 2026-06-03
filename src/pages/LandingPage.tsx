@@ -167,9 +167,151 @@ function SectionTitle({ eyebrow, title, subtitle }: { eyebrow: string; title: st
 
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900/85 via-zinc-950/82 to-black/90 shadow-[0_22px_70px_rgba(0,0,0,.34)] transition ${className}`}>
+    <div className={`landing-card rounded-3xl border border-white/10 bg-gradient-to-br from-zinc-900/85 via-zinc-950/82 to-black/90 shadow-[0_22px_70px_rgba(0,0,0,.34)] transition ${className}`}>
       {children}
     </div>
+  );
+}
+
+function LandingMotionStyles() {
+  return (
+    <style>{`
+      @keyframes mekloc-gradient-shift {
+        0%, 100% { transform: translate3d(0, 0, 0) scale(1); opacity: .82; }
+        50% { transform: translate3d(4%, -3%, 0) scale(1.08); opacity: 1; }
+      }
+
+      @keyframes mekloc-orb-drift {
+        0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+        50% { transform: translate3d(18px, -22px, 0) scale(1.06); }
+      }
+
+      @keyframes mekloc-float {
+        0%, 100% { transform: translate3d(0, 0, 0); }
+        50% { transform: translate3d(0, -10px, 0); }
+      }
+
+      @keyframes mekloc-shine {
+        0% { transform: translateX(-140%) skewX(-18deg); opacity: 0; }
+        30% { opacity: .5; }
+        100% { transform: translateX(150%) skewX(-18deg); opacity: 0; }
+      }
+
+      .landing-ambient::before,
+      .landing-ambient::after {
+        content: '';
+        position: absolute;
+        pointer-events: none;
+        border-radius: 9999px;
+        filter: blur(56px);
+        transform: translateZ(0);
+      }
+
+      .landing-ambient::before {
+        width: 420px;
+        height: 420px;
+        left: -110px;
+        top: 120px;
+        background: rgba(227, 177, 23, .16);
+        animation: mekloc-orb-drift 14s ease-in-out infinite;
+      }
+
+      .landing-ambient::after {
+        width: 480px;
+        height: 480px;
+        right: -160px;
+        top: 210px;
+        background: radial-gradient(circle, rgba(245, 197, 66, .18), rgba(227, 177, 23, .05) 42%, transparent 72%);
+        animation: mekloc-gradient-shift 18s ease-in-out infinite;
+      }
+
+      .landing-gradient-motion {
+        background-size: 140% 140%, auto, auto, auto;
+        animation: mekloc-gradient-shift 22s ease-in-out infinite;
+      }
+
+      .landing-mockup-float {
+        animation: mekloc-float 7s ease-in-out infinite;
+        will-change: transform;
+      }
+
+      .landing-cta-shine {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .landing-cta-shine::after {
+        content: '';
+        position: absolute;
+        inset: -40% auto -40% -55%;
+        width: 42%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .52), transparent);
+        transform: translateX(-140%) skewX(-18deg);
+      }
+
+      .landing-cta-shine:hover::after {
+        animation: mekloc-shine .9s ease-out;
+      }
+
+      .landing-card {
+        transform: translateZ(0);
+      }
+
+      .landing-card:hover {
+        transform: translate3d(0, -3px, 0);
+        box-shadow: 0 26px 82px rgba(0, 0, 0, .38), 0 0 38px rgba(227, 177, 23, .08);
+      }
+
+      .landing-reveal {
+        opacity: 0;
+        transform: translate3d(0, 22px, 0);
+        transition: opacity .7s ease, transform .7s ease;
+      }
+
+      .landing-reveal.is-visible {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+      }
+
+      .landing-stagger > .landing-reveal:nth-child(2) { transition-delay: 90ms; }
+      .landing-stagger > .landing-reveal:nth-child(3) { transition-delay: 180ms; }
+      .landing-stagger > .landing-reveal:nth-child(4) { transition-delay: 270ms; }
+
+      @media (max-width: 767px) {
+        .landing-ambient::before,
+        .landing-ambient::after {
+          width: 260px;
+          height: 260px;
+          filter: blur(42px);
+          opacity: .72;
+        }
+
+        .landing-card:hover {
+          transform: none;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .landing-ambient::before,
+        .landing-ambient::after,
+        .landing-gradient-motion,
+        .landing-mockup-float,
+        .landing-cta-shine:hover::after {
+          animation: none !important;
+        }
+
+        .landing-reveal {
+          opacity: 1;
+          transform: none;
+          transition: none;
+        }
+
+        .landing-card,
+        .landing-card:hover {
+          transform: none;
+        }
+      }
+    `}</style>
   );
 }
 
@@ -238,7 +380,7 @@ function LandingHeader() {
             href={quickCadrageUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-[#F5C542]/40 bg-[#E3B117] px-6 text-sm font-black text-[#070807] shadow-[0_12px_30px_rgba(227,177,23,.22),inset_0_1px_0_rgba(255,255,255,.28)] transition hover:bg-[#F5C542]"
+            className="landing-cta-shine inline-flex h-11 items-center justify-center rounded-xl border border-[#F5C542]/40 bg-[#E3B117] px-6 text-sm font-black text-[#070807] shadow-[0_12px_30px_rgba(227,177,23,.22),inset_0_1px_0_rgba(255,255,255,.28)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0"
           >
             Réserver une session
           </a>
@@ -307,7 +449,7 @@ function LandingHeader() {
               </Link>
               <a href={quickCadrageUrl} target="_blank" rel="noreferrer" onClick={() => setOpen(false)}>
                 <Button
-                  className="h-14 w-full rounded-2xl bg-[#E3B117] font-black text-[#070807] shadow-[0_14px_34px_rgba(227,177,23,.20)] hover:bg-[#F5C542]"
+                  className="landing-cta-shine h-14 w-full rounded-2xl bg-[#E3B117] font-black text-[#070807] shadow-[0_14px_34px_rgba(227,177,23,.20)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0"
                   icon={<CalendarDays className="h-4 w-4" />}
                 >
                   Réserver une session
@@ -323,7 +465,7 @@ function LandingHeader() {
 
 function DashboardVisual() {
   return (
-    <div className="relative w-full max-w-[820px] justify-self-end">
+    <div className="landing-mockup-float relative w-full max-w-[820px] justify-self-end">
       <div className="absolute -left-10 top-8 z-10 rounded-2xl border border-white/10 bg-black/70 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl">
         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Aujourd’hui</p>
         <p className="mt-1 text-sm font-black text-white">12 réservations suivies</p>
@@ -332,7 +474,7 @@ function DashboardVisual() {
         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Alertes</p>
         <p className="mt-1 text-sm font-black text-white">Paiements, contrats, flotte</p>
       </div>
-      <div className="relative rounded-[2.15rem] border border-[#E3B117]/32 bg-[#070807] p-2.5 shadow-[0_42px_130px_rgba(0,0,0,.66)]">
+      <div className="relative rounded-[2.15rem] border border-[#E3B117]/32 bg-[#070807] p-2.5 shadow-[0_42px_130px_rgba(0,0,0,.66),0_0_90px_rgba(227,177,23,.12)]">
         <div className="absolute -inset-8 -z-10 rounded-full bg-[#E3B117]/16 blur-3xl" />
         <div className="absolute -inset-px -z-10 rounded-[2.15rem] bg-gradient-to-r from-[#E3B117]/50 via-transparent to-[#F5C542]/24 blur-sm" />
         <div className="absolute inset-2 rounded-[1.7rem] border border-white/10" />
@@ -482,8 +624,34 @@ export default function LandingPage() {
   const contactInputClass = 'h-14 w-full rounded-2xl border border-white/10 bg-white/[0.055] px-4 text-sm font-semibold text-white outline-none transition placeholder:text-zinc-500 focus:border-[#E3B117]/45 focus:bg-white/[0.075] focus:ring-4 focus:ring-[#E3B117]/10';
   const contactIconInputClass = `${contactInputClass} pl-12`;
 
+  useEffect(() => {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const elements = Array.from(document.querySelectorAll<HTMLElement>('.landing-reveal'));
+
+    if (prefersReducedMotion || !('IntersectionObserver' in window)) {
+      elements.forEach((element) => element.classList.add('is-visible'));
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add('is-visible');
+          observer.unobserve(entry.target);
+        });
+      },
+      { rootMargin: '0px 0px -12% 0px', threshold: 0.12 },
+    );
+
+    elements.forEach((element) => observer.observe(element));
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-[#050606] text-white">
+      <LandingMotionStyles />
       <SEO
         title={DEFAULT_TITLE}
         description={DEFAULT_DESCRIPTION}
@@ -493,12 +661,12 @@ export default function LandingPage() {
       />
       <LandingHeader />
 
-      <main className="bg-[radial-gradient(circle_at_18%_6%,rgba(245,197,66,.16),transparent_30%),radial-gradient(circle_at_82%_24%,rgba(227,177,23,.12),transparent_32%),linear-gradient(rgba(255,255,255,.026)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:auto,auto,72px_72px,72px_72px]">
-        <section className="relative overflow-hidden border-b border-white/10">
+      <main className="landing-gradient-motion bg-[radial-gradient(circle_at_18%_6%,rgba(245,197,66,.16),transparent_30%),radial-gradient(circle_at_82%_24%,rgba(227,177,23,.12),transparent_32%),linear-gradient(rgba(255,255,255,.026)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:auto,auto,72px_72px,72px_72px]">
+        <section className="landing-ambient relative overflow-hidden border-b border-white/10">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#E3B117]/10 to-transparent" />
           <div className="pointer-events-none absolute -left-28 top-40 h-80 w-80 rounded-full bg-[#E3B117]/10 blur-3xl" />
           <div className="mx-auto grid w-full max-w-[1440px] items-center gap-9 px-4 py-9 sm:px-6 sm:py-14 lg:min-h-[calc(100vh-80px)] lg:grid-cols-[0.88fr_1.12fr] lg:px-8 lg:py-16 xl:gap-16 xl:px-10">
-            <div className="max-w-[680px]">
+            <div className="landing-reveal max-w-[680px]">
               <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#E3B117]/30 bg-[#E3B117]/10 px-3.5 py-2 text-xs font-bold leading-5 text-[#F5C542] sm:px-4 sm:text-sm">
                 <Zap className="h-4 w-4" />
                 <span className="lg:hidden">SaaS de gestion pour agences au Maroc</span>
@@ -518,7 +686,7 @@ export default function LandingPage() {
                   href={cadrageWhatsappUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-[#F5C542]/45 bg-[#E3B117] px-7 text-sm font-black text-[#070807] shadow-[0_18px_52px_rgba(227,177,23,.25),inset_0_1px_0_rgba(255,255,255,.30)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] sm:w-auto"
+                  className="landing-cta-shine inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-[#F5C542]/45 bg-[#E3B117] px-7 text-sm font-black text-[#070807] shadow-[0_18px_52px_rgba(227,177,23,.25),inset_0_1px_0_rgba(255,255,255,.30)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0 sm:w-auto"
                 >
                   <CalendarDays className="h-4 w-4" />
                   Réserver une session de cadrage
@@ -527,7 +695,7 @@ export default function LandingPage() {
                   href={demoUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.07] px-7 text-sm font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,.08)] transition hover:-translate-y-0.5 hover:border-[#E3B117]/40 hover:bg-white/[0.10] sm:w-auto"
+                  className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.07] px-7 text-sm font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,.08)] transition hover:-translate-y-0.5 hover:border-[#E3B117]/40 hover:bg-white/[0.10] active:translate-y-0 sm:w-auto"
                 >
                   <MessageCircle className="h-4 w-4" />
                   Voir la démo
@@ -560,18 +728,18 @@ export default function LandingPage() {
               </div>
               <MobileCommandHero />
             </div>
-            <div className="hidden lg:block">
+            <div className="landing-reveal hidden lg:block">
               <DashboardVisual />
             </div>
           </div>
         </section>
 
-        <section id="fonctionnalites" className="border-b border-white/10 py-12 sm:py-20">
+        <section id="fonctionnalites" className="landing-reveal border-b border-white/10 py-12 sm:py-20">
           <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-10">
             <SectionTitle eyebrow="Pourquoi les agences choisissent MekLoc ?" title="Pourquoi choisir MekLoc ?" />
-            <div className="mt-8 grid gap-4 sm:gap-6 md:grid-cols-3">
+            <div className="landing-stagger mt-8 grid gap-4 sm:gap-6 md:grid-cols-3">
               {choiceCards.map(([title, text, Icon]) => (
-                <Card key={title as string} className="group p-6 active:border-[#E3B117]/35 hover:border-[#E3B117]/35 sm:p-8">
+                <Card key={title as string} className="landing-reveal group p-6 active:border-[#E3B117]/35 hover:border-[#E3B117]/35 sm:p-8">
                   <span className="grid h-14 w-14 place-items-center rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542] shadow-[0_0_30px_rgba(227,177,23,.08)] transition group-hover:border-[#E3B117]/55 group-hover:bg-[#E3B117]/15 sm:h-16 sm:w-16"><Icon className="h-7 w-7 sm:h-8 sm:w-8" /></span>
                   <h3 className="mt-5 text-xl font-black sm:mt-7 sm:text-2xl">{title as string}</h3>
                   <p className="mt-3 text-base leading-7 text-zinc-400">{text as string}</p>
@@ -581,7 +749,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="border-b border-white/10 py-12 sm:py-20">
+        <section className="landing-reveal border-b border-white/10 py-12 sm:py-20">
           <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-10">
             <SectionTitle eyebrow="Comparaison" title="Centralisez clients, paiements et cautions" />
             <Card className="mt-8 p-4 hover:border-[#E3B117]/25 sm:p-8 lg:p-10">
@@ -605,15 +773,15 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="border-b border-white/10 py-12 sm:py-20">
+        <section className="landing-reveal border-b border-white/10 py-12 sm:py-20">
           <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-10">
             <SectionTitle eyebrow="Comment ça marche ?" title="Gérez vos réservations en temps réel" />
             <h2 className="sr-only">Générez des contrats PDF professionnels</h2>
-            <div className="relative mt-8 grid gap-4 pl-5 sm:gap-6 sm:pl-0 md:grid-cols-2 xl:grid-cols-4">
+            <div className="landing-stagger relative mt-8 grid gap-4 pl-5 sm:gap-6 sm:pl-0 md:grid-cols-2 xl:grid-cols-4">
               <div className="pointer-events-none absolute bottom-4 left-6 top-4 w-px bg-gradient-to-b from-transparent via-[#E3B117]/35 to-transparent sm:hidden" />
               <div className="pointer-events-none absolute left-10 right-10 top-16 hidden h-px bg-gradient-to-r from-transparent via-[#E3B117]/35 to-transparent xl:block" />
               {steps.map(([title, text, Icon], index) => (
-                <Card key={title as string} className={`relative min-h-[210px] p-6 hover:border-[#E3B117]/35 sm:min-h-[245px] sm:p-7 ${index === 3 ? 'border-[#E3B117]/45 shadow-[0_0_45px_rgba(227,177,23,.09)]' : ''}`}>
+                <Card key={title as string} className={`landing-reveal relative min-h-[210px] p-6 hover:border-[#E3B117]/35 sm:min-h-[245px] sm:p-7 ${index === 3 ? 'border-[#E3B117]/45 shadow-[0_0_45px_rgba(227,177,23,.09)]' : ''}`}>
                   <span className="absolute -left-[30px] top-7 grid h-9 w-9 place-items-center rounded-full border border-[#E3B117]/35 bg-[#0b0b08] text-xs font-black text-[#F5C542] shadow-[0_0_22px_rgba(227,177,23,.14)] sm:left-auto sm:right-6 sm:top-6 sm:block sm:h-auto sm:w-auto sm:rounded-full sm:bg-[#E3B117]/10 sm:px-3 sm:py-1">{String(index + 1).padStart(2, '0')}</span>
                   <span className="grid h-14 w-14 place-items-center rounded-2xl border border-white/10 bg-black/35 text-[#F5C542]"><Icon className="h-7 w-7" /></span>
                   <h3 className="mt-6 text-xl font-black sm:mt-8">{title as string}</h3>
@@ -624,7 +792,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="relative overflow-hidden border-b border-white/10 py-14 sm:py-20">
+        <section className="landing-reveal relative overflow-hidden border-b border-white/10 py-14 sm:py-20">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_45%_50%,rgba(227,177,23,.12),transparent_42%),linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:auto,64px_64px,64px_64px]" />
           <div className="relative mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-10">
             <div className="mx-auto max-w-4xl text-center">
@@ -655,20 +823,20 @@ export default function LandingPage() {
               ))}
             </div>
 
-            <div className="relative mx-auto mt-8 max-w-[1180px]">
+            <div className="landing-reveal relative mx-auto mt-8 max-w-[1180px]">
               <div className="pointer-events-none absolute -inset-8 rounded-full bg-[#E3B117]/12 blur-3xl" />
               <div className="pointer-events-none absolute -left-4 top-10 hidden rounded-full border border-[#E3B117]/25 bg-black/70 px-4 py-2 text-sm font-bold text-[#F5C542] backdrop-blur md:block">Contrats prêts</div>
               <div className="pointer-events-none absolute -right-2 top-24 hidden rounded-full border border-[#E3B117]/25 bg-black/70 px-4 py-2 text-sm font-bold text-[#F5C542] backdrop-blur md:block">Flotte disponible</div>
               <div className="pointer-events-none absolute bottom-14 left-8 hidden rounded-full border border-white/10 bg-black/70 px-4 py-2 text-sm font-bold text-white/80 backdrop-blur lg:block">Paiements suivis</div>
               <div className="pointer-events-none absolute bottom-8 right-10 hidden rounded-full border border-white/10 bg-black/70 px-4 py-2 text-sm font-bold text-white/80 backdrop-blur lg:block">Alertes entretien</div>
-              <div className="relative">
+              <div className="landing-mockup-float relative">
                 <InterfaceDashboardMockup activeTab={activeInterfaceTab} />
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+            <div className="landing-stagger mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
               {interfaceBenefits.map(([Icon, title, text]) => (
-                <Card key={title as string} className="group p-4 hover:border-[#E3B117]/25 sm:p-5">
+                <Card key={title as string} className="landing-reveal group p-4 hover:border-[#E3B117]/25 sm:p-5">
                   <span className="grid h-10 w-10 place-items-center rounded-2xl border border-[#E3B117]/20 bg-[#E3B117]/10 text-[#F5C542]">
                     <Icon className="h-5 w-5" />
                   </span>
@@ -688,7 +856,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="tarifs" className="border-b border-white/10 py-12 sm:py-20">
+        <section id="tarifs" className="landing-reveal border-b border-white/10 py-12 sm:py-20">
           <div className="mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8 xl:px-10">
             <SectionTitle eyebrow="Tarifs simples et transparents" title="Tarifs MekLoc" />
             <p className="mt-4 text-center text-sm font-semibold text-white/55">Sans engagement • Support inclus</p>
@@ -712,7 +880,7 @@ export default function LandingPage() {
                 Annuel (-20%)
               </button>
             </div>
-            <div className="mt-8 grid gap-5 md:grid-cols-3 md:gap-5 xl:gap-7">
+            <div className="landing-stagger mt-8 grid gap-5 md:grid-cols-3 md:gap-5 xl:gap-7">
               {plans.map((plan) => {
                 const isLifetime = 'lifetime' in plan && plan.lifetime;
                 const displayPrice = isLifetime ? plan.annualPrice : billingCycle === 'annual' ? plan.annualPrice : plan.monthlyPrice;
@@ -720,7 +888,7 @@ export default function LandingPage() {
                 const planUrl = `/demande-acces?plan=${plan.id}&billing=${isLifetime ? 'lifetime' : billingCycle}`;
 
                 return (
-                  <Card key={plan.id} className={`relative flex min-h-full flex-col p-6 hover:border-[#E3B117]/30 sm:p-7 ${plan.recommended ? 'border-[#E3B117]/65 bg-gradient-to-br from-[#E3B117]/12 via-zinc-950/90 to-black shadow-[0_0_70px_rgba(227,177,23,.16)]' : ''} ${isLifetime ? 'border-[#F5C542]/70 bg-gradient-to-br from-[#E3B117]/18 via-zinc-950/92 to-black shadow-[0_0_90px_rgba(227,177,23,.22)]' : ''}`}>
+                  <Card key={plan.id} className={`landing-reveal relative flex min-h-full flex-col p-6 hover:border-[#E3B117]/30 sm:p-7 ${plan.recommended ? 'border-[#E3B117]/65 bg-gradient-to-br from-[#E3B117]/12 via-zinc-950/90 to-black shadow-[0_0_70px_rgba(227,177,23,.16)]' : ''} ${isLifetime ? 'border-[#F5C542]/70 bg-gradient-to-br from-[#E3B117]/18 via-zinc-950/92 to-black shadow-[0_0_90px_rgba(227,177,23,.22)]' : ''}`}>
                     {plan.recommended ? <span className="absolute right-5 top-5 rounded-full bg-[#E3B117] px-3 py-1 text-xs font-black text-[#070807] sm:right-6 sm:top-6">Recommandé</span> : null}
                     {isLifetime ? <span className="absolute right-5 top-5 rounded-full bg-white px-3 py-1 text-xs font-black text-[#070807] sm:right-6 sm:top-6">Meilleure valeur</span> : null}
                     <span className="grid h-14 w-14 place-items-center rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542]"><Sparkles className="h-6 w-6" /></span>
@@ -742,7 +910,7 @@ export default function LandingPage() {
                       {plan.features.map((feature) => <p key={feature} className="flex gap-3 text-base text-white/75"><Check className="h-5 w-5 shrink-0 text-[#F5C542]" />{feature}</p>)}
                     </div>
                     <Link to={planUrl} className="mt-7 block">
-                      <Button className={`h-14 w-full rounded-2xl font-black ${plan.recommended || isLifetime ? 'bg-[#E3B117] text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.18)] hover:bg-[#F5C542]' : 'border-white/15 bg-white/[0.05] hover:border-[#E3B117]/30'}`} variant={plan.recommended || isLifetime ? 'primary' : 'secondary'}>
+                      <Button className={`h-14 w-full rounded-2xl font-black transition hover:-translate-y-0.5 active:translate-y-0 ${plan.recommended || isLifetime ? 'landing-cta-shine bg-[#E3B117] text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.18)] hover:bg-[#F5C542]' : 'border-white/15 bg-white/[0.05] hover:border-[#E3B117]/30'}`} variant={plan.recommended || isLifetime ? 'primary' : 'secondary'}>
                         Choisir {plan.name}
                       </Button>
                     </Link>
@@ -753,7 +921,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="faq" className="border-b border-white/10 py-12 sm:py-20">
+        <section id="faq" className="landing-reveal border-b border-white/10 py-12 sm:py-20">
           <div className="mx-auto w-full max-w-[1180px] px-4 sm:px-6 lg:px-8 xl:px-10">
             <SectionTitle eyebrow="Questions fréquentes" title="Questions fréquentes" />
             <div className="mt-8 grid gap-3 sm:gap-4 lg:grid-cols-2">
@@ -770,7 +938,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="contact" className="scroll-mt-24 border-b border-white/10 py-12 sm:py-16">
+        <section id="contact" className="landing-reveal scroll-mt-24 border-b border-white/10 py-12 sm:py-16">
           <div className="mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-8 xl:px-10">
             <div className="grid gap-7 lg:grid-cols-[400px_minmax(0,1fr)] lg:items-stretch">
               <div className="rounded-[30px] border border-white/10 bg-gradient-to-br from-zinc-950/90 via-black to-zinc-950/85 p-7 shadow-[0_24px_80px_rgba(0,0,0,.34)] sm:p-8">
@@ -857,12 +1025,12 @@ export default function LandingPage() {
                     </label>
                     <div className="mt-2 grid gap-3 sm:grid-cols-[1.05fr_0.95fr]">
                       <a href={cadrageWhatsappUrl} target="_blank" rel="noreferrer" className="block">
-                        <Button className="h-14 w-full rounded-2xl bg-[#E3B117] font-black text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.16)] hover:bg-[#F5C542]" icon={<CalendarDays className="h-4 w-4" />}>
+                        <Button className="landing-cta-shine h-14 w-full rounded-2xl bg-[#E3B117] font-black text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.16)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0" icon={<CalendarDays className="h-4 w-4" />}>
                           Réserver la session
                         </Button>
                       </a>
                       <a href={cadrageEmailUrl} className="block">
-                        <Button variant="secondary" className="h-14 w-full rounded-2xl border-white/15 bg-white/[0.045] font-black hover:border-[#E3B117]/30" icon={<Mail className="h-4 w-4" />}>
+                        <Button variant="secondary" className="h-14 w-full rounded-2xl border-white/15 bg-white/[0.045] font-black transition hover:-translate-y-0.5 hover:border-[#E3B117]/30 active:translate-y-0" icon={<Mail className="h-4 w-4" />}>
                           Envoyer un email
                         </Button>
                       </a>
