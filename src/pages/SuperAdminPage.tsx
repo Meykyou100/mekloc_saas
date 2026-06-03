@@ -187,18 +187,18 @@ function SuperAdminSidebar({
   onClose?: () => void;
 }) {
   const nav = [
-    ['Tableau de bord', Users],
-    ['Agences', BuildingIcon],
-    ['Abonnements', Crown],
-    ['Paiements', Banknote],
-    ['Utilisateurs', UserPlus],
-    ['Sessions', Laptop2],
-    ['Demandes d’accès', Mail],
-    ['Comptes en suppression', Trash2],
-    ['Alertes', AlertTriangle],
-    ['Rapports', Activity],
-    ['Paramètres', ShieldAlert],
-    ['Support', HelpIcon],
+    ['Tableau de bord', Users, 'admin-overview'],
+    ['Agences', BuildingIcon, 'admin-agencies'],
+    ['Abonnements', Crown, 'admin-subscriptions'],
+    ['Paiements', Banknote, 'admin-payments'],
+    ['Utilisateurs', UserPlus, 'admin-users'],
+    ['Sessions', Laptop2, 'admin-sessions'],
+    ['Demandes d’accès', Mail, 'admin-access'],
+    ['Comptes en suppression', Trash2, 'admin-deletions'],
+    ['Alertes', AlertTriangle, 'admin-alerts'],
+    ['Rapports', Activity, 'admin-reports'],
+    ['Paramètres', ShieldAlert, 'admin-settings'],
+    ['Support', HelpIcon, 'admin-support'],
   ] as const;
 
   return (
@@ -218,10 +218,11 @@ function SuperAdminSidebar({
 
         <p className="mt-5 px-2 text-[11px] font-black uppercase tracking-[0.28em] text-carbon-500">Navigation</p>
         <nav className="mt-3 grid gap-1.5 overflow-y-auto pr-1">
-          {nav.map(([label, Icon], index) => (
-            <button
+          {nav.map(([label, Icon, target], index) => (
+            <a
               key={label}
-              type="button"
+              href={`#${target}`}
+              onClick={onClose}
               className={`flex h-10 items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold transition ${
                 index === 0
                   ? 'border border-[#E3B117]/35 bg-[#E3B117]/16 text-[#F5C542] shadow-[0_0_24px_rgba(227,177,23,.10)]'
@@ -230,7 +231,7 @@ function SuperAdminSidebar({
             >
               <Icon className="h-4 w-4 shrink-0" />
               <span className="truncate">{label}</span>
-            </button>
+            </a>
           ))}
         </nav>
 
@@ -275,6 +276,7 @@ export default function SuperAdminPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [accessRequests, setAccessRequests] = useState<AccessRequestRow[]>([]);
+  const [allAccessRequests, setAllAccessRequests] = useState<AccessRequestRow[]>([]);
   const [agencies, setAgencies] = useState<AdminAgency[]>([]);
   const [requestNotes, setRequestNotes] = useState<Record<string, string>>({});
   const [requestToDelete, setRequestToDelete] = useState<AccessRequestRow | null>(null);
@@ -304,6 +306,18 @@ export default function SuperAdminPage() {
         .map((user) => ({ user, agency }));
     });
   }, [agencies, agencyUsers]);
+
+  const allAdminUsers = useMemo(() => Object.values(agencyUsers).flat(), [agencyUsers]);
+
+  const allAdminSessions = useMemo(() => Object.values(agencySessions).flat(), [agencySessions]);
+
+  const planStats = useMemo(() => {
+    return (['starter', 'pro', 'business', 'lifetime'] as AgencyPlan[]).map((plan) => ({
+      plan,
+      agencies: agencies.filter((agency) => agency.plan === plan),
+      revenue: agencies.filter((agency) => agency.plan === plan && agency.billingStatus === 'paid').reduce((sum, agency) => sum + agency.monthlyPrice, 0),
+    }));
+  }, [agencies]);
 
   const agencySummary = useMemo(() => {
     const closeDue = agencies.filter((agency) => {
@@ -405,8 +419,10 @@ export default function SuperAdminPage() {
         supabase.from('vehicles').select('agency_id'),
       ]);
       if (reqRes.error || agencyRes.error || usersRes.error || vehicleRes.error) throw reqRes.error || agencyRes.error || usersRes.error || vehicleRes.error;
-      const reqs = ((reqRes.data || []) as AccessRequestRow[]).filter((r) => r.status !== 'approved');
-      const approvedReqs = ((reqRes.data || []) as AccessRequestRow[]).filter((r) => r.status === 'approved');
+      const allReqs = (reqRes.data || []) as AccessRequestRow[];
+      const reqs = allReqs.filter((r) => r.status !== 'approved');
+      const approvedReqs = allReqs.filter((r) => r.status === 'approved');
+      setAllAccessRequests(allReqs);
       setAccessRequests(reqs);
       setRequestNotes(Object.fromEntries(reqs.map((r) => [r.id, r.admin_notes || ''])));
 
@@ -902,7 +918,7 @@ export default function SuperAdminPage() {
           action={<div className="flex gap-2"><Button variant="secondary" icon={<RefreshCw className="h-4 w-4" />} loading={loading} onClick={loadAll}>Actualiser</Button><Button variant="secondary" onClick={async () => { await signOut(); navigate('/auth'); }}>Déconnexion</Button></div>}
         />
 
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
+        <div id="admin-overview" className="mt-5 scroll-mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
           <MiniMetric label="Agences actives" value={String(agencySummary.active)} icon={Users} tone="green" />
           <MiniMetric label="En essai" value={String(agencySummary.trial)} icon={CalendarClock} tone="blue" />
           <MiniMetric label="Payés" value={String(agencySummary.paid)} icon={CheckCircle2} tone="green" />
@@ -912,7 +928,7 @@ export default function SuperAdminPage() {
           <MiniMetric label="À surveiller" value={String(agencySummary.suspendedOrWatch)} icon={Activity} tone="red" />
         </div>
 
-        <Card className="mt-5 overflow-hidden border-[#E3B117]/18">
+        <Card id="admin-alerts" className="mt-5 scroll-mt-6 overflow-hidden border-[#E3B117]/18">
           <div className="flex flex-col gap-2 border-b border-white/10 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Alertes admin</p>
@@ -969,8 +985,18 @@ export default function SuperAdminPage() {
           </Card>
         ) : null}
 
-        <Card className="mt-4 overflow-hidden">
-          <div className="border-b border-white/10 p-5"><h2 className="text-xl font-bold">Demandes d’accès</h2></div>
+        <Card id="admin-access" className="mt-4 scroll-mt-6 overflow-hidden">
+          <div className="border-b border-white/10 p-5">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Demandes d’accès</p>
+            <h2 className="mt-1 text-xl font-bold">Nouvelles agences</h2>
+            <p className="mt-1 text-sm text-carbon-400">Validez les nouvelles agences qui demandent l’accès à MekLoc.</p>
+          </div>
+          <div className="grid gap-3 border-b border-white/10 p-5 sm:grid-cols-2 lg:grid-cols-4">
+            <MiniMetric label="En attente" value={String(allAccessRequests.filter((r) => r.status === 'pending' || r.status === 'pending_verification').length)} icon={Mail} tone="gold" />
+            <MiniMetric label="Approuvées" value={String(allAccessRequests.filter((r) => r.status === 'approved').length)} icon={CheckCircle2} tone="green" />
+            <MiniMetric label="Refusées" value={String(allAccessRequests.filter((r) => r.status === 'rejected').length)} icon={XCircle} tone="red" />
+            <MiniMetric label="Cette semaine" value={String(allAccessRequests.filter((r) => Date.now() - new Date(r.created_at).getTime() <= 7 * 86400000).length)} icon={CalendarClock} tone="blue" />
+          </div>
           <div className="grid gap-4 p-5">
             {accessRequests.length === 0 ? <p className="text-sm text-carbon-400">Aucune demande d’accès.</p> : accessRequests.map((req) => (
               <div key={req.id} className="premium-surface rounded-2xl p-4">
@@ -1021,10 +1047,20 @@ export default function SuperAdminPage() {
           </div>
         </Card>
 
-        <Card className="mt-6 overflow-hidden">
+        <Card id="admin-deletions" className="mt-6 scroll-mt-6 overflow-hidden">
           <div className="border-b border-white/10 p-5">
-            <h2 className="text-xl font-bold">Comptes en cours de suppression</h2>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Comptes en suppression</p>
+            <h2 className="mt-1 text-xl font-bold">Période de grâce</h2>
             <p className="mt-1 text-sm text-carbon-400">Période de grâce de 30 jours avant suppression définitive.</p>
+          </div>
+          <div className="grid gap-3 border-b border-white/10 p-5 sm:grid-cols-2 lg:grid-cols-4">
+            <MiniMetric label="En suppression" value={String(pendingDeletionAccounts.length)} icon={Trash2} tone="red" />
+            <MiniMetric label="Suppression proche" value={String(pendingDeletionAccounts.filter(({ user }) => {
+              const target = new Date(user.deletion_scheduled_at || '').getTime();
+              return Number.isFinite(target) && target - Date.now() <= 7 * 86400000;
+            }).length)} icon={AlertTriangle} tone="red" />
+            <MiniMetric label="Restaurables" value={String(pendingDeletionAccounts.length)} icon={RefreshCw} tone="gold" />
+            <MiniMetric label="Agences liées" value={String(new Set(pendingDeletionAccounts.map(({ agency }) => agency?.id).filter(Boolean)).size)} icon={Users} tone="blue" />
           </div>
           <div className="grid gap-3 p-5">
             {pendingDeletionAccounts.length === 0 ? (
@@ -1068,7 +1104,7 @@ export default function SuperAdminPage() {
           </div>
         </Card>
 
-        <Card className="mt-6 overflow-hidden">
+        <Card id="admin-agencies" className="mt-6 scroll-mt-6 overflow-hidden">
           <div className="border-b border-white/10 p-5">
             <h2 className="text-xl font-bold">Comptes agences approuvés</h2>
             <p className="mt-1 text-sm text-carbon-400">Suivi des agences, paiements, accès et sessions.</p>
@@ -1318,6 +1354,206 @@ export default function SuperAdminPage() {
             ))}
           </div>
         </Card>
+
+        <Card id="admin-subscriptions" className="mt-6 scroll-mt-6 overflow-hidden">
+          <div className="border-b border-white/10 p-5">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Abonnements</p>
+            <h2 className="mt-1 text-xl font-bold">Plans et abonnements agences</h2>
+            <p className="mt-1 text-sm text-carbon-400">Gérez les plans, limites, tarifs et abonnements des agences.</p>
+          </div>
+          <div className="grid gap-3 border-b border-white/10 p-5 sm:grid-cols-2 xl:grid-cols-7">
+            <MiniMetric label="Plans actifs" value="4" icon={Crown} tone="gold" />
+            <MiniMetric label="Starter" value={String(agencies.filter((a) => a.plan === 'starter').length)} icon={Users} tone="blue" />
+            <MiniMetric label="Pro" value={String(agencies.filter((a) => a.plan === 'pro').length)} icon={ShieldAlert} tone="gold" />
+            <MiniMetric label="Business" value={String(agencies.filter((a) => a.plan === 'business').length)} icon={Activity} tone="green" />
+            <MiniMetric label="Lifetime" value={String(agencies.filter((a) => a.plan === 'lifetime').length)} icon={CheckCircle2} tone="green" />
+            <MiniMetric label="Revenus" value={formatMAD(agencySummary.revenue)} icon={Banknote} tone="gold" />
+            <MiniMetric label="Échéances" value={String(agencySummary.closeDue)} icon={CalendarClock} tone="red" />
+          </div>
+          <div className="grid gap-4 p-5 lg:grid-cols-2 xl:grid-cols-4">
+            {planStats.map(({ plan, agencies: planAgencies, revenue }) => (
+              <div key={plan} className="rounded-3xl border border-white/10 bg-white/[0.035] p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-lg font-black text-white">{planLabel(plan)}</p>
+                    <p className="mt-1 text-sm text-carbon-400">{formatMAD(monthlyPriceByPlan[plan])}{plan === 'lifetime' ? ' · paiement unique' : ' / mois'}</p>
+                  </div>
+                  <StatusPill className={statusPillClass('plan', plan)}>Actif</StatusPill>
+                </div>
+                <div className="mt-4 grid gap-2 text-sm text-carbon-300">
+                  <p>Agences utilisant ce plan: <strong className="text-white">{planAgencies.length}</strong></p>
+                  <p>Revenu estimé: <strong className="text-white">{formatMAD(revenue)}</strong></p>
+                  <p>Limites: <strong className="text-white">{plan === 'starter' ? '15 véhicules' : plan === 'pro' ? '50 véhicules' : 'Illimité / avancé'}</strong></p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card id="admin-payments" className="mt-6 scroll-mt-6 overflow-hidden">
+          <div className="border-b border-white/10 p-5">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Paiements</p>
+            <h2 className="mt-1 text-xl font-bold">Suivi des paiements agences</h2>
+            <p className="mt-1 text-sm text-carbon-400">Suivez les paiements des agences et abonnements.</p>
+          </div>
+          <div className="grid gap-3 border-b border-white/10 p-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <MiniMetric label="Total encaissé" value={formatMAD(agencySummary.revenue)} icon={Banknote} tone="green" />
+            <MiniMetric label="En retard" value={String(agencies.filter((a) => a.billingStatus === 'overdue').length)} icon={AlertTriangle} tone="red" />
+            <MiniMetric label="Payés" value={String(agencySummary.paid)} icon={CheckCircle2} tone="green" />
+            <MiniMetric label="Revenu prévu" value={formatMAD(agencies.reduce((sum, a) => sum + a.monthlyPrice, 0))} icon={Activity} tone="gold" />
+            <MiniMetric label="Non payés" value={String(agencySummary.unpaid)} icon={ShieldAlert} tone="red" />
+            <MiniMetric label="Essais" value={String(agencySummary.trial)} icon={CalendarClock} tone="blue" />
+          </div>
+          <div className="grid gap-3 p-5">
+            {filteredAgencies.map((agency) => (
+              <div key={`pay-${agency.id}`} className="rounded-2xl border border-white/10 bg-carbon-950/45 p-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="min-w-0">
+                    <p className="font-black text-white">{agency.agencyName}</p>
+                    <p className="mt-1 break-all text-sm text-carbon-400">{agency.email}</p>
+                  </div>
+                  <div className="grid gap-2 text-sm text-carbon-300 sm:grid-cols-4 lg:min-w-[560px]">
+                    <p><span className="block text-xs text-carbon-500">Montant</span><strong className="text-white">{formatMAD(agency.monthlyPrice)}</strong></p>
+                    <p><span className="block text-xs text-carbon-500">Plan</span><strong className="text-white">{planLabel(agency.plan)}</strong></p>
+                    <p><span className="block text-xs text-carbon-500">Échéance</span><strong className="text-white">{agency.nextPaymentDueDate || '—'}</strong></p>
+                    <p><span className="block text-xs text-carbon-500">Statut</span><StatusPill className={statusPillClass('billing', agency.billingStatus)}>{billingLabel(agency.billingStatus)}</StatusPill></p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="secondary" loading={Boolean(actionLoading[`pay-paid-${agency.id}`])} onClick={() => runAction(`pay-paid-${agency.id}`, async () => markBilling(agency, 'paid'))}>Marquer payé</Button>
+                    <Button variant="secondary" loading={Boolean(actionLoading[`pay-unpaid-${agency.id}`])} onClick={() => runAction(`pay-unpaid-${agency.id}`, async () => markBilling(agency, 'unpaid'))}>Non payé</Button>
+                    <Button variant="ghost" onClick={() => setSelectedAgencyDetails(agency)}>Voir agence</Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card id="admin-users" className="mt-6 scroll-mt-6 overflow-hidden">
+          <div className="border-b border-white/10 p-5">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Utilisateurs</p>
+            <h2 className="mt-1 text-xl font-bold">Gestion des utilisateurs</h2>
+            <p className="mt-1 text-sm text-carbon-400">Gérez les utilisateurs des agences.</p>
+          </div>
+          <div className="grid gap-3 border-b border-white/10 p-5 sm:grid-cols-2 lg:grid-cols-5">
+            <MiniMetric label="Actifs" value={String(allAdminUsers.filter((u) => u.account_status === 'active').length)} icon={Users} tone="green" />
+            <MiniMetric label="Propriétaires" value={String(allAdminUsers.filter((u) => normalizeAdminAgencyRole(u.role) === 'owner').length)} icon={Crown} tone="gold" />
+            <MiniMetric label="Employés" value={String(allAdminUsers.filter((u) => normalizeAdminAgencyRole(u.role) !== 'owner').length)} icon={UserPlus} tone="blue" />
+            <MiniMetric label="Inactifs" value={String(allAdminUsers.filter((u) => u.account_status !== 'active').length)} icon={ShieldAlert} tone="red" />
+            <MiniMetric label="Total" value={String(allAdminUsers.length)} icon={Activity} tone="gold" />
+          </div>
+          <div className="grid gap-3 p-5 lg:grid-cols-2">
+            {allAdminUsers.length === 0 ? <p className="text-sm text-carbon-400">Aucun utilisateur disponible.</p> : allAdminUsers.map((user) => {
+              const agency = agencies.find((item) => item.id === user.agency_id);
+              return (
+                <div key={user.id} className="rounded-2xl border border-white/10 bg-carbon-950/45 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-black text-white">{user.full_name || 'Utilisateur'}</p>
+                      <p className="mt-1 break-all text-sm text-carbon-400">{user.email || '—'}</p>
+                      <p className="mt-1 text-xs text-carbon-500">{agency?.agencyName || 'Agence inconnue'} · {user.role || 'Rôle non renseigné'}</p>
+                    </div>
+                    <Badge>{accountLabel(user.account_status)}</Badge>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {agency ? <Button variant="ghost" onClick={() => setSelectedAgencyDetails(agency)}>Voir agence</Button> : null}
+                    {agency ? <Button variant="secondary" loading={Boolean(actionLoading[`admin-user-revoke-${user.id}`])} onClick={() => runAction(`admin-user-revoke-${user.id}`, async () => revokeUserSessions(agency.id, user.id))}>Forcer déconnexion</Button> : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        <Card id="admin-sessions" className="mt-6 scroll-mt-6 overflow-hidden">
+          <div className="border-b border-white/10 p-5">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Sessions</p>
+            <h2 className="mt-1 text-xl font-bold">Connexions actives</h2>
+            <p className="mt-1 text-sm text-carbon-400">Surveillez les connexions actives des utilisateurs.</p>
+          </div>
+          <div className="grid gap-3 border-b border-white/10 p-5 sm:grid-cols-2 lg:grid-cols-4">
+            <MiniMetric label="Actives" value={String(allAdminSessions.filter((s) => !s.revoked_at).length)} icon={Laptop2} tone="green" />
+            <MiniMetric label="Appareils" value={String(new Set(allAdminSessions.map((s) => s.device_id || s.session_key || s.id)).size)} icon={Smartphone} tone="blue" />
+            <MiniMetric label="Aujourd’hui" value={String(allAdminSessions.filter((s) => {
+              const seenAt = s.last_seen_at || s.last_activity_at;
+              return seenAt ? Date.now() - new Date(seenAt).getTime() <= 86400000 : false;
+            }).length)} icon={CalendarClock} tone="gold" />
+            <MiniMetric label="Révoquées" value={String(allAdminSessions.filter((s) => s.revoked_at).length)} icon={XCircle} tone="red" />
+          </div>
+          <div className="grid gap-3 p-5">
+            {allAdminSessions.length === 0 ? <p className="text-sm text-carbon-400">Aucune session enregistrée.</p> : allAdminSessions.slice(0, 30).map((session) => {
+              const user = allAdminUsers.find((item) => item.id === session.user_id);
+              const agency = agencies.find((item) => item.id === session.agency_id);
+              return (
+                <div key={session.id} className="rounded-2xl border border-white/10 bg-carbon-950/45 p-4">
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="min-w-0">
+                      <p className="font-black text-white">{user?.full_name || user?.email || 'Utilisateur'}</p>
+                      <p className="mt-1 text-sm text-carbon-400">{agency?.agencyName || 'Agence inconnue'} · {sessionDisplayLabel(session)}</p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge>{activityLabel(session.last_seen_at, session.revoked_at)}</Badge>
+                      {!session.revoked_at ? <Button variant="secondary" loading={Boolean(actionLoading[`admin-session-revoke-${session.id}`])} onClick={() => runAction(`admin-session-revoke-${session.id}`, async () => revokeSingleSession(session.id))}>Déconnecter</Button> : null}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        <Card id="admin-reports" className="mt-6 scroll-mt-6 overflow-hidden">
+          <div className="border-b border-white/10 p-5">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Rapports</p>
+            <h2 className="mt-1 text-xl font-bold">Performance plateforme</h2>
+            <p className="mt-1 text-sm text-carbon-400">Analysez les performances de la plateforme avec les données disponibles.</p>
+          </div>
+          <div className="grid gap-3 border-b border-white/10 p-5 sm:grid-cols-2 lg:grid-cols-6">
+            <MiniMetric label="Revenu total" value={formatMAD(agencySummary.revenue)} icon={Banknote} tone="gold" />
+            <MiniMetric label="Agences actives" value={String(agencySummary.active)} icon={Users} tone="green" />
+            <MiniMetric label="Nouvelles demandes" value={String(allAccessRequests.filter((r) => Date.now() - new Date(r.created_at).getTime() <= 30 * 86400000).length)} icon={Mail} tone="blue" />
+            <MiniMetric label="Conversion" value={`${allAccessRequests.length ? Math.round((allAccessRequests.filter((r) => r.status === 'approved').length / allAccessRequests.length) * 100) : 0}%`} icon={Activity} tone="green" />
+            <MiniMetric label="Retards" value={String(agencies.filter((a) => a.billingStatus === 'overdue').length)} icon={AlertTriangle} tone="red" />
+            <MiniMetric label="Utilisateurs" value={String(allAdminUsers.length)} icon={UserPlus} tone="gold" />
+          </div>
+          <div className="grid gap-4 p-5 lg:grid-cols-3">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 lg:col-span-2">
+              <p className="font-black text-white">Agences par plan</p>
+              <div className="mt-4 space-y-3">
+                {planStats.map(({ plan, agencies: planAgencies }) => {
+                  const percent = agencies.length ? Math.round((planAgencies.length / agencies.length) * 100) : 0;
+                  return (
+                    <div key={`bar-${plan}`}>
+                      <div className="flex items-center justify-between text-sm"><span className="font-semibold text-carbon-300">{planLabel(plan)}</span><span className="font-black text-white">{planAgencies.length}</span></div>
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10"><span className="block h-full rounded-full bg-[#E3B117]" style={{ width: `${percent}%` }} /></div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5">
+              <p className="font-black text-white">Paiements</p>
+              <div className="mt-4 space-y-3 text-sm text-carbon-300">
+                <p className="flex justify-between"><span>Payés</span><strong className="text-emerald-200">{agencySummary.paid}</strong></p>
+                <p className="flex justify-between"><span>Non payés</span><strong className="text-rose-200">{agencySummary.unpaid}</strong></p>
+                <p className="flex justify-between"><span>Essais</span><strong className="text-sky-200">{agencySummary.trial}</strong></p>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+          <Card id="admin-settings" className="scroll-mt-6 p-5">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Paramètres</p>
+            <h2 className="mt-1 text-xl font-bold text-white">Paramètres Super Admin</h2>
+            <p className="mt-2 text-sm leading-6 text-carbon-400">Aucun module de paramètres Super Admin séparé n’est disponible dans cette page. Les actions existantes restent accessibles depuis les cartes agences.</p>
+          </Card>
+          <Card id="admin-support" className="scroll-mt-6 p-5">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Support</p>
+            <h2 className="mt-1 text-xl font-bold text-white">Support plateforme</h2>
+            <p className="mt-2 text-sm leading-6 text-carbon-400">Aucun backend support dédié n’existe ici. Les emails d’activation et liens client utilisent les handlers déjà présents.</p>
+          </Card>
+        </div>
         </main>
       </div>
 
