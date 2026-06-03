@@ -1,5 +1,5 @@
-import { Banknote, CalendarClock, CheckCircle2, ChevronDown, Crown, FileText, Laptop2, Mail, RefreshCw, ShieldAlert, Smartphone, Trash2, UserPlus, Users, XCircle } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Activity, AlertTriangle, Banknote, CalendarClock, CheckCircle2, ChevronDown, Crown, Eye, FileText, Laptop2, Mail, Menu, RefreshCw, Search, ShieldAlert, Smartphone, Trash2, UserPlus, Users, X, XCircle } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState, type ElementType } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
@@ -33,6 +33,7 @@ type AccessRequestRow = {
 type AdminAgency = {
   id: string;
   agencyName: string;
+  ownerName: string;
   email: string;
   plan: AgencyPlan;
   billingStatus: BillingStatus;
@@ -41,6 +42,8 @@ type AdminAgency = {
   usersCount: number;
   accountStatus: AccountStatus;
   monthlyPrice: number;
+  createdAt: string | null;
+  latestActivityAt: string | null;
 };
 
 type AdminUserRow = {
@@ -140,6 +143,131 @@ function StatusPill({ children, className }: { children: string; className: stri
   return <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${className}`}>{children}</span>;
 }
 
+function dueState(date: string | null | undefined) {
+  if (!date) return { label: 'Non planifiée', tone: 'neutral' as const, days: null as number | null };
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return { label: 'Date invalide', tone: 'neutral' as const, days: null as number | null };
+  const days = Math.ceil((parsed.getTime() - Date.now()) / 86400000);
+  if (days < 0) return { label: `En retard ${Math.abs(days)} j`, tone: 'danger' as const, days };
+  if (days <= 7) return { label: `Dans ${days} j`, tone: 'warning' as const, days };
+  return { label: `Dans ${days} j`, tone: 'ok' as const, days };
+}
+
+function MiniMetric({ label, value, icon: Icon, tone = 'gold' }: { label: string; value: string; icon: ElementType; tone?: 'gold' | 'green' | 'red' | 'blue' }) {
+  const tones = {
+    gold: 'border-[#E3B117]/20 bg-[#E3B117]/10 text-[#F5C542]',
+    green: 'border-emerald-300/20 bg-emerald-400/10 text-emerald-200',
+    red: 'border-rose-300/20 bg-rose-400/10 text-rose-200',
+    blue: 'border-sky-300/20 bg-sky-400/10 text-sky-200',
+  };
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-carbon-500">{label}</p>
+          <p className="mt-2 text-2xl font-black text-white">{value}</p>
+        </div>
+        <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl border ${tones[tone]}`}>
+          <Icon className="h-4 w-4" />
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function SuperAdminSidebar({
+  revenue,
+  profileName,
+  mode = 'desktop',
+  onClose,
+}: {
+  revenue: number;
+  profileName: string;
+  mode?: 'desktop' | 'mobile';
+  onClose?: () => void;
+}) {
+  const nav = [
+    ['Tableau de bord', Users],
+    ['Agences', BuildingIcon],
+    ['Abonnements', Crown],
+    ['Paiements', Banknote],
+    ['Utilisateurs', UserPlus],
+    ['Sessions', Laptop2],
+    ['Demandes d’accès', Mail],
+    ['Comptes en suppression', Trash2],
+    ['Alertes', AlertTriangle],
+    ['Rapports', Activity],
+    ['Paramètres', ShieldAlert],
+    ['Support', HelpIcon],
+  ] as const;
+
+  return (
+    <aside className={mode === 'desktop' ? 'hidden w-[260px] shrink-0 lg:block' : 'h-full w-full'}>
+      <div className={`${mode === 'desktop' ? 'sticky top-5 h-[calc(100vh-40px)] rounded-[28px]' : 'h-full rounded-r-[28px]'} flex flex-col overflow-hidden border border-white/10 bg-gradient-to-b from-carbon-950 via-black to-carbon-950 p-4 shadow-[0_24px_80px_rgba(0,0,0,.38)]`}>
+        <div className="flex items-center gap-3 rounded-2xl border border-[#E3B117]/18 bg-white/[0.035] p-3">
+          <img src="/mekloc-logo-transparent.png" alt="MekLoc" className="h-10 w-auto max-w-[116px] object-contain" />
+          <div className="min-w-0">
+            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Super Admin</p>
+          </div>
+          {mode === 'mobile' ? (
+            <button type="button" onClick={onClose} className="ml-auto grid h-9 w-9 place-items-center rounded-xl border border-white/10 text-carbon-300 hover:bg-white/[0.05] hover:text-white">
+              <X className="h-4 w-4" />
+            </button>
+          ) : null}
+        </div>
+
+        <p className="mt-5 px-2 text-[11px] font-black uppercase tracking-[0.28em] text-carbon-500">Navigation</p>
+        <nav className="mt-3 grid gap-1.5 overflow-y-auto pr-1">
+          {nav.map(([label, Icon], index) => (
+            <button
+              key={label}
+              type="button"
+              className={`flex h-10 items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold transition ${
+                index === 0
+                  ? 'border border-[#E3B117]/35 bg-[#E3B117]/16 text-[#F5C542] shadow-[0_0_24px_rgba(227,177,23,.10)]'
+                  : 'text-carbon-300 hover:bg-white/[0.045] hover:text-white'
+              }`}
+            >
+              <Icon className="h-4 w-4 shrink-0" />
+              <span className="truncate">{label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="mt-auto space-y-3 pt-4">
+          <div className="rounded-2xl border border-[#E3B117]/18 bg-[#E3B117]/8 p-4">
+            <p className="text-[11px] font-bold text-carbon-400">Revenu mensuel estimé</p>
+            <p className="mt-2 text-xl font-black text-white">{formatMAD(revenue)}</p>
+            <p className="mt-1 text-xs font-semibold text-emerald-300">Suivi agence</p>
+            <div className="mt-3 flex h-9 items-end gap-1">
+              {[35, 46, 32, 58, 72, 54, 82].map((height, index) => (
+                <span key={index} className="flex-1 rounded-t bg-gradient-to-t from-[#E3B117]/35 to-[#F5C542]" style={{ height: `${height}%` }} />
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-[#E3B117]/25 bg-[#E3B117]/12 text-sm font-black text-[#F5C542]">
+              {profileName.split(' ').map((part) => part[0]).join('').slice(0, 2).toUpperCase() || 'SA'}
+            </div>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-black text-white">{profileName}</p>
+              <p className="text-xs text-carbon-400">Super Admin</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+function BuildingIcon({ className }: { className?: string }) {
+  return <Users className={className} />;
+}
+
+function HelpIcon({ className }: { className?: string }) {
+  return <ShieldAlert className={className} />;
+}
+
 
 export default function SuperAdminPage() {
   const { profile, isSupabaseEnabled, signOut } = useAuth();
@@ -163,6 +291,9 @@ export default function SuperAdminPage() {
   const [agencyPlanFilter, setAgencyPlanFilter] = useState<'all' | 'starter' | 'pro' | 'business' | 'lifetime'>('all');
   const [agencyStatusFilter, setAgencyStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [agencyPaymentFilter, setAgencyPaymentFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
+  const [agencyDueFilter, setAgencyDueFilter] = useState<'all' | 'soon' | 'overdue' | 'deletion'>('all');
+  const [selectedAgencyDetails, setSelectedAgencyDetails] = useState<AdminAgency | null>(null);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [showSessionHistoryAgencyId, setShowSessionHistoryAgencyId] = useState<string | null>(null);
 
   const pendingDeletionAccounts = useMemo(() => {
@@ -175,6 +306,11 @@ export default function SuperAdminPage() {
   }, [agencies, agencyUsers]);
 
   const agencySummary = useMemo(() => {
+    const closeDue = agencies.filter((agency) => {
+      const state = dueState(agency.nextPaymentDueDate);
+      return state.days !== null && state.days >= 0 && state.days <= 7;
+    }).length;
+    const watch = agencies.filter((agency) => agency.accountStatus === 'suspended' || agency.accountStatus === 'pending_deletion' || agency.billingStatus === 'overdue').length;
     return {
       active: agencies.filter((agency) => agency.accountStatus === 'active').length,
       trial: agencies.filter((agency) => agency.billingStatus === 'trial').length,
@@ -183,21 +319,80 @@ export default function SuperAdminPage() {
       revenue: agencies
         .filter((agency) => agency.accountStatus === 'active' && agency.billingStatus === 'paid')
         .reduce((sum, agency) => sum + agency.monthlyPrice, 0),
+      closeDue,
+      suspendedOrWatch: watch,
     };
   }, [agencies]);
+
+  const adminAlerts = useMemo(() => {
+    const alerts: Array<{ id: string; title: string; description: string; tone: 'danger' | 'warning' | 'gold'; agency?: AdminAgency }> = [];
+    agencies.forEach((agency) => {
+      const state = dueState(agency.nextPaymentDueDate);
+      if (agency.billingStatus === 'overdue') {
+        alerts.push({
+          id: `overdue-${agency.id}`,
+          title: `${agency.agencyName} · paiement en retard`,
+          description: agency.nextPaymentDueDate ? `Échéance dépassée depuis le ${agency.nextPaymentDueDate}.` : 'Paiement marqué en retard.',
+          tone: 'danger',
+          agency,
+        });
+      } else if (state.days !== null && state.days >= 0 && state.days <= 7) {
+        alerts.push({
+          id: `due-${agency.id}`,
+          title: `${agency.agencyName} · échéance proche`,
+          description: `Prochaine échéance ${state.label.toLowerCase()} (${agency.nextPaymentDueDate}).`,
+          tone: 'warning',
+          agency,
+        });
+      }
+      if (agency.accountStatus === 'suspended') {
+        alerts.push({
+          id: `suspended-${agency.id}`,
+          title: `${agency.agencyName} · compte suspendu`,
+          description: 'Le compte agence est suspendu côté profils utilisateurs.',
+          tone: 'danger',
+          agency,
+        });
+      }
+    });
+    pendingDeletionAccounts.slice(0, 5).forEach(({ user, agency }) => {
+      alerts.push({
+        id: `deletion-${user.id}`,
+        title: `${agency?.agencyName || 'Agence'} · suppression planifiée`,
+        description: `Suppression prévue le ${formatSince(user.deletion_scheduled_at)}.`,
+        tone: 'danger',
+        agency,
+      });
+    });
+    accessRequests.filter((request) => request.status === 'pending' || request.status === 'verified').slice(0, 5).forEach((request) => {
+      alerts.push({
+        id: `request-${request.id}`,
+        title: `${request.agency_name} · demande à traiter`,
+        description: `${request.owner_name} attend une validation (${planLabel(request.selected_plan)}).`,
+        tone: 'gold',
+      });
+    });
+    return alerts.slice(0, 8);
+  }, [accessRequests, agencies, pendingDeletionAccounts]);
 
   const filteredAgencies = useMemo(() => {
     const q = agencySearch.trim().toLowerCase();
     return agencies.filter((agency) => {
-      const searchMatch = !q || `${agency.agencyName} ${agency.email}`.toLowerCase().includes(q);
+      const searchMatch = !q || `${agency.agencyName} ${agency.ownerName} ${agency.email}`.toLowerCase().includes(q);
       const planMatch = agencyPlanFilter === 'all' || agency.plan === agencyPlanFilter;
       const statusMatch = agencyStatusFilter === 'all' || agency.accountStatus === agencyStatusFilter;
       const paymentMatch =
         agencyPaymentFilter === 'all' ||
         (agencyPaymentFilter === 'paid' ? agency.billingStatus === 'paid' : agency.billingStatus === 'unpaid' || agency.billingStatus === 'overdue');
-      return searchMatch && planMatch && statusMatch && paymentMatch;
+      const due = dueState(agency.nextPaymentDueDate);
+      const dueMatch =
+        agencyDueFilter === 'all' ||
+        (agencyDueFilter === 'soon' && due.days !== null && due.days >= 0 && due.days <= 7) ||
+        (agencyDueFilter === 'overdue' && (agency.billingStatus === 'overdue' || (due.days !== null && due.days < 0))) ||
+        (agencyDueFilter === 'deletion' && agency.accountStatus === 'pending_deletion');
+      return searchMatch && planMatch && statusMatch && paymentMatch && dueMatch;
     });
-  }, [agencies, agencyPaymentFilter, agencyPlanFilter, agencySearch, agencyStatusFilter]);
+  }, [agencies, agencyDueFilter, agencyPaymentFilter, agencyPlanFilter, agencySearch, agencyStatusFilter]);
 
   const loadAll = useCallback(async () => {
     if (!supabase || !isSupabaseConfigured) return;
@@ -205,7 +400,7 @@ export default function SuperAdminPage() {
     try {
       const [reqRes, agencyRes, usersRes, vehicleRes] = await Promise.all([
         supabase.from('access_requests').select('*').order('created_at', { ascending: false }),
-        supabase.from('agencies').select('id,name,plan,billing_status,next_payment_due_date,monthly_price'),
+        supabase.from('agencies').select('id,name,plan,billing_status,next_payment_due_date,monthly_price,created_at'),
         supabase.from('users_profiles').select('id,agency_id,account_status,email,full_name,role,last_login_at,last_seen_at,deletion_requested_at,deletion_scheduled_at'),
         supabase.from('vehicles').select('agency_id'),
       ]);
@@ -215,14 +410,20 @@ export default function SuperAdminPage() {
       setAccessRequests(reqs);
       setRequestNotes(Object.fromEntries(reqs.map((r) => [r.id, r.admin_notes || ''])));
 
-      const profiles = (usersRes.data || []) as Array<{ agency_id: string | null; account_status: AccountStatus; email: string | null; role: string | null }>;
+      const profiles = (usersRes.data || []) as Array<{ agency_id: string | null; account_status: AccountStatus; email: string | null; full_name?: string | null; role: string | null; last_login_at?: string | null; last_seen_at?: string | null }>;
       const vehicles = (vehicleRes.data || []) as Array<{ agency_id: string | null }>;
-      const mapped = ((agencyRes.data || []) as Array<{ id: string; name: string; plan: AgencyPlan; billing_status: BillingStatus; next_payment_due_date: string | null; monthly_price: number | null }>)
+      const mapped = ((agencyRes.data || []) as Array<{ id: string; name: string; plan: AgencyPlan; billing_status: BillingStatus; next_payment_due_date: string | null; monthly_price: number | null; created_at?: string | null }>)
         .map((a) => {
           const ownerProfile = pickAgencyOwnerProfile(profiles, a.id);
+          const agencyProfiles = profiles.filter((p) => p.agency_id === a.id);
+          const latestActivityAt = agencyProfiles
+            .flatMap((p) => [p.last_seen_at, p.last_login_at])
+            .filter(Boolean)
+            .sort((left, right) => new Date(String(right)).getTime() - new Date(String(left)).getTime())[0] || null;
           return {
             id: a.id,
             agencyName: a.name,
+            ownerName: ownerProfile?.full_name || 'Responsable',
             email: ownerProfile?.email || approvedReqs.find((r) => r.agency_name === a.name)?.email || '—',
             plan: a.plan || 'starter',
             billingStatus: a.billing_status || 'trial',
@@ -231,6 +432,8 @@ export default function SuperAdminPage() {
             usersCount: profiles.filter((p) => p.agency_id === a.id).length,
             accountStatus: ownerProfile?.account_status || 'pending',
             monthlyPrice: Number(a.monthly_price || monthlyPriceByPlan[a.plan || 'starter']),
+            createdAt: a.created_at || null,
+            latestActivityAt,
           };
         });
       setAgencies(mapped);
@@ -680,14 +883,65 @@ export default function SuperAdminPage() {
   if (!isSupabaseEnabled || !profile?.isSuperAdmin) return <Navigate to="/dashboard" replace />;
 
   return (
-    <div className="min-h-screen bg-carbon-950 px-4 py-6 text-white sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_20%_0%,rgba(227,177,23,.08),transparent_28%),linear-gradient(135deg,#050606,#090a0b_45%,#030303)] px-3 py-4 text-white sm:px-4 lg:px-5">
+      <div className="mx-auto flex max-w-[1760px] gap-5">
+        <SuperAdminSidebar revenue={agencySummary.revenue} profileName={profile.fullName || 'Younes Mekki'} />
+        <main className="min-w-0 flex-1 pb-10">
+        <button
+          type="button"
+          onClick={() => setMobileSidebarOpen(true)}
+          className="mb-4 inline-flex h-11 items-center gap-2 rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/12 px-4 text-sm font-black text-[#F5C542] shadow-[0_12px_35px_rgba(0,0,0,.22)] lg:hidden"
+        >
+          <Menu className="h-4 w-4" />
+          Menu Super Admin
+        </button>
         <PageHeader
           eyebrow="Espace sécurisé"
           title="Super Admin"
           description="Gestion des demandes d’accès et des comptes agences."
           action={<div className="flex gap-2"><Button variant="secondary" icon={<RefreshCw className="h-4 w-4" />} loading={loading} onClick={loadAll}>Actualiser</Button><Button variant="secondary" onClick={async () => { await signOut(); navigate('/auth'); }}>Déconnexion</Button></div>}
         />
+
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
+          <MiniMetric label="Agences actives" value={String(agencySummary.active)} icon={Users} tone="green" />
+          <MiniMetric label="En essai" value={String(agencySummary.trial)} icon={CalendarClock} tone="blue" />
+          <MiniMetric label="Payés" value={String(agencySummary.paid)} icon={CheckCircle2} tone="green" />
+          <MiniMetric label="Non payés" value={String(agencySummary.unpaid)} icon={ShieldAlert} tone="red" />
+          <MiniMetric label="Revenu estimé" value={formatMAD(agencySummary.revenue)} icon={Banknote} tone="gold" />
+          <MiniMetric label="Échéances proches" value={String(agencySummary.closeDue)} icon={AlertTriangle} tone="gold" />
+          <MiniMetric label="À surveiller" value={String(agencySummary.suspendedOrWatch)} icon={Activity} tone="red" />
+        </div>
+
+        <Card className="mt-5 overflow-hidden border-[#E3B117]/18">
+          <div className="flex flex-col gap-2 border-b border-white/10 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Alertes admin</p>
+              <h2 className="mt-1 text-xl font-black text-white">À surveiller</h2>
+            </div>
+            <Badge>{adminAlerts.length} alerte(s)</Badge>
+          </div>
+          <div className="grid gap-3 p-5 md:grid-cols-2 xl:grid-cols-4">
+            {adminAlerts.length === 0 ? (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-sm text-carbon-400 md:col-span-2 xl:col-span-4">Aucune alerte prioritaire avec les données disponibles.</div>
+            ) : adminAlerts.map((alert) => (
+              <button
+                key={alert.id}
+                type="button"
+                onClick={() => alert.agency ? setSelectedAgencyDetails(alert.agency) : undefined}
+                className={`rounded-2xl border p-4 text-left transition hover:-translate-y-0.5 ${
+                  alert.tone === 'danger'
+                    ? 'border-rose-300/20 bg-rose-400/10 hover:border-rose-300/35'
+                    : alert.tone === 'warning'
+                      ? 'border-amber-300/20 bg-amber-400/10 hover:border-amber-300/35'
+                      : 'border-[#E3B117]/20 bg-[#E3B117]/10 hover:border-[#E3B117]/35'
+                }`}
+              >
+                <p className="text-sm font-black text-white">{alert.title}</p>
+                <p className="mt-2 text-xs leading-5 text-carbon-300">{alert.description}</p>
+              </button>
+            ))}
+          </div>
+        </Card>
 
         {activationLinkToCopy ? (
           <Card className="mt-4 p-5">
@@ -819,27 +1073,16 @@ export default function SuperAdminPage() {
             <h2 className="text-xl font-bold">Comptes agences approuvés</h2>
             <p className="mt-1 text-sm text-carbon-400">Suivi des agences, paiements, accès et sessions.</p>
           </div>
-          <div className="grid gap-3 border-b border-white/10 p-5 sm:grid-cols-2 xl:grid-cols-5">
-            {[
-              ['Agences actives', String(agencySummary.active)],
-              ['En essai', String(agencySummary.trial)],
-              ['Payés', String(agencySummary.paid)],
-              ['Non payés', String(agencySummary.unpaid)],
-              ['Revenu mensuel estimé', formatMAD(agencySummary.revenue)],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-carbon-500">{label}</p>
-                <p className="mt-2 text-xl font-black text-white">{value}</p>
-              </div>
-            ))}
-          </div>
-          <div className="grid gap-3 border-b border-white/10 p-5 lg:grid-cols-[1fr_auto_auto_auto]">
-            <input
-              className="form-control"
-              value={agencySearch}
-              onChange={(e) => setAgencySearch(e.target.value)}
-              placeholder="Rechercher une agence ou un email"
-            />
+          <div className="grid gap-3 border-b border-white/10 p-5 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto_auto]">
+            <label className="relative block min-w-0">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
+              <input
+                className="form-control pl-11"
+                value={agencySearch}
+                onChange={(e) => setAgencySearch(e.target.value)}
+                placeholder="Rechercher agence, propriétaire ou email"
+              />
+            </label>
             <select className="form-control min-w-36" value={agencyPlanFilter} onChange={(e) => setAgencyPlanFilter(e.target.value as typeof agencyPlanFilter)}>
               <option value="all">Tous les plans</option>
               <option value="starter">Starter</option>
@@ -857,14 +1100,38 @@ export default function SuperAdminPage() {
               <option value="paid">Payé</option>
               <option value="unpaid">Non payé</option>
             </select>
+            <select className="form-control min-w-40" value={agencyDueFilter} onChange={(e) => setAgencyDueFilter(e.target.value as typeof agencyDueFilter)}>
+              <option value="all">Toutes échéances</option>
+              <option value="soon">Échéance proche</option>
+              <option value="overdue">En retard</option>
+              <option value="deletion">Suppression</option>
+            </select>
+            <Button
+              variant="ghost"
+              className="h-12 whitespace-nowrap"
+              onClick={() => {
+                setAgencySearch('');
+                setAgencyPlanFilter('all');
+                setAgencyStatusFilter('all');
+                setAgencyPaymentFilter('all');
+                setAgencyDueFilter('all');
+              }}
+            >
+              Réinitialiser
+            </Button>
           </div>
           <div className="grid gap-4 p-5">
             {filteredAgencies.length === 0 ? <p className="text-sm text-carbon-400">Aucun compte agence ne correspond aux filtres.</p> : filteredAgencies.map((agency) => (
-              <div key={agency.id} className="premium-surface rounded-2xl p-4">
+              <div key={agency.id} className="premium-surface rounded-3xl border border-white/10 p-4 shadow-[0_18px_55px_rgba(0,0,0,.22)]">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0">
-                    <p className="text-lg font-black text-white">{agency.agencyName}</p>
-                    <p className="mt-1 break-all text-sm text-carbon-300">{agency.email}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-lg font-black text-white">{agency.agencyName}</p>
+                      <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${dueState(agency.nextPaymentDueDate).tone === 'danger' ? 'border-rose-300/25 bg-rose-400/10 text-rose-200' : dueState(agency.nextPaymentDueDate).tone === 'warning' ? 'border-amber-300/25 bg-amber-400/10 text-amber-200' : 'border-white/10 bg-white/[0.04] text-carbon-300'}`}>
+                        {dueState(agency.nextPaymentDueDate).label}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-sm text-carbon-300">{agency.ownerName} · <span className="break-all">{agency.email}</span></p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <StatusPill className={statusPillClass('plan', agency.plan)}>{planLabel(agency.plan)}</StatusPill>
@@ -872,19 +1139,39 @@ export default function SuperAdminPage() {
                     <StatusPill className={statusPillClass('account', agency.accountStatus)}>{accountLabel(agency.accountStatus)}</StatusPill>
                   </div>
                 </div>
-                <div className="mt-4 grid gap-2 text-sm text-carbon-300 sm:grid-cols-2 lg:grid-cols-4">
-                  <p><strong className="text-white">Prochaine échéance:</strong> {agency.nextPaymentDueDate || '-'}</p>
-                  <p><strong className="text-white">Véhicules:</strong> {agency.vehiclesCount}</p>
-                  <p><strong className="text-white">Utilisateurs:</strong> {agency.usersCount}</p>
-                  <p><strong className="text-white">Prix:</strong> {formatMAD(agency.monthlyPrice)}</p>
+                <div className="mt-4 grid gap-2 text-sm text-carbon-300 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
+                  <p className="rounded-2xl border border-white/10 bg-carbon-950/45 p-3"><strong className="block text-xs uppercase tracking-[0.14em] text-carbon-500">Échéance</strong><span className="mt-1 block font-semibold text-white">{agency.nextPaymentDueDate || '-'}</span></p>
+                  <p className="rounded-2xl border border-white/10 bg-carbon-950/45 p-3"><strong className="block text-xs uppercase tracking-[0.14em] text-carbon-500">Véhicules</strong><span className="mt-1 block font-semibold text-white">{agency.vehiclesCount}</span></p>
+                  <p className="rounded-2xl border border-white/10 bg-carbon-950/45 p-3"><strong className="block text-xs uppercase tracking-[0.14em] text-carbon-500">Utilisateurs</strong><span className="mt-1 block font-semibold text-white">{agency.usersCount}</span></p>
+                  <p className="rounded-2xl border border-white/10 bg-carbon-950/45 p-3"><strong className="block text-xs uppercase tracking-[0.14em] text-carbon-500">Prix</strong><span className="mt-1 block font-semibold text-white">{formatMAD(agency.monthlyPrice)}</span></p>
+                  <p className="rounded-2xl border border-white/10 bg-carbon-950/45 p-3"><strong className="block text-xs uppercase tracking-[0.14em] text-carbon-500">Créée</strong><span className="mt-1 block font-semibold text-white">{formatActivityTime(agency.createdAt)}</span></p>
+                  <p className="rounded-2xl border border-white/10 bg-carbon-950/45 p-3"><strong className="block text-xs uppercase tracking-[0.14em] text-carbon-500">Activité</strong><span className="mt-1 block font-semibold text-white">{formatActivityTime(agency.latestActivityAt)}</span></p>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Button variant="secondary" icon={<Crown className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-plan-${agency.id}`])} onClick={() => runAction(`agency-plan-${agency.id}`, async () => changeAgencyPlan(agency, agency.plan === 'starter' ? 'pro' : agency.plan === 'pro' ? 'business' : agency.plan === 'business' ? 'lifetime' : 'starter'))}>Changer plan</Button>
-                  <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-paid-${agency.id}`])} onClick={() => runAction(`agency-paid-${agency.id}`, async () => markBilling(agency, 'paid'))}>Marquer payé</Button>
-                  <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-unpaid-${agency.id}`])} onClick={() => runAction(`agency-unpaid-${agency.id}`, async () => markBilling(agency, 'unpaid'))}>Marquer non payé</Button>
-                  <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-extend-${agency.id}`])} onClick={() => runAction(`agency-extend-${agency.id}`, async () => extendSubscription(agency, 30))}>Prolonger abonnement</Button>
-                  <Button variant="secondary" icon={<Mail className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-resend-${agency.id}`])} onClick={() => runAction(`agency-resend-${agency.id}`, async () => resendAgencyActivationEmail(agency))}>Renvoyer l’email d’activation</Button>
-                  <Button variant="ghost" icon={<ChevronDown className={`h-4 w-4 transition ${expandedAdvancedAgencyId === agency.id ? 'rotate-180' : ''}`} />} onClick={() => setExpandedAdvancedAgencyId((current) => (current === agency.id ? null : agency.id))}>Actions avancées</Button>
+                <div className="mt-4 grid gap-3 xl:grid-cols-[1fr_1fr_1fr_auto]">
+                  <div className="rounded-2xl border border-white/10 bg-carbon-950/35 p-3">
+                    <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Gestion</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="secondary" icon={<Crown className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-plan-${agency.id}`])} onClick={() => runAction(`agency-plan-${agency.id}`, async () => changeAgencyPlan(agency, agency.plan === 'starter' ? 'pro' : agency.plan === 'pro' ? 'business' : agency.plan === 'business' ? 'lifetime' : 'starter'))}>Changer plan</Button>
+                      <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-extend-${agency.id}`])} onClick={() => runAction(`agency-extend-${agency.id}`, async () => extendSubscription(agency, 30))}>Prolonger</Button>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-carbon-950/35 p-3">
+                    <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200">Paiement</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-paid-${agency.id}`])} onClick={() => runAction(`agency-paid-${agency.id}`, async () => markBilling(agency, 'paid'))}>Marquer payé</Button>
+                      <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-unpaid-${agency.id}`])} onClick={() => runAction(`agency-unpaid-${agency.id}`, async () => markBilling(agency, 'unpaid'))}>Non payé</Button>
+                    </div>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-carbon-950/35 p-3">
+                    <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-sky-200">Communication</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="secondary" icon={<Mail className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-resend-${agency.id}`])} onClick={() => runAction(`agency-resend-${agency.id}`, async () => resendAgencyActivationEmail(agency))}>Renvoyer email</Button>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-start gap-2 xl:justify-end">
+                    <Button variant="secondary" icon={<Eye className="h-4 w-4" />} onClick={() => setSelectedAgencyDetails(agency)}>Voir détails</Button>
+                    <Button variant="ghost" icon={<ChevronDown className={`h-4 w-4 transition ${expandedAdvancedAgencyId === agency.id ? 'rotate-180' : ''}`} />} onClick={() => setExpandedAdvancedAgencyId((current) => (current === agency.id ? null : agency.id))}>Avancé</Button>
+                  </div>
                 </div>
 
                 {expandedAdvancedAgencyId === agency.id ? (
@@ -1031,7 +1318,122 @@ export default function SuperAdminPage() {
             ))}
           </div>
         </Card>
+        </main>
       </div>
+
+      {mobileSidebarOpen ? (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <button type="button" aria-label="Fermer le menu" className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setMobileSidebarOpen(false)} />
+          <div className="absolute inset-y-0 left-0 w-[min(86vw,320px)]">
+            <SuperAdminSidebar revenue={agencySummary.revenue} profileName={profile.fullName || 'Younes Mekki'} mode="mobile" onClose={() => setMobileSidebarOpen(false)} />
+          </div>
+        </div>
+      ) : null}
+
+      {selectedAgencyDetails ? (
+        <div className="fixed inset-0 z-50">
+          <button type="button" aria-label="Fermer les détails" className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedAgencyDetails(null)} />
+          <aside className="absolute inset-y-0 right-0 flex w-full max-w-[620px] flex-col overflow-hidden border-l border-white/10 bg-gradient-to-b from-carbon-950 via-carbon-950 to-black shadow-[0_30px_90px_rgba(0,0,0,.45)] sm:rounded-l-[30px]">
+            <div className="sticky top-0 z-10 border-b border-white/10 bg-carbon-950/95 p-5 backdrop-blur">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#F5C542]">Fiche agence</p>
+                  <h2 className="mt-1 text-2xl font-black text-white">{selectedAgencyDetails.agencyName}</h2>
+                  <p className="mt-1 text-sm text-carbon-300">{selectedAgencyDetails.ownerName} · {selectedAgencyDetails.email}</p>
+                </div>
+                <button type="button" onClick={() => setSelectedAgencyDetails(null)} className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-white/10 text-carbon-300 hover:bg-white/[0.05] hover:text-white">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <StatusPill className={statusPillClass('plan', selectedAgencyDetails.plan)}>{planLabel(selectedAgencyDetails.plan)}</StatusPill>
+                <StatusPill className={statusPillClass('billing', selectedAgencyDetails.billingStatus)}>{billingLabel(selectedAgencyDetails.billingStatus)}</StatusPill>
+                <StatusPill className={statusPillClass('account', selectedAgencyDetails.accountStatus)}>{accountLabel(selectedAgencyDetails.accountStatus)}</StatusPill>
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-5">
+              <div className="rounded-3xl border border-[#E3B117]/20 bg-[#E3B117]/10 p-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div>
+                    <p className="text-xs text-carbon-400">Plan actuel</p>
+                    <p className="mt-1 font-black text-white">{planLabel(selectedAgencyDetails.plan)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-carbon-400">Prix</p>
+                    <p className="mt-1 font-black text-white">{formatMAD(selectedAgencyDetails.monthlyPrice)}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-carbon-400">Échéance</p>
+                    <p className="mt-1 font-black text-white">{dueState(selectedAgencyDetails.nextPaymentDueDate).label}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                {[
+                  ['Statut compte', accountLabel(selectedAgencyDetails.accountStatus)],
+                  ['Prochaine échéance', selectedAgencyDetails.nextPaymentDueDate || 'Non planifiée'],
+                  ['Véhicules', String(selectedAgencyDetails.vehiclesCount)],
+                  ['Utilisateurs', String(selectedAgencyDetails.usersCount)],
+                  ['Création', formatSince(selectedAgencyDetails.createdAt)],
+                  ['Dernière activité', formatActivityTime(selectedAgencyDetails.latestActivityAt)],
+                ].map(([label, value]) => (
+                  <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-3">
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-carbon-500">{label}</p>
+                    <p className="mt-1 font-semibold text-white">{value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-carbon-950/55 p-4">
+                <p className="text-sm font-black text-white">Actions rapides</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" icon={<Crown className="h-4 w-4" />} loading={Boolean(actionLoading[`drawer-plan-${selectedAgencyDetails.id}`])} onClick={() => runAction(`drawer-plan-${selectedAgencyDetails.id}`, async () => changeAgencyPlan(selectedAgencyDetails, selectedAgencyDetails.plan === 'starter' ? 'pro' : selectedAgencyDetails.plan === 'pro' ? 'business' : selectedAgencyDetails.plan === 'business' ? 'lifetime' : 'starter'))}>Changer plan</Button>
+                  <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} loading={Boolean(actionLoading[`drawer-extend-${selectedAgencyDetails.id}`])} onClick={() => runAction(`drawer-extend-${selectedAgencyDetails.id}`, async () => extendSubscription(selectedAgencyDetails, 30))}>Prolonger abonnement</Button>
+                  <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} loading={Boolean(actionLoading[`drawer-paid-${selectedAgencyDetails.id}`])} onClick={() => runAction(`drawer-paid-${selectedAgencyDetails.id}`, async () => markBilling(selectedAgencyDetails, 'paid'))}>Marquer payé</Button>
+                  <Button variant="secondary" icon={<Mail className="h-4 w-4" />} loading={Boolean(actionLoading[`drawer-resend-${selectedAgencyDetails.id}`])} onClick={() => runAction(`drawer-resend-${selectedAgencyDetails.id}`, async () => resendAgencyActivationEmail(selectedAgencyDetails))}>Renvoyer email</Button>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-carbon-950/55 p-4">
+                <p className="text-sm font-black text-white">Utilisateurs</p>
+                <div className="mt-3 space-y-2">
+                  {(agencyUsers[selectedAgencyDetails.id] || []).length === 0 ? (
+                    <p className="text-sm text-carbon-400">Aucun utilisateur disponible.</p>
+                  ) : (agencyUsers[selectedAgencyDetails.id] || []).map((user) => (
+                    <div key={user.id} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                      <div>
+                        <p className="text-sm font-semibold text-white">{user.full_name || 'Utilisateur'}</p>
+                        <p className="text-xs text-carbon-400">{user.email || '—'} · {user.role || '—'}</p>
+                      </div>
+                      <Badge>{accountLabel(user.account_status)}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-carbon-950/55 p-4">
+                <p className="text-sm font-black text-white">Sessions</p>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-xs text-carbon-500">Sessions actives</p>
+                    <p className="mt-1 text-lg font-black text-white">{(agencySessions[selectedAgencyDetails.id] || []).filter((session) => !session.revoked_at).length}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-xs text-carbon-500">Sessions totales</p>
+                    <p className="mt-1 text-lg font-black text-white">{(agencySessions[selectedAgencyDetails.id] || []).length}</p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-xs text-carbon-500">Dernière session</p>
+                    <p className="mt-1 text-sm font-semibold text-white">{formatActivityTime((agencySessions[selectedAgencyDetails.id] || [])[0]?.last_seen_at)}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      ) : null}
 
       <Modal open={Boolean(requestToDelete)} onClose={() => { setRequestToDelete(null); setAdminDeleteConfirmText(''); }} title="Confirmer la suppression">
         <div className="space-y-3">
