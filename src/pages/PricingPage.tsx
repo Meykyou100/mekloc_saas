@@ -1,6 +1,5 @@
 import { ArrowLeft, CheckCircle2, Crown, Infinity, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import SEO, { baseStructuredData } from '../components/system/SEO';
 import { plans } from '../data/mockData';
@@ -54,10 +53,15 @@ export default function PricingPage() {
                   </p>
                 ))}
               </div>
-              <Link to={`/demande-acces?plan=${encodeURIComponent((plan as { id?: string }).id || plan.name.toLowerCase())}&billing=${plan.name === 'Lifetime' ? 'lifetime' : 'monthly'}`} className="mt-8 block">
-                <Button className="w-full" variant={plan.featured ? 'primary' : 'secondary'}>
-                  Choisir {plan.name}
-                </Button>
+              <Link
+                to={`/demande-acces?plan=${encodeURIComponent((plan as { id?: string }).id || plan.name.toLowerCase())}&billing=${plan.name === 'Lifetime' ? 'lifetime' : 'monthly'}`}
+                className={`mt-8 flex h-12 w-full items-center justify-center rounded-2xl border text-sm font-black transition duration-300 hover:-translate-y-0.5 active:translate-y-0 ${
+                  plan.featured
+                    ? 'border-gold-300/60 bg-gold-400 text-carbon-950 shadow-gold hover:bg-gold-300'
+                    : 'border-white/15 bg-white/[0.06] text-white hover:border-gold-300/40 hover:bg-gold-400/10 hover:text-gold-200 light:border-carbon-200 light:bg-white light:text-carbon-950 light:hover:border-gold-300/60 light:hover:bg-gold-50'
+                }`}
+              >
+                Choisir {plan.name}
               </Link>
             </Card>
           ))}

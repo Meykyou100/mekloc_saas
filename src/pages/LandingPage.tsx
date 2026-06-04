@@ -909,10 +909,15 @@ export default function LandingPage() {
                     <div className="mt-7 grow space-y-3 sm:mt-8 sm:space-y-3.5">
                       {plan.features.map((feature) => <p key={feature} className="flex gap-3 text-base text-white/75"><Check className="h-5 w-5 shrink-0 text-[#F5C542]" />{feature}</p>)}
                     </div>
-                    <Link to={planUrl} className="mt-7 block">
-                      <Button className={`h-14 w-full rounded-2xl font-black transition hover:-translate-y-0.5 active:translate-y-0 ${plan.recommended || isLifetime ? 'landing-cta-shine bg-[#E3B117] text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.18)] hover:bg-[#F5C542]' : 'border-white/15 bg-white/[0.05] hover:border-[#E3B117]/30'}`} variant={plan.recommended || isLifetime ? 'primary' : 'secondary'}>
-                        Choisir {plan.name}
-                      </Button>
+                    <Link
+                      to={planUrl}
+                      className={`mt-7 flex h-14 w-full items-center justify-center rounded-2xl border text-sm font-black transition duration-300 hover:-translate-y-0.5 active:translate-y-0 ${
+                        plan.recommended || isLifetime
+                          ? 'landing-cta-shine border-[#F5C542]/50 bg-[#E3B117] text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.18)] hover:bg-[#F5C542]'
+                          : 'border-white/15 bg-white/[0.06] text-white hover:border-[#E3B117]/35 hover:bg-[#E3B117]/10 hover:text-[#F5C542]'
+                      }`}
+                    >
+                      Choisir {plan.name}
                     </Link>
                   </Card>
                 );

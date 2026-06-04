@@ -175,7 +175,7 @@ function MiniMetric({ label, value, icon: Icon, tone = 'gold' }: { label: string
     blue: 'border-sky-300/20 bg-sky-400/10 text-sky-200',
   };
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
+    <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition-all duration-300 motion-safe:hover:-translate-y-1 motion-safe:hover:border-[#E3B117]/25 motion-safe:hover:shadow-[0_18px_50px_rgba(0,0,0,.25)]">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-carbon-500">{label}</p>
@@ -244,10 +244,10 @@ function SuperAdminSidebar({
                 onSelectView(target);
                 onClose?.();
               }}
-              className={`flex h-10 items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold transition ${
+              className={`flex h-10 items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold transition-all duration-200 ${
                 activeView === target
-                  ? 'border border-[#E3B117]/35 bg-[#E3B117]/16 text-[#F5C542] shadow-[0_0_24px_rgba(227,177,23,.10)]'
-                  : 'text-carbon-300 hover:bg-white/[0.045] hover:text-white'
+                  ? 'scale-[1.01] border border-[#E3B117]/35 bg-[#E3B117]/16 text-[#F5C542] shadow-[0_0_24px_rgba(227,177,23,.10)]'
+                  : 'text-carbon-300 hover:bg-white/[0.045] hover:text-white motion-safe:hover:translate-x-1'
               }`}
             >
               <Icon className="h-4 w-4 shrink-0" />
@@ -938,6 +938,15 @@ export default function SuperAdminPage() {
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_20%_0%,rgba(227,177,23,.08),transparent_28%),linear-gradient(135deg,#050606,#090a0b_45%,#030303)] px-3 py-4 text-white sm:px-4 lg:px-5">
+      <style>{`
+        @keyframes superAdminViewIn {
+          from { opacity: 0; transform: translate3d(0, 14px, 0) scale(.992); filter: blur(4px); }
+          to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); filter: blur(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          [data-super-admin-view] { animation: none !important; }
+        }
+      `}</style>
       <div className="mx-auto flex max-w-[1760px] gap-5">
         <SuperAdminSidebar revenue={agencySummary.revenue} profileName={profile.fullName || 'Younes Mekki'} activeView={activeView} onSelectView={setActiveView} />
         <main className="min-w-0 flex-1 pb-10">
@@ -956,6 +965,7 @@ export default function SuperAdminPage() {
           action={<div className="flex gap-2"><Button variant="secondary" icon={<RefreshCw className="h-4 w-4" />} loading={loading} onClick={loadAll}>Actualiser</Button><Button variant="secondary" onClick={async () => { await signOut(); navigate('/auth'); }}>Déconnexion</Button></div>}
         />
 
+        <div key={activeView} data-super-admin-view className="motion-safe:animate-[superAdminViewIn_.28s_ease-out]">
         {(activeView === 'overview' || activeView === 'agencies') ? (
         <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
           <MiniMetric label="Agences actives" value={String(agencySummary.active)} icon={Users} tone="green" />
@@ -1618,6 +1628,7 @@ export default function SuperAdminPage() {
           ) : null}
         </div>
         ) : null}
+        </div>
         </main>
       </div>
 
