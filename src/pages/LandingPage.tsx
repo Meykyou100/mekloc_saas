@@ -22,7 +22,6 @@ import {
   Menu,
   MessageCircle,
   MonitorCog,
-  Play,
   ShieldCheck,
   Sparkles,
   Users,
@@ -707,6 +706,26 @@ function LandingHeader() {
 }
 
 function DashboardVisual() {
+  const nav = [
+    ['Tableau de bord', Gauge],
+    ['Réservations', CalendarDays],
+    ['Véhicules', Car],
+    ['Contrats', FileText],
+    ['Paiements', CircleDollarSign],
+    ['Alertes', BellRing],
+  ];
+  const kpis = [
+    ['Réservations', '128', '+12% ce mois'],
+    ['Véhicules', '23', '+5 ce mois'],
+    ['Contrats', '56', '+8% ce mois'],
+    ['Paiements', '82,450 MAD', '+15% ce mois'],
+  ];
+  const reservations = [
+    ['Ahmed Bennani', 'Toyota Corolla', '12 juin', '10:00'],
+    ['Yassine El Amrani', 'Dacia Duster', '13 juin', '11:30'],
+    ['Sofia Alaoui', 'Peugeot 208', '13 juin', '14:00'],
+  ];
+
   return (
     <div className="landing-mockup-float landing-desktop-mockup relative w-full max-w-[820px] justify-self-end pb-16 pt-8">
       <div className="landing-hero-ray hidden lg:block" />
@@ -714,42 +733,111 @@ function DashboardVisual() {
       <div className="pointer-events-none absolute left-1/2 top-24 h-[340px] w-[700px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(245,197,66,.20),rgba(227,177,23,.07)_34%,transparent_68%)] blur-3xl" />
 
       <div className="landing-floating-badge absolute -left-5 top-24 z-20 rounded-2xl border border-[#E3B117]/20 bg-black/72 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">À venir</p>
-        <p className="mt-1 text-sm font-black text-white">Démo guidée 60s</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Aujourd’hui</p>
+        <p className="mt-1 text-sm font-black text-white">128 réservations suivies</p>
       </div>
       <div className="landing-floating-badge absolute -right-6 top-36 z-20 hidden rounded-2xl border border-white/10 bg-black/70 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl xl:block">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">MekLoc</p>
-        <p className="mt-1 text-sm font-black text-white">Réservations, flotte, PDF</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Flotte</p>
+        <p className="mt-1 text-sm font-black text-white">23 véhicules disponibles</p>
       </div>
 
-      <div className="relative z-10 rounded-[2.15rem] border border-[#E3B117]/35 bg-[#060706]/90 p-3 shadow-[0_46px_140px_rgba(0,0,0,.72),0_0_90px_rgba(227,177,23,.16)] backdrop-blur-xl">
+      <div className="relative z-10 rounded-[2.15rem] border border-[#E3B117]/35 bg-[#060706]/95 p-3 shadow-[0_46px_140px_rgba(0,0,0,.72),0_0_90px_rgba(227,177,23,.16)] backdrop-blur-xl">
         <div className="absolute -inset-px -z-10 rounded-[2.15rem] bg-gradient-to-br from-[#F5C542]/55 via-transparent to-[#E3B117]/18 blur-sm" />
-        <div className="relative aspect-[16/9] overflow-hidden rounded-[1.65rem] border border-white/10 bg-[radial-gradient(circle_at_50%_0%,rgba(245,197,66,.17),transparent_34%),linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.02)_32%,rgba(0,0,0,.72)),linear-gradient(rgba(255,255,255,.032)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.026)_1px,transparent_1px)] bg-[size:auto,auto,42px_42px,42px_42px]">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(227,177,23,.16),transparent_30%),linear-gradient(to_bottom,rgba(255,255,255,.06),transparent_34%,rgba(0,0,0,.45))]" />
-          <div className="absolute inset-x-8 top-6 flex items-center justify-between border-b border-white/10 pb-4">
-            <Logo compact />
-            <span className="rounded-full border border-[#E3B117]/25 bg-[#E3B117]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[#F5C542]">
-              Preview
-            </span>
-          </div>
-          <div className="absolute inset-0 grid place-items-center px-8 pt-10 text-center">
-            <div>
-              <span className="landing-play-pulse mx-auto grid h-20 w-20 place-items-center rounded-full border border-[#F5C542]/55 bg-[#E3B117] text-[#070807]">
-                <Play className="ml-1 h-8 w-8 fill-current" />
-              </span>
-              <p className="mt-6 text-3xl font-black text-white">Vidéo démo 60s</p>
-              <p className="mt-2 text-sm font-bold uppercase tracking-[0.22em] text-[#F5C542]">Bientôt disponible</p>
-              <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-zinc-400">
-                Un espace réservé pour présenter MekLoc en vidéo, sans contenu fictif pour le moment.
-              </p>
+        <div className="relative aspect-[16/9] overflow-hidden rounded-[1.65rem] border border-white/10 bg-[radial-gradient(circle_at_72%_10%,rgba(245,197,66,.16),transparent_30%),linear-gradient(135deg,#090b0d,#050606_42%,#0d0a03)]">
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.026)_1px,transparent_1px)] bg-[size:42px_42px]" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,.06),transparent_26%,rgba(0,0,0,.34))]" />
+
+          <div className="relative grid h-full grid-cols-[170px_minmax(0,1fr)]">
+            <aside className="border-r border-white/10 bg-black/28 p-5">
+              <Logo compact />
+              <div className="mt-8 grid gap-2">
+                {nav.map(([label, Icon], index) => (
+                  <div
+                    key={label as string}
+                    className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[12px] font-bold ${
+                      index === 0
+                        ? 'border border-[#E3B117]/30 bg-[#E3B117]/18 text-[#F5C542]'
+                        : 'text-white/58'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{label as string}</span>
+                  </div>
+                ))}
+              </div>
+            </aside>
+
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#F5C542]">MekLoc</p>
+                  <h3 className="mt-2 text-2xl font-black text-white">Tableau de bord</h3>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-[#F5C542]">
+                    <BellRing className="h-4 w-4" />
+                  </span>
+                  <span className="rounded-full border border-[#E3B117]/25 bg-[#E3B117]/10 px-3 py-1.5 text-xs font-black text-white">
+                    Agence Premium
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-6 grid grid-cols-4 gap-3">
+                {kpis.map(([label, value, note]) => (
+                  <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">
+                    <p className="text-xs leading-4 text-white/62">{label}</p>
+                    <p className="mt-3 text-2xl font-black text-white">{value}</p>
+                    <p className="mt-2 text-xs font-bold text-[#F5C542]">{note}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 grid grid-cols-[1.08fr_.92fr] gap-4">
+                <div className="rounded-2xl border border-white/10 bg-black/24 p-5">
+                  <div className="flex items-center justify-between">
+                    <p className="font-black text-white">Réservations par mois</p>
+                    <span className="rounded-full border border-[#E3B117]/25 bg-[#E3B117]/10 px-3 py-1 text-xs font-bold text-[#F5C542]">Juin</span>
+                  </div>
+                  <div className="mt-5 flex h-32 items-end gap-2 border-b border-l border-white/10 px-2 pb-2">
+                    {[44, 66, 52, 82, 60, 92, 72, 104].map((height, index) => (
+                      <span
+                        key={index}
+                        className="flex-1 rounded-t-lg bg-gradient-to-t from-[#8b650b] to-[#F5C542] shadow-[0_0_18px_rgba(227,177,23,.18)]"
+                        style={{ height: `${height}%` }}
+                      />
+                    ))}
+                  </div>
+                  <div className="mt-3 flex justify-between text-[11px] text-white/42">
+                    {['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'].map((month) => <span key={month}>{month}</span>)}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-black/24 p-5">
+                  <div className="flex items-center justify-between">
+                    <p className="font-black text-white">Prochaines réservations</p>
+                    <span className="text-xs font-bold text-[#F5C542]">Voir toutes</span>
+                  </div>
+                  <div className="mt-4 grid gap-3">
+                    {reservations.map(([name, vehicle, date, time]) => (
+                      <div key={name} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-white/8 pb-3 last:border-0 last:pb-0">
+                        <span className="grid h-9 w-9 place-items-center rounded-full border border-[#E3B117]/20 bg-[#E3B117]/10 text-[#F5C542]">
+                          <Users className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-bold text-white">{name}</span>
+                          <span className="block truncate text-xs text-white/48">{vehicle}</span>
+                        </span>
+                        <span className="text-right text-xs">
+                          <span className="block font-black text-[#F5C542]">{date}</span>
+                          <span className="text-white/45">{time}</span>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="absolute inset-x-8 bottom-6 grid grid-cols-3 gap-3">
-            {['Réservations', 'Véhicules', 'Contrats PDF'].map((label) => (
-              <span key={label} className="rounded-2xl border border-white/10 bg-black/45 px-3 py-3 text-center text-xs font-black text-white/78 backdrop-blur">
-                {label}
-              </span>
-            ))}
           </div>
         </div>
       </div>
