@@ -871,7 +871,7 @@ export default function LandingPage() {
           <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#E3B117]/10 to-transparent" />
           <div className="pointer-events-none absolute -left-28 top-40 h-80 w-80 rounded-full bg-[#E3B117]/10 blur-3xl" />
           <div className="mx-auto grid w-full max-w-[1440px] items-center gap-9 px-4 py-9 sm:px-6 sm:py-14 lg:min-h-[calc(100vh-80px)] lg:grid-cols-[0.88fr_1.12fr] lg:px-8 lg:py-16 xl:gap-16 xl:px-10">
-            <div className="landing-reveal max-w-[680px]">
+            <div className="landing-reveal is-visible max-w-[680px]">
               <div className="landing-hero-kicker inline-flex max-w-full items-center gap-2 rounded-full border border-[#E3B117]/30 bg-[#E3B117]/10 px-3.5 py-2 text-xs font-bold leading-5 text-[#F5C542] sm:px-4 sm:text-sm">
                 <Zap className="h-4 w-4" />
                 <span className="lg:hidden">SaaS de gestion pour agences au Maroc</span>
@@ -935,7 +935,7 @@ export default function LandingPage() {
               </div>
               <MobileCommandHero />
             </div>
-            <div className="landing-reveal landing-hero-visual hidden lg:block">
+            <div className="landing-reveal is-visible landing-hero-visual hidden lg:block">
               <DashboardVisual />
             </div>
           </div>
