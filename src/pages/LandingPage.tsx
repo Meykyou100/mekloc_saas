@@ -191,6 +191,28 @@ function LandingMotionStyles() {
         50% { transform: translate3d(0, -10px, 0); }
       }
 
+      @keyframes mekloc-desktop-hero-float {
+        0%, 100% { transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg); }
+        50% { transform: translate3d(0, -18px, 0) rotateX(1.2deg) rotateY(-1deg); }
+      }
+
+      @keyframes mekloc-desktop-glow-pulse {
+        0%, 100% { opacity: .42; transform: scale(.96); }
+        50% { opacity: .82; transform: scale(1.04); }
+      }
+
+      @keyframes mekloc-desktop-badge-drift {
+        0%, 100% { transform: translate3d(0, 0, 0); }
+        50% { transform: translate3d(0, -8px, 0); }
+      }
+
+      @keyframes mekloc-light-sweep {
+        0% { transform: translateX(-70%) rotate(10deg); opacity: 0; }
+        22% { opacity: .45; }
+        54% { opacity: .18; }
+        100% { transform: translateX(95%) rotate(10deg); opacity: 0; }
+      }
+
       @keyframes mekloc-shine {
         0% { transform: translateX(-140%) skewX(-18deg); opacity: 0; }
         30% { opacity: .5; }
@@ -233,6 +255,37 @@ function LandingMotionStyles() {
       .landing-mockup-float {
         animation: mekloc-float 7s ease-in-out infinite;
         will-change: transform;
+      }
+
+      .landing-desktop-mockup::before {
+        content: '';
+        position: absolute;
+        inset: 9%;
+        z-index: -1;
+        border-radius: 9999px;
+        background: radial-gradient(circle, rgba(245, 197, 66, .28), rgba(227, 177, 23, .08) 42%, transparent 70%);
+        filter: blur(48px);
+        animation: mekloc-desktop-glow-pulse 5.8s ease-in-out infinite;
+      }
+
+      .landing-desktop-mockup::after {
+        content: '';
+        position: absolute;
+        inset: 2.5rem 3rem;
+        z-index: 5;
+        pointer-events: none;
+        border-radius: 1.75rem;
+        background: linear-gradient(105deg, transparent 8%, rgba(245, 197, 66, .15) 38%, rgba(255, 255, 255, .16) 48%, transparent 64%);
+        mix-blend-mode: screen;
+        animation: mekloc-light-sweep 6.5s ease-in-out infinite;
+      }
+
+      .landing-floating-badge {
+        animation: mekloc-desktop-badge-drift 5.6s ease-in-out infinite;
+      }
+
+      .landing-floating-badge:nth-child(2) {
+        animation-delay: -2.2s;
       }
 
       .landing-cta-shine {
@@ -284,10 +337,32 @@ function LandingMotionStyles() {
           height: 260px;
           filter: blur(42px);
           opacity: .72;
+          animation: none;
+        }
+
+        .landing-gradient-motion,
+        .landing-mockup-float,
+        .landing-floating-badge,
+        .landing-desktop-mockup::before,
+        .landing-desktop-mockup::after {
+          animation: none !important;
+        }
+
+        .landing-reveal,
+        .landing-reveal.is-visible {
+          opacity: 1;
+          transform: none;
+          transition: none;
         }
 
         .landing-card:hover {
           transform: none;
+        }
+      }
+
+      @media (min-width: 1024px) {
+        .landing-mockup-float {
+          animation: mekloc-desktop-hero-float 7.5s ease-in-out infinite;
         }
       }
 
@@ -296,6 +371,9 @@ function LandingMotionStyles() {
         .landing-ambient::after,
         .landing-gradient-motion,
         .landing-mockup-float,
+        .landing-floating-badge,
+        .landing-desktop-mockup::before,
+        .landing-desktop-mockup::after,
         .landing-cta-shine:hover::after {
           animation: none !important;
         }
@@ -465,12 +543,12 @@ function LandingHeader() {
 
 function DashboardVisual() {
   return (
-    <div className="landing-mockup-float relative w-full max-w-[820px] justify-self-end">
-      <div className="absolute -left-10 top-8 z-10 rounded-2xl border border-white/10 bg-black/70 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl">
+    <div className="landing-mockup-float landing-desktop-mockup relative w-full max-w-[820px] justify-self-end">
+      <div className="landing-floating-badge absolute -left-10 top-8 z-10 rounded-2xl border border-white/10 bg-black/70 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl">
         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Aujourd’hui</p>
         <p className="mt-1 text-sm font-black text-white">12 réservations suivies</p>
       </div>
-      <div className="absolute -bottom-6 right-8 z-10 rounded-2xl border border-[#E3B117]/25 bg-[#0b0b09]/80 px-4 py-3 shadow-[0_18px_50px_rgba(227,177,23,.16)] backdrop-blur-xl">
+      <div className="landing-floating-badge absolute -bottom-6 right-8 z-10 rounded-2xl border border-[#E3B117]/25 bg-[#0b0b09]/80 px-4 py-3 shadow-[0_18px_50px_rgba(227,177,23,.16)] backdrop-blur-xl">
         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Alertes</p>
         <p className="mt-1 text-sm font-black text-white">Paiements, contrats, flotte</p>
       </div>
@@ -626,9 +704,10 @@ export default function LandingPage() {
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isMobileViewport = window.matchMedia('(max-width: 767px)').matches;
     const elements = Array.from(document.querySelectorAll<HTMLElement>('.landing-reveal'));
 
-    if (prefersReducedMotion || !('IntersectionObserver' in window)) {
+    if (prefersReducedMotion || isMobileViewport || !('IntersectionObserver' in window)) {
       elements.forEach((element) => element.classList.add('is-visible'));
       return undefined;
     }
