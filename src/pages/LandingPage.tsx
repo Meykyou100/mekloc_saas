@@ -314,7 +314,7 @@ function LandingMotionStyles() {
       .landing-hero-actions,
       .landing-hero-proof,
       .landing-hero-visual {
-        opacity: 0;
+        opacity: 1;
         animation: mekloc-hero-rise .82s cubic-bezier(.2, .72, .18, 1) forwards;
       }
 
