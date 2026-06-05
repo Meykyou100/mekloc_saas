@@ -213,6 +213,22 @@ function LandingMotionStyles() {
         100% { transform: translateX(95%) rotate(10deg); opacity: 0; }
       }
 
+      @keyframes mekloc-hero-rise {
+        0% { opacity: 0; transform: translate3d(0, 28px, 0); filter: blur(10px); }
+        100% { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0); }
+      }
+
+      @keyframes mekloc-gold-word {
+        0%, 100% { text-shadow: 0 0 0 rgba(227, 177, 23, 0); }
+        50% { text-shadow: 0 0 34px rgba(227, 177, 23, .48); }
+      }
+
+      @keyframes mekloc-orbit-line {
+        0% { transform: translateX(-18%) scaleX(.72); opacity: .18; }
+        50% { transform: translateX(18%) scaleX(1); opacity: .72; }
+        100% { transform: translateX(-18%) scaleX(.72); opacity: .18; }
+      }
+
       @keyframes mekloc-shine {
         0% { transform: translateX(-140%) skewX(-18deg); opacity: 0; }
         30% { opacity: .5; }
@@ -288,6 +304,63 @@ function LandingMotionStyles() {
         animation-delay: -2.2s;
       }
 
+      .landing-gold-word {
+        animation: mekloc-gold-word 3.8s ease-in-out infinite;
+      }
+
+      .landing-hero-kicker,
+      .landing-hero-line,
+      .landing-hero-copy,
+      .landing-hero-actions,
+      .landing-hero-proof,
+      .landing-hero-visual {
+        opacity: 0;
+        animation: mekloc-hero-rise .82s cubic-bezier(.2, .72, .18, 1) forwards;
+      }
+
+      .landing-hero-kicker { animation-delay: .08s; }
+      .landing-hero-line:nth-child(1) { animation-delay: .18s; }
+      .landing-hero-line:nth-child(2) { animation-delay: .28s; }
+      .landing-hero-line:nth-child(3) { animation-delay: .38s; }
+      .landing-hero-copy { animation-delay: .52s; }
+      .landing-hero-actions { animation-delay: .64s; }
+      .landing-hero-proof { animation-delay: .74s; }
+      .landing-hero-visual { animation-delay: .44s; }
+
+      .landing-hero-ray {
+        position: absolute;
+        inset: auto 8% 10% 8%;
+        height: 1px;
+        pointer-events: none;
+        background: linear-gradient(90deg, transparent, rgba(245, 197, 66, .58), transparent);
+        filter: blur(.2px);
+        animation: mekloc-orbit-line 5.8s ease-in-out infinite;
+      }
+
+      .landing-nav-link {
+        position: relative;
+      }
+
+      .landing-nav-link::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -8px;
+        height: 2px;
+        border-radius: 9999px;
+        background: linear-gradient(90deg, transparent, #E3B117, transparent);
+        transform: scaleX(0);
+        transform-origin: center;
+        opacity: 0;
+        transition: transform .24s ease, opacity .24s ease;
+      }
+
+      .landing-nav-link:hover::after {
+        transform: scaleX(1);
+        opacity: 1;
+      }
+
       .landing-cta-shine {
         position: relative;
         overflow: hidden;
@@ -313,6 +386,24 @@ function LandingMotionStyles() {
       .landing-card:hover {
         transform: translate3d(0, -3px, 0);
         box-shadow: 0 26px 82px rgba(0, 0, 0, .38), 0 0 38px rgba(227, 177, 23, .08);
+      }
+
+      .landing-card:hover svg {
+        filter: drop-shadow(0 0 14px rgba(245, 197, 66, .28));
+      }
+
+      .landing-faq {
+        overflow: hidden;
+      }
+
+      .landing-faq[open] {
+        border-color: rgba(227, 177, 23, .32);
+        background: rgba(24, 24, 22, .86);
+        box-shadow: 0 18px 60px rgba(0, 0, 0, .24), 0 0 32px rgba(227, 177, 23, .06);
+      }
+
+      .landing-faq-answer {
+        animation: mekloc-hero-rise .32s ease both;
       }
 
       .landing-reveal {
@@ -343,9 +434,27 @@ function LandingMotionStyles() {
         .landing-gradient-motion,
         .landing-mockup-float,
         .landing-floating-badge,
+        .landing-hero-kicker,
+        .landing-hero-line,
+        .landing-hero-copy,
+        .landing-hero-actions,
+        .landing-hero-proof,
+        .landing-hero-visual,
+        .landing-gold-word,
+        .landing-hero-ray,
         .landing-desktop-mockup::before,
         .landing-desktop-mockup::after {
           animation: none !important;
+        }
+
+        .landing-hero-kicker,
+        .landing-hero-line,
+        .landing-hero-copy,
+        .landing-hero-actions,
+        .landing-hero-proof,
+        .landing-hero-visual {
+          opacity: 1;
+          filter: none;
         }
 
         .landing-reveal,
@@ -372,6 +481,14 @@ function LandingMotionStyles() {
         .landing-gradient-motion,
         .landing-mockup-float,
         .landing-floating-badge,
+        .landing-hero-kicker,
+        .landing-hero-line,
+        .landing-hero-copy,
+        .landing-hero-actions,
+        .landing-hero-proof,
+        .landing-hero-visual,
+        .landing-gold-word,
+        .landing-hero-ray,
         .landing-desktop-mockup::before,
         .landing-desktop-mockup::after,
         .landing-cta-shine:hover::after {
@@ -444,7 +561,7 @@ function LandingHeader() {
         <Link to="/" onClick={() => setOpen(false)}><Logo compact /></Link>
         <nav className="hidden items-center gap-10 text-sm font-semibold text-white/80 lg:flex">
           {navItems.map(([label, href]) => (
-            <a key={href} href={href} className="transition hover:text-[#F5C542]">{label}</a>
+            <a key={href} href={href} className="landing-nav-link transition hover:text-[#F5C542]">{label}</a>
           ))}
         </nav>
         <div className="hidden items-center justify-end gap-3 lg:flex">
@@ -544,13 +661,22 @@ function LandingHeader() {
 function DashboardVisual() {
   return (
     <div className="landing-mockup-float landing-desktop-mockup relative w-full max-w-[820px] justify-self-end">
+      <div className="landing-hero-ray hidden lg:block" />
       <div className="landing-floating-badge absolute -left-10 top-8 z-10 rounded-2xl border border-white/10 bg-black/70 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl">
         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Aujourd’hui</p>
         <p className="mt-1 text-sm font-black text-white">12 réservations suivies</p>
       </div>
+      <div className="landing-floating-badge absolute -left-3 bottom-20 z-10 hidden rounded-2xl border border-[#E3B117]/20 bg-[#0b0b09]/75 px-4 py-3 shadow-[0_18px_50px_rgba(227,177,23,.12)] backdrop-blur-xl xl:block">
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Contrats PDF</p>
+        <p className="mt-1 text-sm font-black text-white">Prêts en 1 clic</p>
+      </div>
       <div className="landing-floating-badge absolute -bottom-6 right-8 z-10 rounded-2xl border border-[#E3B117]/25 bg-[#0b0b09]/80 px-4 py-3 shadow-[0_18px_50px_rgba(227,177,23,.16)] backdrop-blur-xl">
         <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Alertes</p>
         <p className="mt-1 text-sm font-black text-white">Paiements, contrats, flotte</p>
+      </div>
+      <div className="landing-floating-badge absolute -right-8 top-28 z-10 hidden rounded-2xl border border-white/10 bg-black/70 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl xl:block">
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Flotte</p>
+        <p className="mt-1 text-sm font-black text-white">34 véhicules contrôlés</p>
       </div>
       <div className="relative rounded-[2.15rem] border border-[#E3B117]/32 bg-[#070807] p-2.5 shadow-[0_42px_130px_rgba(0,0,0,.66),0_0_90px_rgba(227,177,23,.12)]">
         <div className="absolute -inset-8 -z-10 rounded-full bg-[#E3B117]/16 blur-3xl" />
@@ -746,21 +872,23 @@ export default function LandingPage() {
           <div className="pointer-events-none absolute -left-28 top-40 h-80 w-80 rounded-full bg-[#E3B117]/10 blur-3xl" />
           <div className="mx-auto grid w-full max-w-[1440px] items-center gap-9 px-4 py-9 sm:px-6 sm:py-14 lg:min-h-[calc(100vh-80px)] lg:grid-cols-[0.88fr_1.12fr] lg:px-8 lg:py-16 xl:gap-16 xl:px-10">
             <div className="landing-reveal max-w-[680px]">
-              <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-[#E3B117]/30 bg-[#E3B117]/10 px-3.5 py-2 text-xs font-bold leading-5 text-[#F5C542] sm:px-4 sm:text-sm">
+              <div className="landing-hero-kicker inline-flex max-w-full items-center gap-2 rounded-full border border-[#E3B117]/30 bg-[#E3B117]/10 px-3.5 py-2 text-xs font-bold leading-5 text-[#F5C542] sm:px-4 sm:text-sm">
                 <Zap className="h-4 w-4" />
                 <span className="lg:hidden">SaaS de gestion pour agences au Maroc</span>
                 <span className="hidden lg:inline">SaaS de gestion pour agences de location au Maroc</span>
               </div>
               <h1 className="mt-6 text-[42px] font-black leading-[1.02] tracking-[-0.035em] text-white sm:text-6xl lg:text-[4.15rem] lg:leading-[1.02] xl:text-[4.55rem]">
-                Logiciel de gestion pour agences de location de voitures <span className="text-[#E3B117]">au Maroc</span>
+                <span className="landing-hero-line block">Logiciel de gestion</span>
+                <span className="landing-hero-line block">pour agences de location</span>
+                <span className="landing-hero-line block">de voitures <span className="landing-gold-word text-[#E3B117]">au Maroc</span></span>
               </h1>
-              <p className="mt-5 max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg sm:leading-8 lg:hidden">
+              <p className="landing-hero-copy mt-5 max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg sm:leading-8 lg:hidden">
                 Réservations, véhicules, contrats PDF, paiements et alertes dans une seule plateforme.
               </p>
-              <p className="mt-5 hidden max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg sm:leading-8 lg:block">
+              <p className="landing-hero-copy mt-5 hidden max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg sm:leading-8 lg:block">
                 MekLoc centralise la location de voitures au Maroc : réservations, véhicules, clients, contrats PDF, paiements, cautions, entretien et alertes dans une seule plateforme.
               </p>
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+              <div className="landing-hero-actions mt-7 flex flex-col gap-3 sm:flex-row">
                 <a
                   href={cadrageWhatsappUrl}
                   target="_blank"
@@ -780,7 +908,7 @@ export default function LandingPage() {
                   Voir la démo
                 </a>
               </div>
-              <div className="mt-6 grid grid-cols-3 gap-2.5 sm:max-w-xl sm:gap-3">
+              <div className="landing-hero-proof mt-6 grid grid-cols-3 gap-2.5 sm:max-w-xl sm:gap-3">
                 {[
                   ['10 min', 'prise en main'],
                   ['MAD', 'prêt Maroc'],
@@ -807,7 +935,7 @@ export default function LandingPage() {
               </div>
               <MobileCommandHero />
             </div>
-            <div className="landing-reveal hidden lg:block">
+            <div className="landing-reveal landing-hero-visual hidden lg:block">
               <DashboardVisual />
             </div>
           </div>
@@ -967,7 +1095,8 @@ export default function LandingPage() {
                 const planUrl = `/demande-acces?plan=${plan.id}&billing=${isLifetime ? 'lifetime' : billingCycle}`;
 
                 return (
-                  <Card key={plan.id} className={`landing-reveal relative flex min-h-full flex-col p-6 hover:border-[#E3B117]/30 sm:p-7 ${plan.recommended ? 'border-[#E3B117]/65 bg-gradient-to-br from-[#E3B117]/12 via-zinc-950/90 to-black shadow-[0_0_70px_rgba(227,177,23,.16)]' : ''} ${isLifetime ? 'border-[#F5C542]/70 bg-gradient-to-br from-[#E3B117]/18 via-zinc-950/92 to-black shadow-[0_0_90px_rgba(227,177,23,.22)]' : ''}`}>
+                  <Card key={plan.id} className={`landing-reveal relative flex min-h-full flex-col overflow-hidden p-6 hover:border-[#E3B117]/30 sm:p-7 ${plan.recommended ? 'border-[#E3B117]/65 bg-gradient-to-br from-[#E3B117]/12 via-zinc-950/90 to-black shadow-[0_0_70px_rgba(227,177,23,.16)]' : ''} ${isLifetime ? 'border-[#F5C542]/70 bg-gradient-to-br from-[#E3B117]/18 via-zinc-950/92 to-black shadow-[0_0_90px_rgba(227,177,23,.22)]' : ''}`}>
+                    {plan.recommended || isLifetime ? <span className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[#F5C542]/80 to-transparent" /> : null}
                     {plan.recommended ? <span className="absolute right-5 top-5 rounded-full bg-[#E3B117] px-3 py-1 text-xs font-black text-[#070807] sm:right-6 sm:top-6">Recommandé</span> : null}
                     {isLifetime ? <span className="absolute right-5 top-5 rounded-full bg-white px-3 py-1 text-xs font-black text-[#070807] sm:right-6 sm:top-6">Meilleure valeur</span> : null}
                     <span className="grid h-14 w-14 place-items-center rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542]"><Sparkles className="h-6 w-6" /></span>
@@ -1010,12 +1139,12 @@ export default function LandingPage() {
             <SectionTitle eyebrow="Questions fréquentes" title="Questions fréquentes" />
             <div className="mt-8 grid gap-3 sm:gap-4 lg:grid-cols-2">
               {faqs.map(([question, answer]) => (
-                <details key={question} className="group rounded-2xl border border-white/10 bg-zinc-950/75 transition hover:border-[#E3B117]/28 hover:bg-zinc-900/70">
+                <details key={question} className="landing-faq group rounded-2xl border border-white/10 bg-zinc-950/75 transition hover:border-[#E3B117]/28 hover:bg-zinc-900/70">
                   <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-base font-bold sm:px-6 sm:py-5">
                     {question}
                     <ChevronDown className="h-4 w-4 shrink-0 text-white/60 transition group-open:rotate-180" />
                   </summary>
-                  <p className="px-6 pb-6 text-sm leading-7 text-zinc-400">{answer}</p>
+                  <p className="landing-faq-answer px-6 pb-6 text-sm leading-7 text-zinc-400">{answer}</p>
                 </details>
               ))}
             </div>
