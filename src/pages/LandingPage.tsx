@@ -218,6 +218,11 @@ function LandingMotionStyles() {
         100% { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0); }
       }
 
+      @keyframes mekloc-hero-reveal-safe {
+        0% { transform: translate3d(0, 22px, 0); filter: blur(8px); }
+        100% { transform: translate3d(0, 0, 0); filter: blur(0); }
+      }
+
       @keyframes mekloc-gold-word {
         0%, 100% { text-shadow: 0 0 0 rgba(227, 177, 23, 0); }
         50% { text-shadow: 0 0 34px rgba(227, 177, 23, .48); }
@@ -315,7 +320,7 @@ function LandingMotionStyles() {
       .landing-hero-proof,
       .landing-hero-visual {
         opacity: 1;
-        animation: mekloc-hero-rise .82s cubic-bezier(.2, .72, .18, 1) forwards;
+        animation: mekloc-hero-reveal-safe .82s cubic-bezier(.2, .72, .18, 1) both;
       }
 
       .landing-hero-kicker { animation-delay: .08s; }
