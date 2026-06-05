@@ -22,6 +22,7 @@ import {
   Menu,
   MessageCircle,
   MonitorCog,
+  Play,
   ShieldCheck,
   Sparkles,
   Users,
@@ -213,6 +214,21 @@ function LandingMotionStyles() {
         100% { transform: translateX(95%) rotate(10deg); opacity: 0; }
       }
 
+      @keyframes mekloc-video-ring-pulse {
+        0%, 100% { opacity: .56; transform: translateX(-50%) scale(.98); }
+        50% { opacity: .92; transform: translateX(-50%) scale(1.025); }
+      }
+
+      @keyframes mekloc-pedestal-glow {
+        0%, 100% { opacity: .58; transform: translateX(-50%) scaleX(.96); }
+        50% { opacity: 1; transform: translateX(-50%) scaleX(1.03); }
+      }
+
+      @keyframes mekloc-play-pulse {
+        0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(227, 177, 23, .28), 0 18px 48px rgba(227, 177, 23, .20); }
+        50% { transform: scale(1.045); box-shadow: 0 0 0 16px rgba(227, 177, 23, 0), 0 22px 62px rgba(227, 177, 23, .28); }
+      }
+
       @keyframes mekloc-hero-rise {
         0% { opacity: 0; transform: translate3d(0, 28px, 0); filter: blur(10px); }
         100% { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0); }
@@ -299,6 +315,27 @@ function LandingMotionStyles() {
         background: linear-gradient(105deg, transparent 8%, rgba(245, 197, 66, .15) 38%, rgba(255, 255, 255, .16) 48%, transparent 64%);
         mix-blend-mode: screen;
         animation: mekloc-light-sweep 6.5s ease-in-out infinite;
+      }
+
+      .landing-video-halo {
+        animation: mekloc-video-ring-pulse 6.8s ease-in-out infinite;
+      }
+
+      .landing-video-pedestal::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 8px;
+        width: 86%;
+        height: 22px;
+        border-radius: 9999px;
+        background: linear-gradient(90deg, transparent, rgba(245, 197, 66, .88), transparent);
+        filter: blur(7px);
+        animation: mekloc-pedestal-glow 4.8s ease-in-out infinite;
+      }
+
+      .landing-play-pulse {
+        animation: mekloc-play-pulse 2.6s ease-in-out infinite;
       }
 
       .landing-floating-badge {
@@ -439,6 +476,9 @@ function LandingMotionStyles() {
         .landing-gradient-motion,
         .landing-mockup-float,
         .landing-floating-badge,
+        .landing-video-halo,
+        .landing-video-pedestal::before,
+        .landing-play-pulse,
         .landing-hero-kicker,
         .landing-hero-line,
         .landing-hero-copy,
@@ -486,6 +526,9 @@ function LandingMotionStyles() {
         .landing-gradient-motion,
         .landing-mockup-float,
         .landing-floating-badge,
+        .landing-video-halo,
+        .landing-video-pedestal::before,
+        .landing-play-pulse,
         .landing-hero-kicker,
         .landing-hero-line,
         .landing-hero-copy,
@@ -665,30 +708,54 @@ function LandingHeader() {
 
 function DashboardVisual() {
   return (
-    <div className="landing-mockup-float landing-desktop-mockup relative w-full max-w-[820px] justify-self-end">
+    <div className="landing-mockup-float landing-desktop-mockup relative w-full max-w-[820px] justify-self-end pb-16 pt-8">
       <div className="landing-hero-ray hidden lg:block" />
-      <div className="landing-floating-badge absolute -left-10 top-8 z-10 rounded-2xl border border-white/10 bg-black/70 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Aujourd’hui</p>
-        <p className="mt-1 text-sm font-black text-white">12 réservations suivies</p>
+      <div className="landing-video-halo pointer-events-none absolute left-1/2 top-0 h-[420px] w-[760px] -translate-x-1/2 rounded-[50%] border border-[#F5C542]/55 shadow-[0_0_55px_rgba(227,177,23,.38),inset_0_0_34px_rgba(245,197,66,.16)]" />
+      <div className="pointer-events-none absolute left-1/2 top-24 h-[340px] w-[700px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(245,197,66,.20),rgba(227,177,23,.07)_34%,transparent_68%)] blur-3xl" />
+
+      <div className="landing-floating-badge absolute -left-5 top-24 z-20 rounded-2xl border border-[#E3B117]/20 bg-black/72 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl">
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">À venir</p>
+        <p className="mt-1 text-sm font-black text-white">Démo guidée 60s</p>
       </div>
-      <div className="landing-floating-badge absolute -left-3 bottom-20 z-10 hidden rounded-2xl border border-[#E3B117]/20 bg-[#0b0b09]/75 px-4 py-3 shadow-[0_18px_50px_rgba(227,177,23,.12)] backdrop-blur-xl xl:block">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Contrats PDF</p>
-        <p className="mt-1 text-sm font-black text-white">Prêts en 1 clic</p>
+      <div className="landing-floating-badge absolute -right-6 top-36 z-20 hidden rounded-2xl border border-white/10 bg-black/70 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl xl:block">
+        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">MekLoc</p>
+        <p className="mt-1 text-sm font-black text-white">Réservations, flotte, PDF</p>
       </div>
-      <div className="landing-floating-badge absolute -bottom-6 right-8 z-10 rounded-2xl border border-[#E3B117]/25 bg-[#0b0b09]/80 px-4 py-3 shadow-[0_18px_50px_rgba(227,177,23,.16)] backdrop-blur-xl">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Alertes</p>
-        <p className="mt-1 text-sm font-black text-white">Paiements, contrats, flotte</p>
+
+      <div className="relative z-10 rounded-[2.15rem] border border-[#E3B117]/35 bg-[#060706]/90 p-3 shadow-[0_46px_140px_rgba(0,0,0,.72),0_0_90px_rgba(227,177,23,.16)] backdrop-blur-xl">
+        <div className="absolute -inset-px -z-10 rounded-[2.15rem] bg-gradient-to-br from-[#F5C542]/55 via-transparent to-[#E3B117]/18 blur-sm" />
+        <div className="relative aspect-[16/9] overflow-hidden rounded-[1.65rem] border border-white/10 bg-[radial-gradient(circle_at_50%_0%,rgba(245,197,66,.17),transparent_34%),linear-gradient(135deg,rgba(255,255,255,.08),rgba(255,255,255,.02)_32%,rgba(0,0,0,.72)),linear-gradient(rgba(255,255,255,.032)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.026)_1px,transparent_1px)] bg-[size:auto,auto,42px_42px,42px_42px]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(227,177,23,.16),transparent_30%),linear-gradient(to_bottom,rgba(255,255,255,.06),transparent_34%,rgba(0,0,0,.45))]" />
+          <div className="absolute inset-x-8 top-6 flex items-center justify-between border-b border-white/10 pb-4">
+            <Logo compact />
+            <span className="rounded-full border border-[#E3B117]/25 bg-[#E3B117]/10 px-3 py-1 text-[11px] font-black uppercase tracking-[0.16em] text-[#F5C542]">
+              Preview
+            </span>
+          </div>
+          <div className="absolute inset-0 grid place-items-center px-8 pt-10 text-center">
+            <div>
+              <span className="landing-play-pulse mx-auto grid h-20 w-20 place-items-center rounded-full border border-[#F5C542]/55 bg-[#E3B117] text-[#070807]">
+                <Play className="ml-1 h-8 w-8 fill-current" />
+              </span>
+              <p className="mt-6 text-3xl font-black text-white">Vidéo démo 60s</p>
+              <p className="mt-2 text-sm font-bold uppercase tracking-[0.22em] text-[#F5C542]">Bientôt disponible</p>
+              <p className="mx-auto mt-4 max-w-md text-sm leading-6 text-zinc-400">
+                Un espace réservé pour présenter MekLoc en vidéo, sans contenu fictif pour le moment.
+              </p>
+            </div>
+          </div>
+          <div className="absolute inset-x-8 bottom-6 grid grid-cols-3 gap-3">
+            {['Réservations', 'Véhicules', 'Contrats PDF'].map((label) => (
+              <span key={label} className="rounded-2xl border border-white/10 bg-black/45 px-3 py-3 text-center text-xs font-black text-white/78 backdrop-blur">
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
-      <div className="landing-floating-badge absolute -right-8 top-28 z-10 hidden rounded-2xl border border-white/10 bg-black/70 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl xl:block">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Flotte</p>
-        <p className="mt-1 text-sm font-black text-white">34 véhicules contrôlés</p>
-      </div>
-      <div className="relative rounded-[2.15rem] border border-[#E3B117]/32 bg-[#070807] p-2.5 shadow-[0_42px_130px_rgba(0,0,0,.66),0_0_90px_rgba(227,177,23,.12)]">
-        <div className="absolute -inset-8 -z-10 rounded-full bg-[#E3B117]/16 blur-3xl" />
-        <div className="absolute -inset-px -z-10 rounded-[2.15rem] bg-gradient-to-r from-[#E3B117]/50 via-transparent to-[#F5C542]/24 blur-sm" />
-        <div className="absolute inset-2 rounded-[1.7rem] border border-white/10" />
-        <img src="/landing/luxury-dashboard.png" alt="Aperçu MekLoc" className="block w-full rounded-[1.55rem] object-contain" />
-      </div>
+
+      <div className="landing-video-pedestal absolute bottom-0 left-1/2 h-24 w-[76%] -translate-x-1/2 rounded-[50%] border border-[#E3B117]/55 bg-gradient-to-b from-[#E3B117]/18 via-[#171104] to-black shadow-[0_24px_70px_rgba(0,0,0,.70),0_0_58px_rgba(227,177,23,.24)]" />
+      <div className="absolute bottom-8 left-1/2 h-7 w-[66%] -translate-x-1/2 rounded-[50%] border border-[#F5C542]/42" />
     </div>
   );
 }
