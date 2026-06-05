@@ -1029,10 +1029,14 @@ export default function LandingPage() {
                       />
                     </label>
                     <div className="mt-2 grid gap-3 sm:grid-cols-[1.05fr_0.95fr]">
-                      <a href={cadrageWhatsappUrl} target="_blank" rel="noreferrer" className="block">
-                        <Button className="landing-cta-shine h-14 w-full rounded-2xl bg-[#E3B117] font-black text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.16)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0" icon={<CalendarDays className="h-4 w-4" />}>
-                          Réserver la session
-                        </Button>
+                      <a
+                        href={cadrageWhatsappUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="landing-cta-shine flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-[#F5C542]/50 bg-[#E3B117] text-sm font-black text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.16)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0"
+                      >
+                        <CalendarDays className="h-4 w-4" />
+                        Réserver la session
                       </a>
                       <a href={cadrageEmailUrl} className="block">
                         <Button variant="secondary" className="h-14 w-full rounded-2xl border-white/15 bg-white/[0.045] font-black transition hover:-translate-y-0.5 hover:border-[#E3B117]/30 active:translate-y-0" icon={<Mail className="h-4 w-4" />}>
