@@ -727,34 +727,34 @@ function DashboardVisual() {
   ];
 
   return (
-    <div className="landing-mockup-float landing-desktop-mockup relative w-full max-w-[820px] justify-self-end pb-16 pt-8">
+    <div className="landing-mockup-float landing-desktop-mockup relative w-full max-w-[920px] justify-self-end pb-20 pt-12">
       <div className="landing-hero-ray hidden lg:block" />
-      <div className="landing-video-halo pointer-events-none absolute left-1/2 top-0 h-[420px] w-[760px] -translate-x-1/2 rounded-[50%] border border-[#F5C542]/55 shadow-[0_0_55px_rgba(227,177,23,.38),inset_0_0_34px_rgba(245,197,66,.16)]" />
-      <div className="pointer-events-none absolute left-1/2 top-24 h-[340px] w-[700px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(245,197,66,.20),rgba(227,177,23,.07)_34%,transparent_68%)] blur-3xl" />
+      <div className="landing-video-halo pointer-events-none absolute left-1/2 top-0 h-[500px] w-[900px] -translate-x-1/2 rounded-[50%] border-2 border-[#F5C542]/70 shadow-[0_0_75px_rgba(227,177,23,.48),inset_0_0_48px_rgba(245,197,66,.20)]" />
+      <div className="pointer-events-none absolute left-1/2 top-20 h-[430px] w-[850px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(245,197,66,.26),rgba(227,177,23,.09)_38%,transparent_70%)] blur-3xl" />
 
-      <div className="landing-floating-badge absolute -left-5 top-24 z-20 rounded-2xl border border-[#E3B117]/20 bg-black/72 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Aujourd’hui</p>
-        <p className="mt-1 text-sm font-black text-white">128 réservations suivies</p>
+      <div className="landing-floating-badge absolute -left-8 top-3 z-20 rounded-2xl border border-[#E3B117]/25 bg-black/82 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.48),0_0_30px_rgba(227,177,23,.10)] backdrop-blur-xl">
+        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Aujourd’hui</p>
+        <p className="mt-1 text-[13px] font-black text-white">128 réservations suivies</p>
       </div>
-      <div className="landing-floating-badge absolute -right-6 top-36 z-20 hidden rounded-2xl border border-white/10 bg-black/70 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl xl:block">
-        <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Flotte</p>
-        <p className="mt-1 text-sm font-black text-white">23 véhicules disponibles</p>
+      <div className="landing-floating-badge absolute -right-6 top-16 z-20 hidden rounded-2xl border border-[#E3B117]/20 bg-black/82 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.48),0_0_30px_rgba(227,177,23,.08)] backdrop-blur-xl xl:block">
+        <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Flotte</p>
+        <p className="mt-1 text-[13px] font-black text-white">23 véhicules disponibles</p>
       </div>
 
-      <div className="relative z-10 rounded-[2.15rem] border border-[#E3B117]/35 bg-[#060706]/95 p-3 shadow-[0_46px_140px_rgba(0,0,0,.72),0_0_90px_rgba(227,177,23,.16)] backdrop-blur-xl">
+      <div className="relative z-10 rounded-[2.25rem] border border-[#E3B117]/50 bg-[#060706]/95 p-3 shadow-[0_52px_150px_rgba(0,0,0,.76),0_0_110px_rgba(227,177,23,.23)] backdrop-blur-xl">
         <div className="absolute -inset-px -z-10 rounded-[2.15rem] bg-gradient-to-br from-[#F5C542]/55 via-transparent to-[#E3B117]/18 blur-sm" />
-        <div className="relative aspect-[16/9] overflow-hidden rounded-[1.65rem] border border-white/10 bg-[radial-gradient(circle_at_72%_10%,rgba(245,197,66,.16),transparent_30%),linear-gradient(135deg,#090b0d,#050606_42%,#0d0a03)]">
+        <div className="relative aspect-[16/10] overflow-hidden rounded-[1.72rem] border border-white/12 bg-[radial-gradient(circle_at_72%_10%,rgba(245,197,66,.16),transparent_30%),linear-gradient(135deg,#090b0d,#050606_42%,#0d0a03)]">
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.026)_1px,transparent_1px)] bg-[size:42px_42px]" />
           <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,.06),transparent_26%,rgba(0,0,0,.34))]" />
 
-          <div className="relative grid h-full grid-cols-[170px_minmax(0,1fr)]">
-            <aside className="border-r border-white/10 bg-black/28 p-5">
+          <div className="relative grid h-full grid-cols-[160px_minmax(0,1fr)] xl:grid-cols-[176px_minmax(0,1fr)]">
+            <aside className="border-r border-white/10 bg-black/28 p-4 xl:p-5">
               <Logo compact />
-              <div className="mt-8 grid gap-2">
+              <div className="mt-6 grid gap-1.5 xl:mt-7">
                 {nav.map(([label, Icon], index) => (
                   <div
                     key={label as string}
-                    className={`flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[12px] font-bold ${
+                    className={`flex items-center gap-2.5 rounded-xl px-3 py-2 text-[11px] font-bold xl:py-2.5 xl:text-[12px] ${
                       index === 0
                         ? 'border border-[#E3B117]/30 bg-[#E3B117]/18 text-[#F5C542]'
                         : 'text-white/58'
@@ -767,7 +767,7 @@ function DashboardVisual() {
               </div>
             </aside>
 
-            <div className="p-6">
+            <div className="p-5 xl:p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#F5C542]">MekLoc</p>
@@ -783,23 +783,23 @@ function DashboardVisual() {
                 </div>
               </div>
 
-              <div className="mt-6 grid grid-cols-4 gap-3">
+              <div className="mt-5 grid grid-cols-4 gap-2.5 xl:gap-3">
                 {kpis.map(([label, value, note]) => (
-                  <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.045] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">
+                  <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.045] p-3 xl:p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">
                     <p className="text-xs leading-4 text-white/62">{label}</p>
-                    <p className="mt-3 text-2xl font-black text-white">{value}</p>
-                    <p className="mt-2 text-xs font-bold text-[#F5C542]">{note}</p>
+                    <p className="mt-2 text-xl font-black text-white xl:text-2xl">{value}</p>
+                    <p className="mt-1.5 text-[11px] font-bold text-[#F5C542] xl:text-xs">{note}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="mt-4 grid grid-cols-[1.08fr_.92fr] gap-4">
-                <div className="rounded-2xl border border-white/10 bg-black/24 p-5">
+              <div className="mt-3 grid grid-cols-[1.08fr_.92fr] gap-3 xl:mt-4 xl:gap-4">
+                <div className="rounded-2xl border border-white/10 bg-black/24 p-4 xl:p-5">
                   <div className="flex items-center justify-between">
                     <p className="font-black text-white">Réservations par mois</p>
                     <span className="rounded-full border border-[#E3B117]/25 bg-[#E3B117]/10 px-3 py-1 text-xs font-bold text-[#F5C542]">Juin</span>
                   </div>
-                  <div className="mt-5 flex h-32 items-end gap-2 border-b border-l border-white/10 px-2 pb-2">
+                  <div className="mt-4 flex h-28 items-end gap-2 border-b border-l border-white/10 px-2 pb-2 xl:h-32">
                     {[44, 66, 52, 82, 60, 92, 72, 104].map((height, index) => (
                       <span
                         key={index}
@@ -813,12 +813,12 @@ function DashboardVisual() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-white/10 bg-black/24 p-5">
+                <div className="rounded-2xl border border-white/10 bg-black/24 p-4 xl:p-5">
                   <div className="flex items-center justify-between">
                     <p className="font-black text-white">Prochaines réservations</p>
                     <span className="text-xs font-bold text-[#F5C542]">Voir toutes</span>
                   </div>
-                  <div className="mt-4 grid gap-3">
+                  <div className="mt-3 grid gap-2.5 xl:mt-4 xl:gap-3">
                     {reservations.map(([name, vehicle, date, time]) => (
                       <div key={name} className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-white/8 pb-3 last:border-0 last:pb-0">
                         <span className="grid h-9 w-9 place-items-center rounded-full border border-[#E3B117]/20 bg-[#E3B117]/10 text-[#F5C542]">
@@ -842,8 +842,8 @@ function DashboardVisual() {
         </div>
       </div>
 
-      <div className="landing-video-pedestal absolute bottom-0 left-1/2 h-24 w-[76%] -translate-x-1/2 rounded-[50%] border border-[#E3B117]/55 bg-gradient-to-b from-[#E3B117]/18 via-[#171104] to-black shadow-[0_24px_70px_rgba(0,0,0,.70),0_0_58px_rgba(227,177,23,.24)]" />
-      <div className="absolute bottom-8 left-1/2 h-7 w-[66%] -translate-x-1/2 rounded-[50%] border border-[#F5C542]/42" />
+      <div className="landing-video-pedestal absolute bottom-0 left-1/2 h-28 w-[82%] -translate-x-1/2 rounded-[50%] border-2 border-[#E3B117]/70 bg-gradient-to-b from-[#E3B117]/28 via-[#1e1504] to-black shadow-[0_28px_80px_rgba(0,0,0,.76),0_0_78px_rgba(227,177,23,.38)]" />
+      <div className="absolute bottom-9 left-1/2 h-9 w-[72%] -translate-x-1/2 rounded-[50%] border border-[#F5C542]/65 shadow-[0_0_30px_rgba(245,197,66,.30)]" />
     </div>
   );
 }
@@ -1030,14 +1030,14 @@ export default function LandingPage() {
         <section className="landing-ambient relative overflow-hidden border-b border-white/10">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#E3B117]/10 to-transparent" />
           <div className="pointer-events-none absolute -left-28 top-40 h-80 w-80 rounded-full bg-[#E3B117]/10 blur-3xl" />
-          <div className="mx-auto grid w-full max-w-[1440px] items-center gap-9 px-4 py-9 sm:px-6 sm:py-14 lg:min-h-[calc(100vh-80px)] lg:grid-cols-[0.88fr_1.12fr] lg:px-8 lg:py-16 xl:gap-16 xl:px-10">
-            <div className="landing-reveal is-visible max-w-[680px]">
+          <div className="mx-auto grid w-full max-w-[1540px] items-center gap-9 px-4 py-9 sm:px-6 sm:py-14 lg:min-h-[calc(100vh-80px)] lg:grid-cols-[0.76fr_1.24fr] lg:gap-8 lg:px-8 lg:py-10 xl:grid-cols-[0.78fr_1.22fr] xl:gap-12 xl:px-10">
+            <div className="landing-reveal is-visible max-w-[610px]">
               <div className="landing-hero-kicker inline-flex max-w-full items-center gap-2 rounded-full border border-[#E3B117]/30 bg-[#E3B117]/10 px-3.5 py-2 text-xs font-bold leading-5 text-[#F5C542] sm:px-4 sm:text-sm">
                 <Zap className="h-4 w-4" />
                 <span className="lg:hidden">SaaS de gestion pour agences au Maroc</span>
                 <span className="hidden lg:inline">SaaS de gestion pour agences de location au Maroc</span>
               </div>
-              <h1 className="mt-6 text-[42px] font-black leading-[1.02] tracking-[-0.035em] text-white sm:text-6xl lg:text-[4.15rem] lg:leading-[1.02] xl:text-[4.55rem]">
+              <h1 className="mt-6 text-[42px] font-black leading-[1.02] tracking-[-0.035em] text-white sm:text-6xl lg:text-[3.45rem] lg:leading-[1.04] xl:text-[3.9rem] 2xl:text-[4.15rem]">
                 <span className="landing-hero-line block">Logiciel de gestion</span>
                 <span className="landing-hero-line block">pour agences de location</span>
                 <span className="landing-hero-line block">de voitures <span className="landing-gold-word text-[#E3B117]">au Maroc</span></span>
@@ -1068,14 +1068,14 @@ export default function LandingPage() {
                   Voir la démo
                 </a>
               </div>
-              <div className="landing-hero-proof mt-6 grid grid-cols-3 gap-2.5 sm:max-w-xl sm:gap-3">
+              <div className="landing-hero-proof mt-5 grid grid-cols-3 gap-2.5 sm:max-w-[540px] sm:gap-3">
                 {[
                   ['10 min', 'prise en main'],
                   ['MAD', 'prêt Maroc'],
                   ['PDF', 'contrats propres'],
                 ].map(([value, label]) => (
-                  <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.045] px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,.06)] backdrop-blur">
-                    <p className="text-lg font-black leading-none text-white sm:text-xl">{value}</p>
+                  <div key={label} className="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,.06)] backdrop-blur">
+                    <p className="text-lg font-black leading-none text-white">{value}</p>
                     <p className="mt-1 text-[11px] font-semibold leading-4 text-zinc-400 sm:text-xs">{label}</p>
                   </div>
                 ))}
