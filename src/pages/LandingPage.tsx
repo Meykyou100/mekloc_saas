@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight,
   BellRing,
-  Building2,
   CalendarDays,
   Car,
   Check,
@@ -18,10 +17,8 @@ import {
   Linkedin,
   LogIn,
   Mail,
-  MapPin,
   Menu,
   MessageCircle,
-  MonitorCog,
   ShieldCheck,
   Sparkles,
   Users,
@@ -32,7 +29,7 @@ import {
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import SEO, { baseStructuredData, faqStructuredData } from '../components/system/SEO';
-import { SUPPORT_EMAIL, SUPPORT_PHONE, SUPPORT_PHONE_DISPLAY, WHATSAPP_URL } from '../config/app';
+import { SUPPORT_EMAIL, SUPPORT_PHONE, WHATSAPP_URL } from '../config/app';
 import { MEKLOC_PLANS } from '../config/pricing';
 import { DEFAULT_DESCRIPTION, DEFAULT_KEYWORDS, DEFAULT_TITLE } from '../config/seo';
 
@@ -47,27 +44,24 @@ const navItems = [
 ];
 
 const choiceCards = [
-  ['Gestion des réservations', 'Suivez toutes vos réservations en temps réel et évitez les doubles réservations.', CalendarDays],
-  ['Gestion de la flotte', 'Gérez vos véhicules, contrats d’entretien, assurances et disponibilités.', Car],
+  ['Réservations & calendrier', 'Gérez vos réservations en temps réel et évitez les doubles réservations.', CalendarDays],
   ['Contrats PDF automatiques', 'Générez des contrats propres et professionnels en un clic.', FileText],
-  ['Paiements & encaissements', 'Suivez les paiements, créances et factures facilement.', CircleDollarSign],
-  ['Alertes intelligentes', 'Recevez des rappels pour assurances, paiements et entretiens.', BellRing],
-  ['Tableaux de bord', 'Analysez vos performances et prenez les meilleures décisions.', Gauge],
+  ['Paiements, cautions & rappels', 'Suivez les paiements, les restes à payer, les cautions et les alertes.', CircleDollarSign],
 ];
 
 const beforeItems = [
-  'Contrats Word / PDF dispersés',
   'Réservations suivies sur WhatsApp',
+  'Contrats Word / PDF dispersés',
   'Paiements difficiles à vérifier',
-  'Visites techniques oubliées',
-  'Données éparpillées et non sécurisées',
+  'Cautions oubliées',
+  'Visites techniques non suivies',
 ];
 
 const afterItems = [
   'Réservations centralisées',
   'Contrats PDF professionnels',
   'Paiements et cautions suivis',
-  'Alertes assurance / visite technique',
+  'Alertes automatiques',
   'Historique clair et accessible partout',
 ];
 
@@ -99,7 +93,7 @@ const plans = [
     annualPrice: MEKLOC_PLANS.starter.annualPrice,
     annualBillingLabel: MEKLOC_PLANS.starter.annualBillingLabel,
     note: 'Pour les petites agences',
-    features: ['Jusqu’à 15 véhicules', 'Réservations illimitées', 'Contrats PDF', 'Paiements & cautions', 'Alertes & rappels', 'Support standard'],
+    features: ['Réservations', 'Gestion de la flotte', 'Contrats PDF', 'Paiements & cautions', 'Support par email'],
   },
   {
     id: 'business',
@@ -109,7 +103,7 @@ const plans = [
     annualBillingLabel: MEKLOC_PLANS.business.annualBillingLabel,
     note: 'Pour les agences en croissance',
     recommended: true,
-    features: ['Véhicules illimités', 'Réservations illimitées', 'Contrats illimités', 'Paiements & cautions', 'Alertes & WhatsApp', 'Rapports avancés', 'Support prioritaire'],
+    features: ['Tout ce qui est inclus dans Starter', 'Alertes & rappels automatiques', 'Rapports & tableaux de bord', 'Support prioritaire'],
   },
   {
     id: 'lifetime',
@@ -119,17 +113,15 @@ const plans = [
     annualBillingLabel: MEKLOC_PLANS.lifetime.annualBillingLabel,
     note: 'Paiement unique',
     lifetime: true,
-    features: ['Accès à vie MekLoc', 'Véhicules illimités', 'Réservations illimitées', 'Contrats PDF illimités', 'Paiements & cautions', 'Rapports financiers', 'Support prioritaire'],
+    features: ['Accès à vie', 'Toutes les fonctionnalités', 'Mises à jour incluses', 'Support à vie'],
   },
 ];
 
 const faqs: Array<[string, string]> = [
-  ['Comment demander un accès ?', 'Réservez une session de cadrage : notre équipe qualifie votre besoin et vous guide vers le bon accès MekLoc.'],
+  ['Est-ce que MekLoc fonctionne sur téléphone ?', 'Oui. MekLoc fonctionne sur téléphone, tablette et ordinateur depuis un navigateur récent.'],
+  ['Est-ce que je peux générer des contrats PDF ?', 'Oui. Les contrats reprennent les données de la réservation, du client, du véhicule et de votre agence.'],
   ['Est-ce adapté aux agences marocaines ?', 'Oui. MekLoc est pensé pour les agences de location au Maroc avec MAD, cautions, contrats PDF et alertes véhicules.'],
-  ['Puis-je gérer plusieurs utilisateurs ?', 'Oui. Le plan Business permet de travailler à plusieurs avec des rôles et accès sécurisés.'],
-  ['Les contrats PDF sont-ils personnalisés avec mon logo ?', 'Oui. Les contrats utilisent les informations, logo et identité de votre agence.'],
-  ['Les alertes WhatsApp sont-elles incluses ?', 'Oui. Les alertes et rappels WhatsApp sont inclus dans l’offre Business.'],
-  ['Mes données sont-elles sécurisées ?', 'Oui. Vos données sont isolées par agence, protégées par authentification et accessibles depuis le cloud.'],
+  ['Comment tester la démo ?', 'Réservez une session gratuite de cadrage. Notre équipe vous présente MekLoc selon les besoins de votre agence.'],
 ];
 
 const socialLinks = [
@@ -908,6 +900,35 @@ function MobileCommandHero() {
   );
 }
 
+function RealDashboardShowcase({ mobile = false }: { mobile?: boolean }) {
+  return (
+    <div className={mobile ? 'relative mt-8 pb-7 lg:hidden' : 'landing-mockup-float relative hidden w-full max-w-[900px] justify-self-end pb-16 pt-8 lg:block'}>
+      <div className={`pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-[50%] border border-[#E3B117]/40 shadow-[0_0_65px_rgba(227,177,23,.22)] ${
+        mobile ? 'top-8 h-[255px] w-[340px]' : 'top-0 h-[440px] w-[820px]'
+      }`} />
+      <div className={`pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-full bg-[#E3B117]/10 blur-3xl ${
+        mobile ? 'top-20 h-48 w-72' : 'top-20 h-80 w-[680px]'
+      }`} />
+      <div className={`relative z-10 overflow-hidden border border-[#E3B117]/28 bg-[#070807] shadow-[0_35px_100px_rgba(0,0,0,.72),0_0_50px_rgba(227,177,23,.12)] ${
+        mobile ? 'mx-auto aspect-[16/10] w-full rounded-[1.5rem] p-1.5' : 'aspect-[16/9] rounded-[2rem] p-2.5'
+      }`}>
+        <div className="h-full overflow-hidden rounded-[inherit] border border-white/8 bg-black">
+          <img
+            src="/landing/real-dashboard.png"
+            alt="Tableau de bord réel MekLoc"
+            className="h-full w-full scale-[1.12] object-cover object-center"
+            loading={mobile ? 'lazy' : 'eager'}
+            decoding="async"
+          />
+        </div>
+      </div>
+      <div className={`landing-video-pedestal pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2 rounded-[50%] border border-[#F5C542]/45 bg-[#E3B117]/10 shadow-[0_0_42px_rgba(227,177,23,.24)] ${
+        mobile ? 'h-12 w-[78%]' : 'h-20 w-[78%]'
+      }`} />
+    </div>
+  );
+}
+
 function InterfaceDashboardMockup({ activeTab }: { activeTab: number }) {
   const screens = [
     {
@@ -966,33 +987,8 @@ function InterfaceDashboardMockup({ activeTab }: { activeTab: number }) {
 
 export default function LandingPage() {
   const demoUrl = useMemo(() => whatsappUrl('Bonjour MekLoc, je souhaite réserver une démo.'), []);
-  const [activeInterfaceTab, setActiveInterfaceTab] = useState(0);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
-  const [contactForm, setContactForm] = useState({
-    agency: '',
-    phone: '',
-    email: '',
-    need: '',
-  });
-  const cadrageMessage = useMemo(() => {
-    const lines = [
-      'Bonjour MekLoc, je souhaite réserver une session de cadrage.',
-      contactForm.agency ? `Agence: ${contactForm.agency}` : '',
-      contactForm.phone ? `WhatsApp: ${contactForm.phone}` : '',
-      contactForm.email ? `Email: ${contactForm.email}` : '',
-      contactForm.need ? `Besoin: ${contactForm.need}` : '',
-    ].filter(Boolean);
-
-    return lines.join('\n');
-  }, [contactForm.agency, contactForm.email, contactForm.need, contactForm.phone]);
-  const cadrageWhatsappUrl = useMemo(() => whatsappUrl(cadrageMessage), [cadrageMessage]);
-  const cadrageEmailUrl = useMemo(() => {
-    const subject = encodeURIComponent('Demande de session de cadrage MekLoc');
-    const body = encodeURIComponent(cadrageMessage);
-    return `mailto:${contactEmail}?subject=${subject}&body=${body}`;
-  }, [cadrageMessage]);
-  const contactInputClass = 'h-14 w-full rounded-2xl border border-white/10 bg-white/[0.055] px-4 text-sm font-semibold text-white outline-none transition placeholder:text-zinc-500 focus:border-[#E3B117]/45 focus:bg-white/[0.075] focus:ring-4 focus:ring-[#E3B117]/10';
-  const contactIconInputClass = `${contactInputClass} pl-12`;
+  const cadrageWhatsappUrl = quickCadrageUrl;
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1052,7 +1048,7 @@ export default function LandingPage() {
                 Réservations, véhicules, contrats PDF, paiements et alertes dans une seule plateforme.
               </p>
               <p className="landing-hero-copy mt-5 hidden max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg sm:leading-8 lg:block">
-                MekLoc centralise la location de voitures au Maroc : réservations, véhicules, clients, contrats PDF, paiements, cautions, entretien et alertes dans une seule plateforme.
+                MekLoc centralise vos réservations, véhicules, clients, contrats PDF, paiements, cautions et alertes dans une seule plateforme.
               </p>
               <div className="landing-hero-actions mt-7 flex flex-col gap-3 sm:flex-row">
                 <a
@@ -1100,120 +1096,21 @@ export default function LandingPage() {
                   </span>
                 ))}
               </div>
-              <MobileCommandHero />
+              <RealDashboardShowcase mobile />
             </div>
             <div className="landing-reveal is-visible landing-hero-visual hidden lg:block">
-              <DashboardVisual />
-            </div>
-          </div>
-        </section>
-
-        <section id="fonctionnalites" className="landing-reveal border-b border-white/10 py-12 sm:py-20">
-          <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-10">
-            <SectionTitle eyebrow="Tout ce qu’il vous faut" title="Une plateforme complète pensée pour votre réussite" />
-            <div className="landing-stagger mt-8 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
-              {choiceCards.map(([title, text, Icon]) => (
-                <Card key={title as string} className="landing-reveal group relative min-h-[210px] overflow-hidden p-4 active:border-[#E3B117]/35 hover:-translate-y-1 hover:border-[#E3B117]/40 sm:min-h-[220px] sm:p-7">
-                  <span className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#E3B117]/0 blur-3xl transition duration-500 group-hover:bg-[#E3B117]/12" />
-                  <span className="relative grid h-11 w-11 place-items-center rounded-xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542] shadow-[0_0_30px_rgba(227,177,23,.08)] transition group-hover:border-[#E3B117]/55 group-hover:bg-[#E3B117]/15 sm:h-13 sm:w-13 sm:rounded-2xl"><Icon className="h-5 w-5 sm:h-6 sm:w-6" /></span>
-                  <h3 className="relative mt-4 text-[15px] font-black leading-5 sm:mt-5 sm:text-xl">{title as string}</h3>
-                  <p className="relative mt-2 max-w-sm text-xs leading-5 text-zinc-400 sm:mt-3 sm:text-[15px] sm:leading-7">{text as string}</p>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="landing-reveal relative overflow-hidden border-b border-white/10 py-14 sm:py-20">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_68%_48%,rgba(227,177,23,.15),transparent_28%)]" />
-          <div className="relative mx-auto grid w-full max-w-[1320px] items-center gap-12 px-4 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8 xl:px-10">
-            <div className="max-w-xl">
-              <p className="text-xs font-black uppercase tracking-[0.24em] text-[#F5C542]">Simple, rapide, efficace</p>
-              <h2 className="mt-4 text-[32px] font-black leading-[1.08] text-white sm:text-4xl lg:text-5xl">
-                Tout votre business, <span className="text-[#E3B117]">dans votre poche.</span>
-              </h2>
-              <p className="mt-5 text-base leading-7 text-zinc-400">
-                Consultez votre activité et gérez votre agence où que vous soyez, depuis une interface pensée pour le travail quotidien.
-              </p>
-              <div className="mt-7 grid gap-3 sm:grid-cols-2">
-                {[
-                  'Interface intuitive',
-                  'Accessible partout',
-                  'Données sécurisées',
-                  'Téléphone, tablette et ordinateur',
-                ].map((benefit) => (
-                  <div key={benefit} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3.5 text-sm font-bold text-white/80">
-                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#E3B117]/12 text-[#F5C542]">
-                      <Check className="h-4 w-4" />
-                    </span>
-                    {benefit}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="landing-mockup-float relative mx-auto w-full max-w-[690px] pb-10 pt-8">
-              <div className="pointer-events-none absolute left-1/2 top-1/2 h-[390px] w-[590px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#E3B117]/25 shadow-[0_0_90px_rgba(227,177,23,.20)]" />
-              <div className="relative mx-auto w-[260px] rounded-[2.8rem] border border-[#F5C542]/40 bg-[#050606] p-2.5 shadow-[0_35px_100px_rgba(0,0,0,.75),0_0_55px_rgba(227,177,23,.18)] sm:w-[300px]">
-                <div className="relative min-h-[540px] overflow-hidden rounded-[2.25rem] border border-white/10 bg-[radial-gradient(circle_at_80%_8%,rgba(227,177,23,.16),transparent_30%),linear-gradient(160deg,#11130f,#060706_48%,#0d0a03)] p-5">
-                  <div className="mx-auto h-5 w-24 rounded-full bg-black shadow-[inset_0_1px_0_rgba(255,255,255,.08)]" />
-                  <div className="mt-6 flex items-center justify-between">
-                    <Logo compact />
-                    <Menu className="h-5 w-5 text-white/60" />
-                  </div>
-                  <p className="mt-7 text-sm text-white/50">Bonjour, Younes</p>
-                  <h3 className="mt-1 text-2xl font-black text-white">Vue d’ensemble</h3>
-                  <div className="mt-5 grid grid-cols-2 gap-3">
-                    {[
-                      ['Réservations', '12', CalendarDays],
-                      ['Disponibles', '23', Car],
-                      ['Contrats', '8', FileText],
-                      ['Paiements', '42K', CircleDollarSign],
-                    ].map(([label, value, Icon]) => (
-                      <div key={label as string} className="rounded-2xl border border-white/10 bg-white/[0.045] p-3">
-                        <Icon className="h-4 w-4 text-[#F5C542]" />
-                        <p className="mt-3 text-xl font-black text-white">{value as string}</p>
-                        <p className="mt-1 text-[11px] text-white/48">{label as string}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4">
-                    <div className="flex items-center justify-between">
-                      <p className="text-sm font-black text-white">Activité</p>
-                      <span className="text-[10px] font-bold text-[#F5C542]">7 jours</span>
-                    </div>
-                    <div className="mt-5 flex h-24 items-end gap-2">
-                      {[42, 68, 51, 82, 62, 74, 94].map((height, index) => (
-                        <span key={index} className="flex-1 rounded-t-md bg-gradient-to-t from-[#8b650b] to-[#F5C542]" style={{ height: `${height}%` }} />
-                      ))}
-                    </div>
-                  </div>
-                  <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
-                    <p className="text-sm font-black text-white">Prochain départ</p>
-                    <p className="mt-2 text-xs font-bold text-[#F5C542]">Dacia Duster · 10:00</p>
-                    <p className="mt-1 text-xs text-white/45">Client confirmé</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="absolute left-0 top-28 rounded-2xl border border-[#E3B117]/25 bg-black/85 p-4 shadow-[0_20px_55px_rgba(0,0,0,.55)] backdrop-blur-xl sm:left-4">
-                <div className="flex items-center gap-3">
-                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#E3B117]/12 text-[#F5C542]"><BellRing className="h-5 w-5" /></span>
-                  <span><span className="block text-sm font-black text-white">Assurance véhicule</span><span className="mt-1 block text-xs text-zinc-400">À renouveler dans 15 jours</span></span>
-                </div>
-              </div>
-              <div className="absolute bottom-20 right-0 rounded-2xl border border-emerald-400/20 bg-black/85 p-4 shadow-[0_20px_55px_rgba(0,0,0,.55)] backdrop-blur-xl sm:right-3">
-                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-300">Paiement reçu</p>
-                <p className="mt-1 text-lg font-black text-white">MAD 1,250</p>
-              </div>
+              <RealDashboardShowcase />
             </div>
           </div>
         </section>
 
         <section className="landing-reveal border-b border-white/10 py-12 sm:py-20">
-          <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-10">
-            <SectionTitle eyebrow="Comparaison" title="Centralisez clients, paiements et cautions" />
-            <Card className="mt-8 p-4 hover:border-[#E3B117]/25 sm:p-8 lg:p-10">
+          <div className="mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8">
+            <SectionTitle
+              eyebrow="Avant / après"
+              title="Avant MekLoc, la gestion est dispersée. Avec MekLoc, tout est centralisé."
+            />
+            <Card className="mt-8 p-4 hover:border-[#E3B117]/20 sm:p-7">
               <div className="grid gap-4 sm:gap-7 lg:grid-cols-[1fr_auto_1fr] lg:items-stretch">
                 <div className="rounded-2xl border border-white/10 bg-black/30 p-5 sm:p-6">
                   <h3 className="text-sm font-black uppercase tracking-[0.14em] text-rose-300 sm:text-base">Avant MekLoc</h3>
@@ -1234,86 +1131,70 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="landing-reveal border-b border-white/10 py-12 sm:py-20">
-          <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-10">
-            <SectionTitle eyebrow="Comment ça marche ?" title="Gérez vos réservations en temps réel" />
-            <h2 className="sr-only">Générez des contrats PDF professionnels</h2>
-            <div className="landing-stagger relative mt-8 grid gap-4 pl-5 sm:gap-6 sm:pl-0 md:grid-cols-2 xl:grid-cols-4">
-              <div className="pointer-events-none absolute bottom-4 left-6 top-4 w-px bg-gradient-to-b from-transparent via-[#E3B117]/35 to-transparent sm:hidden" />
-              <div className="pointer-events-none absolute left-10 right-10 top-16 hidden h-px bg-gradient-to-r from-transparent via-[#E3B117]/35 to-transparent xl:block" />
-              {steps.map(([title, text, Icon], index) => (
-                <Card key={title as string} className={`landing-reveal relative min-h-[210px] p-6 hover:border-[#E3B117]/35 sm:min-h-[245px] sm:p-7 ${index === 3 ? 'border-[#E3B117]/45 shadow-[0_0_45px_rgba(227,177,23,.09)]' : ''}`}>
-                  <span className="absolute -left-[30px] top-7 grid h-9 w-9 place-items-center rounded-full border border-[#E3B117]/35 bg-[#0b0b08] text-xs font-black text-[#F5C542] shadow-[0_0_22px_rgba(227,177,23,.14)] sm:left-auto sm:right-6 sm:top-6 sm:block sm:h-auto sm:w-auto sm:rounded-full sm:bg-[#E3B117]/10 sm:px-3 sm:py-1">{String(index + 1).padStart(2, '0')}</span>
-                  <span className="grid h-14 w-14 place-items-center rounded-2xl border border-white/10 bg-black/35 text-[#F5C542]"><Icon className="h-7 w-7" /></span>
-                  <h3 className="mt-6 text-xl font-black sm:mt-8">{title as string}</h3>
-                  <p className="mt-3 text-base leading-7 text-zinc-400">{text as string}</p>
+        <section id="fonctionnalites" className="landing-reveal border-b border-white/10 py-12 sm:py-16">
+          <div className="mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8">
+            <SectionTitle eyebrow="Fonctions essentielles" title="Tout ce qu’il vous faut pour gérer votre agence" />
+            <div className="landing-stagger mt-8 grid gap-4 md:grid-cols-3">
+              {choiceCards.map(([title, text, Icon]) => (
+                <Card key={title as string} className="landing-reveal group relative overflow-hidden p-6 hover:-translate-y-1 hover:border-[#E3B117]/30">
+                  <span className="grid h-11 w-11 place-items-center rounded-xl border border-[#E3B117]/20 bg-[#E3B117]/8 text-[#F5C542]">
+                    <Icon className="h-5 w-5" />
+                  </span>
+                  <h3 className="mt-5 text-lg font-black text-white">{title as string}</h3>
+                  <p className="mt-3 text-sm leading-6 text-zinc-400">{text as string}</p>
                 </Card>
               ))}
             </div>
           </div>
         </section>
 
-        <section className="landing-reveal relative overflow-hidden border-b border-white/10 py-14 sm:py-20">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_45%_50%,rgba(227,177,23,.12),transparent_42%),linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:auto,64px_64px,64px_64px]" />
-          <div className="relative mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-10">
-            <div className="mx-auto max-w-4xl text-center">
-              <p className="text-xs font-black uppercase tracking-[0.26em] text-[#F5C542] sm:text-sm">INTERFACE</p>
-              <h2 className="mt-3 text-[28px] font-black leading-tight text-white sm:text-4xl lg:text-5xl">
-                Suivez votre flotte et <span className="text-[#E3B117]">vos véhicules</span>
-              </h2>
-              <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-zinc-400">
-                Réservations, véhicules, clients, contrats PDF, paiements et alertes réunis dans un seul espace.
+        <section className="landing-reveal relative overflow-hidden border-b border-white/10 py-12 sm:py-16">
+          <div className="pointer-events-none absolute right-0 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-[#E3B117]/7 blur-3xl" />
+          <div className="relative mx-auto grid w-full max-w-[1320px] items-center gap-9 px-4 sm:px-6 lg:grid-cols-[0.62fr_1.38fr] lg:px-8">
+            <div className="max-w-lg">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Plateforme simple & puissante</p>
+              <h2 className="mt-4 text-[32px] font-black leading-tight text-white sm:text-4xl">Voyez MekLoc en action</h2>
+              <p className="mt-4 text-base leading-7 text-zinc-400">
+                Une interface claire pour gérer vos clients, leurs documents et leur historique.
               </p>
+              <div className="mt-6 space-y-3">
+                {[
+                  'Gestion des clients',
+                  'Documents d’identité',
+                  'Historique des réservations',
+                  'Paiements et restes à payer',
+                ].map((item) => (
+                  <p key={item} className="flex items-center gap-3 text-sm font-semibold text-white/80">
+                    <Check className="h-4 w-4 shrink-0 text-[#F5C542]" />
+                    {item}
+                  </p>
+                ))}
+              </div>
+              <a
+                href={demoUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-[#E3B117]/35 bg-[#E3B117] px-6 text-sm font-black text-[#070807] transition hover:-translate-y-0.5 hover:bg-[#F5C542]"
+              >
+                <MessageCircle className="h-4 w-4" />
+                Demander une démo
+              </a>
             </div>
 
-            <div className="mx-auto mt-6 flex max-w-full gap-1.5 overflow-x-auto rounded-full border border-white/10 bg-black/35 p-1.5 sm:w-max sm:overflow-visible">
-              {previewCards.map(([label, , Icon], index) => (
-                <button
-                  key={label as string}
-                  type="button"
-                  onClick={() => setActiveInterfaceTab(index)}
-                  className={`flex min-w-max items-center gap-2 rounded-full px-4 py-2.5 text-sm font-black transition ${
-                    activeInterfaceTab === index
-                      ? 'bg-[#E3B117] text-[#070807]'
-                      : 'text-white/60 hover:bg-white/[0.045] hover:text-white'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {label as string}
-                </button>
-              ))}
-            </div>
-
-            <div className="landing-reveal relative mx-auto mt-8 max-w-[1180px]">
-              <div className="pointer-events-none absolute -inset-8 rounded-full bg-[#E3B117]/12 blur-3xl" />
-              <div className="pointer-events-none absolute -left-4 top-10 hidden rounded-full border border-[#E3B117]/25 bg-black/70 px-4 py-2 text-sm font-bold text-[#F5C542] backdrop-blur md:block">Contrats prêts</div>
-              <div className="pointer-events-none absolute -right-2 top-24 hidden rounded-full border border-[#E3B117]/25 bg-black/70 px-4 py-2 text-sm font-bold text-[#F5C542] backdrop-blur md:block">Flotte disponible</div>
-              <div className="pointer-events-none absolute bottom-14 left-8 hidden rounded-full border border-white/10 bg-black/70 px-4 py-2 text-sm font-bold text-white/80 backdrop-blur lg:block">Paiements suivis</div>
-              <div className="pointer-events-none absolute bottom-8 right-10 hidden rounded-full border border-white/10 bg-black/70 px-4 py-2 text-sm font-bold text-white/80 backdrop-blur lg:block">Alertes entretien</div>
-              <div className="landing-mockup-float relative">
-                <InterfaceDashboardMockup activeTab={activeInterfaceTab} />
+            <div className="landing-mockup-float relative">
+              <div className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-[#E3B117]/8 blur-3xl" />
+              <div className="relative overflow-hidden rounded-[1.5rem] border border-[#E3B117]/22 bg-[#070807] p-1.5 shadow-[0_30px_90px_rgba(0,0,0,.62)] sm:rounded-[2rem] sm:p-2">
+                <div className="aspect-[16/10] overflow-hidden rounded-[1.15rem] border border-white/8 bg-black sm:aspect-[16/9] sm:rounded-[1.55rem]">
+                  <img
+                    src="/landing/real-clients.png"
+                    alt="Page Clients réelle de MekLoc"
+                    className="h-full w-full scale-[1.12] object-cover object-center"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </div>
               </div>
             </div>
-
-            <div className="landing-stagger mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-              {interfaceBenefits.map(([Icon, title, text]) => (
-                <Card key={title as string} className="landing-reveal group p-4 hover:border-[#E3B117]/25 sm:p-5">
-                  <span className="grid h-10 w-10 place-items-center rounded-2xl border border-[#E3B117]/20 bg-[#E3B117]/10 text-[#F5C542]">
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <h3 className="mt-4 text-sm font-black text-white sm:text-base">{title as string}</h3>
-                  <p className="mt-2 text-xs leading-5 text-zinc-400 sm:text-sm sm:leading-6">{text as string}</p>
-                </Card>
-              ))}
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-2 md:hidden">
-              {['Contrats prêts', 'Alertes entretien', 'Paiements suivis', 'Flotte disponible'].map((badge) => (
-                <span key={badge} className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-2 text-center text-xs font-bold text-white/70">
-                  {badge}
-                </span>
-              ))}
-              </div>
           </div>
         </section>
 
@@ -1405,7 +1286,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="landing-reveal relative overflow-hidden border-b border-white/10 py-12 sm:py-20">
+        <section id="contact" className="landing-reveal relative scroll-mt-24 overflow-hidden border-b border-white/10 py-12 sm:py-20">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(227,177,23,.13),transparent_42%)]" />
           <div className="relative mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8">
             <div className="relative overflow-hidden rounded-[2rem] border border-[#E3B117]/35 bg-[linear-gradient(135deg,rgba(227,177,23,.10),rgba(12,13,12,.96)_34%,rgba(3,4,3,.98))] px-6 py-10 text-center shadow-[0_35px_100px_rgba(0,0,0,.45),0_0_70px_rgba(227,177,23,.10)] sm:px-10 sm:py-14">
@@ -1443,132 +1324,6 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="contact" className="landing-reveal scroll-mt-24 border-b border-white/10 py-12 sm:py-16">
-          <div className="mx-auto w-full max-w-[1320px] px-4 sm:px-6 lg:px-8 xl:px-10">
-            <div className="grid gap-7 lg:grid-cols-[400px_minmax(0,1fr)] lg:items-stretch">
-              <div className="rounded-[30px] border border-white/10 bg-gradient-to-br from-zinc-950/90 via-black to-zinc-950/85 p-7 shadow-[0_24px_80px_rgba(0,0,0,.34)] sm:p-8">
-                <Logo />
-                <h2 className="mt-8 text-[30px] font-black leading-[1.08] text-white sm:text-[42px] lg:text-[2.7rem]">
-                  La plateforme tout-en-un pour les agences de location automobile au Maroc.
-                </h2>
-                <p className="mt-6 text-base leading-8 text-zinc-300">
-                  MekLoc centralise vos réservations, véhicules, contrats, paiements et alertes dans un seul outil pensé pour simplifier votre quotidien et accélérer votre croissance.
-                </p>
-                <div className="mt-10">
-                  <p className="text-sm font-black text-[#F5C542]">Suivez MekLoc</p>
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    {socialLinks.map(([label, Icon, href]) => (
-                      <a
-                        key={label as string}
-                        href={href as string}
-                        target={(href as string).startsWith('http') ? '_blank' : undefined}
-                        rel="noreferrer"
-                        className="grid h-12 w-12 place-items-center rounded-2xl border border-white/15 bg-white/[0.04] text-[#F5C542] transition hover:border-[#E3B117]/45 hover:bg-[#E3B117]/10"
-                        aria-label={label as string}
-                      >
-                        <Icon className="h-5 w-5" />
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative overflow-hidden rounded-[30px] border border-[#E3B117]/20 bg-gradient-to-br from-zinc-950/90 via-black to-zinc-950/85 p-6 shadow-[0_24px_90px_rgba(0,0,0,.38)] sm:p-8">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_78%_0%,rgba(227,177,23,.14),transparent_36%)]" />
-                <div className="relative grid gap-8 lg:grid-cols-[0.8fr_1.05fr] lg:items-center">
-                  <div className="lg:border-r lg:border-white/10 lg:pr-8">
-                    <span className="grid h-16 w-16 place-items-center rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542] shadow-[0_0_35px_rgba(227,177,23,.12)]">
-                      <CalendarDays className="h-7 w-7" />
-                    </span>
-                    <h2 className="mt-6 text-[32px] font-black leading-[1.08] text-white sm:text-5xl">Réservez une session de cadrage</h2>
-                    <p className="mt-5 text-base leading-8 text-zinc-300">
-                      Partagez votre besoin (taille flotte, ville, opérations). Nous vous aidons à lancer MekLoc rapidement.
-                    </p>
-                    <div className="mt-16 inline-flex items-center gap-3 text-sm font-black text-[#F5C542] lg:mt-20">
-                      <Zap className="h-5 w-5" />
-                      Réponse rapide sous 24h
-                    </div>
-                  </div>
-
-                  <div className="grid gap-3">
-                    <label className="relative block">
-                      <Building2 className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
-                      <input
-                        value={contactForm.agency}
-                        onChange={(event) => setContactForm((current) => ({ ...current, agency: event.target.value }))}
-                        className={contactIconInputClass}
-                        placeholder="Nom de l’agence"
-                      />
-                    </label>
-                    <label className="relative block">
-                      <MessageCircle className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
-                      <input
-                        value={contactForm.phone}
-                        onChange={(event) => setContactForm((current) => ({ ...current, phone: event.target.value }))}
-                        className={contactIconInputClass}
-                        placeholder="Numéro WhatsApp"
-                      />
-                    </label>
-                    <label className="relative block">
-                      <Mail className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400" />
-                      <input
-                        type="email"
-                        value={contactForm.email}
-                        onChange={(event) => setContactForm((current) => ({ ...current, email: event.target.value }))}
-                        className={contactIconInputClass}
-                        placeholder="Votre email"
-                      />
-                    </label>
-                    <label className="relative block">
-                      <FileText className="pointer-events-none absolute left-4 top-5 h-5 w-5 text-zinc-400" />
-                      <textarea
-                        value={contactForm.need}
-                        onChange={(event) => setContactForm((current) => ({ ...current, need: event.target.value }))}
-                        className={`${contactInputClass} min-h-[128px] resize-none py-4 pl-12`}
-                        placeholder="Décrivez votre besoin"
-                      />
-                    </label>
-                    <div className="mt-2 grid gap-3 sm:grid-cols-[1.05fr_0.95fr]">
-                      <a
-                        href={cadrageWhatsappUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="landing-cta-shine flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-[#F5C542]/50 bg-[#E3B117] text-sm font-black text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.16)] transition duration-300 hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0"
-                      >
-                        <CalendarDays className="h-4 w-4" />
-                        Réserver la session
-                      </a>
-                      <a href={cadrageEmailUrl} className="block">
-                        <Button variant="secondary" className="h-14 w-full rounded-2xl border-white/15 bg-white/[0.045] font-black transition hover:-translate-y-0.5 hover:border-[#E3B117]/30 active:translate-y-0" icon={<Mail className="h-4 w-4" />}>
-                          Envoyer un email
-                        </Button>
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-7 grid gap-4 md:grid-cols-3">
-              {[
-                [MessageCircle, 'WhatsApp direct', 'Réponse rapide', SUPPORT_PHONE_DISPLAY],
-                [Mail, 'Par email', 'Écrivez-nous', contactEmail],
-                [CalendarDays, 'Appel de cadrage', '30 minutes', 'Échange personnalisé'],
-              ].map(([Icon, title, text, value]) => (
-                <Card key={title as string} className="flex items-center gap-5 p-5 hover:border-[#E3B117]/25 sm:p-6">
-                  <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-[#E3B117]/20 bg-[#E3B117]/10 text-[#F5C542]">
-                    <Icon className="h-5 w-5" />
-                  </span>
-                  <span>
-                    <span className="block text-lg font-black text-white">{title as string}</span>
-                    <span className="mt-1 block text-sm text-zinc-400">{text as string}</span>
-                    <span className="mt-1 block font-black text-[#F5C542]">{value as string}</span>
-                  </span>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
       </main>
 
       <footer className="relative overflow-hidden border-t border-[#E3B117]/10 bg-gradient-to-b from-[#050606] to-[#0b0b08] py-12 pb-24 sm:py-14 sm:pb-14">
