@@ -1125,10 +1125,10 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="fonctionnalites" className="landing-reveal border-b border-white/10 py-12 sm:py-16">
+        <section id="fonctionnalites" className="landing-reveal border-b border-white/10 pb-8 pt-12 sm:pb-10 sm:pt-14">
           <div className="mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8">
             <SectionTitle eyebrow="Fonctions essentielles" title="Tout ce qu’il vous faut pour gérer votre agence" />
-            <div className="landing-stagger mt-8 grid gap-4 md:grid-cols-3">
+            <div className="landing-stagger mt-7 grid gap-4 md:grid-cols-3">
               {choiceCards.map(([title, text, Icon]) => (
                 <Card key={title as string} className="landing-reveal group relative overflow-hidden p-6 hover:-translate-y-1 hover:border-[#E3B117]/30">
                   <span className="grid h-11 w-11 place-items-center rounded-xl border border-[#E3B117]/20 bg-[#E3B117]/8 text-[#F5C542]">
@@ -1142,16 +1142,16 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="landing-reveal relative overflow-hidden border-b border-white/10 py-12 sm:py-16">
-          <div className="pointer-events-none absolute right-0 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-[#E3B117]/7 blur-3xl" />
-          <div className="relative mx-auto grid w-full max-w-[1320px] items-center gap-9 px-4 sm:px-6 lg:grid-cols-[0.62fr_1.38fr] lg:px-8">
-            <div className="max-w-lg">
+        <section className="landing-reveal relative overflow-hidden border-b border-white/10 py-8 sm:py-10">
+          <div className="pointer-events-none absolute right-0 top-1/2 h-64 w-64 -translate-y-1/2 rounded-full bg-[#E3B117]/7 blur-3xl" />
+          <div className="relative mx-auto grid w-full min-w-0 max-w-[1240px] items-center gap-7 px-4 sm:px-6 lg:grid-cols-[0.68fr_1.32fr] lg:gap-8 lg:px-8">
+            <div className="max-w-[440px] self-center">
               <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Plateforme simple & puissante</p>
               <h2 className="mt-4 text-[32px] font-black leading-tight text-white sm:text-4xl">Voyez MekLoc en action</h2>
               <p className="mt-4 text-base leading-7 text-zinc-400">
                 Une interface claire pour gérer vos clients, leurs documents et leur historique.
               </p>
-              <div className="mt-6 space-y-3">
+              <div className="mt-5 space-y-2.5">
                 {[
                   'Gestion des clients',
                   'Documents d’identité',
@@ -1168,21 +1168,21 @@ export default function LandingPage() {
                 href={demoUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-[#E3B117]/35 bg-[#E3B117] px-6 text-sm font-black text-[#070807] transition hover:-translate-y-0.5 hover:bg-[#F5C542]"
+                className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-[#E3B117]/35 bg-[#E3B117] px-6 text-sm font-black text-[#070807] transition hover:-translate-y-0.5 hover:bg-[#F5C542]"
               >
                 <MessageCircle className="h-4 w-4" />
                 Demander une démo
               </a>
             </div>
 
-            <div className="landing-mockup-float relative">
-              <div className="pointer-events-none absolute -inset-6 rounded-[2rem] bg-[#E3B117]/8 blur-3xl" />
-              <div className="relative overflow-hidden rounded-[1.5rem] border border-[#E3B117]/22 bg-[#070807] p-1.5 shadow-[0_30px_90px_rgba(0,0,0,.62)] sm:rounded-[2rem] sm:p-2">
+            <div className="landing-mockup-float relative min-w-0 w-full max-w-[790px] justify-self-end">
+              <div className="pointer-events-none absolute -inset-4 rounded-[2rem] bg-[#E3B117]/8 blur-3xl" />
+              <div className="relative overflow-hidden rounded-[1.35rem] border border-[#E3B117]/22 bg-[#070807] p-1.5 shadow-[0_24px_70px_rgba(0,0,0,.58)] sm:rounded-[1.7rem] sm:p-2">
                 <div className="aspect-[16/10] overflow-hidden rounded-[1.15rem] border border-white/8 bg-black sm:aspect-[16/9] sm:rounded-[1.55rem]">
                   <img
                     src="/landing/real-clients.png"
                     alt="Page Clients réelle de MekLoc"
-                    className="h-full w-full scale-[1.12] object-cover object-center"
+                    className="h-full w-full scale-[1.15] object-cover object-center"
                     loading="lazy"
                     decoding="async"
                   />
@@ -1192,7 +1192,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="tarifs" className="landing-reveal border-b border-white/10 py-12 sm:py-20">
+        <section id="tarifs" className="landing-reveal border-b border-white/10 pb-12 pt-10 sm:pb-16 sm:pt-14">
           <div className="mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8 xl:px-10">
             <SectionTitle eyebrow="Tarifs simples et transparents" title="Tarifs MekLoc" />
             <p className="mt-4 text-center text-sm font-semibold text-white/55">Sans engagement • Support inclus</p>
