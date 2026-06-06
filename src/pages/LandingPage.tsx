@@ -23,7 +23,6 @@ import {
   MessageCircle,
   MonitorCog,
   ShieldCheck,
-  Smartphone,
   Sparkles,
   Users,
   X,
@@ -1107,15 +1106,102 @@ export default function LandingPage() {
 
         <section id="fonctionnalites" className="landing-reveal border-b border-white/10 py-12 sm:py-20">
           <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-10">
-            <SectionTitle eyebrow="Pourquoi les agences choisissent MekLoc ?" title="Pourquoi choisir MekLoc ?" />
-            <div className="landing-stagger mt-8 grid gap-4 sm:gap-6 md:grid-cols-3">
+            <SectionTitle eyebrow="Tout ce qu’il vous faut" title="Une plateforme complète pensée pour votre réussite" />
+            <div className="landing-stagger mt-8 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
               {choiceCards.map(([title, text, Icon]) => (
-                <Card key={title as string} className="landing-reveal group p-6 active:border-[#E3B117]/35 hover:border-[#E3B117]/35 sm:p-8">
-                  <span className="grid h-14 w-14 place-items-center rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542] shadow-[0_0_30px_rgba(227,177,23,.08)] transition group-hover:border-[#E3B117]/55 group-hover:bg-[#E3B117]/15 sm:h-16 sm:w-16"><Icon className="h-7 w-7 sm:h-8 sm:w-8" /></span>
-                  <h3 className="mt-5 text-xl font-black sm:mt-7 sm:text-2xl">{title as string}</h3>
-                  <p className="mt-3 text-base leading-7 text-zinc-400">{text as string}</p>
+                <Card key={title as string} className="landing-reveal group relative min-h-[220px] overflow-hidden p-6 active:border-[#E3B117]/35 hover:-translate-y-1 hover:border-[#E3B117]/40 sm:p-7">
+                  <span className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#E3B117]/0 blur-3xl transition duration-500 group-hover:bg-[#E3B117]/12" />
+                  <span className="relative grid h-13 w-13 place-items-center rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542] shadow-[0_0_30px_rgba(227,177,23,.08)] transition group-hover:border-[#E3B117]/55 group-hover:bg-[#E3B117]/15"><Icon className="h-6 w-6" /></span>
+                  <h3 className="relative mt-5 text-xl font-black">{title as string}</h3>
+                  <p className="relative mt-3 max-w-sm text-[15px] leading-7 text-zinc-400">{text as string}</p>
                 </Card>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="landing-reveal relative overflow-hidden border-b border-white/10 py-14 sm:py-20">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_68%_48%,rgba(227,177,23,.15),transparent_28%)]" />
+          <div className="relative mx-auto grid w-full max-w-[1320px] items-center gap-12 px-4 sm:px-6 lg:grid-cols-[0.85fr_1.15fr] lg:px-8 xl:px-10">
+            <div className="max-w-xl">
+              <p className="text-xs font-black uppercase tracking-[0.24em] text-[#F5C542]">Simple, rapide, efficace</p>
+              <h2 className="mt-4 text-[32px] font-black leading-[1.08] text-white sm:text-4xl lg:text-5xl">
+                Tout votre business, <span className="text-[#E3B117]">dans votre poche.</span>
+              </h2>
+              <p className="mt-5 text-base leading-7 text-zinc-400">
+                Consultez votre activité et gérez votre agence où que vous soyez, depuis une interface pensée pour le travail quotidien.
+              </p>
+              <div className="mt-7 grid gap-3 sm:grid-cols-2">
+                {[
+                  'Interface intuitive',
+                  'Accessible partout',
+                  'Données sécurisées',
+                  'Téléphone, tablette et ordinateur',
+                ].map((benefit) => (
+                  <div key={benefit} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] px-4 py-3.5 text-sm font-bold text-white/80">
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#E3B117]/12 text-[#F5C542]">
+                      <Check className="h-4 w-4" />
+                    </span>
+                    {benefit}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="landing-mockup-float relative mx-auto w-full max-w-[690px] pb-10 pt-8">
+              <div className="pointer-events-none absolute left-1/2 top-1/2 h-[390px] w-[590px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#E3B117]/25 shadow-[0_0_90px_rgba(227,177,23,.20)]" />
+              <div className="relative mx-auto w-[260px] rounded-[2.8rem] border border-[#F5C542]/40 bg-[#050606] p-2.5 shadow-[0_35px_100px_rgba(0,0,0,.75),0_0_55px_rgba(227,177,23,.18)] sm:w-[300px]">
+                <div className="relative min-h-[540px] overflow-hidden rounded-[2.25rem] border border-white/10 bg-[radial-gradient(circle_at_80%_8%,rgba(227,177,23,.16),transparent_30%),linear-gradient(160deg,#11130f,#060706_48%,#0d0a03)] p-5">
+                  <div className="mx-auto h-5 w-24 rounded-full bg-black shadow-[inset_0_1px_0_rgba(255,255,255,.08)]" />
+                  <div className="mt-6 flex items-center justify-between">
+                    <Logo compact />
+                    <Menu className="h-5 w-5 text-white/60" />
+                  </div>
+                  <p className="mt-7 text-sm text-white/50">Bonjour, Younes</p>
+                  <h3 className="mt-1 text-2xl font-black text-white">Vue d’ensemble</h3>
+                  <div className="mt-5 grid grid-cols-2 gap-3">
+                    {[
+                      ['Réservations', '12', CalendarDays],
+                      ['Disponibles', '23', Car],
+                      ['Contrats', '8', FileText],
+                      ['Paiements', '42K', CircleDollarSign],
+                    ].map(([label, value, Icon]) => (
+                      <div key={label as string} className="rounded-2xl border border-white/10 bg-white/[0.045] p-3">
+                        <Icon className="h-4 w-4 text-[#F5C542]" />
+                        <p className="mt-3 text-xl font-black text-white">{value as string}</p>
+                        <p className="mt-1 text-[11px] text-white/48">{label as string}</p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-black text-white">Activité</p>
+                      <span className="text-[10px] font-bold text-[#F5C542]">7 jours</span>
+                    </div>
+                    <div className="mt-5 flex h-24 items-end gap-2">
+                      {[42, 68, 51, 82, 62, 74, 94].map((height, index) => (
+                        <span key={index} className="flex-1 rounded-t-md bg-gradient-to-t from-[#8b650b] to-[#F5C542]" style={{ height: `${height}%` }} />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                    <p className="text-sm font-black text-white">Prochain départ</p>
+                    <p className="mt-2 text-xs font-bold text-[#F5C542]">Dacia Duster · 10:00</p>
+                    <p className="mt-1 text-xs text-white/45">Client confirmé</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="absolute left-0 top-28 rounded-2xl border border-[#E3B117]/25 bg-black/85 p-4 shadow-[0_20px_55px_rgba(0,0,0,.55)] backdrop-blur-xl sm:left-4">
+                <div className="flex items-center gap-3">
+                  <span className="grid h-10 w-10 place-items-center rounded-xl bg-[#E3B117]/12 text-[#F5C542]"><BellRing className="h-5 w-5" /></span>
+                  <span><span className="block text-sm font-black text-white">Assurance véhicule</span><span className="mt-1 block text-xs text-zinc-400">À renouveler dans 15 jours</span></span>
+                </div>
+              </div>
+              <div className="absolute bottom-20 right-0 rounded-2xl border border-emerald-400/20 bg-black/85 p-4 shadow-[0_20px_55px_rgba(0,0,0,.55)] backdrop-blur-xl sm:right-3">
+                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-300">Paiement reçu</p>
+                <p className="mt-1 text-lg font-black text-white">MAD 1,250</p>
+              </div>
             </div>
           </div>
         </section>
@@ -1311,6 +1397,44 @@ export default function LandingPage() {
                   <p className="landing-faq-answer px-6 pb-6 text-sm leading-7 text-zinc-400">{answer}</p>
                 </details>
               ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="landing-reveal relative overflow-hidden border-b border-white/10 py-12 sm:py-20">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(227,177,23,.13),transparent_42%)]" />
+          <div className="relative mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8">
+            <div className="relative overflow-hidden rounded-[2rem] border border-[#E3B117]/35 bg-[linear-gradient(135deg,rgba(227,177,23,.10),rgba(12,13,12,.96)_34%,rgba(3,4,3,.98))] px-6 py-10 text-center shadow-[0_35px_100px_rgba(0,0,0,.45),0_0_70px_rgba(227,177,23,.10)] sm:px-10 sm:py-14">
+              <div className="pointer-events-none absolute -right-24 -top-28 h-72 w-72 rounded-full border border-[#F5C542]/25 shadow-[0_0_70px_rgba(227,177,23,.18)]" />
+              <div className="pointer-events-none absolute -bottom-28 -left-24 h-64 w-64 rounded-full bg-[#E3B117]/8 blur-3xl" />
+              <div className="relative mx-auto max-w-3xl">
+                <p className="text-xs font-black uppercase tracking-[0.24em] text-[#F5C542]">Passez à une gestion plus claire</p>
+                <h2 className="mt-4 text-[30px] font-black leading-tight text-white sm:text-4xl lg:text-5xl">Prêt à moderniser votre agence ?</h2>
+                <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-zinc-400 sm:text-lg">
+                  Réservez une session gratuite de cadrage et découvrez comment MekLoc peut simplifier votre gestion.
+                </p>
+                <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+                  <a
+                    href={cadrageWhatsappUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="landing-cta-shine inline-flex h-14 items-center justify-center gap-2 rounded-2xl border border-[#F5C542]/50 bg-[#E3B117] px-7 text-sm font-black text-[#070807] shadow-[0_18px_50px_rgba(227,177,23,.22)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0"
+                  >
+                    <CalendarDays className="h-4 w-4" />
+                    Réserver une session
+                  </a>
+                  <a
+                    href={demoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.055] px-7 text-sm font-black text-white transition hover:-translate-y-0.5 hover:border-[#E3B117]/35 hover:bg-white/[0.09] active:translate-y-0"
+                  >
+                    <MessageCircle className="h-4 w-4" />
+                    Voir la démo
+                  </a>
+                </div>
+                <p className="mt-6 text-sm font-bold text-white/55">Conçu pour les agences de location au Maroc 🇲🇦</p>
+              </div>
             </div>
           </div>
         </section>
