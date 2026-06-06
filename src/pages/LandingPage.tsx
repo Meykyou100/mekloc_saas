@@ -900,7 +900,7 @@ function MobileCommandHero() {
 
 function RealDashboardShowcase({ mobile = false }: { mobile?: boolean }) {
   return (
-    <div className={mobile ? 'relative mt-8 pb-7 lg:hidden' : 'landing-mockup-float relative hidden w-full max-w-[900px] justify-self-end pb-16 pt-8 lg:block'}>
+    <div className={mobile ? 'relative mt-8 pb-7 lg:hidden' : 'landing-mockup-float relative -translate-x-[3%] hidden w-[108%] max-w-[990px] justify-self-end pb-16 pt-8 lg:block'}>
       <div className={`pointer-events-none absolute left-1/2 -translate-x-1/2 rounded-[50%] border border-[#E3B117]/40 shadow-[0_0_65px_rgba(227,177,23,.22)] ${
         mobile ? 'top-8 h-[255px] w-[340px]' : 'top-0 h-[440px] w-[820px]'
       }`} />
@@ -1220,7 +1220,7 @@ export default function LandingPage() {
               {plans.map((plan) => {
                 const isLifetime = 'lifetime' in plan && plan.lifetime;
                 const displayPrice = isLifetime ? plan.annualPrice : billingCycle === 'annual' ? plan.annualPrice : plan.monthlyPrice;
-                const cadence = isLifetime ? 'à vie' : billingCycle === 'annual' ? '/an' : '/mois';
+                const cadence = isLifetime ? 'paiement unique' : billingCycle === 'annual' ? '/ an' : '/ mois';
                 const planUrl = `/demande-acces?plan=${plan.id}&billing=${isLifetime ? 'lifetime' : billingCycle}`;
 
                 return (
@@ -1231,15 +1231,15 @@ export default function LandingPage() {
                     <span className="grid h-14 w-14 place-items-center rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542]"><Sparkles className="h-6 w-6" /></span>
                     <h3 className="mt-5 text-2xl font-black">{plan.name}</h3>
                     <p className="mt-1 text-sm text-white/50">{plan.note}</p>
-                    <p className="mt-6 text-4xl font-black sm:mt-7 sm:text-5xl">
-                      {displayPrice.toLocaleString('fr-FR')}
-                      <span className="ml-2 text-lg">MAD</span>
-                      <span className="text-base font-medium text-white/55"> {cadence}</span>
-                    </p>
+                    <div className="mt-6 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 sm:mt-7">
+                      <span className="text-4xl font-black tracking-[-0.025em] sm:text-5xl">{displayPrice.toLocaleString('fr-FR')}</span>
+                      <span className="text-lg font-black text-white">MAD</span>
+                      <span className="text-sm font-semibold text-white/55 sm:text-base">{cadence}</span>
+                    </div>
                     {isLifetime ? (
-                      <p className="mt-2 text-sm font-semibold text-[#F5C542]">Paiement unique, accès durable</p>
+                      <p className="mt-2 text-sm font-semibold text-[#F5C542]">Accès à vie, un seul paiement</p>
                     ) : billingCycle === 'annual' ? (
-                      <p className="mt-2 text-sm font-semibold text-[#F5C542]">{plan.annualBillingLabel}</p>
+                      <p className="mt-2 text-sm font-semibold text-[#F5C542]">Facturation annuelle</p>
                     ) : (
                       <p className="mt-2 text-sm font-semibold text-white/38">Facturation mensuelle</p>
                     )}
