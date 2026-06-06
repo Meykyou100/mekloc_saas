@@ -459,7 +459,7 @@ export default function DemandeAccesPage() {
             </div>
           </aside>
 
-          <form className="min-w-0 rounded-3xl border border-white/10 bg-zinc-950/80 pb-32 shadow-[0_0_80px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:pb-0" onSubmit={handleSubmit}>
+          <form className="min-w-0 rounded-3xl border border-white/10 bg-zinc-950/80 shadow-[0_0_80px_rgba(0,0,0,0.45)] backdrop-blur-xl" onSubmit={handleSubmit}>
             <div className="border-b border-white/10 p-5 sm:p-7 md:p-8">
               <h2 className="text-xl font-black">2. Informations de l’agence</h2>
 
@@ -618,7 +618,7 @@ export default function DemandeAccesPage() {
               </label>
             </div>
 
-            <div className="sticky bottom-0 z-40 border-t border-[#E3B117]/20 bg-[#090a0b] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-18px_45px_rgba(0,0,0,.72)] sm:static sm:border-t-0 sm:bg-transparent sm:px-7 sm:pb-7 sm:pt-0 sm:shadow-none md:px-8 md:pb-8">
+            <div className="relative z-10 border-t border-[#E3B117]/20 bg-[#090a0b] px-4 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 shadow-[0_-12px_35px_rgba(0,0,0,.5)] sm:border-t-0 sm:bg-transparent sm:px-7 sm:pb-7 sm:pt-0 sm:shadow-none md:px-8 md:pb-8">
               <Button
                 type="submit"
                 className="h-14 w-full rounded-2xl !border-[#f2cd59] !bg-[#E3B117] text-base font-black !text-[#070807] shadow-[0_14px_38px_rgba(227,177,23,.28)] hover:!bg-[#F5C542] active:scale-[0.99] disabled:!cursor-wait disabled:!opacity-100"

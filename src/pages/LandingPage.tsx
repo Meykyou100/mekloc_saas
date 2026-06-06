@@ -679,7 +679,7 @@ function LandingHeader() {
               </Link>
               <a href={accessRequestUrl} onClick={() => setOpen(false)}>
                 <Button
-                  className="landing-cta-shine h-14 w-full rounded-2xl bg-[#E3B117] font-black text-[#070807] shadow-[0_14px_34px_rgba(227,177,23,.20)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0"
+                  className="landing-cta-shine h-14 w-full rounded-2xl !border-[#F5C542]/50 !bg-[#E3B117] font-black !text-[#070807] shadow-[0_14px_34px_rgba(227,177,23,.28),inset_0_1px_0_rgba(255,255,255,.28)] transition hover:-translate-y-0.5 hover:!bg-[#F5C542] active:translate-y-0"
                   icon={<CalendarDays className="h-4 w-4" />}
                 >
                   Demandez votre accès
