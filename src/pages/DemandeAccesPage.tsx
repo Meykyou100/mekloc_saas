@@ -356,10 +356,10 @@ export default function DemandeAccesPage() {
   const fieldLabelClass = 'text-sm font-semibold text-zinc-200';
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[#050606] text-white">
+    <div className="min-h-[100svh] max-w-full overflow-x-hidden overscroll-x-none bg-[#050606] pb-[env(safe-area-inset-bottom)] text-white [-webkit-tap-highlight-color:transparent]">
       <div className="pointer-events-none fixed inset-0 bg-[radial-gradient(circle_at_76%_8%,rgba(227,177,23,.17),transparent_34%),radial-gradient(circle_at_36%_44%,rgba(227,177,23,.10),transparent_36%),linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:auto,auto,64px_64px,64px_64px]" />
 
-      <div className="relative mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 md:py-10 lg:px-8">
+      <div className="relative mx-auto w-full max-w-[1200px] px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-6 sm:px-6 sm:pb-10 md:py-10 lg:px-8">
         <header className="flex items-center justify-between gap-4">
           <Link to="/" className="min-w-0">
             <img src="/mekloc-logo-transparent.png" alt="MekLoc" className="h-12 w-auto max-w-[165px] object-contain" />
@@ -382,8 +382,8 @@ export default function DemandeAccesPage() {
           {fromLogin ? <p className="mt-3 text-sm font-semibold text-[#F5C542]">Votre compte n’est pas encore activé. Remplissez cette demande pour obtenir l’accès.</p> : null}
         </div>
 
-        <div className="mt-9 grid gap-6 lg:grid-cols-[0.38fr_0.62fr] lg:items-start">
-          <aside className="grid gap-5">
+        <div className="mt-9 grid min-w-0 gap-6 lg:grid-cols-[0.38fr_0.62fr] lg:items-start">
+          <aside className="grid min-w-0 gap-5">
             <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-5 shadow-[0_24px_80px_rgba(0,0,0,.42)] backdrop-blur-xl sm:p-6">
               <h2 className="text-lg font-black">1. Choisissez votre plan</h2>
               <div className="mt-5 grid grid-cols-3 rounded-2xl border border-white/10 bg-black/40 p-1">
@@ -459,7 +459,7 @@ export default function DemandeAccesPage() {
             </div>
           </aside>
 
-          <form className="rounded-3xl border border-white/10 bg-zinc-950/80 shadow-[0_0_80px_rgba(0,0,0,0.45)] backdrop-blur-xl" onSubmit={handleSubmit}>
+          <form className="min-w-0 rounded-3xl border border-white/10 bg-zinc-950/80 shadow-[0_0_80px_rgba(0,0,0,0.45)] backdrop-blur-xl" onSubmit={handleSubmit}>
             <div className="border-b border-white/10 p-5 sm:p-7 md:p-8">
               <h2 className="text-xl font-black">2. Informations de l’agence</h2>
 
@@ -604,7 +604,7 @@ export default function DemandeAccesPage() {
               </div>
             </div>
 
-            <div className="p-5 sm:p-7 md:p-8">
+            <div className="p-5 pb-4 sm:p-7 md:p-8">
               <h2 className="text-xl font-black">3. Conditions</h2>
               <label className="mt-5 flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.025] px-4 py-4 text-sm leading-6 text-zinc-300">
                 <input type="checkbox" className="mt-1 h-4 w-4 rounded border border-[#E3B117]/70 bg-transparent accent-[#E3B117]" checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} required />
@@ -616,9 +616,12 @@ export default function DemandeAccesPage() {
                   <Link to="/annulation-remboursement" target="_blank" className="font-semibold text-[#F5C542] hover:text-[#F8D766]">politique d’annulation et de remboursement</Link>.
                 </span>
               </label>
+            </div>
+
+            <div className="sticky bottom-0 z-30 border-t border-white/10 bg-[#0b0c0e] px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-18px_45px_rgba(0,0,0,.55)] sm:static sm:border-t-0 sm:bg-transparent sm:px-7 sm:pb-7 sm:pt-0 sm:shadow-none md:px-8 md:pb-8">
               <Button
                 type="submit"
-                className="mt-6 h-14 w-full rounded-2xl bg-[#E3B117] text-base font-black text-[#070807] shadow-[0_18px_50px_rgba(227,177,23,.18)] hover:bg-[#F5C542]"
+                className="h-14 w-full rounded-2xl bg-[#E3B117] text-base font-black text-[#070807] shadow-[0_18px_50px_rgba(227,177,23,.18)] hover:bg-[#F5C542]"
                 loading={isSubmitting}
                 disabled={emailVerificationStatus !== 'verified' || verifiedEmail !== email}
                 icon={<Send className="h-5 w-5" />}

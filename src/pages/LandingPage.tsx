@@ -136,7 +136,7 @@ function whatsappUrl(message: string) {
   return `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 }
 
-const quickCadrageUrl = whatsappUrl('Bonjour MekLoc, je souhaite réserver une session de cadrage.');
+const accessRequestUrl = 'https://mekloc.com/demande-acces';
 
 function Logo({ compact = false }: { compact?: boolean }) {
   return (
@@ -614,12 +614,10 @@ function LandingHeader() {
             Connexion
           </Link>
           <a
-            href={quickCadrageUrl}
-            target="_blank"
-            rel="noreferrer"
+            href={accessRequestUrl}
             className="landing-cta-shine inline-flex h-11 items-center justify-center rounded-xl border border-[#F5C542]/40 bg-[#E3B117] px-6 text-sm font-black text-[#070807] shadow-[0_12px_30px_rgba(227,177,23,.22),inset_0_1px_0_rgba(255,255,255,.28)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0"
           >
-            Réserver une session
+            Demandez votre accès
           </a>
         </div>
         <button
@@ -679,12 +677,12 @@ function LandingHeader() {
                   Connexion
                 </Button>
               </Link>
-              <a href={quickCadrageUrl} target="_blank" rel="noreferrer" onClick={() => setOpen(false)}>
+              <a href={accessRequestUrl} onClick={() => setOpen(false)}>
                 <Button
                   className="landing-cta-shine h-14 w-full rounded-2xl bg-[#E3B117] font-black text-[#070807] shadow-[0_14px_34px_rgba(227,177,23,.20)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0"
                   icon={<CalendarDays className="h-4 w-4" />}
                 >
-                  Réserver une session
+                  Demandez votre accès
                 </Button>
               </a>
             </div>
@@ -988,7 +986,6 @@ function InterfaceDashboardMockup({ activeTab }: { activeTab: number }) {
 export default function LandingPage() {
   const demoUrl = useMemo(() => whatsappUrl('Bonjour MekLoc, je souhaite réserver une démo.'), []);
   const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
-  const cadrageWhatsappUrl = quickCadrageUrl;
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1052,14 +1049,11 @@ export default function LandingPage() {
               </p>
               <div className="landing-hero-actions mt-7 flex flex-col gap-3 sm:flex-row">
                 <a
-                  href={cadrageWhatsappUrl}
-                  target="_blank"
-                  rel="noreferrer"
+                  href={accessRequestUrl}
                   className="landing-cta-shine inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-[#F5C542]/45 bg-[#E3B117] px-7 text-sm font-black text-[#070807] shadow-[0_18px_52px_rgba(227,177,23,.25),inset_0_1px_0_rgba(255,255,255,.30)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0 sm:w-auto"
                 >
                   <CalendarDays className="h-4 w-4" />
-                  <span className="lg:hidden">Réserver une session</span>
-                  <span className="hidden lg:inline">Réserver une session de cadrage</span>
+                  <span>Demandez votre accès</span>
                 </a>
                 <a
                   href={demoUrl}
@@ -1300,13 +1294,11 @@ export default function LandingPage() {
                 </p>
                 <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
                   <a
-                    href={cadrageWhatsappUrl}
-                    target="_blank"
-                    rel="noreferrer"
+                    href={accessRequestUrl}
                     className="landing-cta-shine inline-flex h-14 items-center justify-center gap-2 rounded-2xl border border-[#F5C542]/50 bg-[#E3B117] px-7 text-sm font-black text-[#070807] shadow-[0_18px_50px_rgba(227,177,23,.22)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0"
                   >
                     <CalendarDays className="h-4 w-4" />
-                    Réserver une session
+                    Demandez votre accès
                   </a>
                   <a
                     href={demoUrl}
@@ -1358,10 +1350,10 @@ export default function LandingPage() {
                 <div className="mt-5 space-y-3 text-sm text-zinc-400">
                   <a href="#fonctionnalites" className="block hover:text-[#F5C542]">Fonctionnalités</a>
                   <a href="#tarifs" className="block hover:text-[#F5C542]">Tarifs</a>
-                  <a href="#contact" className="block hover:text-[#F5C542]">Session de cadrage</a>
+                  <a href={accessRequestUrl} className="block hover:text-[#F5C542]">Demande d’accès</a>
                   <a href="#faq" className="block hover:text-[#F5C542]">Foire aux questions</a>
                   <Link to="/login" className="block hover:text-[#F5C542] lg:hidden">Connexion</Link>
-                  <a href={quickCadrageUrl} target="_blank" rel="noreferrer" className="block hover:text-[#F5C542] lg:hidden">Réserver une session</a>
+                  <a href={accessRequestUrl} className="block hover:text-[#F5C542] lg:hidden">Demandez votre accès</a>
                 </div>
               </div>
               <div>
