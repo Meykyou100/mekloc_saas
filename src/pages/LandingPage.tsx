@@ -23,6 +23,7 @@ import {
   MessageCircle,
   MonitorCog,
   ShieldCheck,
+  Smartphone,
   Sparkles,
   Users,
   X,
@@ -47,9 +48,12 @@ const navItems = [
 ];
 
 const choiceCards = [
-  ['Moins de papier', 'Générez des contrats propres en quelques secondes.', FileText],
-  ['Moins d’erreurs', 'Clients, véhicules, dates et montants sont remplis automatiquement.', ShieldCheck],
-  ['Plus de contrôle', 'Suivez réservations, cautions, paiements et alertes depuis un seul espace.', Gauge],
+  ['Gestion des réservations', 'Suivez toutes vos réservations en temps réel et évitez les doubles réservations.', CalendarDays],
+  ['Gestion de la flotte', 'Gérez vos véhicules, contrats d’entretien, assurances et disponibilités.', Car],
+  ['Contrats PDF automatiques', 'Générez des contrats propres et professionnels en un clic.', FileText],
+  ['Paiements & encaissements', 'Suivez les paiements, créances et factures facilement.', CircleDollarSign],
+  ['Alertes intelligentes', 'Recevez des rappels pour assurances, paiements et entretiens.', BellRing],
+  ['Tableaux de bord', 'Analysez vos performances et prenez les meilleures décisions.', Gauge],
 ];
 
 const beforeItems = [
@@ -69,10 +73,10 @@ const afterItems = [
 ];
 
 const steps = [
-  ['Demandez votre accès', 'Remplissez le formulaire et notre équipe vous contacte rapidement.', Users],
-  ['Ajoutez vos véhicules', 'Importez votre flotte, photos, infos techniques et documents.', Car],
-  ['Créez vos réservations', 'Ajoutez vos clients, dates, options et montants en quelques clics.', CalendarDays],
-  ['Générez vos contrats PDF', 'Contrats propres, envoyables ou téléchargeables en un instant.', FileCheck2],
+  ['Ajoutez vos véhicules', 'Centralisez les informations, documents et disponibilités de votre flotte.', Car],
+  ['Créez vos réservations', 'Sélectionnez le client, le véhicule, les dates et le tarif.', CalendarDays],
+  ['Générez vos contrats PDF', 'Préparez un contrat professionnel prêt à télécharger ou envoyer.', FileCheck2],
+  ['Suivez toute l’activité', 'Gardez paiements, cautions, échéances et alertes sous contrôle.', BellRing],
 ];
 
 const previewCards = [
@@ -727,16 +731,16 @@ function DashboardVisual() {
   ];
 
   return (
-    <div className="landing-mockup-float landing-desktop-mockup relative w-full max-w-[920px] justify-self-end pb-20 pt-12">
+    <div className="landing-mockup-float landing-desktop-mockup relative mr-5 w-full max-w-[880px] justify-self-end pb-20 pt-12 xl:mr-8">
       <div className="landing-hero-ray hidden lg:block" />
-      <div className="landing-video-halo pointer-events-none absolute left-1/2 top-0 h-[500px] w-[900px] -translate-x-1/2 rounded-[50%] border-2 border-[#F5C542]/70 shadow-[0_0_75px_rgba(227,177,23,.48),inset_0_0_48px_rgba(245,197,66,.20)]" />
-      <div className="pointer-events-none absolute left-1/2 top-20 h-[430px] w-[850px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(245,197,66,.26),rgba(227,177,23,.09)_38%,transparent_70%)] blur-3xl" />
+      <div className="landing-video-halo pointer-events-none absolute left-1/2 top-0 h-[500px] w-[860px] -translate-x-1/2 rounded-[50%] border-2 border-[#F5C542]/70 shadow-[0_0_78px_rgba(227,177,23,.52),inset_0_0_48px_rgba(245,197,66,.22)]" />
+      <div className="pointer-events-none absolute left-1/2 top-16 h-[440px] w-[790px] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(245,197,66,.32),rgba(227,177,23,.11)_38%,transparent_70%)] blur-3xl" />
 
-      <div className="landing-floating-badge absolute -left-8 top-3 z-20 rounded-2xl border border-[#E3B117]/25 bg-black/82 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.48),0_0_30px_rgba(227,177,23,.10)] backdrop-blur-xl">
+      <div className="landing-floating-badge absolute left-3 top-1 z-20 rounded-2xl border border-[#E3B117]/25 bg-black/82 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.48),0_0_30px_rgba(227,177,23,.10)] backdrop-blur-xl">
         <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Aujourd’hui</p>
         <p className="mt-1 text-[13px] font-black text-white">128 réservations suivies</p>
       </div>
-      <div className="landing-floating-badge absolute -right-6 top-16 z-20 hidden rounded-2xl border border-[#E3B117]/20 bg-black/82 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.48),0_0_30px_rgba(227,177,23,.08)] backdrop-blur-xl xl:block">
+      <div className="landing-floating-badge absolute -right-4 top-20 z-20 hidden rounded-2xl border border-[#E3B117]/20 bg-black/82 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,.48),0_0_30px_rgba(227,177,23,.08)] backdrop-blur-xl xl:block">
         <p className="text-[9px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Flotte</p>
         <p className="mt-1 text-[13px] font-black text-white">23 véhicules disponibles</p>
       </div>
@@ -1029,15 +1033,15 @@ export default function LandingPage() {
       <main className="landing-gradient-motion bg-[radial-gradient(circle_at_18%_6%,rgba(245,197,66,.16),transparent_30%),radial-gradient(circle_at_82%_24%,rgba(227,177,23,.12),transparent_32%),linear-gradient(rgba(255,255,255,.026)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:auto,auto,72px_72px,72px_72px]">
         <section className="landing-ambient relative overflow-hidden border-b border-white/10">
           <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#E3B117]/10 to-transparent" />
-          <div className="pointer-events-none absolute -left-28 top-40 h-80 w-80 rounded-full bg-[#E3B117]/10 blur-3xl" />
-          <div className="mx-auto grid w-full max-w-[1540px] items-center gap-9 px-4 py-9 sm:px-6 sm:py-14 lg:min-h-[calc(100vh-80px)] lg:grid-cols-[0.76fr_1.24fr] lg:gap-8 lg:px-8 lg:py-10 xl:grid-cols-[0.78fr_1.22fr] xl:gap-12 xl:px-10">
+          <div className="pointer-events-none absolute -left-28 top-40 h-80 w-80 rounded-full bg-[#E3B117]/10 blur-3xl lg:hidden" />
+          <div className="mx-auto grid w-full max-w-[1540px] items-center gap-9 px-4 py-9 sm:px-6 sm:py-14 lg:min-h-[calc(100vh-80px)] lg:grid-cols-[0.78fr_1.22fr] lg:gap-8 lg:px-8 lg:pb-8 lg:pt-4 xl:grid-cols-[0.8fr_1.2fr] xl:gap-10 xl:px-10 xl:pt-5">
             <div className="landing-reveal is-visible max-w-[610px]">
               <div className="landing-hero-kicker inline-flex max-w-full items-center gap-2 rounded-full border border-[#E3B117]/30 bg-[#E3B117]/10 px-3.5 py-2 text-xs font-bold leading-5 text-[#F5C542] sm:px-4 sm:text-sm">
                 <Zap className="h-4 w-4" />
                 <span className="lg:hidden">SaaS de gestion pour agences au Maroc</span>
                 <span className="hidden lg:inline">SaaS de gestion pour agences de location au Maroc</span>
               </div>
-              <h1 className="mt-6 text-[42px] font-black leading-[1.02] tracking-[-0.035em] text-white sm:text-6xl lg:text-[3.45rem] lg:leading-[1.04] xl:text-[3.9rem] 2xl:text-[4.15rem]">
+              <h1 className="mt-6 text-[42px] font-black leading-[1.02] tracking-[-0.035em] text-white sm:text-6xl lg:text-[3.2rem] lg:leading-[1.035] xl:text-[3.62rem] 2xl:text-[3.88rem]">
                 <span className="landing-hero-line block">Logiciel de gestion</span>
                 <span className="landing-hero-line block">pour agences de location</span>
                 <span className="landing-hero-line block">de voitures <span className="landing-gold-word text-[#E3B117]">au Maroc</span></span>
