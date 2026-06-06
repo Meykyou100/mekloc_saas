@@ -607,7 +607,7 @@ function LandingHeader() {
           : 'border-white/5 bg-black/70 backdrop-blur-xl'
       }`}
     >
-      <div className="mx-auto grid h-[72px] w-full max-w-[1440px] grid-cols-[1fr_auto_auto] items-center gap-2 px-4 sm:h-20 sm:px-6 lg:grid-cols-[1fr_auto_1fr] lg:px-8 xl:px-10">
+      <div className="mx-auto grid h-[68px] w-full max-w-[1440px] grid-cols-[1fr_auto] items-center gap-2 px-4 sm:h-20 sm:px-6 lg:grid-cols-[1fr_auto_1fr] lg:px-8 xl:px-10">
         <Link to="/" onClick={() => setOpen(false)}><Logo compact /></Link>
         <nav className="hidden items-center gap-10 text-sm font-semibold text-white/80 lg:flex">
           {navItems.map(([label, href]) => (
@@ -630,11 +630,6 @@ function LandingHeader() {
             Réserver une session
           </a>
         </div>
-        <a href={quickCadrageUrl} target="_blank" rel="noreferrer" className="lg:hidden">
-          <Button className="h-10 rounded-xl border border-[#F5C542]/40 bg-[#E3B117] px-3 text-xs font-black text-[#070807] hover:bg-[#F5C542] sm:px-4">
-            Session cadrage
-          </Button>
-        </a>
         <button
           type="button"
           onClick={() => setOpen((current) => !current)}
@@ -651,7 +646,7 @@ function LandingHeader() {
         </button>
       </div>
 
-      <div className={`fixed inset-x-0 bottom-0 top-[72px] z-40 transition duration-[250ms] sm:top-20 lg:hidden ${open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}`}>
+      <div className={`fixed inset-x-0 bottom-0 top-[68px] z-40 transition duration-[250ms] sm:top-20 lg:hidden ${open ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'}`}>
         <button
           type="button"
           aria-label="Fermer le menu"
@@ -852,55 +847,63 @@ function DashboardVisual() {
 }
 
 function MobileCommandHero() {
-  const commandCards = [
-    { icon: CalendarDays, title: 'Réservations', value: '12 aujourd’hui', text: 'Départs & retours suivis', highlighted: true },
-    { icon: Car, title: 'Véhicules', value: '34 disponibles', text: 'Flotte prête', highlighted: false },
-    { icon: FileText, title: 'Contrats', value: '8 prêts', text: 'PDF générés', highlighted: false },
-    { icon: CircleDollarSign, title: 'Paiements', value: '42 800 MAD', text: 'Suivi clair', highlighted: true },
-  ];
-
   return (
-    <div className="relative mt-8 overflow-hidden rounded-[28px] border border-[#E3B117]/20 bg-gradient-to-br from-zinc-950/90 via-black to-zinc-950/95 p-4 shadow-[0_0_70px_rgba(227,177,23,.12)] lg:hidden">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_12%,rgba(227,177,23,.20),transparent_38%),linear-gradient(rgba(255,255,255,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.025)_1px,transparent_1px)] bg-[size:auto,38px_38px,38px_38px]" />
-      <img
-        src="/mekloc-hero-car.svg"
-        alt=""
-        aria-hidden="true"
-        className="pointer-events-none absolute -bottom-7 -right-10 w-[86%] opacity-25 mix-blend-screen"
-      />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black via-black/80 to-transparent" />
-      <div className="pointer-events-none absolute -bottom-16 left-1/2 h-36 w-[125%] -translate-x-1/2 rounded-[50%] border border-[#E3B117]/25" />
-      <div className="pointer-events-none absolute -bottom-20 left-1/2 h-44 w-[150%] -translate-x-1/2 rounded-[50%] border border-[#F5C542]/10" />
-
-      <div className="relative">
-        <p className="text-xs font-black uppercase tracking-[0.18em] text-[#F5C542]">Votre activité en un coup d’œil</p>
-        <div className="mt-4 grid grid-cols-2 gap-3">
-          {commandCards.map(({ icon: Icon, title, value, text, highlighted }) => (
-            <div
-              key={title}
-              className={`rounded-2xl border bg-zinc-950/80 p-4 backdrop-blur-md ${
-                highlighted
-                  ? 'border-[#E3B117]/30 shadow-[0_0_34px_rgba(227,177,23,.10)]'
-                  : 'border-white/10'
-              }`}
-            >
-              <div className="grid h-10 w-10 place-items-center rounded-xl border border-[#E3B117]/20 bg-[#E3B117]/10 text-[#F5C542]">
-                <Icon className="h-5 w-5" />
+    <div className="relative mt-8 pb-8 lg:hidden">
+      <div className="pointer-events-none absolute left-1/2 top-14 h-[410px] w-[410px] -translate-x-1/2 rounded-full border border-[#E3B117]/35 shadow-[0_0_70px_rgba(227,177,23,.20)]" />
+      <div className="pointer-events-none absolute left-1/2 top-24 h-72 w-72 -translate-x-1/2 rounded-full bg-[#E3B117]/12 blur-3xl" />
+      <div className="landing-mockup-float relative mx-auto w-[270px] rounded-[2.8rem] border border-[#F5C542]/45 bg-[#050606] p-2.5 shadow-[0_35px_90px_rgba(0,0,0,.78),0_0_46px_rgba(227,177,23,.18)] min-[390px]:w-[292px]">
+        <div className="relative min-h-[555px] overflow-hidden rounded-[2.25rem] border border-white/10 bg-[radial-gradient(circle_at_76%_7%,rgba(227,177,23,.16),transparent_28%),linear-gradient(155deg,#11130f,#060706_48%,#0d0a03)] p-4">
+          <div className="mx-auto h-5 w-24 rounded-full bg-black" />
+          <div className="mt-5 flex items-center justify-between">
+            <Logo compact />
+            <Menu className="h-4 w-4 text-white/60" />
+          </div>
+          <p className="mt-6 text-[11px] text-white/45">Bonjour, Younes</p>
+          <h3 className="mt-1 text-xl font-black">Tableau de bord</h3>
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
+            {[
+              ['Réservations', '128', '+12%', CalendarDays],
+              ['Véhicules', '23', '+5%', Car],
+            ].map(([label, value, note, Icon]) => (
+              <div key={label as string} className="rounded-xl border border-white/10 bg-white/[0.045] p-3">
+                <Icon className="h-4 w-4 text-[#F5C542]" />
+                <p className="mt-2 text-xl font-black">{value as string}</p>
+                <p className="text-[9px] text-white/45">{label as string}</p>
+                <p className="mt-1 text-[9px] font-bold text-[#F5C542]">{note as string}</p>
               </div>
-              <p className="mt-3 text-sm font-bold text-zinc-300">{title}</p>
-              <p className="mt-1 text-lg font-black leading-tight text-white">{value}</p>
-              <p className="mt-2 text-xs leading-5 text-zinc-500">{text}</p>
+            ))}
+          </div>
+          <div className="mt-2.5 rounded-xl border border-white/10 bg-white/[0.045] p-3">
+            <CircleDollarSign className="h-4 w-4 text-[#F5C542]" />
+            <p className="mt-2 text-xl font-black">82,450 <span className="text-xs">MAD</span></p>
+            <p className="text-[9px] text-white/45">Paiements reçus</p>
+          </div>
+          <div className="mt-2.5 rounded-xl border border-white/10 bg-black/30 p-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-black">Réservations par mois</p>
+              <span className="text-[9px] text-[#F5C542]">Juin</span>
             </div>
-          ))}
-        </div>
-        <div className="mt-4 grid grid-cols-4 gap-2 text-[11px] font-bold text-zinc-300">
-          {['Contrats PDF', 'Alertes', 'Paiements', 'Cloud'].map((label) => (
-            <span key={label} className="inline-flex min-h-9 items-center justify-center rounded-xl border border-white/10 bg-black/45 px-2 text-center">
-              {label}
-            </span>
-          ))}
+            <div className="mt-3 flex h-20 items-end gap-2">
+              {[38, 62, 47, 82, 59, 72, 94].map((height, index) => (
+                <span key={index} className="flex-1 rounded-t bg-gradient-to-t from-[#8b650b] to-[#F5C542]" style={{ height: `${height}%` }} />
+              ))}
+            </div>
+          </div>
+          <div className="mt-2.5 rounded-xl border border-white/10 bg-white/[0.035] p-3">
+            <p className="text-xs font-black text-[#F5C542]">Réservations récentes</p>
+            {[
+              ['Mohamed Amine', 'Confirmé'],
+              ['Sofia Belkacem', 'En cours'],
+            ].map(([name, status]) => (
+              <div key={name} className="mt-2 flex items-center justify-between border-t border-white/8 pt-2 text-[10px]">
+                <span className="font-bold">{name}</span>
+                <span className="rounded-full bg-[#E3B117]/10 px-2 py-1 text-[#F5C542]">{status}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
+      <div className="landing-video-pedestal pointer-events-none absolute bottom-0 left-1/2 h-16 w-[310px] -translate-x-1/2 rounded-[50%] border border-[#F5C542]/55 bg-[#E3B117]/12 shadow-[0_0_45px_rgba(227,177,23,.30)]" />
     </div>
   );
 }
@@ -1059,7 +1062,8 @@ export default function LandingPage() {
                   className="landing-cta-shine inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-[#F5C542]/45 bg-[#E3B117] px-7 text-sm font-black text-[#070807] shadow-[0_18px_52px_rgba(227,177,23,.25),inset_0_1px_0_rgba(255,255,255,.30)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0 sm:w-auto"
                 >
                   <CalendarDays className="h-4 w-4" />
-                  Réserver une session de cadrage
+                  <span className="lg:hidden">Réserver une session</span>
+                  <span className="hidden lg:inline">Réserver une session de cadrage</span>
                 </a>
                 <a
                   href={demoUrl}
@@ -1107,13 +1111,13 @@ export default function LandingPage() {
         <section id="fonctionnalites" className="landing-reveal border-b border-white/10 py-12 sm:py-20">
           <div className="mx-auto w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 xl:px-10">
             <SectionTitle eyebrow="Tout ce qu’il vous faut" title="Une plateforme complète pensée pour votre réussite" />
-            <div className="landing-stagger mt-8 grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+            <div className="landing-stagger mt-8 grid grid-cols-2 gap-3 sm:gap-5 lg:grid-cols-3">
               {choiceCards.map(([title, text, Icon]) => (
-                <Card key={title as string} className="landing-reveal group relative min-h-[220px] overflow-hidden p-6 active:border-[#E3B117]/35 hover:-translate-y-1 hover:border-[#E3B117]/40 sm:p-7">
+                <Card key={title as string} className="landing-reveal group relative min-h-[210px] overflow-hidden p-4 active:border-[#E3B117]/35 hover:-translate-y-1 hover:border-[#E3B117]/40 sm:min-h-[220px] sm:p-7">
                   <span className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-[#E3B117]/0 blur-3xl transition duration-500 group-hover:bg-[#E3B117]/12" />
-                  <span className="relative grid h-13 w-13 place-items-center rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542] shadow-[0_0_30px_rgba(227,177,23,.08)] transition group-hover:border-[#E3B117]/55 group-hover:bg-[#E3B117]/15"><Icon className="h-6 w-6" /></span>
-                  <h3 className="relative mt-5 text-xl font-black">{title as string}</h3>
-                  <p className="relative mt-3 max-w-sm text-[15px] leading-7 text-zinc-400">{text as string}</p>
+                  <span className="relative grid h-11 w-11 place-items-center rounded-xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542] shadow-[0_0_30px_rgba(227,177,23,.08)] transition group-hover:border-[#E3B117]/55 group-hover:bg-[#E3B117]/15 sm:h-13 sm:w-13 sm:rounded-2xl"><Icon className="h-5 w-5 sm:h-6 sm:w-6" /></span>
+                  <h3 className="relative mt-4 text-[15px] font-black leading-5 sm:mt-5 sm:text-xl">{title as string}</h3>
+                  <p className="relative mt-2 max-w-sm text-xs leading-5 text-zinc-400 sm:mt-3 sm:text-[15px] sm:leading-7">{text as string}</p>
                 </Card>
               ))}
             </div>
@@ -1601,6 +1605,8 @@ export default function LandingPage() {
                   <a href="#tarifs" className="block hover:text-[#F5C542]">Tarifs</a>
                   <a href="#contact" className="block hover:text-[#F5C542]">Session de cadrage</a>
                   <a href="#faq" className="block hover:text-[#F5C542]">Foire aux questions</a>
+                  <Link to="/login" className="block hover:text-[#F5C542] lg:hidden">Connexion</Link>
+                  <a href={quickCadrageUrl} target="_blank" rel="noreferrer" className="block hover:text-[#F5C542] lg:hidden">Réserver une session</a>
                 </div>
               </div>
               <div>
