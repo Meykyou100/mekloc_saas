@@ -459,7 +459,7 @@ export default function DemandeAccesPage() {
             </div>
           </aside>
 
-          <form className="min-w-0 rounded-3xl border border-white/10 bg-zinc-950/80 shadow-[0_0_80px_rgba(0,0,0,0.45)] backdrop-blur-xl" onSubmit={handleSubmit}>
+          <form className="min-w-0 rounded-3xl border border-white/10 bg-zinc-950/80 pb-32 shadow-[0_0_80px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:pb-0" onSubmit={handleSubmit}>
             <div className="border-b border-white/10 p-5 sm:p-7 md:p-8">
               <h2 className="text-xl font-black">2. Informations de l’agence</h2>
 
@@ -618,17 +618,21 @@ export default function DemandeAccesPage() {
               </label>
             </div>
 
-            <div className="sticky bottom-0 z-30 border-t border-white/10 bg-[#0b0c0e] px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-18px_45px_rgba(0,0,0,.55)] sm:static sm:border-t-0 sm:bg-transparent sm:px-7 sm:pb-7 sm:pt-0 sm:shadow-none md:px-8 md:pb-8">
+            <div className="sticky bottom-0 z-40 border-t border-[#E3B117]/20 bg-[#090a0b] px-4 pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-18px_45px_rgba(0,0,0,.72)] sm:static sm:border-t-0 sm:bg-transparent sm:px-7 sm:pb-7 sm:pt-0 sm:shadow-none md:px-8 md:pb-8">
               <Button
                 type="submit"
-                className="h-14 w-full rounded-2xl bg-[#E3B117] text-base font-black text-[#070807] shadow-[0_18px_50px_rgba(227,177,23,.18)] hover:bg-[#F5C542]"
+                className="h-14 w-full rounded-2xl !border-[#f2cd59] !bg-[#E3B117] text-base font-black !text-[#070807] shadow-[0_14px_38px_rgba(227,177,23,.28)] hover:!bg-[#F5C542] active:scale-[0.99] disabled:!cursor-wait disabled:!opacity-100"
                 loading={isSubmitting}
-                disabled={emailVerificationStatus !== 'verified' || verifiedEmail !== email}
                 icon={<Send className="h-5 w-5" />}
               >
                 Envoyer la demande d’accès
               </Button>
-              <p className="mt-4 flex items-center justify-center gap-2 text-center text-xs text-zinc-500">
+              {emailVerificationStatus !== 'verified' || verifiedEmail !== email ? (
+                <p className="mt-2 text-center text-xs font-semibold text-[#e7c65a]">
+                  Vérifiez votre email avant l’envoi final.
+                </p>
+              ) : null}
+              <p className="mt-2 flex items-center justify-center gap-2 text-center text-xs text-zinc-500 sm:mt-4">
                 <LockKeyhole className="h-4 w-4" />
                 Vos données sont sécurisées et ne seront jamais partagées.
               </p>
