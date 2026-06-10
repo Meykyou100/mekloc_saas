@@ -862,7 +862,7 @@ export default function ReservationsPage() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 18, scale: 0.985 }}
               transition={{ duration: 0.24, ease: 'easeOut' }}
-              className="relative flex h-[100dvh] max-h-[100dvh] w-full max-w-7xl flex-col overflow-hidden rounded-none border border-[var(--app-border)] bg-[var(--app-modal)] shadow-[0_26px_80px_rgba(0,0,0,.55)] sm:h-full sm:max-h-none sm:rounded-[1.35rem] lg:h-[92dvh] lg:max-h-[920px]"
+              className="relative flex h-[100svh] max-h-[100svh] w-full max-w-7xl flex-col overflow-hidden rounded-none border border-[var(--app-border)] bg-[var(--app-modal)] shadow-[0_26px_80px_rgba(0,0,0,.55)] sm:h-full sm:max-h-none sm:rounded-[1.35rem] lg:h-[92dvh] lg:max-h-[920px]"
             >
               <div className="shrink-0 border-b border-[var(--app-border)] bg-[var(--app-modal)]/95 px-4 py-2.5 backdrop-blur sm:px-6 sm:py-3">
                 <div className="flex items-center justify-between gap-4">
@@ -908,7 +908,7 @@ export default function ReservationsPage() {
                     </div>
                   </div>
 
-                  <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 pb-24 sm:px-6 sm:py-5 sm:pb-28">
+                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-3 pb-[calc(7.5rem+env(safe-area-inset-bottom))] sm:px-6 sm:py-5 sm:pb-28">
                     {reservationStep === 0 ? (
                       <section className="space-y-3 sm:space-y-4">
                         <div className="flex items-end justify-between gap-3">
@@ -1250,9 +1250,9 @@ export default function ReservationsPage() {
                     ) : null}
                   </div>
 
-                  <div className="sticky bottom-0 grid grid-cols-2 gap-2.5 border-t border-[var(--app-border)] bg-[var(--app-modal)]/95 px-3 py-2.5 pb-[calc(env(safe-area-inset-bottom)+10px)] backdrop-blur sm:flex sm:items-center sm:justify-end sm:px-6 sm:py-3 sm:pb-3">
+                  <div className="fixed inset-x-0 bottom-0 z-30 grid w-full max-w-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2.5 border-t border-[var(--app-border)] bg-[var(--app-modal)]/95 px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-14px_36px_rgba(0,0,0,.24)] backdrop-blur sm:static sm:z-auto sm:flex sm:shrink-0 sm:items-center sm:justify-end sm:px-6 sm:py-3 sm:shadow-none">
                     <button
-                      className="focus-ring h-11 min-w-0 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 text-sm font-semibold text-[var(--app-text-soft)] transition hover:bg-[var(--app-surface-soft)] disabled:cursor-not-allowed disabled:opacity-40 sm:h-10"
+                      className="focus-ring h-11 w-full min-w-0 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 text-sm font-semibold text-[var(--app-text-soft)] transition hover:bg-[var(--app-surface-soft)] disabled:cursor-not-allowed disabled:opacity-40 sm:h-10 sm:w-auto sm:px-4"
                       disabled={reservationStep === 0 || saving}
                       type="button"
                       onClick={() => setReservationStep((step) => Math.max(0, step - 1))}
@@ -1261,7 +1261,7 @@ export default function ReservationsPage() {
                     </button>
                     {reservationStep < reservationSteps.length - 1 ? (
                       <button
-                        className="focus-ring h-11 min-w-0 rounded-xl bg-[#D4A017] px-4 text-sm font-bold text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.14)] transition hover:-translate-y-0.5 hover:bg-[#E8B923] disabled:cursor-not-allowed disabled:opacity-50 sm:h-10"
+                        className="focus-ring h-11 w-full min-w-0 rounded-xl bg-[#D4A017] px-3 text-sm font-bold text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.14)] transition hover:-translate-y-0.5 hover:bg-[#E8B923] disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:w-auto sm:px-4"
                         type="button"
                         disabled={saving}
                         onClick={() => {
@@ -1273,7 +1273,7 @@ export default function ReservationsPage() {
                       </button>
                     ) : (
                       <button
-                        className="focus-ring h-11 min-w-0 rounded-xl bg-[#D4A017] px-3 text-sm font-bold text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.14)] transition hover:-translate-y-0.5 hover:bg-[#E8B923] disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:px-4"
+                        className="focus-ring h-11 w-full min-w-0 rounded-xl bg-[#D4A017] px-3 text-sm font-bold text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.14)] transition hover:-translate-y-0.5 hover:bg-[#E8B923] disabled:cursor-not-allowed disabled:opacity-50 sm:h-10 sm:w-auto sm:px-4"
                         type="submit"
                         disabled={saving}
                       >
