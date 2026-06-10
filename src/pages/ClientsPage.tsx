@@ -3,9 +3,11 @@ import {
   BadgeCheck,
   CalendarClock,
   Camera,
+  Download,
   Edit3,
   Eye,
   FileImage,
+  FileText,
   Mail,
   MapPin,
   MoreVertical,
@@ -32,6 +34,12 @@ import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
 import { formatMAD, type Client } from '../data/mockData';
 import { getClientPaymentBalance } from '../lib/paymentBalance';
+import {
+  getClientDocumentDownload,
+  getClientDocumentKind,
+  resolveClientDocumentUrl,
+  type ClientDocumentKind,
+} from '../lib/clientDocuments';
 import { normalizeText, safeStoragePath, sanitizeText, validateEmail, validateFileUpload, validatePhone } from '../lib/security';
 import { storageBuckets, supabase } from '../lib/supabase';
 
@@ -113,9 +121,11 @@ export default function ClientsPage() {
   const [cameraError, setCameraError] = useState('');
   const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
   const [cameraLoading, setCameraLoading] = useState(false);
+  const [documentAction, setDocumentAction] = useState<'front-view' | 'front-download' | 'back-view' | 'back-download' | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const documentResolveRef = useRef(0);
 
   const clientUsage = useMemo(() => {
     return clients.reduce<Record<string, { reservations: number; spent: number; paid: number; remaining: number }>>((acc, client) => {
@@ -244,21 +254,98 @@ export default function ClientsPage() {
   }
 
   function openEditClient(client: Client) {
+    const resolveId = documentResolveRef.current + 1;
+    documentResolveRef.current = resolveId;
     setEditingClient(client);
     setFormState(buildInitialForm(client));
     setFormErrors({});
     setFrontFile(null);
     setBackFile(null);
-    setFrontPreview(client.idCardFrontUrl || null);
-    setBackPreview(client.idCardBackUrl || null);
+    setFrontPreview(null);
+    setBackPreview(null);
     setFrontRemoved(false);
     setBackRemoved(false);
     setModalOpen(true);
+
+    void Promise.all([
+      resolveClientDocumentUrl(client.idCardFrontUrl),
+      resolveClientDocumentUrl(client.idCardBackUrl),
+    ]).then(([frontUrl, backUrl]) => {
+      if (documentResolveRef.current !== resolveId) return;
+      setFrontPreview(frontUrl);
+      setBackPreview(backUrl);
+    });
   }
 
   function closeModal() {
     if (saving) return;
+    documentResolveRef.current += 1;
     setModalOpen(false);
+  }
+
+  async function viewDocument(side: 'front' | 'back') {
+    const previewUrl = side === 'front' ? frontPreview : backPreview;
+    const storedUrl = side === 'front' ? editingClient?.idCardFrontUrl : editingClient?.idCardBackUrl;
+    const action = `${side}-view` as const;
+    const openedWindow = window.open('about:blank', '_blank');
+    if (openedWindow) openedWindow.opener = null;
+    setDocumentAction(action);
+
+    try {
+      const resolvedUrl = previewUrl || await resolveClientDocumentUrl(storedUrl);
+      if (!resolvedUrl) throw new Error('Document indisponible.');
+      if (openedWindow) {
+        openedWindow.location.href = resolvedUrl;
+      } else {
+        window.open(resolvedUrl, '_blank', 'noopener,noreferrer');
+      }
+    } catch (error) {
+      openedWindow?.close();
+      notify({
+        title: 'Ouverture impossible',
+        message: error instanceof Error ? error.message : 'Réessayez dans un instant.',
+        type: 'warning',
+      });
+    } finally {
+      setDocumentAction(null);
+    }
+  }
+
+  async function downloadDocument(side: 'front' | 'back') {
+    const file = side === 'front' ? frontFile : backFile;
+    const storedUrl = side === 'front' ? editingClient?.idCardFrontUrl : editingClient?.idCardBackUrl;
+    const action = `${side}-download` as const;
+    setDocumentAction(action);
+
+    try {
+      let blob: Blob;
+      let filename: string;
+      if (file) {
+        blob = file;
+        filename = file.name || `piece-identite-${side}.jpg`;
+      } else if (storedUrl) {
+        ({ blob, filename } = await getClientDocumentDownload(storedUrl));
+      } else {
+        throw new Error('Document indisponible.');
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = filename || `piece-identite-${side}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch (error) {
+      notify({
+        title: 'Téléchargement impossible',
+        message: error instanceof Error ? error.message : 'Réessayez dans un instant.',
+        type: 'warning',
+      });
+    } finally {
+      setDocumentAction(null);
+    }
   }
 
   function validateClientForm(values: ClientFormState): ClientFormErrors {
@@ -1134,8 +1221,14 @@ export default function ClientsPage() {
               <DocumentUploadBox
                 title="Pièce d’identité recto"
                 previewUrl={frontPreview}
+                documentSource={frontFile?.name || (frontRemoved ? null : editingClient?.idCardFrontUrl)}
+                mimeType={frontFile?.type}
                 onPick={(event) => onPickDocument(event, 'front')}
                 onCapture={() => openCamera('front')}
+                onView={() => viewDocument('front')}
+                onDownload={() => downloadDocument('front')}
+                viewLoading={documentAction === 'front-view'}
+                downloadLoading={documentAction === 'front-download'}
                 onRemove={() => {
                   setFrontFile(null);
                   setFrontPreview(null);
@@ -1145,8 +1238,14 @@ export default function ClientsPage() {
               <DocumentUploadBox
                 title="Pièce d’identité verso"
                 previewUrl={backPreview}
+                documentSource={backFile?.name || (backRemoved ? null : editingClient?.idCardBackUrl)}
+                mimeType={backFile?.type}
                 onPick={(event) => onPickDocument(event, 'back')}
                 onCapture={() => openCamera('back')}
+                onView={() => viewDocument('back')}
+                onDownload={() => downloadDocument('back')}
+                viewLoading={documentAction === 'back-view'}
+                downloadLoading={documentAction === 'back-download'}
                 onRemove={() => {
                   setBackFile(null);
                   setBackPreview(null);
@@ -1154,7 +1253,7 @@ export default function ClientsPage() {
                 }}
               />
             </div>
-            {!frontPreview || !backPreview ? (
+            {!(frontPreview || (!frontRemoved && editingClient?.idCardFrontUrl)) || !(backPreview || (!backRemoved && editingClient?.idCardBackUrl)) ? (
               <p className="text-xs text-amber-700 dark:text-amber-200/90">Documents manquants: vous pouvez compléter recto/verso plus tard.</p>
             ) : null}
           </section>
@@ -1248,20 +1347,70 @@ function InputField({ label, value, onChange, required, type = 'text', error }: 
 type DocumentUploadBoxProps = {
   title: string;
   previewUrl: string | null;
+  documentSource?: string | null;
+  mimeType?: string;
   onPick: (event: ChangeEvent<HTMLInputElement>) => void;
   onCapture: () => void;
+  onView: () => void;
+  onDownload: () => void;
   onRemove: () => void;
+  viewLoading?: boolean;
+  downloadLoading?: boolean;
 };
 
-function DocumentUploadBox({ title, previewUrl, onPick, onCapture, onRemove }: DocumentUploadBoxProps) {
+function DocumentUploadBox({
+  title,
+  previewUrl,
+  documentSource,
+  mimeType,
+  onPick,
+  onCapture,
+  onView,
+  onDownload,
+  onRemove,
+  viewLoading,
+  downloadLoading,
+}: DocumentUploadBoxProps) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageBroken, setImageBroken] = useState(false);
+  const hasDocument = Boolean(previewUrl || documentSource);
+  const documentKind = getClientDocumentKind(documentSource || previewUrl, mimeType);
+  const showImage = hasDocument && documentKind === 'image' && Boolean(previewUrl) && !imageBroken;
+
+  useEffect(() => {
+    setImageLoaded(false);
+    setImageBroken(false);
+  }, [previewUrl]);
+
   return (
-    <div className="rounded-3xl border border-gold-300/15 bg-[var(--app-surface-soft)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.035)]">
+    <div className="min-w-0 rounded-3xl border border-gold-300/15 bg-[var(--app-surface-soft)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,.035)]">
       <p className="mb-1 text-sm font-black text-[var(--app-text)]">{title}</p>
       <p className="mb-3 text-xs text-[var(--app-text-muted)]">Importez une image nette ou prenez une photo.</p>
-      {previewUrl ? (
+      {hasDocument ? (
         <div className="space-y-3">
-          <img src={previewUrl} alt={title} loading="lazy" decoding="async" className="aspect-[16/10] w-full rounded-2xl border border-[var(--app-border)] object-cover" />
+          <div className="relative aspect-[16/10] w-full overflow-hidden rounded-2xl border border-[var(--app-border)] bg-black/20">
+            {showImage ? (
+              <img
+                src={previewUrl || ''}
+                alt={title}
+                loading="lazy"
+                decoding="async"
+                onLoad={() => setImageLoaded(true)}
+                onError={() => setImageBroken(true)}
+                className={`absolute inset-0 h-full w-full object-contain transition-opacity ${imageLoaded ? 'opacity-100' : 'opacity-0'}`}
+              />
+            ) : null}
+            {!showImage || !imageLoaded ? (
+              <DocumentPlaceholder kind={documentKind} available />
+            ) : null}
+          </div>
           <div className="grid grid-cols-2 gap-2">
+            <Button type="button" variant="secondary" className="h-10 min-w-0 rounded-xl px-2 text-xs" icon={<Eye className="h-3.5 w-3.5" />} loading={viewLoading} onClick={onView}>
+              Voir
+            </Button>
+            <Button type="button" variant="secondary" className="h-10 min-w-0 rounded-xl border-gold-300/30 px-2 text-xs text-[var(--app-gold-text)]" icon={<Download className="h-3.5 w-3.5" />} loading={downloadLoading} onClick={onDownload}>
+              Télécharger
+            </Button>
             <label className="focus-ring inline-flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 text-xs font-semibold text-[var(--app-text)] transition hover:bg-[var(--app-surface-soft)]">
               <Upload className="h-3.5 w-3.5" />
               Importer
@@ -1275,7 +1424,7 @@ function DocumentUploadBox({ title, previewUrl, onPick, onCapture, onRemove }: D
               <Camera className="h-3.5 w-3.5" />
               Photo
             </button>
-            <Button type="button" variant="danger" className="col-span-2 h-11 rounded-xl px-3 text-xs" icon={<X className="h-3.5 w-3.5" />} onClick={onRemove}>
+            <Button type="button" variant="danger" className="col-span-2 h-10 rounded-xl px-3 text-xs" icon={<X className="h-3.5 w-3.5" />} onClick={onRemove}>
               Retirer
             </Button>
           </div>
@@ -1283,10 +1432,9 @@ function DocumentUploadBox({ title, previewUrl, onPick, onCapture, onRemove }: D
       ) : (
         <div className="space-y-2">
           <label className="focus-ring flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-gold-300/30 bg-[var(--app-surface-soft)] px-4 py-6 text-center transition hover:border-[#D4A017]/70 hover:bg-[#D4A017]/8">
-            <span className="grid h-11 w-11 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-[var(--app-gold-text)]">
-              <FileImage className="h-5 w-5" />
-            </span>
-            <span className="text-sm font-semibold text-[var(--app-text)]">Importer une image</span>
+            <DocumentPlaceholder kind="image" />
+            <span className="text-sm font-semibold text-[var(--app-text)]">Aucun document</span>
+            <span className="text-xs font-semibold text-[var(--app-gold-text)]">Importer une image</span>
             <span className="text-xs text-[var(--app-text-muted)]">PNG, JPG ou WEBP · Max 5MB</span>
             <input type="file" className="hidden" accept="image/png,image/jpeg,image/jpg,image/webp" onChange={onPick} />
           </label>
@@ -1303,6 +1451,27 @@ function DocumentUploadBox({ title, previewUrl, onPick, onCapture, onRemove }: D
       <div className="mt-2 flex items-center gap-2 text-xs text-[var(--app-text-muted)]">
         <ShieldCheck className="h-3.5 w-3.5" />
         Document visible uniquement dans votre agence
+      </div>
+    </div>
+  );
+}
+
+function DocumentPlaceholder({ kind, available = false }: { kind: ClientDocumentKind; available?: boolean }) {
+  const Icon = kind === 'image' ? FileImage : FileText;
+  return (
+    <div className="grid h-full w-full place-items-center px-4 text-center">
+      <div>
+        <span className="mx-auto grid h-11 w-11 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-[var(--app-gold-text)]">
+          <Icon className="h-5 w-5" />
+        </span>
+        {available ? (
+          <>
+            <p className="mt-3 text-sm font-bold text-[var(--app-text)]">Document disponible</p>
+            <p className="mt-1 text-xs text-[var(--app-text-muted)]">
+              {kind === 'pdf' ? 'Fichier PDF' : kind === 'image' ? 'Aperçu en cours de chargement' : 'Fichier joint'}
+            </p>
+          </>
+        ) : null}
       </div>
     </div>
   );
