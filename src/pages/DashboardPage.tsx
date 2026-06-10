@@ -41,6 +41,10 @@ const actionItems = [
   { label: 'Créer contrat', to: '/contracts', icon: FileSignature },
 ];
 
+const secondaryPriorityActionClass = 'inline-flex min-h-9 items-center justify-center gap-1 rounded-xl border border-[var(--app-border)] bg-[var(--app-card)] px-3 py-2 text-xs font-bold text-[var(--app-text-soft)] transition hover:bg-[var(--app-surface-soft)]';
+const primaryPriorityActionClass = 'inline-flex min-h-9 items-center justify-center rounded-xl border border-gold-300/40 bg-[var(--app-gold-soft)] px-3 py-2 text-xs font-bold text-[var(--app-gold-text)] transition hover:bg-gold-500/20';
+const disabledPriorityActionClass = 'inline-flex min-h-9 cursor-not-allowed items-center justify-center rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 py-2 text-xs font-bold text-[var(--app-text-muted)]';
+
 function KpiCard({
   label,
   value,
@@ -55,24 +59,24 @@ function KpiCard({
   tone?: 'gold' | 'blue' | 'green' | 'violet';
 }) {
   const toneClasses = {
-    gold: 'border-gold-300/25 bg-gold-500/10 text-gold-100 shadow-[0_0_28px_rgba(227,177,23,0.08)]',
-    blue: 'border-sky-300/20 bg-sky-500/10 text-sky-100',
-    green: 'border-emerald-300/20 bg-emerald-500/10 text-emerald-100',
-    violet: 'border-violet-300/20 bg-violet-500/10 text-violet-100',
+    gold: 'border-gold-400/30 bg-gold-500/10 text-amber-700 shadow-[0_0_28px_rgba(227,177,23,0.08)] dark:text-gold-100',
+    blue: 'border-sky-400/25 bg-sky-500/10 text-sky-700 dark:text-sky-100',
+    green: 'border-emerald-400/25 bg-emerald-500/10 text-emerald-700 dark:text-emerald-100',
+    violet: 'border-violet-400/25 bg-violet-500/10 text-violet-700 dark:text-violet-100',
   };
 
   return (
     <Card className="group flex min-h-[104px] flex-col justify-between rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-3 transition hover:border-gold-300/25 hover:shadow-[0_18px_50px_rgba(0,0,0,0.20)] sm:min-h-[124px] sm:p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="truncate text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-[var(--app-text-muted)] sm:text-[11px]">{label}</p>
+          <p className="truncate text-[11px] font-black uppercase leading-4 tracking-[0.1em] text-[var(--app-text-muted)] sm:tracking-[0.12em]">{label}</p>
           <p className="mt-2 truncate text-[1.35rem] font-black leading-none tracking-tight text-[var(--app-text)] sm:text-2xl">{value}</p>
         </div>
         <div className={`rounded-xl border p-2 sm:rounded-2xl sm:p-2.5 ${toneClasses[tone]}`}>
           <Icon className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
         </div>
       </div>
-      <p className="mt-2 line-clamp-1 text-[11px] text-[var(--app-text-muted)] sm:text-xs">{helper}</p>
+      <p className="mt-2 line-clamp-1 text-xs font-medium text-[var(--app-text-muted)]">{helper}</p>
     </Card>
   );
 }
@@ -89,12 +93,12 @@ function ActivityRow({
   tone?: 'neutral' | 'warning';
 }) {
   return (
-    <div className="premium-surface flex items-center justify-between gap-4 rounded-2xl px-4 py-3.5">
-      <div className="flex items-center gap-3">
+    <div className="premium-surface flex min-w-0 items-center justify-between gap-3 rounded-2xl px-3 py-3 sm:px-4 sm:py-3.5">
+      <div className="flex min-w-0 items-center gap-3">
         <div className={`rounded-xl p-2 ${tone === 'warning' ? 'bg-[var(--app-gold-soft)] text-[var(--app-gold-text)]' : 'bg-[var(--app-surface-soft)] text-[var(--app-text-soft)]'}`}>
           <Icon className="h-4 w-4" />
         </div>
-        <span className="text-sm font-medium text-[var(--app-text-soft)]">{label}</span>
+        <span className="text-sm font-semibold text-[var(--app-text-soft)]">{label}</span>
       </div>
       <strong className="text-lg font-semibold text-[var(--app-text)]">{value}</strong>
     </div>
@@ -131,10 +135,10 @@ function PriorityCard({
 }
 
 function PriorityBadge({ priority }: { priority: AssistantPriority }) {
-  if (priority === 'urgent') return <span className="rounded-full border border-rose-300/25 bg-rose-500/10 px-2.5 py-1 text-[11px] font-semibold text-rose-300 light:text-rose-700">Urgent</span>;
+  if (priority === 'urgent') return <span className="rounded-full border border-rose-400/30 bg-rose-500/10 px-2.5 py-1 text-[11px] font-semibold text-rose-700 dark:text-rose-200">Urgent</span>;
   if (priority === 'today') return <span className="rounded-full border border-gold-300/20 bg-[var(--app-gold-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--app-gold-text)]">Aujourd’hui</span>;
-  if (priority === 'missing') return <span className="rounded-full border border-orange-300/25 bg-orange-500/10 px-2.5 py-1 text-[11px] font-semibold text-orange-300 light:text-orange-700">À suivre</span>;
-  return <span className="rounded-full border border-[var(--app-border)] bg-white/[0.04] px-2.5 py-1 text-[11px] font-semibold text-[var(--app-text-soft)]">À surveiller</span>;
+  if (priority === 'missing') return <span className="rounded-full border border-orange-400/30 bg-orange-500/10 px-2.5 py-1 text-[11px] font-semibold text-orange-700 dark:text-orange-200">À suivre</span>;
+  return <span className="rounded-full border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-2.5 py-1 text-[11px] font-semibold text-[var(--app-text-soft)]">À surveiller</span>;
 }
 
 function QuickActionsCard() {
@@ -154,7 +158,7 @@ function QuickActionsCard() {
           <Link
             key={label}
             to={to}
-            className={`focus-ring flex min-h-11 items-center justify-between rounded-2xl border px-3 py-2.5 text-xs font-black transition ${
+            className={`focus-ring flex h-11 min-w-0 items-center justify-between rounded-2xl border px-3 text-[13px] font-black transition ${
               index === 0
                 ? 'border-[#E8B923]/70 bg-[#D4A017] text-carbon-950 shadow-[0_14px_30px_rgba(212,160,23,.18)] hover:bg-[#E8B923]'
                 : 'border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] hover:border-gold-300/25 hover:bg-[var(--app-gold-soft)]'
@@ -246,7 +250,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="space-y-4 pb-[calc(108px+env(safe-area-inset-bottom))] md:space-y-6 md:pb-0">
+    <div className="min-w-0 space-y-4 overflow-x-clip pb-[calc(124px+env(safe-area-inset-bottom))] md:space-y-6 md:overflow-visible md:pb-0">
       <header className="flex flex-col gap-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_14px_34px_rgba(0,0,0,.22)] md:flex-row md:items-end md:justify-between md:rounded-none md:border-0 md:bg-none md:p-0 md:shadow-none">
         <div>
           <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--app-gold-text)] md:text-xs md:tracking-[0.34em]">Espace agence</p>
@@ -257,7 +261,7 @@ export default function DashboardPage() {
             Vue claire des locations du jour, du parc disponible, des paiements et des actions prioritaires.
           </p>
         </div>
-        <div className="hidden w-fit rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-2 text-sm font-semibold text-[var(--app-text-soft)] shadow-[0_14px_40px_rgba(0,0,0,0.22)] light:text-carbon-700 md:block">
+        <div className="hidden w-fit rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-2 text-sm font-semibold text-[var(--app-text-soft)] shadow-[0_14px_40px_rgba(0,0,0,0.22)] md:block">
           {new Date().toLocaleDateString('fr-MA', { day: '2-digit', month: 'long', year: 'numeric' })}
         </div>
       </header>
@@ -277,7 +281,7 @@ export default function DashboardPage() {
             <p className="mt-1 text-xs text-[var(--app-text-muted)] sm:text-sm">Les urgences opérationnelles à traiter en premier.</p>
           </div>
           {prioritiesAreClear ? (
-            <span className="rounded-full border border-emerald-300/25 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-300 light:text-emerald-700">
+            <span className="rounded-full border border-emerald-400/30 bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-200">
               Tout est à jour
             </span>
           ) : null}
@@ -319,24 +323,24 @@ export default function DashboardPage() {
                           {reservation.pickupLocation || 'Lieu à confirmer'} · {reservation.pickupDate}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <Link to="/reservations" className="rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
+                          <Link to="/reservations" className={secondaryPriorityActionClass}>
                             Voir réservation
                           </Link>
                           {!contractExists ? (
-                            <Link to="/contracts" className="rounded-xl border border-gold-300/40 bg-[var(--app-gold-soft)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-gold-text)] hover:bg-gold-500/20">
+                            <Link to="/contracts" className={primaryPriorityActionClass}>
                               Générer contrat
                             </Link>
                           ) : null}
                           {!notificationPreferences.reservationConfirmation ? (
-                            <button type="button" disabled className="cursor-not-allowed rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-muted)]">
+                            <button type="button" disabled className={disabledPriorityActionClass}>
                               WhatsApp désactivé
                             </button>
                           ) : whatsappUrl ? (
-                            <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
+                            <a href={whatsappUrl} target="_blank" rel="noreferrer" className={secondaryPriorityActionClass}>
                               <MessageCircle className="h-3.5 w-3.5" /> Envoyer WhatsApp
                             </a>
                           ) : (
-                            <button type="button" disabled className="cursor-not-allowed rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-muted)]">
+                            <button type="button" disabled className={disabledPriorityActionClass}>
                               Téléphone manquant
                             </button>
                           )}
@@ -375,23 +379,23 @@ export default function DashboardPage() {
                           <button
                             type="button"
                             onClick={() => void markReservationCompleted(reservation.id)}
-                            className="rounded-xl border border-gold-300/40 bg-[var(--app-gold-soft)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-gold-text)] hover:bg-gold-500/20"
+                            className={primaryPriorityActionClass}
                           >
                             Marquer terminée
                           </button>
-                          <Link to="/reservations" className="rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
+                          <Link to="/reservations" className={secondaryPriorityActionClass}>
                             Voir détails
                           </Link>
                           {!notificationPreferences.returnReminder ? (
-                            <button type="button" disabled className="cursor-not-allowed rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-muted)]">
+                            <button type="button" disabled className={disabledPriorityActionClass}>
                               WhatsApp désactivé
                             </button>
                           ) : whatsappUrl ? (
-                            <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
+                            <a href={whatsappUrl} target="_blank" rel="noreferrer" className={secondaryPriorityActionClass}>
                               <MessageCircle className="h-3.5 w-3.5" /> Envoyer WhatsApp
                             </a>
                           ) : (
-                            <button type="button" disabled className="cursor-not-allowed rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-muted)]">
+                            <button type="button" disabled className={disabledPriorityActionClass}>
                               Téléphone manquant
                             </button>
                           )}
@@ -414,9 +418,9 @@ export default function DashboardPage() {
                   {overdueReservations.slice(0, 1).map((reservation) => (
                     <div key={`overdue-${reservation.id}`} className="rounded-2xl border border-rose-300/25 bg-rose-500/10 p-3">
                       <p className="text-sm font-semibold text-[var(--app-text)]">{reservation.client} · {reservation.vehicle}</p>
-                      <p className="mt-1 text-xs text-rose-200 light:text-rose-700">Retour en retard depuis le {reservation.returnDate}</p>
+                      <p className="mt-1 text-sm font-medium text-rose-700 dark:text-rose-200">Retour en retard depuis le {reservation.returnDate}</p>
                       <div className="mt-3">
-                        <Link to="/reservations" className="inline-flex items-center gap-1 rounded-xl border border-rose-200/30 px-2.5 py-1.5 text-[11px] font-bold text-rose-200 hover:bg-rose-500/10 light:text-rose-700">
+                        <Link to="/reservations" className="inline-flex min-h-9 items-center justify-center gap-1 rounded-xl border border-rose-400/35 bg-rose-500/5 px-3 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-500/10 dark:text-rose-200">
                           <AlertTriangle className="h-3.5 w-3.5" /> Voir réservation
                         </Link>
                       </div>
@@ -449,19 +453,19 @@ export default function DashboardPage() {
                           Reste à payer: {formatMAD(item.remaining)} {item.cautionMissing ? '· Caution manquante' : ''}
                         </p>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <Link to="/payments" className="rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
+                          <Link to="/payments" className={secondaryPriorityActionClass}>
                             Ajouter paiement
                           </Link>
                           {!notificationPreferences.paymentReminder ? (
-                            <button type="button" disabled className="cursor-not-allowed rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-muted)]">
+                            <button type="button" disabled className={disabledPriorityActionClass}>
                               WhatsApp désactivé
                             </button>
                           ) : whatsappUrl ? (
-                            <a href={whatsappUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-soft)] hover:bg-white/[0.07]">
+                            <a href={whatsappUrl} target="_blank" rel="noreferrer" className={secondaryPriorityActionClass}>
                               <MessageCircle className="h-3.5 w-3.5" /> Envoyer WhatsApp
                             </a>
                           ) : (
-                            <button type="button" disabled className="cursor-not-allowed rounded-xl border border-[var(--app-border)] px-2.5 py-1.5 text-[11px] font-bold text-[var(--app-text-muted)]">
+                            <button type="button" disabled className={disabledPriorityActionClass}>
                               Téléphone manquant
                             </button>
                           )}
@@ -489,10 +493,10 @@ export default function DashboardPage() {
       </section>
 
       <section>
-        <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 sm:rounded-3xl sm:p-6">
-          <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-3.5 sm:rounded-3xl sm:p-6">
+          <div className="mb-4 flex flex-col gap-2 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-xl font-semibold tracking-tight text-[var(--app-text)]">Activité du jour</h2>
+              <h2 className="text-lg font-bold tracking-tight text-[var(--app-text)] sm:text-xl sm:font-semibold">Activité du jour</h2>
               <p className="mt-1 text-sm text-[var(--app-text-muted)]">Actions opérationnelles à suivre aujourd’hui.</p>
             </div>
             <span className="text-sm font-medium text-[var(--app-text-muted)]">
@@ -565,15 +569,15 @@ export default function DashboardPage() {
       </section>
 
       <section className="grid items-start gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)]">
-          <div className="flex items-center justify-between border-b border-[var(--app-border)] p-5 sm:p-6">
+        <Card className="min-w-0 overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)]">
+          <div className="flex items-center justify-between border-b border-[var(--app-border)] p-4 sm:p-6">
             <div>
-              <h2 className="text-xl font-semibold tracking-tight text-[var(--app-text)]">Réservations récentes</h2>
+              <h2 className="text-lg font-bold tracking-tight text-[var(--app-text)] sm:text-xl sm:font-semibold">Réservations récentes</h2>
               <p className="mt-1 text-sm text-[var(--app-text-muted)]">Dernières réservations et mouvements de flotte.</p>
             </div>
             <Link
               to="/reservations"
-              className="focus-ring hidden min-h-10 items-center justify-center rounded-xl border border-[var(--app-border)] bg-white/10 px-4 py-2 text-sm font-semibold text-[var(--app-text)] transition hover:bg-white/15 light:border-carbon-950/10 light:bg-carbon-950/5 light:text-carbon-950 sm:inline-flex"
+              className="focus-ring hidden min-h-10 items-center justify-center rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 py-2 text-sm font-semibold text-[var(--app-text)] transition hover:border-gold-300/25 hover:bg-[var(--app-gold-soft)] sm:inline-flex"
             >
               Voir tout
             </Link>
@@ -582,16 +586,16 @@ export default function DashboardPage() {
             {reservations.slice(0, 5).length === 0 ? (
               <MobileEmptyBlock icon={CalendarClock} title="Aucune réservation" message="Créez une réservation pour voir l’activité récente." />
             ) : reservations.slice(0, 5).map((reservation) => (
-              <div key={reservation.id} className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
+              <div key={reservation.id} className="min-w-0 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3.5">
                 <div className="flex items-start justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--app-gold-text)]">{reservation.id}</p>
-                    <p className="mt-1 font-semibold text-[var(--app-text)]">{reservation.client}</p>
+                    <p className="mt-1 truncate text-sm font-bold text-[var(--app-text)]">{reservation.client}</p>
                   </div>
                   <Badge>{reservation.status}</Badge>
                 </div>
-                <p className="mt-2 text-sm text-[var(--app-text-soft)]">{reservation.vehicle}</p>
-                <p className="mt-2 text-xs text-[var(--app-text-muted)]">{reservation.pickupDate} → {reservation.returnDate}</p>
+                <p className="mt-2 truncate text-sm font-medium text-[var(--app-text-soft)]">{reservation.vehicle}</p>
+                <p className="mt-2 text-sm text-[var(--app-text-muted)]">{reservation.pickupDate} → {reservation.returnDate}</p>
               </div>
             ))}
           </div>
@@ -606,9 +610,9 @@ export default function DashboardPage() {
                   <th className="px-5 py-3 sm:px-6">Statut</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/10">
+              <tbody className="divide-y divide-[var(--app-border)]">
                 {reservations.slice(0, 5).map((reservation) => (
-                  <tr key={reservation.id} className="hover:bg-white/[0.025]">
+                  <tr key={reservation.id} className="transition hover:bg-[var(--app-surface-soft)]">
                     <td className="px-5 py-4 font-semibold text-[var(--app-text)] sm:px-6">{reservation.id}</td>
                     <td className="px-5 py-4 text-[var(--app-text-soft)] sm:px-6">{reservation.client}</td>
                     <td className="px-5 py-4 text-[var(--app-text-soft)] sm:px-6">{reservation.vehicle}</td>
