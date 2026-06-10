@@ -178,29 +178,32 @@ function VehicleSketch({ view }: { view: 'front' | 'rear' | 'left' | 'right' | '
   const side = view === 'left' || view === 'right';
   const top = view === 'top' || view === 'bottom';
   return (
-    <svg className="rc-vehicle-sketch" viewBox="0 0 150 72" aria-hidden="true">
+    <svg className="rc-vehicle-sketch" viewBox="0 0 160 82" aria-hidden="true">
       {side ? (
-        <g transform={view === 'right' ? 'translate(150 0) scale(-1 1)' : undefined}>
-          <path d="M13 48h124l-7-20-25-9-42-1-26 9-17 4-7 17Z" fill="none" stroke="currentColor" strokeWidth="1.6" />
-          <path d="M53 23h49l18 19H32l21-19Z" fill="none" stroke="currentColor" strokeWidth="1.1" />
-          <path d="M72 23v19M101 23v19M46 42h68" fill="none" stroke="currentColor" />
-          <circle cx="42" cy="50" r="10" fill="#fff" stroke="currentColor" strokeWidth="1.6" />
-          <circle cx="116" cy="50" r="10" fill="#fff" stroke="currentColor" strokeWidth="1.6" />
+        <g transform={view === 'right' ? 'translate(160 0) scale(-1 1)' : undefined}>
+          <path d="M8 58 14 43l20-7 18-18h50l27 17 20 5 4 18H8Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+          <path d="m55 21-16 16h82l-22-16H55Z" fill="none" stroke="currentColor" strokeWidth="1.35" />
+          <path d="M74 21v16m27-15 18 15M38 41h88m-75 0-4 17m76-17 5 17M15 49h15m105 0h15" fill="none" stroke="currentColor" strokeWidth="1.05" />
+          <circle cx="42" cy="58" r="12" fill="#fff" stroke="currentColor" strokeWidth="1.8" />
+          <circle cx="126" cy="58" r="12" fill="#fff" stroke="currentColor" strokeWidth="1.8" />
+          <circle cx="42" cy="58" r="5.5" fill="none" stroke="currentColor" />
+          <circle cx="126" cy="58" r="5.5" fill="none" stroke="currentColor" />
         </g>
       ) : top ? (
         <>
-          <path d="M48 5h54l13 13v38l-13 11H48L35 56V18L48 5Z" fill="none" stroke="currentColor" strokeWidth="1.6" />
-          <rect x="48" y="17" width="54" height="39" rx="11" fill="none" stroke="currentColor" strokeWidth="1.1" />
-          <path d="M48 26h54M48 48h54" fill="none" stroke="currentColor" />
-          {view === 'bottom' ? <rect x="61" y="54" width="28" height="7" fill="none" stroke="currentColor" /> : null}
+          <path d="M51 4h58l15 13 7 48-15 13H44L29 65l7-48L51 4Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+          <path d="M52 14h56l10 13-3 37-12 8H57l-12-8-3-37 10-13Z" fill="none" stroke="currentColor" strokeWidth="1.15" />
+          <path d="M45 28h73M45 57h70M80 14v58M31 38h13m72 0h13" fill="none" stroke="currentColor" strokeWidth="1.05" />
+          {view === 'bottom' ? <path d="M54 64h52m-43 8h34" fill="none" stroke="currentColor" strokeWidth="1.2" /> : null}
         </>
       ) : (
         <>
-          <path d="M43 62h64l11-21-7-25-16-9H55l-16 9-7 25 11 21Z" fill="none" stroke="currentColor" strokeWidth="1.6" />
-          <path d="M48 18h54l9 23H39l9-23Z" fill="none" stroke="currentColor" strokeWidth="1.1" />
-          <rect x="38" y="47" width="18" height="8" rx="2" fill="none" stroke="currentColor" />
-          <rect x="94" y="47" width="18" height="8" rx="2" fill="none" stroke="currentColor" />
-          <path d="M43 62v6M107 62v6" fill="none" stroke="currentColor" strokeWidth="2" />
+          <path d="M43 70h74l11-19-5-28-18-16H55L37 23l-5 28 11 19Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+          <path d="m54 13-12 17h76l-12-17H54Z" fill="none" stroke="currentColor" strokeWidth="1.15" />
+          <path d="M41 33h78M36 50h88M54 13l-5 17m57-17 5 17" fill="none" stroke="currentColor" strokeWidth="1.05" />
+          <rect x="39" y="53" width="21" height="9" rx="2" fill="none" stroke="currentColor" />
+          <rect x="100" y="53" width="21" height="9" rx="2" fill="none" stroke="currentColor" />
+          <path d="M44 70v7m72-7v7M68 58h24" fill="none" stroke="currentColor" strokeWidth="1.8" />
         </>
       )}
     </svg>
@@ -210,19 +213,21 @@ function VehicleSketch({ view }: { view: 'front' | 'rear' | 'left' | 'right' | '
 function HeaderCars() {
   return (
     <div className="rc-header-cars" aria-hidden="true">
-      <svg viewBox="0 0 320 110">
-        <g transform="translate(0 5)">
-          <path d="M12 80h139l-10-34-36-20H61L24 46 12 80Z" fill="#202020" stroke="#000" strokeWidth="2" />
-          <path d="M57 30h51l25 35H31l26-35Z" fill="#fafafa" stroke="#000" strokeWidth="2" />
-          <circle cx="47" cy="83" r="17" fill="#111" /><circle cx="47" cy="83" r="8" fill="#aaa" />
-          <circle cx="123" cy="83" r="17" fill="#111" /><circle cx="123" cy="83" r="8" fill="#aaa" />
+      <svg viewBox="0 0 350 125">
+        <g transform="translate(1 7)">
+          <path d="M7 87 16 55l33-13 20-23h50l28 21 14 47H7Z" fill="#171717" stroke="#000" strokeWidth="2.4" />
+          <path d="m72 25-17 22h81l-22-22H72Z" fill="#f8f8f8" stroke="#000" strokeWidth="2" />
+          <path d="M19 58h30m90-9 12 28M38 48l-9 39m117-20H18" fill="none" stroke="#555" strokeWidth="1.4" />
+          <rect x="70" y="72" width="31" height="9" rx="2" fill="#eee" />
+          <circle cx="47" cy="87" r="18" fill="#090909" /><circle cx="47" cy="87" r="8" fill="#a7a7a7" />
+          <circle cx="126" cy="87" r="18" fill="#090909" /><circle cx="126" cy="87" r="8" fill="#a7a7a7" />
         </g>
-        <g transform="translate(158 14)">
-          <path d="M8 73h145l-7-31-37-22H59L23 39 8 73Z" fill="#fff" stroke="#000" strokeWidth="3" />
-          <path d="M58 25h52l27 32H29l29-32Z" fill="#111" stroke="#000" strokeWidth="2" />
-          <path d="M14 60h130" stroke="#000" strokeWidth="3" />
-          <circle cx="42" cy="75" r="16" fill="#111" /><circle cx="42" cy="75" r="7" fill="#bbb" />
-          <circle cx="123" cy="75" r="16" fill="#111" /><circle cx="123" cy="75" r="7" fill="#bbb" />
+        <g transform="translate(170 16)">
+          <path d="M5 78 14 48l34-11 19-21h52l29 22 14 40H5Z" fill="#fff" stroke="#000" strokeWidth="3" />
+          <path d="m69 22-17 20h82l-21-20H69Z" fill="#111" stroke="#000" strokeWidth="2" />
+          <path d="M14 59h137M47 38l-9 40m97-40 10 40" fill="none" stroke="#000" strokeWidth="1.4" />
+          <circle cx="43" cy="80" r="17" fill="#0b0b0b" /><circle cx="43" cy="80" r="7" fill="#aaa" />
+          <circle cx="129" cy="80" r="17" fill="#0b0b0b" /><circle cx="129" cy="80" r="7" fill="#aaa" />
         </g>
       </svg>
     </div>
@@ -300,42 +305,42 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         .rc-top {
           display: grid;
           grid-template-columns: 300px 1fr;
-          min-height: 146px;
+          min-height: 174px;
           gap: 12px;
         }
         .rc-brand { min-width: 0; text-align: center; }
-        .rc-brand-logo { display: block; width: auto; max-width: 270px; max-height: 78px; margin: 0 auto 3px; object-fit: contain; }
-        .rc-brand-fallback { position: relative; padding-top: 13px; text-transform: uppercase; }
+        .rc-brand-logo { display: block; width: auto; max-width: 270px; max-height: 100px; margin: 0 auto 4px; object-fit: contain; }
+        .rc-brand-fallback { position: relative; padding-top: 21px; text-transform: uppercase; }
         .rc-brand-fallback::before {
           content: "";
           position: absolute;
           left: 32px;
           right: 32px;
-          top: 4px;
-          height: 23px;
-          border-top: 5px solid #000;
+          top: 5px;
+          height: 31px;
+          border-top: 4px solid #000;
           border-radius: 50% 50% 0 0;
           transform: skewX(-18deg);
         }
-        .rc-brand-fallback span { position: relative; display: block; font-size: 30px; font-weight: 900; letter-spacing: .04em; }
-        .rc-brand-fallback strong { position: relative; display: block; margin-top: -2px; font-size: 19px; }
-        .rc-brand-contact { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; font-size: 10px; font-weight: 700; }
-        .rc-brand-contact strong { font-size: 13px; }
+        .rc-brand-fallback span { position: relative; display: block; font-size: 34px; font-weight: 900; letter-spacing: .02em; }
+        .rc-brand-fallback strong { position: relative; display: block; margin-top: -3px; font-size: 20px; }
+        .rc-brand-contact { display: flex; flex-direction: column; gap: 3px; margin-top: 5px; font-size: 10.5px; font-weight: 700; }
+        .rc-brand-contact strong { font-size: 14px; }
         .rc-header-right { position: relative; min-width: 0; }
-        .rc-header-cars { height: 105px; overflow: hidden; }
+        .rc-header-cars { height: 126px; overflow: hidden; }
         .rc-header-cars svg { width: 100%; height: 100%; }
         .rc-activity-line {
           margin-top: 2px;
           text-align: center;
-          font-size: 15px;
+          font-size: 15.5px;
           font-weight: 900;
           text-transform: uppercase;
           white-space: nowrap;
         }
-        .rc-contract-ref { position: absolute; left: 58px; top: 127px; font-size: 15px; font-weight: 900; letter-spacing: .15em; }
+        .rc-contract-ref { position: absolute; left: 58px; top: 153px; font-size: 16px; font-weight: 900; letter-spacing: .16em; }
         .rc-main-title {
           height: 35px;
-          margin: 3px 0 7px;
+          margin: 2px 0 8px;
           border-radius: 6px;
           background: #050505;
           color: #fff;
@@ -348,8 +353,8 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         .rc-side-notice {
           position: absolute;
           left: 17px;
-          top: 224px;
-          height: 730px;
+          top: 245px;
+          height: 755px;
           writing-mode: vertical-rl;
           text-orientation: mixed;
           font-size: 9.5px;
@@ -360,32 +365,32 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           display: grid;
           grid-template-columns: 64% 36%;
           gap: 8px;
-          margin-bottom: 6px;
+          margin-bottom: 8px;
         }
         .rc-rounded-box {
           border: 1.8px solid #111;
           border-radius: 14px;
-          padding: 10px 12px 8px;
+          padding: 10px 12px 9px;
           box-sizing: border-box;
         }
-        .rc-rounded-box + .rc-rounded-box { margin-top: 7px; }
+        .rc-rounded-box + .rc-rounded-box { margin-top: 9px; }
         .rc-line-field {
           display: grid;
           grid-template-columns: max-content minmax(0, 1fr) max-content;
           align-items: end;
           gap: 6px;
-          min-height: 25px;
-          font-size: 10.5px;
+          min-height: 29px;
+          font-size: 10.8px;
           font-weight: 800;
           text-transform: uppercase;
         }
         .rc-line-label { white-space: nowrap; }
         .rc-line-value {
           min-width: 0;
-          min-height: 15px;
+          min-height: 17px;
           padding: 0 3px 2px;
           border-bottom: 1.2px dotted #333;
-          font-size: 9.7px;
+          font-size: 10px;
           font-weight: 700;
           text-transform: none;
           overflow-wrap: anywhere;
@@ -400,15 +405,15 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           gap: 2px 5px;
           padding: 4px 2px 2px;
         }
-        .rc-diagram { display: grid; min-height: 60px; place-items: center; color: #222; }
-        .rc-vehicle-sketch { width: 100%; height: 58px; }
+        .rc-diagram { display: grid; min-height: 75px; place-items: center; color: #222; }
+        .rc-vehicle-sketch { width: 100%; height: 72px; }
         .rc-black-title {
-          height: 28px;
+          height: 31px;
           border-radius: 5px 5px 0 0;
           background: #050505;
           color: #fff;
-          font-size: 18px;
-          line-height: 28px;
+          font-size: 19px;
+          line-height: 31px;
           letter-spacing: .04em;
           text-align: center;
           text-transform: uppercase;
@@ -417,14 +422,14 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           border: 1.8px solid #111;
           border-top: 0;
           border-radius: 0 0 13px 13px;
-          padding: 7px 11px 6px;
+          padding: 8px 11px 7px;
         }
-        .rc-person-box .rc-line-field { min-height: 22px; font-size: 10px; }
-        .rc-person-box .rc-line-value { font-size: 9.4px; }
-        .rc-person-section { margin-bottom: 5px; }
-        .rc-declaration { margin: 7px 7px 0; font-size: 10px; font-weight: 700; line-height: 1.35; }
+        .rc-person-box .rc-line-field { min-height: 24px; font-size: 10.2px; }
+        .rc-person-box .rc-line-value { font-size: 9.7px; }
+        .rc-person-section { margin-bottom: 7px; }
+        .rc-declaration { margin: 9px 7px 0; font-size: 10.4px; font-weight: 700; line-height: 1.4; }
         .rc-page-one-footer { position: absolute; right: 34px; bottom: 12px; color: #555; font-size: 7.5px; }
-        .rc-page-two { padding: 35px 43px 26px; }
+        .rc-page-two { padding: 39px 43px 25px; }
         .rc-terms-header {
           display: grid;
           grid-template-columns: 180px 1fr 73px;
@@ -435,7 +440,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         .rc-brand-compact .rc-brand-fallback span { font-size: 20px; }
         .rc-brand-compact .rc-brand-fallback strong { font-size: 12px; }
         .rc-terms-title {
-          font-size: 25px;
+          font-size: 26px;
           font-weight: 900;
           letter-spacing: -.02em;
           text-align: center;
@@ -449,12 +454,12 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           font-weight: 900;
           text-align: center;
         }
-        .rc-terms-rule { height: 1.5px; margin: 18px 0 14px; background: #222; }
+        .rc-terms-rule { height: 1.5px; margin: 19px 0 16px; background: #222; }
         .rc-terms-cols {
           position: relative;
           display: grid;
           grid-template-columns: 1fr 1fr;
-          gap: 22px;
+          gap: 24px;
         }
         .rc-terms-cols::after {
           content: "";
@@ -465,30 +470,30 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           width: 1px;
           background: #c7c7c7;
         }
-        .rc-term { margin-bottom: 9px; }
+        .rc-term { margin-bottom: 11px; break-inside: avoid; }
         .rc-term-title {
-          min-height: 20px;
+          min-height: 22px;
           padding: 0 6px;
           background: #050505;
           color: #fff;
-          font-size: 9px;
+          font-size: 9.6px;
           font-weight: 900;
-          line-height: 20px;
+          line-height: 22px;
           letter-spacing: .03em;
           text-transform: uppercase;
         }
         .rc-term p {
           margin: 4px 3px 0;
           color: #111;
-          font-size: 8.2px;
-          line-height: 1.31;
+          font-size: 9.15px;
+          line-height: 1.38;
           text-align: justify;
         }
         .rc-signature-panel {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          min-height: 105px;
-          margin-top: 7px;
+          min-height: 111px;
+          margin-top: 9px;
           border: 1.5px solid #111;
           border-radius: 12px;
           overflow: hidden;
