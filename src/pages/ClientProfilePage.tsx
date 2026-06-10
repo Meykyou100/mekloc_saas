@@ -6,6 +6,7 @@ import {
   Car,
   Copy,
   CreditCard,
+  Download,
   Edit3,
   Eye,
   FileImage,
@@ -19,7 +20,6 @@ import {
   Trash2,
   UserPlus,
   Wallet,
-  X,
 } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
@@ -30,6 +30,12 @@ import Modal from '../components/ui/Modal';
 import { formatMAD, type Client, type Contract, type Payment, type Reservation } from '../data/mockData';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
+import {
+  getClientDocumentDownload,
+  getClientDocumentKind,
+  resolveClientDocumentUrl,
+  type ClientDocumentKind,
+} from '../lib/clientDocuments';
 import { getClientPaymentBalance } from '../lib/paymentBalance';
 
 function clientInitials(name?: string) {
@@ -76,20 +82,8 @@ function paymentMethodLabel(method?: string) {
 
 type ClientEditForm = Pick<Client, 'fullName' | 'phone' | 'email' | 'cin' | 'license' | 'address'>;
 
-function getClientDocumentUrl(client: Client, side: 'front' | 'back') {
-  const record = client as Client & Record<string, unknown>;
-  const keys = side === 'front'
-    ? ['idCardFrontUrl', 'id_card_front_url', 'identity_document_front_url', 'document_front_url', 'cin_front_url']
-    : ['idCardBackUrl', 'id_card_back_url', 'identity_document_back_url', 'document_back_url', 'cin_back_url'];
-  for (const key of keys) {
-    const value = record[key];
-    if (typeof value === 'string' && value.trim()) return value.trim();
-  }
-  return undefined;
-}
-
 function hasCompleteDocs(client: Client) {
-  return Boolean(getClientDocumentUrl(client, 'front') && getClientDocumentUrl(client, 'back'));
+  return Boolean(client.idCardFrontUrl && client.idCardBackUrl);
 }
 
 function buildEditForm(client: Client): ClientEditForm {
@@ -108,14 +102,17 @@ export default function ClientProfilePage() {
   const navigate = useNavigate();
   const { notify } = useApp();
   const { clients, reservations, payments, contracts, updateClient, deleteClient: removeClient } = useData();
-  const [previewImage, setPreviewImage] = useState<{ title: string; url: string } | null>(null);
   const [moreOpen, setMoreOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editForm, setEditForm] = useState<ClientEditForm | null>(null);
   const [savingClient, setSavingClient] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deletingClient, setDeletingClient] = useState(false);
+  const [frontDocumentPreview, setFrontDocumentPreview] = useState<string | null>(null);
+  const [backDocumentPreview, setBackDocumentPreview] = useState<string | null>(null);
+  const [documentAction, setDocumentAction] = useState<'front-view' | 'front-download' | 'back-view' | 'back-download' | null>(null);
   const moreMenuRef = useRef<HTMLDivElement | null>(null);
+  const documentResolveRef = useRef(0);
   const client = clients.find((item) => item.id === id);
 
   useEffect(() => {
@@ -135,6 +132,27 @@ export default function ClientProfilePage() {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [moreOpen]);
+
+  useEffect(() => {
+    const resolveId = documentResolveRef.current + 1;
+    documentResolveRef.current = resolveId;
+    setFrontDocumentPreview(null);
+    setBackDocumentPreview(null);
+    if (!client) return undefined;
+
+    void Promise.all([
+      resolveClientDocumentUrl(client.idCardFrontUrl),
+      resolveClientDocumentUrl(client.idCardBackUrl),
+    ]).then(([frontUrl, backUrl]) => {
+      if (documentResolveRef.current !== resolveId) return;
+      setFrontDocumentPreview(frontUrl);
+      setBackDocumentPreview(backUrl);
+    });
+
+    return () => {
+      documentResolveRef.current += 1;
+    };
+  }, [client?.id, client?.idCardFrontUrl, client?.idCardBackUrl]);
 
   const clientReservations = useMemo(() => {
     if (!client) return [];
@@ -177,8 +195,8 @@ export default function ClientProfilePage() {
   const totalSpent = paymentTotal || reservationTotal || client.totalSpent || 0;
   const paymentBalance = getClientPaymentBalance(client.id, clientReservations, payments);
   const latestReservation = clientReservations[0];
-  const frontDocumentUrl = getClientDocumentUrl(client, 'front');
-  const backDocumentUrl = getClientDocumentUrl(client, 'back');
+  const frontDocumentUrl = client.idCardFrontUrl;
+  const backDocumentUrl = client.idCardBackUrl;
   const docsComplete = hasCompleteDocs(client);
   const isVerified = docsComplete && Boolean(client.cin || client.license);
 
@@ -210,6 +228,60 @@ export default function ClientProfilePage() {
   function handleOpenEdit() {
     setEditForm(buildEditForm(selectedClient));
     setEditOpen(true);
+  }
+
+  async function viewDocument(side: 'front' | 'back') {
+    const storedUrl = side === 'front' ? frontDocumentUrl : backDocumentUrl;
+    const action = `${side}-view` as const;
+    const openedWindow = window.open('about:blank', '_blank');
+    if (openedWindow) openedWindow.opener = null;
+    setDocumentAction(action);
+
+    try {
+      const resolvedUrl = await resolveClientDocumentUrl(storedUrl);
+      if (!resolvedUrl) throw new Error('Document indisponible.');
+      if (openedWindow) {
+        openedWindow.location.href = resolvedUrl;
+      } else {
+        window.open(resolvedUrl, '_blank', 'noopener,noreferrer');
+      }
+    } catch (error) {
+      openedWindow?.close();
+      notify({
+        title: 'Ouverture impossible',
+        message: error instanceof Error ? error.message : 'Réessayez dans un instant.',
+        type: 'warning',
+      });
+    } finally {
+      setDocumentAction(null);
+    }
+  }
+
+  async function downloadDocument(side: 'front' | 'back') {
+    const storedUrl = side === 'front' ? frontDocumentUrl : backDocumentUrl;
+    const action = `${side}-download` as const;
+    setDocumentAction(action);
+
+    try {
+      if (!storedUrl) throw new Error('Document indisponible.');
+      const { blob, filename } = await getClientDocumentDownload(storedUrl);
+      const objectUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = objectUrl;
+      anchor.download = filename || `piece-identite-${side}`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    } catch (error) {
+      notify({
+        title: 'Téléchargement impossible',
+        message: error instanceof Error ? error.message : 'Réessayez dans un instant.',
+        type: 'warning',
+      });
+    } finally {
+      setDocumentAction(null);
+    }
   }
 
   async function handleSaveClient(event: FormEvent<HTMLFormElement>) {
@@ -364,8 +436,24 @@ export default function ClientProfilePage() {
           <Card className="border-[var(--app-border)] bg-[var(--app-card)] p-5 shadow-[var(--app-shadow)] dark:bg-gradient-to-br dark:from-zinc-950/95 dark:to-black dark:shadow-[0_24px_70px_rgba(0,0,0,.28)]">
             <SectionTitle icon={FileImage} title="Pièces d’identité" />
             <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-              <DocumentPreview title="Recto" url={frontDocumentUrl} onOpen={(url) => setPreviewImage({ title: 'Pièce identité recto', url })} />
-              <DocumentPreview title="Verso" url={backDocumentUrl} onOpen={(url) => setPreviewImage({ title: 'Pièce identité verso', url })} />
+              <DocumentPreview
+                title="Recto"
+                sourceUrl={frontDocumentUrl}
+                previewUrl={frontDocumentPreview}
+                onView={() => viewDocument('front')}
+                onDownload={() => downloadDocument('front')}
+                viewLoading={documentAction === 'front-view'}
+                downloadLoading={documentAction === 'front-download'}
+              />
+              <DocumentPreview
+                title="Verso"
+                sourceUrl={backDocumentUrl}
+                previewUrl={backDocumentPreview}
+                onView={() => viewDocument('back')}
+                onDownload={() => downloadDocument('back')}
+                viewLoading={documentAction === 'back-view'}
+                downloadLoading={documentAction === 'back-download'}
+              />
             </div>
             <div className="mt-4 grid gap-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-sm">
               <TextPair label="CIN / Passeport" value={client.cin || 'Non renseigné'} />
@@ -408,22 +496,6 @@ export default function ClientProfilePage() {
           </Card>
         </div>
       </div>
-
-      <Modal open={Boolean(previewImage)} title={previewImage?.title || 'Document'} onClose={() => setPreviewImage(null)}>
-        {previewImage ? (
-          <div className="space-y-4">
-            <div className="overflow-hidden rounded-3xl border border-white/10 bg-black">
-              <img src={previewImage.url} alt={previewImage.title} className="max-h-[70vh] w-full object-contain" />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button type="button" variant="secondary" icon={<X className="h-4 w-4" />} onClick={() => setPreviewImage(null)}>Fermer</Button>
-              <a href={previewImage.url} target="_blank" rel="noreferrer" className="focus-ring inline-flex h-10 items-center justify-center rounded-xl bg-[#D4A017] px-4 text-sm font-black text-black">
-                Ouvrir l’image
-              </a>
-            </div>
-          </div>
-        ) : null}
-      </Modal>
 
       <Modal open={editOpen && Boolean(editForm)} title="Modifier client" onClose={() => !savingClient && setEditOpen(false)}>
         {editForm ? (
@@ -519,30 +591,76 @@ function TextPair({ label, value, valueClassName = 'text-[var(--app-text)]' }: {
   );
 }
 
-function DocumentPreview({ title, url, onOpen }: { title: string; url?: string; onOpen: (url: string) => void }) {
+type DocumentPreviewProps = {
+  title: string;
+  sourceUrl?: string;
+  previewUrl: string | null;
+  onView: () => void;
+  onDownload: () => void;
+  viewLoading?: boolean;
+  downloadLoading?: boolean;
+};
+
+function DocumentPreview({
+  title,
+  sourceUrl,
+  previewUrl,
+  onView,
+  onDownload,
+  viewLoading,
+  downloadLoading,
+}: DocumentPreviewProps) {
   const [broken, setBroken] = useState(false);
-  const validUrl = Boolean(url && !broken);
+  const hasDocument = Boolean(sourceUrl);
+  const documentKind = getClientDocumentKind(sourceUrl);
+  const showImage = hasDocument && documentKind === 'image' && Boolean(previewUrl) && !broken;
+
+  useEffect(() => {
+    setBroken(false);
+  }, [previewUrl]);
 
   return (
     <div className="rounded-3xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
       <div className="mb-3 flex items-center justify-between gap-3">
         <p className="text-sm font-black text-[var(--app-text)]">{title}</p>
-        {validUrl ? <span className="rounded-full bg-emerald-500/12 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-200">Ajouté</span> : null}
+        {hasDocument ? <span className="rounded-full bg-emerald-500/12 px-2.5 py-1 text-[11px] font-bold text-emerald-700 dark:text-emerald-200">Ajouté</span> : null}
       </div>
-      {validUrl && url ? (
+      {hasDocument ? (
         <div className="space-y-3">
-          <button type="button" onClick={() => onOpen(url)} className="block w-full overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card-soft)] dark:bg-black/30">
-            <img
-              src={url}
-              alt={`Document ${title}`}
-              onError={() => setBroken(true)}
-              className="h-44 w-full object-cover"
-            />
-          </button>
-          <button type="button" onClick={() => onOpen(url)} className="focus-ring inline-flex h-9 items-center gap-2 rounded-xl border border-[#D4A017]/30 bg-[#D4A017]/10 px-3 text-xs font-bold text-[var(--app-gold-text)]">
-            <Eye className="h-3.5 w-3.5" />
-            Ouvrir l’image
-          </button>
+          <div className="relative h-44 overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card-soft)] dark:bg-black/30">
+            {showImage ? (
+              <img
+                src={previewUrl || ''}
+                alt={`Document ${title}`}
+                onError={() => setBroken(true)}
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              <ProfileDocumentPlaceholder kind={documentKind} />
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-10 min-w-0 rounded-xl px-2 text-xs"
+              icon={<Eye className="h-3.5 w-3.5" />}
+              loading={viewLoading}
+              onClick={onView}
+            >
+              Voir document
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              className="h-10 min-w-0 rounded-xl border-gold-300/30 px-2 text-xs text-[var(--app-gold-text)]"
+              icon={<Download className="h-3.5 w-3.5" />}
+              loading={downloadLoading}
+              onClick={onDownload}
+            >
+              Télécharger
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="grid min-h-36 place-items-center rounded-2xl border border-dashed border-[var(--app-border)] bg-[var(--app-card-soft)] p-4 text-center dark:bg-black/20">
@@ -553,6 +671,23 @@ function DocumentPreview({ title, url, onOpen }: { title: string; url?: string; 
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function ProfileDocumentPlaceholder({ kind }: { kind: ClientDocumentKind }) {
+  const Icon = kind === 'image' ? FileImage : FileText;
+  return (
+    <div className="grid h-full place-items-center p-4 text-center">
+      <div>
+        <span className="mx-auto grid h-11 w-11 place-items-center rounded-2xl border border-gold-300/20 bg-gold-400/10 text-[var(--app-gold-text)]">
+          <Icon className="h-5 w-5" />
+        </span>
+        <p className="mt-3 text-sm font-bold text-[var(--app-text)]">Document disponible</p>
+        <p className="mt-1 text-xs text-[var(--app-text-muted)]">
+          {kind === 'pdf' ? 'Fichier PDF' : kind === 'image' ? 'Aperçu indisponible' : 'Fichier joint'}
+        </p>
+      </div>
     </div>
   );
 }
