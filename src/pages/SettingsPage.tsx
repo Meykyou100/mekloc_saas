@@ -153,6 +153,11 @@ function normalizeDateValue(value: string | null | undefined) {
   return trimmed.slice(0, 10);
 }
 
+function settingValue(settings: Record<string, unknown> | undefined, key: string) {
+  const value = settings?.[key];
+  return typeof value === 'string' ? value : '';
+}
+
 function formatBillingDate(value: string | null | undefined) {
   const dateKey = normalizeDateValue(value);
   if (!dateKey) return '—';
@@ -218,9 +223,20 @@ export default function SettingsPage() {
   const [accountSessions, setAccountSessions] = useState<AccountSession[]>([]);
   const [lastLoginAt, setLastLoginAt] = useState<string | null>(null);
   const [agencyName, setAgencyName] = useState(profile?.agency?.name || '');
-  const [agencyEmail, setAgencyEmail] = useState(profile?.email || '');
-  const [agencyPhone, setAgencyPhone] = useState(profile?.phone || '');
+  const [agencyEmail, setAgencyEmail] = useState(profile?.agency?.email || '');
+  const [agencyPhone, setAgencyPhone] = useState(profile?.agency?.phone || '');
   const [agencyAddress, setAgencyAddress] = useState('');
+  const [agencyActivityLabel, setAgencyActivityLabel] = useState('');
+  const [agencyCity, setAgencyCity] = useState('');
+  const [agencyWhatsapp, setAgencyWhatsapp] = useState('');
+  const [agencyWebsite, setAgencyWebsite] = useState('');
+  const [agencyIce, setAgencyIce] = useState('');
+  const [agencyRc, setAgencyRc] = useState('');
+  const [agencyIfNumber, setAgencyIfNumber] = useState('');
+  const [agencyCnss, setAgencyCnss] = useState('');
+  const [agencyContractHeader, setAgencyContractHeader] = useState('');
+  const [agencyArabicLabel, setAgencyArabicLabel] = useState('');
+  const [agencyFooterNote, setAgencyFooterNote] = useState('');
   const [logoFileName, setLogoFileName] = useState('');
   const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
   const [logoPreviewBroken, setLogoPreviewBroken] = useState(false);
@@ -257,31 +273,56 @@ export default function SettingsPage() {
   const canManageTeam = profile?.role === 'owner' || profile?.role === 'manager' || Boolean(profile?.isSuperAdmin);
   const hasChanges = useMemo(() => {
     const baseName = profile?.agency?.name || '';
-    const basePhone = profile?.agency?.phone || profile?.phone || '';
+    const basePhone = profile?.agency?.phone || '';
     const baseAddress = profile?.agency?.address || '';
     const baseLogo = profile?.agency?.logoUrl || '';
+    const baseSettings = profile?.agency?.settings;
     const baseNotifications = getNotificationPreferences(profile?.agency?.settings);
     return (
       agencyName !== baseName ||
       agencyPhone !== basePhone ||
       agencyAddress !== baseAddress ||
+      agencyEmail !== (profile?.agency?.email || '') ||
+      agencyActivityLabel !== settingValue(baseSettings, 'activity_label') ||
+      agencyCity !== settingValue(baseSettings, 'city') ||
+      agencyWhatsapp !== settingValue(baseSettings, 'whatsapp') ||
+      agencyWebsite !== settingValue(baseSettings, 'website') ||
+      agencyIce !== (profile?.agency?.ice || '') ||
+      agencyRc !== (profile?.agency?.rc || '') ||
+      agencyIfNumber !== settingValue(baseSettings, 'if_number') ||
+      agencyCnss !== settingValue(baseSettings, 'cnss') ||
+      agencyContractHeader !== settingValue(baseSettings, 'contract_header_text') ||
+      agencyArabicLabel !== settingValue(baseSettings, 'arabic_activity_label') ||
+      agencyFooterNote !== settingValue(baseSettings, 'contract_footer_note') ||
       logoPreviewUrl !== baseLogo ||
       Boolean(pendingLogoFile) ||
       notificationPreferenceItems.some((item) => notificationPreferences[item.key] !== baseNotifications[item.key])
     );
-  }, [agencyAddress, agencyName, agencyPhone, logoPreviewUrl, notificationPreferences, pendingLogoFile, profile?.agency?.address, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.settings, profile?.email, profile?.phone]);
+  }, [agencyActivityLabel, agencyAddress, agencyArabicLabel, agencyCity, agencyCnss, agencyContractHeader, agencyEmail, agencyFooterNote, agencyIce, agencyIfNumber, agencyName, agencyPhone, agencyRc, agencyWebsite, agencyWhatsapp, logoPreviewUrl, notificationPreferences, pendingLogoFile, profile?.agency?.address, profile?.agency?.email, profile?.agency?.ice, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.rc, profile?.agency?.settings]);
   useEffect(() => {
     setAgencyName(profile?.agency?.name || '');
-    setAgencyEmail(profile?.email || '');
-    setAgencyPhone(profile?.agency?.phone || profile?.phone || '');
+    const settings = profile?.agency?.settings;
+    setAgencyEmail(profile?.agency?.email || '');
+    setAgencyPhone(profile?.agency?.phone || '');
     setAgencyAddress(profile?.agency?.address || '');
+    setAgencyActivityLabel(settingValue(settings, 'activity_label'));
+    setAgencyCity(settingValue(settings, 'city'));
+    setAgencyWhatsapp(settingValue(settings, 'whatsapp'));
+    setAgencyWebsite(settingValue(settings, 'website'));
+    setAgencyIce(profile?.agency?.ice || '');
+    setAgencyRc(profile?.agency?.rc || '');
+    setAgencyIfNumber(settingValue(settings, 'if_number'));
+    setAgencyCnss(settingValue(settings, 'cnss'));
+    setAgencyContractHeader(settingValue(settings, 'contract_header_text'));
+    setAgencyArabicLabel(settingValue(settings, 'arabic_activity_label'));
+    setAgencyFooterNote(settingValue(settings, 'contract_footer_note'));
     setLogoPreviewUrl(profile?.agency?.logoUrl || '');
     setPendingLogoFile(null);
     setLogoFileName('');
     setNotificationPreferences(getNotificationPreferences(profile?.agency?.settings));
     setSaveState('idle');
     setLogoPreviewBroken(false);
-  }, [profile?.agency?.address, profile?.agency?.email, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.settings, profile?.email, profile?.phone]);
+  }, [profile?.agency?.address, profile?.agency?.email, profile?.agency?.ice, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.rc, profile?.agency?.settings]);
 
   useEffect(() => {
     setLogoPreviewBroken(false);
@@ -823,6 +864,7 @@ startxref
       const safeAgencyName = sanitizeText(agencyName, 100);
       const safeAgencyAddress = sanitizeText(agencyAddress, 220);
       const safeAgencyPhone = normalizeText(agencyPhone, 20);
+      const safeAgencyEmail = sanitizeText(agencyEmail, 160);
 
       if (!safeAgencyName) {
         notify({ title: 'Champ obligatoire', message: "Le nom de l’agence est obligatoire.", type: 'warning' });
@@ -830,6 +872,10 @@ startxref
       }
       if (safeAgencyPhone && !validatePhone(safeAgencyPhone)) {
         notify({ title: 'Numéro invalide', message: 'Veuillez vérifier votre numéro WhatsApp.', type: 'warning' });
+        return;
+      }
+      if (safeAgencyEmail && !validateEmail(safeAgencyEmail)) {
+        notify({ title: 'Email invalide', message: "Veuillez vérifier l’email de l’agence.", type: 'warning' });
         return;
       }
 
@@ -843,9 +889,21 @@ startxref
         name: safeAgencyName,
         address: safeAgencyAddress,
         phone: safeAgencyPhone || null,
+        email: safeAgencyEmail || null,
+        ice: sanitizeText(agencyIce, 60) || null,
+        rc: sanitizeText(agencyRc, 60) || null,
         settings: {
           ...(profile?.agency?.settings || {}),
           notifications: notificationPreferences,
+          activity_label: sanitizeText(agencyActivityLabel, 120),
+          city: sanitizeText(agencyCity, 100),
+          whatsapp: normalizeText(agencyWhatsapp, 20),
+          website: sanitizeText(agencyWebsite, 180),
+          if_number: sanitizeText(agencyIfNumber, 60),
+          cnss: sanitizeText(agencyCnss, 60),
+          contract_header_text: sanitizeText(agencyContractHeader, 160),
+          arabic_activity_label: sanitizeText(agencyArabicLabel, 120),
+          contract_footer_note: sanitizeText(agencyFooterNote, 300),
         },
       };
       for (let attempt = 0; attempt < 6; attempt += 1) {
@@ -1273,20 +1331,26 @@ startxref
           <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
             <div className="mb-4 flex items-center gap-3">
               <FileSignature className="h-5 w-5 text-[var(--app-gold-text)]" />
-              <h2 className="font-semibold text-[var(--app-text)] ">Paramètres contrats</h2>
+              <div>
+                <h2 className="font-semibold text-[var(--app-text)]">Informations contrat</h2>
+                <p className="text-xs text-[var(--app-text-muted)]">Ces informations apparaîtront automatiquement dans les contrats PDF.</p>
+              </div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <SelectField label="Langue contrat par défaut" defaultValue="Français">
-                <option>Français</option>
-                <option>العربية</option>
-              </SelectField>
-              <SelectField label="Règle de caution" defaultValue="Fixe">
-                <option>Fixe</option>
-                <option>Pourcentage</option>
-                <option>Catégorie véhicule</option>
-              </SelectField>
-              <Field label="Caution par défaut" defaultValue="4000" type="number" />
-              <Field label="Frais retard / heure" defaultValue="150" type="number" />
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Field label="Activité / slogan" value={agencyActivityLabel} onChange={(event) => setAgencyActivityLabel(event.target.value)} placeholder="Location de voiture" />
+              <Field label="Ville" value={agencyCity} onChange={(event) => setAgencyCity(event.target.value)} placeholder="Meknès" />
+              <Field label="Email agence" value={agencyEmail} onChange={(event) => setAgencyEmail(event.target.value)} placeholder="contact@agence.ma" />
+              <Field label="WhatsApp contrat" value={agencyWhatsapp} onChange={(event) => setAgencyWhatsapp(event.target.value)} placeholder="+212..." />
+              <Field label="Site web" value={agencyWebsite} onChange={(event) => setAgencyWebsite(event.target.value)} placeholder="https://..." />
+              <Field label="ICE" value={agencyIce} onChange={(event) => setAgencyIce(event.target.value)} />
+              <Field label="RC" value={agencyRc} onChange={(event) => setAgencyRc(event.target.value)} />
+              <Field label="IF / Identifiant fiscal" value={agencyIfNumber} onChange={(event) => setAgencyIfNumber(event.target.value)} />
+              <Field label="CNSS" value={agencyCnss} onChange={(event) => setAgencyCnss(event.target.value)} />
+              <Field label="Texte en-tête contrat" value={agencyContractHeader} onChange={(event) => setAgencyContractHeader(event.target.value)} placeholder="LOCATION DE VOITURE / RENT CAR" />
+              <Field label="Libellé arabe optionnel" value={agencyArabicLabel} onChange={(event) => setAgencyArabicLabel(event.target.value)} placeholder="كراء السيارات" />
+              <div className="sm:col-span-2">
+                <Field label="Note de pied de page" value={agencyFooterNote} onChange={(event) => setAgencyFooterNote(event.target.value)} placeholder="Mention légale ou note de contact optionnelle" />
+              </div>
             </div>
           </Card>
         </div>

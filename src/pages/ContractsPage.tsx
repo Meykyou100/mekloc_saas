@@ -350,9 +350,43 @@ function createPdfCaptureSource(source: HTMLElement, logoDataUrl?: string | null
 
 export default function ContractsPage() {
   const [searchParams] = useSearchParams();
-  const { clients, vehicles, reservations, contracts, payments, createContract, deleteContract } = useData();
+  const {
+    clients: allClients,
+    vehicles: allVehicles,
+    reservations: allReservations,
+    contracts: allContracts,
+    payments: allPayments,
+    createContract,
+    deleteContract,
+  } = useData();
   const { agencyId, profile } = useAuth();
   const { notify } = useApp();
+  const belongsToCurrentAgency = (itemAgencyId?: string | null) =>
+    !agencyId || itemAgencyId === agencyId || (agencyId === 'demo-agency' && !itemAgencyId);
+  const clients = useMemo(
+    () => allClients.filter((item) => belongsToCurrentAgency(item.agencyId)),
+    [agencyId, allClients],
+  );
+  const vehicles = useMemo(
+    () => allVehicles.filter((item) => belongsToCurrentAgency(item.agencyId)),
+    [agencyId, allVehicles],
+  );
+  const reservations = useMemo(
+    () => allReservations.filter((item) => belongsToCurrentAgency(item.agencyId)),
+    [agencyId, allReservations],
+  );
+  const contracts = useMemo(
+    () => allContracts.filter((item) => belongsToCurrentAgency(item.agencyId)),
+    [agencyId, allContracts],
+  );
+  const payments = useMemo(
+    () => allPayments.filter((item) => {
+      if (!agencyId) return true;
+      const reservation = reservations.find((candidate) => candidate.id === item.reservationId || candidate.recordId === item.reservationId);
+      return Boolean(reservation);
+    }),
+    [agencyId, allPayments, reservations],
+  );
 
   const previewRef = useRef<HTMLDivElement | null>(null);
   const previewViewportRef = useRef<HTMLDivElement | null>(null);
@@ -445,9 +479,11 @@ export default function ContractsPage() {
   }, [selectedReservation]);
 
   useEffect(() => {
+    let cancelled = false;
     async function loadAgencyMeta() {
+      setAgencyMeta({});
+      setLogoPublicUrl(null);
       if (!agencyId || !supabase) {
-        setLogoPublicUrl(null);
         return;
       }
       const { data } = await supabase
@@ -455,7 +491,7 @@ export default function ContractsPage() {
         .select('address,phone,email,logo_path,logo_url,ice,rc,settings')
         .eq('id', agencyId)
         .maybeSingle();
-      if (!data) return;
+      if (!data || cancelled) return;
       setAgencyMeta(data);
       if (data.logo_path) {
         const candidateBuckets = ['logos', 'agency-assets'];
@@ -467,14 +503,17 @@ export default function ContractsPage() {
             break;
           }
         }
-        setLogoPublicUrl(resolvedLogo || (data as { logo_url?: string | null }).logo_url || null);
+        if (!cancelled) setLogoPublicUrl(resolvedLogo || (data as { logo_url?: string | null }).logo_url || null);
       } else if ((data as { logo_url?: string | null }).logo_url) {
-        setLogoPublicUrl((data as { logo_url?: string | null }).logo_url || null);
+        if (!cancelled) setLogoPublicUrl((data as { logo_url?: string | null }).logo_url || null);
       } else {
-        setLogoPublicUrl(null);
+        if (!cancelled) setLogoPublicUrl(null);
       }
     }
-    loadAgencyMeta();
+    void loadAgencyMeta();
+    return () => {
+      cancelled = true;
+    };
   }, [agencyId]);
 
   const emptyClient: Client = {
@@ -618,15 +657,22 @@ export default function ContractsPage() {
 
     return {
       agency: {
-        name: profile?.agency?.name || 'MekLoc Agency',
+        name: profile?.agency?.name || '',
         address: agencyMeta.address || '',
-        phone: agencyMeta.phone || profile?.phone || '',
-        email: agencyMeta.email || profile?.email || '',
+        phone: agencyMeta.phone || '',
+        email: agencyMeta.email || '',
         logoUrl: effectiveLogoUrl,
         rc: agencyMeta.rc || '',
         ifNumber: readString(agencySource, ['if', 'if_number', 'fiscal_id', 'tax_id']) || readString(agencySettings, ['if', 'if_number', 'fiscal_id', 'tax_id']),
         ice: agencyMeta.ice || '',
         cnss: readString(agencySource, ['cnss', 'cnss_number']) || readString(agencySettings, ['cnss', 'cnss_number']),
+        activityLabel: readString(agencySettings, ['activity_label']),
+        city: readString(agencySettings, ['city']),
+        whatsapp: readString(agencySettings, ['whatsapp']),
+        website: readString(agencySettings, ['website']),
+        contractHeaderText: readString(agencySettings, ['contract_header_text']),
+        arabicActivityLabel: readString(agencySettings, ['arabic_activity_label']),
+        footerNote: readString(agencySettings, ['contract_footer_note']),
       },
       reservation: {
         pickupDate: formatDateFr(pickupDate),
@@ -703,9 +749,7 @@ export default function ContractsPage() {
     pickupDate,
     pickupTime,
     profile?.agency?.name,
-    profile?.email,
     profile?.fullName,
-    profile?.phone,
     rentalDays,
     returnDate,
     returnTime,

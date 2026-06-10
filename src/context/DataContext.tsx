@@ -230,6 +230,7 @@ type ReservationRow = {
 
 type ContractRow = {
   id: string;
+  agency_id: string | null;
   contract_number: string;
   client_id: string;
   vehicle_id: string;
@@ -497,6 +498,7 @@ async function assertNoReservationOverlap(
 function mapContract(row: ContractRow, client?: Client, vehicle?: Vehicle): Contract {
   return {
     id: row.id,
+    agencyId: row.agency_id,
     contractNumber: row.contract_number,
     client: client?.fullName || 'Unknown client',
     clientId: row.client_id,

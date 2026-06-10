@@ -10,6 +10,13 @@ export type ContractPdfAgency = {
   ifNumber?: string;
   ice?: string;
   cnss?: string;
+  activityLabel?: string;
+  city?: string;
+  whatsapp?: string;
+  website?: string;
+  contractHeaderText?: string;
+  arabicActivityLabel?: string;
+  footerNote?: string;
 };
 
 export type ContractPdfReservation = {
@@ -248,8 +255,10 @@ function AgencyHeader({
         )}
         <div className="cp-agency-copy">
           <strong>{display(agency.name)}</strong>
+          {agency.activityLabel ? <span>{agency.activityLabel}</span> : null}
           <span>{text(agency.address) || 'Adresse agence non renseignée'}</span>
-          <span>{[agency.phone, agency.email].filter(Boolean).join(' · ') || 'Contact non renseigné'}</span>
+          <span>{[agency.city, agency.phone, agency.whatsapp ? `WhatsApp ${agency.whatsapp}` : '', agency.email, agency.website].filter(Boolean).join(' · ') || 'Contact non renseigné'}</span>
+          {agency.arabicActivityLabel ? <span dir="rtl">{agency.arabicActivityLabel}</span> : null}
           {legal.length ? <span>{legal.join(' · ')}</span> : null}
         </div>
       </div>
@@ -464,7 +473,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         <AgencyHeader agency={agency} contract={contract} logoBroken={logoBroken} onLogoError={onLogoError} />
         <div className="cp-document-title">
           Contrat de location
-          <span className="cp-document-subtitle">Location de voiture · Rent car</span>
+          <span className="cp-document-subtitle">{agency.contractHeaderText || agency.activityLabel || 'Location de voiture · Rent car'}</span>
         </div>
 
         <div className="cp-grid-2">
@@ -653,6 +662,10 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
               Signature / cachet :
             </div>
           </div>
+        </div>
+        <div className="cp-acceptance">
+          {[agency.name, agency.address, agency.city, agency.phone, agency.email, agency.website].filter(Boolean).join(' · ')}
+          {agency.footerNote ? ` · ${agency.footerNote}` : ''}
         </div>
         <div className="cp-page-number">Page 2 / 2</div>
       </div>

@@ -136,6 +136,7 @@ export type ContractStatus = 'Draft' | 'Signed' | 'Downloaded';
 
 export type Contract = {
   id: string;
+  agencyId?: string | null;
   contractNumber: string;
   client: string;
   clientId: string;
