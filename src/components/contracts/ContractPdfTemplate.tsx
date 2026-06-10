@@ -117,557 +117,534 @@ type ContractPdfTemplateProps = {
   className?: string;
 };
 
-const blankLine = '................................';
-
 const conditions = [
-  ['OBJET DU CONTRAT', 'Le présent contrat a pour objet la mise à disposition d’un véhicule automobile par l’agence au profit du locataire, selon les informations indiquées au recto.'],
-  ['CONDITIONS D’ÉLIGIBILITÉ', 'Le locataire doit présenter une pièce d’identité valide et un permis de conduire valide. L’agence peut refuser la location si les documents sont incomplets ou non conformes.'],
-  ['PRISE EN CHARGE DU VÉHICULE', 'Le locataire reconnaît avoir reçu le véhicule en bon état apparent de fonctionnement, propre et conforme à l’état indiqué au recto.'],
-  ['UTILISATION DU VÉHICULE', 'Le véhicule doit être utilisé de manière normale, responsable et conforme à la loi. Toute utilisation dangereuse, abusive, illégale, sous-location ou conduite par une personne non déclarée est interdite.'],
-  ['CONDUCTEUR AUTORISÉ', 'Le véhicule ne peut être conduit que par le locataire ou par le conducteur autorisé mentionné dans le contrat.'],
-  ['CARBURANT', 'Le véhicule doit être restitué avec le même niveau de carburant qu’au départ. Toute différence peut être facturée au locataire.'],
-  ['KILOMÉTRAGE', 'Le kilométrage au départ et au retour est indiqué au contrat. Tout dépassement ou anomalie peut être facturé selon les conditions de l’agence.'],
-  ['RETOUR DU VÉHICULE', 'Le véhicule doit être restitué à la date, à l’heure et au lieu convenus. Tout retard peut entraîner des frais supplémentaires.'],
-  ['CAUTION ET PAIEMENT', 'La caution peut être utilisée pour couvrir les dommages, retards, carburant, nettoyage, contraventions, documents ou accessoires manquants, ou tout autre montant dû.'],
-  ['ASSURANCE ET RESPONSABILITÉ', 'Le véhicule est couvert selon les conditions d’assurance de l’agence. La franchise et les exclusions restent à la charge du locataire selon le cas.'],
-  ['ACCIDENT OU SINISTRE', 'En cas d’accident, panne, vol ou dommage, le locataire doit informer immédiatement l’agence et fournir les documents nécessaires.'],
-  ['PANNE / ASSISTANCE', 'Aucune réparation ne doit être engagée sans l’accord préalable de l’agence.'],
-  ['VOL DU VÉHICULE', 'En cas de vol, le locataire doit déposer plainte et remettre à l’agence tous les documents et clés disponibles.'],
-  ['INFRACTIONS ET AMENDES', 'Les amendes, contraventions, frais de fourrière, péages ou infractions pendant la location sont à la charge du locataire.'],
-  ['PROLONGATION / MODIFICATION', 'Toute prolongation ou modification doit être validée par l’agence avant l’échéance prévue.'],
-  ['NETTOYAGE ET ACCESSOIRES', 'Le véhicule doit être rendu dans un état de propreté normal avec ses documents, clés et accessoires. Tout élément manquant ou détérioré peut être facturé.'],
-  ['PROTECTION DES DONNÉES', 'Les données du locataire sont utilisées uniquement pour la gestion de la location et peuvent être communiquées aux autorités en cas d’infraction ou de litige.'],
-  ['ACCEPTATION', 'La signature du contrat vaut acceptation complète des présentes conditions générales de location.'],
+  ['OBJET DU CONTRAT', 'Le présent contrat a pour objet la mise à disposition d’un véhicule automobile par l’Agence au profit du Locataire, aux conditions définies ci-dessous.'],
+  ['CONDITIONS D’ÉLIGIBILITÉ', 'Le Locataire doit être titulaire d’un permis de conduire valide et présenter une pièce d’identité en cours de validité. L’Agence se réserve le droit de refuser toute location si les documents sont incomplets ou non conformes.'],
+  ['PRISE EN CHARGE DU VÉHICULE', 'Le véhicule est remis en bon état de marche, propre et complet, conformément à l’état des lieux. Le kilométrage et le niveau de carburant sont consignés au départ. Tout dommage non mentionné sera imputé au Locataire au retour.'],
+  ['UTILISATION DU VÉHICULE', 'Le véhicule est loué pour un usage normal et légal. Le Locataire s’engage à respecter le Code de la Route et à n’autoriser la conduite qu’aux personnes inscrites au contrat. La sous-location, le prêt à un tiers et toute utilisation dangereuse sont interdits.'],
+  ['CARBURANT', 'Le véhicule est fourni avec le niveau de carburant indiqué au départ. Le Locataire s’engage à le restituer avec le même niveau. Toute différence pourra être facturée.'],
+  ['KILOMÉTRAGE', 'Le kilométrage au départ et au retour est indiqué au contrat. Tout dépassement ou toute anomalie pourra être facturé selon les conditions de l’Agence.'],
+  ['RETOUR DU VÉHICULE', 'Le véhicule doit être restitué à la date, à l’heure et au lieu convenus. Tout retard doit être signalé immédiatement et peut entraîner des frais supplémentaires.'],
+  ['CAUTION ET PAIEMENT', 'Une caution peut être exigée au début de la location. Elle est restituée après retour du véhicule, déduction faite des montants restant dus, dommages, carburant, nettoyage, infractions ou accessoires manquants.'],
+  ['ASSURANCES ET RESPONSABILITÉS', 'Le véhicule est couvert conformément aux conditions d’assurance de l’Agence et à la législation marocaine. La franchise et les exclusions restent à la charge du Locataire selon le cas.'],
+  ['ACCIDENT OU SINISTRE', 'En cas d’accident ou de sinistre, le Locataire doit informer immédiatement les autorités et l’Agence, remplir les documents nécessaires et ne reconnaître aucune responsabilité sans accord de l’Agence.'],
+  ['PANNE / ASSISTANCE', 'En cas de panne non imputable au Locataire, l’Agence organisera l’assistance. Aucune réparation engagée sans autorisation écrite préalable ne sera prise en charge.'],
+  ['VOL DU VÉHICULE', 'En cas de vol, le Locataire doit déposer plainte immédiatement et remettre à l’Agence le récépissé, les documents et les clés disponibles.'],
+  ['INFRACTIONS ET AMENDES', 'Le Locataire est seul responsable des infractions commises pendant la location. Les amendes et frais reçus après restitution lui seront transmis et pourront être majorés de frais de gestion.'],
+  ['PROLONGATION / MODIFICATION', 'Toute prolongation ou modification de la durée, du lieu de retour ou du conducteur doit être validée par écrit par l’Agence avant l’échéance prévue.'],
+  ['RÉSILIATION', 'L’Agence peut résilier le contrat en cas de violation des présentes conditions et procéder à la récupération du véhicule. Les jours prépayés non utilisés ne donnent lieu à aucun remboursement sauf accord écrit.'],
+  ['FORCE MAJEURE', 'Aucune partie ne peut être tenue responsable d’un manquement résultant d’un cas de force majeure, notamment catastrophe naturelle, émeute ou décision gouvernementale.'],
+  ['PROTECTION DES DONNÉES', 'Les informations collectées sont utilisées pour la gestion du contrat et peuvent être communiquées aux autorités en cas d’infraction ou de litige, conformément à la réglementation applicable.'],
+  ['LITIGES ET JURIDICTION', 'Tout litige relatif au présent contrat sera soumis aux tribunaux compétents conformément à la législation marocaine. Le présent contrat est régi par le droit marocain.'],
 ] as const;
+
+const personalizeCondition = (body: string, agencyName: string) =>
+  body.split('l’Agence').join(agencyName).split('L’Agence').join(agencyName);
 
 function text(value: unknown) {
   if (value === null || value === undefined) return '';
   return String(value).trim();
 }
 
-function display(value: unknown) {
-  return text(value) || blankLine;
-}
-
-function money(value?: number) {
-  if (typeof value !== 'number' || Number.isNaN(value)) return blankLine;
-  return `${new Intl.NumberFormat('fr-MA', { maximumFractionDigits: 2 }).format(value)} MAD`;
-}
-
 function agencyInitials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'AG';
 }
 
-function Field({ label, value, className = '' }: { label: string; value?: ReactNode; className?: string }) {
-  const hasValue = value !== null && value !== undefined && String(value).trim() !== '';
+function LineField({
+  label,
+  value,
+  className = '',
+  suffix,
+}: {
+  label: string;
+  value?: ReactNode;
+  className?: string;
+  suffix?: string;
+}) {
   return (
-    <div className={`cp-field ${className}`}>
-      <span className="cp-field-label">{label}</span>
-      <span className={`cp-field-value${hasValue ? '' : ' cp-field-empty'}`}>{hasValue ? value : blankLine}</span>
+    <div className={`rc-line-field ${className}`}>
+      <span className="rc-line-label">{label}</span>
+      <span className="rc-line-value">{value || ''}</span>
+      {suffix ? <span className="rc-line-suffix">{suffix}</span> : null}
     </div>
   );
 }
 
-function Section({ title, children, className = '' }: { title: string; children: ReactNode; className?: string }) {
+function BlackTitle({ children }: { children: ReactNode }) {
+  return <div className="rc-black-title">{children}</div>;
+}
+
+function VehicleSketch({ view }: { view: 'front' | 'rear' | 'left' | 'right' | 'top' | 'bottom' }) {
+  const side = view === 'left' || view === 'right';
+  const top = view === 'top' || view === 'bottom';
   return (
-    <section className={`cp-section ${className}`}>
-      <div className="cp-section-title">{title}</div>
-      <div className="cp-section-body">{children}</div>
-    </section>
+    <svg className="rc-vehicle-sketch" viewBox="0 0 150 72" aria-hidden="true">
+      {side ? (
+        <g transform={view === 'right' ? 'translate(150 0) scale(-1 1)' : undefined}>
+          <path d="M13 48h124l-7-20-25-9-42-1-26 9-17 4-7 17Z" fill="none" stroke="currentColor" strokeWidth="1.6" />
+          <path d="M53 23h49l18 19H32l21-19Z" fill="none" stroke="currentColor" strokeWidth="1.1" />
+          <path d="M72 23v19M101 23v19M46 42h68" fill="none" stroke="currentColor" />
+          <circle cx="42" cy="50" r="10" fill="#fff" stroke="currentColor" strokeWidth="1.6" />
+          <circle cx="116" cy="50" r="10" fill="#fff" stroke="currentColor" strokeWidth="1.6" />
+        </g>
+      ) : top ? (
+        <>
+          <path d="M48 5h54l13 13v38l-13 11H48L35 56V18L48 5Z" fill="none" stroke="currentColor" strokeWidth="1.6" />
+          <rect x="48" y="17" width="54" height="39" rx="11" fill="none" stroke="currentColor" strokeWidth="1.1" />
+          <path d="M48 26h54M48 48h54" fill="none" stroke="currentColor" />
+          {view === 'bottom' ? <rect x="61" y="54" width="28" height="7" fill="none" stroke="currentColor" /> : null}
+        </>
+      ) : (
+        <>
+          <path d="M43 62h64l11-21-7-25-16-9H55l-16 9-7 25 11 21Z" fill="none" stroke="currentColor" strokeWidth="1.6" />
+          <path d="M48 18h54l9 23H39l9-23Z" fill="none" stroke="currentColor" strokeWidth="1.1" />
+          <rect x="38" y="47" width="18" height="8" rx="2" fill="none" stroke="currentColor" />
+          <rect x="94" y="47" width="18" height="8" rx="2" fill="none" stroke="currentColor" />
+          <path d="M43 62v6M107 62v6" fill="none" stroke="currentColor" strokeWidth="2" />
+        </>
+      )}
+    </svg>
   );
 }
 
-function Check({ checked, label }: { checked?: boolean; label: string }) {
+function HeaderCars() {
   return (
-    <span className="cp-check">
-      <span className="cp-check-box">{checked ? '✓' : ''}</span>
-      {label}
-    </span>
-  );
-}
-
-function CarView({ label, kind }: { label: string; kind: 'front' | 'rear' | 'side' | 'top' }) {
-  const isSide = kind === 'side';
-  const isTop = kind === 'top';
-  return (
-    <div className={`cp-car-view cp-car-${kind}`}>
-      <svg viewBox="0 0 150 64" aria-hidden="true">
-        {isSide ? (
-          <>
-            <path d="M17 43h116l-7-21-27-8H55l-24 9-14 20Z" fill="none" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M48 22h56l18 17H31l17-17Z" fill="none" stroke="currentColor" strokeWidth="1.1" />
-            <circle cx="43" cy="45" r="8" fill="white" stroke="currentColor" strokeWidth="1.5" />
-            <circle cx="111" cy="45" r="8" fill="white" stroke="currentColor" strokeWidth="1.5" />
-          </>
-        ) : isTop ? (
-          <>
-            <rect x="48" y="5" width="54" height="54" rx="18" fill="none" stroke="currentColor" strokeWidth="1.5" />
-            <rect x="55" y="17" width="40" height="29" rx="9" fill="none" stroke="currentColor" strokeWidth="1.1" />
-            <path d="M55 23h40M55 41h40" fill="none" stroke="currentColor" strokeWidth="1" />
-          </>
-        ) : (
-          <>
-            <path d="M39 50h72l8-19-17-16H48L31 31l8 19Z" fill="none" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M48 17h54l10 14H38l10-14Z" fill="none" stroke="currentColor" strokeWidth="1.1" />
-            <rect x="38" y="37" width="16" height="7" rx="2" fill="none" stroke="currentColor" />
-            <rect x="96" y="37" width="16" height="7" rx="2" fill="none" stroke="currentColor" />
-          </>
-        )}
+    <div className="rc-header-cars" aria-hidden="true">
+      <svg viewBox="0 0 320 110">
+        <g transform="translate(0 5)">
+          <path d="M12 80h139l-10-34-36-20H61L24 46 12 80Z" fill="#202020" stroke="#000" strokeWidth="2" />
+          <path d="M57 30h51l25 35H31l26-35Z" fill="#fafafa" stroke="#000" strokeWidth="2" />
+          <circle cx="47" cy="83" r="17" fill="#111" /><circle cx="47" cy="83" r="8" fill="#aaa" />
+          <circle cx="123" cy="83" r="17" fill="#111" /><circle cx="123" cy="83" r="8" fill="#aaa" />
+        </g>
+        <g transform="translate(158 14)">
+          <path d="M8 73h145l-7-31-37-22H59L23 39 8 73Z" fill="#fff" stroke="#000" strokeWidth="3" />
+          <path d="M58 25h52l27 32H29l29-32Z" fill="#111" stroke="#000" strokeWidth="2" />
+          <path d="M14 60h130" stroke="#000" strokeWidth="3" />
+          <circle cx="42" cy="75" r="16" fill="#111" /><circle cx="42" cy="75" r="7" fill="#bbb" />
+          <circle cx="123" cy="75" r="16" fill="#111" /><circle cx="123" cy="75" r="7" fill="#bbb" />
+        </g>
       </svg>
-      <span>{label}</span>
     </div>
   );
 }
 
-function AgencyHeader({
+function AgencyBrand({
   agency,
-  contract,
   logoBroken,
   onLogoError,
   compact = false,
 }: {
   agency: ContractPdfAgency;
-  contract: ContractPdfContract;
   logoBroken: boolean;
   onLogoError?: () => void;
   compact?: boolean;
 }) {
-  const legal = [
-    agency.ice ? `ICE ${agency.ice}` : '',
-    agency.rc ? `RC ${agency.rc}` : '',
-    agency.ifNumber ? `IF ${agency.ifNumber}` : '',
-    agency.cnss ? `CNSS ${agency.cnss}` : '',
-  ].filter(Boolean);
   return (
-    <header className={`cp-header${compact ? ' cp-header-compact' : ''}`}>
-      <div className="cp-agency">
-        {agency.logoUrl && !logoBroken ? (
-          <img
-            src={agency.logoUrl}
-            alt={`${agency.name || 'Agence'} logo`}
-            className="cp-logo"
-            data-pdf-logo="agency"
-            crossOrigin="anonymous"
-            onError={onLogoError}
-          />
-        ) : (
-          <div className="cp-logo-fallback">{agencyInitials(agency.name)}</div>
-        )}
-        <div className="cp-agency-copy">
-          <strong>{display(agency.name)}</strong>
-          {agency.activityLabel ? <span>{agency.activityLabel}</span> : null}
-          <span>{text(agency.address) || 'Adresse agence non renseignée'}</span>
-          <span>{[agency.city, agency.phone, agency.whatsapp ? `WhatsApp ${agency.whatsapp}` : '', agency.email, agency.website].filter(Boolean).join(' · ') || 'Contact non renseigné'}</span>
-          {agency.arabicActivityLabel ? <span dir="rtl">{agency.arabicActivityLabel}</span> : null}
-          {legal.length ? <span>{legal.join(' · ')}</span> : null}
+    <div className={`rc-brand${compact ? ' rc-brand-compact' : ''}`}>
+      {agency.logoUrl && !logoBroken ? (
+        <img
+          src={agency.logoUrl}
+          alt={`${agency.name || 'Agence'} logo`}
+          className="rc-brand-logo"
+          data-pdf-logo="agency"
+          crossOrigin="anonymous"
+          onError={onLogoError}
+        />
+      ) : (
+        <div className="rc-brand-fallback">
+          <span>{agencyInitials(agency.name)}</span>
+          <strong>{text(agency.name) || 'AGENCE'}</strong>
         </div>
-      </div>
-      <div className="cp-header-meta">
-        <span>Contrat N° <strong>{display(contract.reference)}</strong></span>
-        <span>Date <strong>{display(contract.date)}</strong></span>
-      </div>
-    </header>
+      )}
+      {!compact ? (
+        <div className="rc-brand-contact">
+          <strong>{agency.activityLabel || 'LOCATION DE VOITURE'}</strong>
+          <span>{[agency.address, agency.city].filter(Boolean).join(' · ') || 'Adresse non renseignée'}</span>
+          <span>{[agency.phone, agency.whatsapp ? `WhatsApp ${agency.whatsapp}` : '', agency.email].filter(Boolean).join(' · ') || 'Contact non renseigné'}</span>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
 export default function ContractPdfTemplate({ data, logoBroken = false, onLogoError, className = '' }: ContractPdfTemplateProps) {
-  const { agency, reservation, client, secondDriver, vehicle, payment, contract } = data;
-  const remaining = typeof payment.remainingAmount === 'number'
-    ? payment.remainingAmount
-    : Math.max(0, (payment.totalAmount || 0) - (payment.paidAmount || 0));
-  const firstConditions = conditions.slice(0, 9);
-  const secondConditions = conditions.slice(9);
+  const { agency, reservation, client, secondDriver, vehicle, contract } = data;
+  const agencyName = text(agency.name) || 'L’AGENCE';
+  const leftConditions = conditions.slice(0, 8);
+  const rightConditions = conditions.slice(8);
+  const birthClient = [client.birthDate, client.birthPlace].filter(Boolean).join(' à ');
+  const birthDriver = [secondDriver.birthDate, secondDriver.birthPlace].filter(Boolean).join(' à ');
 
   return (
     <div className={`contract-pdf-template ${className}`}>
       <style>{`
         .contract-pdf-template {
-          --cp-black: #111;
-          --cp-gray: #555;
-          --cp-line: #9b9b9b;
           width: 794px;
-          color: var(--cp-black);
-          font-family: Arial, Helvetica, sans-serif;
-          font-size: 10px;
-          line-height: 1.25;
+          color: #0a0a0a;
+          font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+          line-height: 1.15;
         }
-        .cp-page {
+        .rc-page {
           position: relative;
           width: 794px;
           height: 1123px;
-          box-sizing: border-box;
           overflow: hidden;
-          padding: 30px 34px 28px;
+          box-sizing: border-box;
           background: #fff;
           border: 1px solid #ddd;
           box-shadow: 0 18px 45px rgba(0,0,0,.16);
         }
-        .cp-page + .cp-page { margin-top: 18px; }
-        .cp-header {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 18px;
-          min-height: 58px;
-          padding-bottom: 8px;
-          border-bottom: 2px solid var(--cp-black);
-        }
-        .cp-header-compact { min-height: 48px; }
-        .cp-agency { display: flex; min-width: 0; gap: 10px; }
-        .cp-logo { width: auto; max-width: 72px; max-height: 48px; object-fit: contain; }
-        .cp-logo-fallback {
+        .rc-page + .rc-page { margin-top: 18px; }
+        .rc-page-one { padding: 27px 32px 24px 56px; }
+        .rc-top {
           display: grid;
-          width: 48px;
-          height: 48px;
-          flex: 0 0 auto;
-          place-items: center;
-          border: 2px solid var(--cp-black);
-          font-size: 14px;
-          font-weight: 900;
+          grid-template-columns: 300px 1fr;
+          min-height: 146px;
+          gap: 12px;
         }
-        .cp-agency-copy { display: flex; min-width: 0; flex-direction: column; gap: 1px; }
-        .cp-agency-copy strong { font-size: 16px; line-height: 1.05; text-transform: uppercase; }
-        .cp-agency-copy span { color: var(--cp-gray); font-size: 8.4px; }
-        .cp-header-meta { display: flex; flex-direction: column; gap: 5px; text-align: right; font-size: 9.5px; }
-        .cp-document-title {
-          margin: 8px 0 7px;
-          padding: 7px 10px;
-          background: var(--cp-black);
-          color: #fff;
+        .rc-brand { min-width: 0; text-align: center; }
+        .rc-brand-logo { display: block; width: auto; max-width: 270px; max-height: 78px; margin: 0 auto 3px; object-fit: contain; }
+        .rc-brand-fallback { position: relative; padding-top: 13px; text-transform: uppercase; }
+        .rc-brand-fallback::before {
+          content: "";
+          position: absolute;
+          left: 32px;
+          right: 32px;
+          top: 4px;
+          height: 23px;
+          border-top: 5px solid #000;
+          border-radius: 50% 50% 0 0;
+          transform: skewX(-18deg);
+        }
+        .rc-brand-fallback span { position: relative; display: block; font-size: 30px; font-weight: 900; letter-spacing: .04em; }
+        .rc-brand-fallback strong { position: relative; display: block; margin-top: -2px; font-size: 19px; }
+        .rc-brand-contact { display: flex; flex-direction: column; gap: 2px; margin-top: 4px; font-size: 10px; font-weight: 700; }
+        .rc-brand-contact strong { font-size: 13px; }
+        .rc-header-right { position: relative; min-width: 0; }
+        .rc-header-cars { height: 105px; overflow: hidden; }
+        .rc-header-cars svg { width: 100%; height: 100%; }
+        .rc-activity-line {
+          margin-top: 2px;
           text-align: center;
-          font-size: 18px;
+          font-size: 15px;
           font-weight: 900;
-          letter-spacing: .1em;
           text-transform: uppercase;
+          white-space: nowrap;
         }
-        .cp-document-subtitle { display: block; margin-top: 2px; font-size: 8px; letter-spacing: .22em; }
-        .cp-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
-        .cp-grid-condition { display: grid; grid-template-columns: 1.36fr .84fr; gap: 6px; margin-bottom: 6px; }
-        .cp-section { min-width: 0; border: 1px solid var(--cp-black); background: #fff; }
-        .cp-section-title {
-          padding: 4px 7px;
-          background: var(--cp-black);
+        .rc-contract-ref { position: absolute; left: 58px; top: 127px; font-size: 15px; font-weight: 900; letter-spacing: .15em; }
+        .rc-main-title {
+          height: 35px;
+          margin: 3px 0 7px;
+          border-radius: 6px;
+          background: #050505;
           color: #fff;
-          font-size: 9.3px;
-          font-weight: 900;
-          letter-spacing: .1em;
+          font-size: 22px;
+          line-height: 35px;
+          letter-spacing: .08em;
+          text-align: center;
           text-transform: uppercase;
         }
-        .cp-section-body { padding: 5px 7px; }
-        .cp-field {
-          display: grid;
-          grid-template-columns: 103px minmax(0, 1fr);
-          gap: 5px;
-          align-items: start;
-          min-height: 16px;
-          margin-bottom: 1px;
-          font-size: 8.8px;
+        .rc-side-notice {
+          position: absolute;
+          left: 17px;
+          top: 224px;
+          height: 730px;
+          writing-mode: vertical-rl;
+          text-orientation: mixed;
+          font-size: 9.5px;
+          font-weight: 800;
+          letter-spacing: .025em;
         }
-        .cp-field-label { color: var(--cp-gray); font-weight: 700; }
-        .cp-field-value {
+        .rc-vehicle-area {
+          display: grid;
+          grid-template-columns: 64% 36%;
+          gap: 8px;
+          margin-bottom: 6px;
+        }
+        .rc-rounded-box {
+          border: 1.8px solid #111;
+          border-radius: 14px;
+          padding: 10px 12px 8px;
+          box-sizing: border-box;
+        }
+        .rc-rounded-box + .rc-rounded-box { margin-top: 7px; }
+        .rc-line-field {
+          display: grid;
+          grid-template-columns: max-content minmax(0, 1fr) max-content;
+          align-items: end;
+          gap: 6px;
+          min-height: 25px;
+          font-size: 10.5px;
+          font-weight: 800;
+          text-transform: uppercase;
+        }
+        .rc-line-label { white-space: nowrap; }
+        .rc-line-value {
           min-width: 0;
-          min-height: 14px;
-          padding: 0 2px 1px;
-          border-bottom: 1px dotted var(--cp-line);
-          color: var(--cp-black);
+          min-height: 15px;
+          padding: 0 3px 2px;
+          border-bottom: 1.2px dotted #333;
+          font-size: 9.7px;
           font-weight: 700;
+          text-transform: none;
           overflow-wrap: anywhere;
         }
-        .cp-field-empty { color: #888; font-weight: 400; letter-spacing: .03em; }
-        .cp-inline-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-        .cp-inline-2 .cp-field { grid-template-columns: 70px minmax(0, 1fr); }
-        .cp-checks { display: flex; flex-wrap: wrap; gap: 4px 10px; }
-        .cp-check { display: inline-flex; align-items: center; gap: 4px; font-size: 8.5px; color: var(--cp-gray); }
-        .cp-check-box {
-          display: inline-grid;
-          width: 10px;
-          height: 10px;
-          place-items: center;
-          border: 1px solid var(--cp-black);
-          color: var(--cp-black);
-          font-size: 8px;
-          line-height: 1;
-        }
-        .cp-car-grid {
+        .rc-line-suffix { white-space: nowrap; }
+        .rc-inline-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .rc-inline-2 .rc-line-field { grid-template-columns: max-content minmax(0, 1fr); }
+        .rc-diagrams {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 4px;
+          grid-template-columns: 1fr 1.35fr;
+          grid-template-rows: repeat(3, 1fr);
+          gap: 2px 5px;
+          padding: 4px 2px 2px;
         }
-        .cp-car-view {
-          min-height: 48px;
-          padding: 2px;
-          border: 1px solid #bbb;
-          color: #555;
-          text-align: center;
-          box-sizing: border-box;
-        }
-        .cp-car-side { grid-column: span 2; }
-        .cp-car-view svg { display: block; width: 100%; height: 35px; }
-        .cp-car-view span { display: block; margin-top: -1px; font-size: 7px; font-weight: 800; text-transform: uppercase; }
-        .cp-observations {
-          min-height: 31px;
-          margin-top: 4px;
-          padding: 4px;
-          border: 1px dotted var(--cp-line);
-          color: var(--cp-gray);
-          font-size: 8.5px;
-          overflow-wrap: anywhere;
-        }
-        .cp-payment-table { width: 100%; border-collapse: collapse; font-size: 8.8px; }
-        .cp-payment-table td { padding: 3px 4px; border-bottom: 1px solid #ddd; }
-        .cp-payment-table td:last-child { text-align: right; font-weight: 800; white-space: nowrap; }
-        .cp-payment-table tr:last-child td { border-top: 1.5px solid var(--cp-black); border-bottom: 0; font-size: 9.4px; }
-        .cp-payment-meta { margin-top: 5px; padding-top: 4px; border-top: 1px dotted var(--cp-line); }
-        .cp-signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }
-        .cp-signature {
-          min-height: 70px;
-          padding: 5px;
-          border: 1px solid var(--cp-black);
-          box-sizing: border-box;
-        }
-        .cp-signature strong { display: block; padding-bottom: 3px; border-bottom: 1px solid #ccc; font-size: 8.2px; text-transform: uppercase; }
-        .cp-signature span { display: block; margin-top: 4px; color: var(--cp-gray); font-size: 8px; }
-        .cp-acceptance { margin-top: 5px; text-align: center; color: var(--cp-gray); font-size: 7.8px; font-style: italic; }
-        .cp-page-number { position: absolute; right: 34px; bottom: 15px; color: #777; font-size: 8px; }
-        .cp-conditions-title {
-          margin: 9px 0 8px;
-          padding-bottom: 6px;
-          border-bottom: 2px solid var(--cp-black);
-          text-align: center;
-          font-size: 20px;
-          font-weight: 900;
-          letter-spacing: .06em;
-          text-transform: uppercase;
-        }
-        .cp-conditions-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .cp-condition { margin-bottom: 5px; break-inside: avoid; }
-        .cp-condition-title {
-          padding: 3px 5px;
-          background: var(--cp-black);
+        .rc-diagram { display: grid; min-height: 60px; place-items: center; color: #222; }
+        .rc-vehicle-sketch { width: 100%; height: 58px; }
+        .rc-black-title {
+          height: 28px;
+          border-radius: 5px 5px 0 0;
+          background: #050505;
           color: #fff;
-          font-size: 7.6px;
-          font-weight: 900;
-          letter-spacing: .045em;
+          font-size: 18px;
+          line-height: 28px;
+          letter-spacing: .04em;
+          text-align: center;
           text-transform: uppercase;
         }
-        .cp-condition p { margin: 3px 2px 0; color: #333; font-size: 7.55px; line-height: 1.34; text-align: justify; }
-        .cp-conditions-signatures {
+        .rc-person-box {
+          border: 1.8px solid #111;
+          border-top: 0;
+          border-radius: 0 0 13px 13px;
+          padding: 7px 11px 6px;
+        }
+        .rc-person-box .rc-line-field { min-height: 22px; font-size: 10px; }
+        .rc-person-box .rc-line-value { font-size: 9.4px; }
+        .rc-person-section { margin-bottom: 5px; }
+        .rc-declaration { margin: 7px 7px 0; font-size: 10px; font-weight: 700; line-height: 1.35; }
+        .rc-page-one-footer { position: absolute; right: 34px; bottom: 12px; color: #555; font-size: 7.5px; }
+        .rc-page-two { padding: 35px 43px 26px; }
+        .rc-terms-header {
+          display: grid;
+          grid-template-columns: 180px 1fr 73px;
+          align-items: center;
+          gap: 15px;
+        }
+        .rc-brand-compact .rc-brand-logo { max-width: 165px; max-height: 65px; margin: 0; }
+        .rc-brand-compact .rc-brand-fallback span { font-size: 20px; }
+        .rc-brand-compact .rc-brand-fallback strong { font-size: 12px; }
+        .rc-terms-title {
+          font-size: 25px;
+          font-weight: 900;
+          letter-spacing: -.02em;
+          text-align: center;
+          text-transform: uppercase;
+          white-space: nowrap;
+        }
+        .rc-page-badge {
+          border: 1px solid #222;
+          padding: 6px 7px;
+          font-size: 8.5px;
+          font-weight: 900;
+          text-align: center;
+        }
+        .rc-terms-rule { height: 1.5px; margin: 18px 0 14px; background: #222; }
+        .rc-terms-cols {
+          position: relative;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 22px;
+        }
+        .rc-terms-cols::after {
+          content: "";
+          position: absolute;
+          left: 50%;
+          top: 0;
+          bottom: 0;
+          width: 1px;
+          background: #c7c7c7;
+        }
+        .rc-term { margin-bottom: 9px; }
+        .rc-term-title {
+          min-height: 20px;
+          padding: 0 6px;
+          background: #050505;
+          color: #fff;
+          font-size: 9px;
+          font-weight: 900;
+          line-height: 20px;
+          letter-spacing: .03em;
+          text-transform: uppercase;
+        }
+        .rc-term p {
+          margin: 4px 3px 0;
+          color: #111;
+          font-size: 8.2px;
+          line-height: 1.31;
+          text-align: justify;
+        }
+        .rc-signature-panel {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          min-height: 105px;
           margin-top: 7px;
-          padding-top: 6px;
-          border-top: 2px solid var(--cp-black);
+          border: 1.5px solid #111;
+          border-radius: 12px;
+          overflow: hidden;
         }
-        .cp-conditions-signatures > strong { display: block; margin-bottom: 5px; text-align: center; font-size: 9px; text-transform: uppercase; }
-        .cp-conditions-signature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .cp-conditions-signature {
-          min-height: 72px;
-          padding: 5px;
-          border: 1px solid var(--cp-black);
-          box-sizing: border-box;
-          color: var(--cp-gray);
+        .rc-signature-side { padding: 9px 12px; font-size: 9px; }
+        .rc-signature-side + .rc-signature-side { border-left: 1px solid #999; }
+        .rc-signature-side strong { display: block; margin-bottom: 5px; font-size: 10px; text-transform: uppercase; }
+        .rc-signature-line { display: inline-block; min-width: 130px; border-bottom: 1px solid #555; }
+        .rc-terms-footer {
+          margin-top: 8px;
+          text-align: center;
           font-size: 8px;
+          font-weight: 700;
+          white-space: nowrap;
         }
-        .cp-conditions-signature b { display: block; margin-bottom: 4px; color: var(--cp-black); text-transform: uppercase; }
       `}</style>
 
-      <div className="cp-page contract-pdf-page" data-contract-page="1">
-        <AgencyHeader agency={agency} contract={contract} logoBroken={logoBroken} onLogoError={onLogoError} />
-        <div className="cp-document-title">
-          Contrat de location
-          <span className="cp-document-subtitle">{agency.contractHeaderText || agency.activityLabel || 'Location de voiture · Rent car'}</span>
+      <div className="rc-page rc-page-one contract-pdf-page" data-contract-page="1">
+        <div className="rc-top">
+          <AgencyBrand agency={agency} logoBroken={logoBroken} onLogoError={onLogoError} />
+          <div className="rc-header-right">
+            <HeaderCars />
+            <div className="rc-activity-line">
+              {agency.activityLabel || 'LOCATION DE VOITURE'} &nbsp;
+              {agency.arabicActivityLabel || ''} &nbsp;
+              {agency.contractHeaderText || 'RENT CAR'}
+            </div>
+          </div>
+        </div>
+        <div className="rc-contract-ref">N° {contract.reference}</div>
+        <div className="rc-main-title">Contrat de location</div>
+        <div className="rc-side-notice">
+          Le locataire est le seul conducteur du véhicule et s’engage à ne pas céder à autrui à moins d’une stipulation sur le présent contrat.
         </div>
 
-        <div className="cp-grid-2">
-          <Section title="Location">
-            <div className="cp-inline-2">
-              <Field label="Départ" value={[reservation.pickupDate, reservation.pickupTime].filter(Boolean).join(' à ')} />
-              <Field label="Retour prévu" value={[reservation.returnDate, reservation.returnTime].filter(Boolean).join(' à ')} />
-            </div>
-            <div className="cp-inline-2">
-              <Field label="Durée" value={reservation.rentalDays ? `${reservation.rentalDays} jour(s)` : ''} />
-              <Field label="Retour réel" value={[reservation.actualReturnDate, reservation.actualReturnTime].filter(Boolean).join(' à ')} />
-            </div>
-            <Field label="Lieu de livraison / départ" value={reservation.pickupLocation} />
-            <Field label="Lieu de reprise / retour" value={reservation.returnLocation} />
-          </Section>
-
-          <Section title="Véhicule">
-            <div className="cp-inline-2">
-              <Field label="Marque" value={vehicle.brand} />
-              <Field label="Modèle" value={vehicle.model} />
-            </div>
-            <Field label="N° immatriculation" value={vehicle.plate ? <span dir="ltr">{vehicle.plate}</span> : ''} />
-            <div className="cp-inline-2">
-              <Field label="Km départ" value={vehicle.mileageOut} />
-              <Field label="Km retour" value={vehicle.mileageReturn} />
-            </div>
-            <div className="cp-inline-2">
-              <Field label="Carburant départ" value={vehicle.fuelOut} />
-              <Field label="Carburant retour" value={vehicle.fuelReturn} />
-            </div>
-          </Section>
-        </div>
-
-        <div className="cp-grid-2">
-          <Section title="Locataire">
-            <Field label="Nom complet" value={client.fullName} />
-            <div className="cp-inline-2">
-              <Field label="Nom" value={client.lastName} />
-              <Field label="Prénom" value={client.firstName} />
-            </div>
-            <div className="cp-inline-2">
-              <Field label="Date de naissance" value={client.birthDate} />
-              <Field label="Lieu de naissance" value={client.birthPlace} />
-            </div>
-            <Field label="Adresse au Maroc" value={client.address} />
-            <div className="cp-inline-2">
-              <Field label="Nationalité" value={client.nationality} />
-              <Field label="Téléphone" value={client.phone} />
-            </div>
-            <div className="cp-inline-2">
-              <Field label="CIN / Passeport" value={client.idNumber} />
-              <Field label="Permis N°" value={client.licenseNumber} />
-            </div>
-            <div className="cp-inline-2">
-              <Field label="Permis délivré le" value={client.licenseIssuedAt} />
-              <Field label="Permis délivré à" value={client.licenseIssuedPlace} />
-            </div>
-            <Field label="Permis valable jusqu’au" value={client.licenseExpiresAt} />
-          </Section>
-
-          <Section title="Chauffeur autorisé / 2ème conducteur">
-            <div className="cp-inline-2">
-              <Field label="Nom" value={secondDriver.enabled ? secondDriver.lastName : ''} />
-              <Field label="Prénom" value={secondDriver.enabled ? secondDriver.firstName : ''} />
-            </div>
-            <div className="cp-inline-2">
-              <Field label="Date de naissance" value={secondDriver.enabled ? secondDriver.birthDate : ''} />
-              <Field label="Lieu de naissance" value={secondDriver.enabled ? secondDriver.birthPlace : ''} />
-            </div>
-            <Field label="Adresse au Maroc" value={secondDriver.enabled ? secondDriver.address : ''} />
-            <div className="cp-inline-2">
-              <Field label="Nationalité" value={secondDriver.enabled ? secondDriver.nationality : ''} />
-              <Field label="Téléphone" value={secondDriver.enabled ? secondDriver.phone : ''} />
-            </div>
-            <div className="cp-inline-2">
-              <Field label="CIN / Passeport" value={secondDriver.enabled ? secondDriver.idNumber : ''} />
-              <Field label="Permis N°" value={secondDriver.enabled ? secondDriver.licenseNumber : ''} />
-            </div>
-            <div className="cp-inline-2">
-              <Field label="Délivré le" value={secondDriver.enabled ? secondDriver.licenseIssuedAt : ''} />
-              <Field label="Délivré à" value={secondDriver.enabled ? secondDriver.licenseIssuedPlace : ''} />
-            </div>
-            <Field label="Valable jusqu’au" value={secondDriver.enabled ? secondDriver.licenseExpiresAt : ''} />
-          </Section>
-        </div>
-
-        <div className="cp-grid-condition">
-          <Section title="État du véhicule">
-            <div className="cp-car-grid">
-              <CarView label="Avant" kind="front" />
-              <CarView label="Vue gauche" kind="side" />
-              <CarView label="Arrière" kind="rear" />
-              <CarView label="Vue droite" kind="side" />
-              <CarView label="Dessus" kind="top" />
-            </div>
-            <div className="cp-observations">
-              <strong>Observations / dommages :</strong> {text(vehicle.damageObservations) || text(vehicle.observations) || blankLine}
-            </div>
-          </Section>
-
+        <div className="rc-vehicle-area">
           <div>
-            <Section title="Paiement" className="cp-payment-section">
-              <table className="cp-payment-table">
-                <tbody>
-                  <tr><td>Prix journalier</td><td>{money(payment.dailyPrice)}</td></tr>
-                  <tr><td>Nombre de jours</td><td>{payment.rentalDays || reservation.rentalDays || blankLine}</td></tr>
-                  <tr><td>Total location</td><td>{money(payment.totalAmount)}</td></tr>
-                  <tr><td>Caution</td><td>{money(payment.deposit)}</td></tr>
-                  <tr><td>Montant payé</td><td>{money(payment.paidAmount)}</td></tr>
-                  <tr><td>Reste à payer</td><td>{money(remaining)}</td></tr>
-                </tbody>
-              </table>
-              <div className="cp-payment-meta">
-                <Field label="Mode de paiement" value={payment.method} />
-                <Field label="Statut" value={payment.status} />
+            <div className="rc-rounded-box">
+              <div className="rc-inline-2">
+                <LineField label="Marque :" value={[vehicle.brand, vehicle.model].filter(Boolean).join(' ')} />
+                <LineField label="N° immatriculation :" value={vehicle.plate ? <span dir="ltr">{vehicle.plate}</span> : ''} />
               </div>
-            </Section>
-
-            <Section title="Papiers du véhicule" className="cp-papers-section">
-              <div className="cp-checks">
-                <Check checked={vehicle.papers?.registrationCard} label="Carte grise" />
-                <Check checked={vehicle.papers?.insurance} label="Assurance" />
-                <Check checked={vehicle.papers?.technicalInspection} label="Visite technique" />
-                <Check checked={vehicle.papers?.vignette} label="Vignette" />
-                <Check checked={vehicle.papers?.circulationAuthorization} label="Autorisation de circulation" />
-                <Check checked={vehicle.papers?.other} label="Autre" />
-              </div>
-            </Section>
+              <LineField label="Lieu de livraison :" value={reservation.pickupLocation} />
+              <LineField label="Lieu de reprise :" value={reservation.returnLocation} />
+            </div>
+            <div className="rc-rounded-box">
+              <LineField label="Date et heure de départ :" value={[reservation.pickupDate, reservation.pickupTime].filter(Boolean).join(' à ')} suffix="H." />
+              <LineField label="Date et heure de retour prévu :" value={[reservation.returnDate, reservation.returnTime].filter(Boolean).join(' à ')} suffix="H." />
+              <LineField label="Durée location :" value={reservation.rentalDays} suffix="jours" />
+              <LineField label="Date et heure de retour réel :" value={[reservation.actualReturnDate, reservation.actualReturnTime].filter(Boolean).join(' à ')} suffix="H." />
+            </div>
+          </div>
+          <div className="rc-diagrams">
+            {(['front', 'left', 'rear', 'right', 'top', 'bottom'] as const).map((view) => (
+              <div className="rc-diagram" key={view}><VehicleSketch view={view} /></div>
+            ))}
           </div>
         </div>
 
-        <div className="cp-signatures">
-          <div className="cp-signature">
-            <strong>Signature locataire</strong>
-            <span>Lu et approuvé</span>
-          </div>
-          <div className="cp-signature">
-            <strong>{secondDriver.enabled ? 'Signature chauffeur autorisé' : 'Chauffeur autorisé'}</strong>
-            <span>{secondDriver.enabled ? 'Lu et approuvé' : 'Non applicable / signature libre'}</span>
-          </div>
-          <div className="cp-signature">
-            <strong>Signature agence</strong>
-            <span>{display(agency.name)}<br />Cachet et signature</span>
+        <div className="rc-person-section">
+          <BlackTitle>Le locataire</BlackTitle>
+          <div className="rc-person-box">
+            <div className="rc-inline-2">
+              <LineField label="Nom :" value={client.lastName || client.fullName} />
+              <LineField label="Prénom :" value={client.firstName} />
+            </div>
+            <LineField label="Date et lieu de naissance :" value={birthClient} />
+            <LineField label="Adresse au Maroc :" value={client.address} />
+            <LineField label="" value="" className="rc-spacer-line" />
+            <LineField label="Nationalité :" value={client.nationality} />
+            <LineField label="Permis de conduire N° :" value={client.licenseNumber} />
+            <div className="rc-inline-2">
+              <LineField label="Délivré le :" value={client.licenseIssuedAt} />
+              <LineField label="À :" value={client.licenseIssuedPlace} />
+            </div>
+            <LineField label="C.I.N & Passeport N° :" value={client.idNumber} />
+            <div className="rc-inline-2">
+              <LineField label="Délivré le :" value="" />
+              <LineField label="Tél :" value={client.phone} />
+            </div>
           </div>
         </div>
-        <div className="cp-acceptance">La signature du présent contrat vaut lecture et acceptation des conditions générales figurant au verso.</div>
-        <div className="cp-page-number">Page 1 / 2</div>
+
+        <div className="rc-person-section">
+          <BlackTitle>Chauffeur autorisé</BlackTitle>
+          <div className="rc-person-box">
+            <div className="rc-inline-2">
+              <LineField label="Nom :" value={secondDriver.enabled ? secondDriver.lastName : ''} />
+              <LineField label="Prénom :" value={secondDriver.enabled ? secondDriver.firstName : ''} />
+            </div>
+            <LineField label="Date et lieu de naissance :" value={secondDriver.enabled ? birthDriver : ''} />
+            <LineField label="Adresse au Maroc :" value={secondDriver.enabled ? secondDriver.address : ''} />
+            <LineField label="" value="" className="rc-spacer-line" />
+            <LineField label="Nationalité :" value={secondDriver.enabled ? secondDriver.nationality : ''} />
+            <LineField label="Permis de conduire N° :" value={secondDriver.enabled ? secondDriver.licenseNumber : ''} />
+            <div className="rc-inline-2">
+              <LineField label="Délivré le :" value={secondDriver.enabled ? secondDriver.licenseIssuedAt : ''} />
+              <LineField label="À :" value={secondDriver.enabled ? secondDriver.licenseIssuedPlace : ''} />
+            </div>
+            <LineField label="C.I.N & Passeport N° :" value={secondDriver.enabled ? secondDriver.idNumber : ''} />
+            <div className="rc-inline-2">
+              <LineField label="Délivré le :" value="" />
+              <LineField label="Tél :" value={secondDriver.enabled ? secondDriver.phone : ''} />
+            </div>
+          </div>
+        </div>
+
+        <p className="rc-declaration">
+          Le locataire du véhicule {agencyName} déclare avoir pris connaissance des clauses stipulées ci-dessus et au verso du présent contrat, et avoir reçu un véhicule dont le compteur kilométrique et l’état ont été constatés.
+        </p>
+        <div className="rc-page-one-footer">Page 1 / 2 · {contract.date}</div>
       </div>
 
-      <div className="cp-page contract-pdf-page" data-contract-page="2">
-        <AgencyHeader agency={agency} contract={contract} logoBroken={logoBroken} onLogoError={onLogoError} compact />
-        <div className="cp-conditions-title">Conditions générales de location</div>
+      <div className="rc-page rc-page-two contract-pdf-page" data-contract-page="2">
+        <div className="rc-terms-header">
+          <AgencyBrand agency={agency} logoBroken={logoBroken} onLogoError={onLogoError} compact />
+          <div className="rc-terms-title">Conditions générales de location</div>
+          <div className="rc-page-badge">PAGE 2 / 2</div>
+        </div>
+        <div className="rc-terms-rule" />
 
-        <div className="cp-conditions-columns">
+        <div className="rc-terms-cols">
           <div>
-            {firstConditions.map(([title, body], index) => (
-              <article className="cp-condition" key={title}>
-                <div className="cp-condition-title">{index + 1}. {title}</div>
-                <p>{body}</p>
+            {leftConditions.map(([title, body], index) => (
+              <article className="rc-term" key={title}>
+                <div className="rc-term-title">{index + 1}. {title}</div>
+                <p>{personalizeCondition(body, agencyName)}</p>
               </article>
             ))}
           </div>
           <div>
-            {secondConditions.map(([title, body], index) => (
-              <article className="cp-condition" key={title}>
-                <div className="cp-condition-title">{index + 10}. {title}</div>
-                <p>{body}</p>
+            {rightConditions.map(([title, body], index) => (
+              <article className="rc-term" key={title}>
+                <div className="rc-term-title">{index + 9}. {title}</div>
+                <p>{personalizeCondition(body, agencyName)}</p>
               </article>
             ))}
           </div>
         </div>
 
-        <div className="cp-conditions-signatures">
-          <strong>Acceptation et signatures</strong>
-          <div className="cp-conditions-signature-grid">
-            <div className="cp-conditions-signature">
-              <b>Signature du locataire</b>
-              Date : ........................................<br />
-              Lieu : ........................................<br />
-              Signature :
-            </div>
-            <div className="cp-conditions-signature">
-              <b>Cachet et signature de l’agence</b>
-              {display(agency.name)}<br />
-              Date : ........................................<br />
-              Signature / cachet :
-            </div>
+        <div className="rc-signature-panel">
+          <div className="rc-signature-side">
+            <strong>Signature du locataire</strong>
+            Lu et approuvé
+            <p>Date : <span className="rc-signature-line" /> &nbsp; Lieu : <span className="rc-signature-line" /></p>
+            <p>Signature : <span className="rc-signature-line" style={{ minWidth: 250 }} /></p>
+          </div>
+          <div className="rc-signature-side">
+            <strong>Cachet et signature de l’agence</strong>
+            {agencyName}
           </div>
         </div>
-        <div className="cp-acceptance">
-          {[agency.name, agency.address, agency.city, agency.phone, agency.email, agency.website].filter(Boolean).join(' · ')}
-          {agency.footerNote ? ` · ${agency.footerNote}` : ''}
+        <div className="rc-terms-footer">
+          {[agency.name, agency.address, agency.city, agency.phone, agency.whatsapp, agency.email, agency.website].filter(Boolean).join(' — ')}
+          {agency.footerNote ? ` — ${agency.footerNote}` : ''}
         </div>
-        <div className="cp-page-number">Page 2 / 2</div>
       </div>
     </div>
   );
