@@ -113,6 +113,14 @@ function statusFr(status: ReservationStatus) {
   return 'Annulée';
 }
 
+function vehicleStatusFr(status: string) {
+  if (status === 'Available') return 'Disponible';
+  if (status === 'Rented') return 'Réservé';
+  if (status === 'Maintenance') return 'Maintenance';
+  if (status === 'Unavailable') return 'Indisponible';
+  return status;
+}
+
 function urgencyBadge(reservation: Reservation, todayIso: string) {
   if (reservation.returnDate < todayIso && reservation.status !== 'Completed' && reservation.status !== 'Cancelled') {
     return { label: 'En retard', className: 'border-rose-300/40 bg-rose-500/15 text-rose-700 dark:text-rose-100' };
@@ -172,6 +180,7 @@ export default function ReservationsPage() {
 
   const [query, setQuery] = useState('');
   const [clientSearch, setClientSearch] = useState('');
+  const [vehicleSearch, setVehicleSearch] = useState('');
   const [status, setStatus] = useState<ReservationFilterStatus>('All');
   const [view, setView] = useState<ViewMode>('grid');
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
@@ -287,6 +296,14 @@ export default function ReservationsPage() {
       .slice(0, 8);
   }, [clientSearch, clients]);
 
+  const filteredVehicleChoices = useMemo(() => {
+    const q = vehicleSearch.trim().toLowerCase();
+    if (!q) return vehicles;
+    return vehicles.filter((vehicle) =>
+      `${vehicle.brand} ${vehicle.model} ${vehicle.plate} ${vehicle.city}`.toLowerCase().includes(q),
+    );
+  }, [vehicleSearch, vehicles]);
+
   const stats = useMemo(() => {
     const total = reservations.length;
     const confirmed = reservations.filter((r) => r.status === 'Confirmed').length;
@@ -329,6 +346,7 @@ export default function ReservationsPage() {
     setDraftNotes('');
     setDraftStatus('Confirmed');
     setClientSearch('');
+    setVehicleSearch('');
     setReservationStep(0);
   }
 
@@ -390,6 +408,7 @@ export default function ReservationsPage() {
     setDraftNotes(reservation.notes || '');
     setDraftStatus(reservation.status);
     setClientSearch(reservation.client || '');
+    setVehicleSearch('');
     setReservationStep(0);
     setModalOpen(true);
   }
@@ -982,25 +1001,82 @@ export default function ReservationsPage() {
                       <section className="space-y-3 sm:space-y-4">
                         <div>
                           <h3 className="text-base font-black text-[var(--app-text)] sm:text-lg">Véhicule</h3>
-                          <p className="mt-0.5 text-xs text-[var(--app-text-muted)] sm:text-sm">Choisissez le véhicule disponible pour la période.</p>
+                          <p className="mt-0.5 text-xs text-[var(--app-text-muted)] sm:text-sm">Recherchez par modèle, marque, matricule ou ville.</p>
                         </div>
-                        <ReservationField label="Véhicule">
-                          <select
-                            className={inputClass}
-                            value={draftVehicleId}
-                            onChange={(event) => {
-                              const v = vehicles.find((item) => item.id === event.target.value);
-                              setDraftVehicleId(event.target.value);
-                              if (v) setDraftDailyPrice(v.dailyPrice ? String(v.dailyPrice) : '');
-                            }}
-                            required
-                          >
-                            {vehicles.map((vehicle) => <option key={vehicle.id} value={vehicle.id}>{vehicle.brand} {vehicle.model}</option>)}
-                          </select>
-                        </ReservationField>
+
+                        <label className="relative block">
+                          <span className="sr-only">Rechercher un véhicule</span>
+                          <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--app-text-muted)]" />
+                          <input
+                            className={`${inputClass} pl-10`}
+                            value={vehicleSearch}
+                            onChange={(event) => setVehicleSearch(sanitizeText(event.target.value, 100))}
+                            placeholder="Modèle, marque, matricule ou ville..."
+                            autoComplete="off"
+                          />
+                        </label>
+
+                        <div className="grid max-h-[min(42dvh,420px)] gap-2.5 overflow-y-auto overscroll-contain pr-0.5 sm:grid-cols-2 sm:gap-3">
+                          {filteredVehicleChoices.map((vehicle) => {
+                            const isSelected = vehicle.id === draftVehicleId;
+                            return (
+                              <button
+                                key={vehicle.id}
+                                type="button"
+                                onClick={() => {
+                                  setDraftVehicleId(vehicle.id);
+                                  setDraftDailyPrice(vehicle.dailyPrice ? String(vehicle.dailyPrice) : '');
+                                }}
+                                className={`focus-ring min-w-0 rounded-2xl border p-2.5 text-left transition sm:p-3 ${
+                                  isSelected
+                                    ? 'border-gold-400 bg-[var(--app-gold-soft)] shadow-[0_0_28px_rgba(212,160,23,.14)]'
+                                    : 'border-[var(--app-border)] bg-[var(--app-surface-soft)] hover:border-gold-300/35 hover:bg-[var(--app-gold-soft)]'
+                                }`}
+                                aria-pressed={isSelected}
+                              >
+                                <span className="flex min-w-0 gap-3">
+                                  <span className="grid h-16 w-20 shrink-0 place-items-center overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-card)]">
+                                    {vehicle.imageUrl ? (
+                                      <img
+                                        src={vehicle.imageUrl}
+                                        alt={`${vehicle.brand} ${vehicle.model}`}
+                                        loading="lazy"
+                                        decoding="async"
+                                        className="h-full w-full object-cover"
+                                      />
+                                    ) : (
+                                      <Car className="h-6 w-6 text-[var(--app-gold-text)]" />
+                                    )}
+                                  </span>
+                                  <span className="min-w-0 flex-1">
+                                    <span className="block truncate text-sm font-black text-[var(--app-text)]" title={`${vehicle.brand} ${vehicle.model} · ${vehicle.plate} · ${vehicle.city}`}>
+                                      {vehicle.brand} {vehicle.model} · {vehicle.plate} · {vehicle.city || 'Ville non renseignée'}
+                                    </span>
+                                    <span className="mt-1 flex flex-wrap items-center gap-1.5">
+                                      <Badge>{vehicle.status}</Badge>
+                                      <span className="text-[11px] font-semibold text-[var(--app-text-muted)]">{vehicleStatusFr(vehicle.status)}</span>
+                                    </span>
+                                    <span className="mt-1.5 grid grid-cols-2 gap-x-2 text-[11px] font-medium text-[var(--app-text-soft)]">
+                                      <span className="truncate">{formatMAD(vehicle.dailyPrice)} / jour</span>
+                                      <span className="truncate text-right">{vehicle.mileage?.toLocaleString() || '0'} km</span>
+                                    </span>
+                                  </span>
+                                </span>
+                              </button>
+                            );
+                          })}
+                          {filteredVehicleChoices.length === 0 ? (
+                            <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-sm text-[var(--app-text-muted)] sm:col-span-2">
+                              Aucun véhicule trouvé pour cette recherche.
+                            </div>
+                          ) : null}
+                        </div>
+
+                        {selectedVehicle ? <input className="sr-only" value={selectedVehicle.id} readOnly required /> : null}
+
                         {selectedVehicle ? (
-                          <div className="premium-surface grid gap-3 rounded-2xl p-3 sm:grid-cols-[180px_1fr] sm:rounded-3xl sm:p-5">
-                            <div className="relative h-24 overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] sm:h-28 sm:rounded-3xl">
+                          <div className="grid gap-3 rounded-2xl border border-gold-300/45 bg-[var(--app-gold-soft)] p-3 shadow-[0_0_30px_rgba(212,160,23,.10)] sm:grid-cols-[180px_1fr] sm:rounded-3xl sm:p-4">
+                            <div className="relative h-24 overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] sm:h-28 sm:rounded-3xl">
                               {selectedVehicle.imageUrl ? (
                                 <img
                                   src={selectedVehicle.imageUrl}
@@ -1015,13 +1091,26 @@ export default function ReservationsPage() {
                                 </div>
                               )}
                             </div>
-                            <div>
-                              <div className="flex flex-wrap items-center gap-3">
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[var(--app-gold-text)]">Véhicule sélectionné</p>
+                              <div className="mt-1 flex flex-wrap items-center gap-2">
                                 <p className="text-sm font-black text-[var(--app-text)] sm:text-base">{selectedVehicle.brand} {selectedVehicle.model}</p>
                                 <Badge>{selectedVehicle.status}</Badge>
                               </div>
-                              <p className="mt-1 text-xs text-[var(--app-text-muted)] sm:text-sm"><PlateNumber value={selectedVehicle.plate} /> · {selectedVehicle.city}</p>
-                              <p className="mt-2 text-xs text-[var(--app-text-soft)] sm:mt-3 sm:text-sm">{selectedVehicle.mileage.toLocaleString()} km · {formatMAD(selectedVehicle.dailyPrice)} / jour</p>
+                              <p className="mt-1 text-xs font-semibold text-[var(--app-text-soft)] sm:text-sm">
+                                <PlateNumber value={selectedVehicle.plate} /> · {selectedVehicle.city || 'Ville non renseignée'}
+                              </p>
+                              <div className="mt-2 grid grid-cols-2 gap-2 text-xs sm:mt-3 sm:text-sm">
+                                <span className="rounded-xl border border-[var(--app-border)] bg-[var(--app-card)] px-2.5 py-2 font-semibold text-[var(--app-text-soft)]">
+                                  {formatMAD(selectedVehicle.dailyPrice)} / jour
+                                </span>
+                                <span className="rounded-xl border border-[var(--app-border)] bg-[var(--app-card)] px-2.5 py-2 font-semibold text-[var(--app-text-soft)]">
+                                  {selectedVehicle.mileage?.toLocaleString() || '0'} km
+                                </span>
+                              </div>
+                              <p className="mt-2 text-xs font-semibold text-[var(--app-text-muted)]">
+                                Disponibilité: <span className="text-[var(--app-text)]">{vehicleStatusFr(selectedVehicle.status)}</span>
+                              </p>
                             </div>
                           </div>
                         ) : null}
