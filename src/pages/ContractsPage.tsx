@@ -179,9 +179,13 @@ type SecondDriver = {
   firstName: string;
   lastName: string;
   birthDate: string;
+  birthPlace: string;
   nationality: string;
   idNumber: string;
   licenseNumber: string;
+  licenseIssuedAt: string;
+  licenseIssuedPlace: string;
+  licenseExpiresAt: string;
   phone: string;
   address: string;
 };
@@ -191,9 +195,13 @@ const emptySecondDriver: SecondDriver = {
   firstName: '',
   lastName: '',
   birthDate: '',
+  birthPlace: '',
   nationality: '',
   idNumber: '',
   licenseNumber: '',
+  licenseIssuedAt: '',
+  licenseIssuedPlace: '',
+  licenseExpiresAt: '',
   phone: '',
   address: '',
 };
@@ -208,9 +216,13 @@ function serializeSecondDriverForContract(secondDriver: SecondDriver) {
     ['Nom', secondDriver.lastName],
     ['Prénom', secondDriver.firstName],
     ['Date de naissance', secondDriver.birthDate],
+    ['Lieu de naissance', secondDriver.birthPlace],
     ['Nationalité', secondDriver.nationality],
     ['CIN/Passeport', secondDriver.idNumber],
     ['Permis N°', secondDriver.licenseNumber],
+    ['Permis délivré le', secondDriver.licenseIssuedAt],
+    ['Permis délivré à', secondDriver.licenseIssuedPlace],
+    ["Permis valable jusqu'au", secondDriver.licenseExpiresAt],
     ['Téléphone', secondDriver.phone],
     ['Adresse', secondDriver.address],
   ];
@@ -232,7 +244,7 @@ function parseSecondDriverFromContractTerms(terms: string) {
   const block = terms.slice(start + '[2EME_CONDUCTEUR]'.length, end);
   const cleanTerms = `${terms.slice(0, start)}${terms.slice(end + '[/2EME_CONDUCTEUR]'.length)}`.trim();
   const values = new Map<string, string>();
-  const labelPattern = /(Nom|Prénom|Prenom|Date de naissance|Nationalité|Nationalite|CIN\/Passeport|Permis N°|Permis N|Téléphone|Telephone|Adresse)\s*:/gi;
+  const labelPattern = /(Nom|Prénom|Prenom|Date de naissance|Lieu de naissance|Nationalité|Nationalite|CIN\/Passeport|Permis délivré le|Permis delivre le|Permis délivré à|Permis delivre a|Permis valable jusqu'au|Permis N°|Permis N|Téléphone|Telephone|Adresse)\s*:/gi;
   const matches = Array.from(block.matchAll(labelPattern));
   matches.forEach((match, index) => {
     const label = String(match[1] || '').trim().toLowerCase();
@@ -249,9 +261,13 @@ function parseSecondDriverFromContractTerms(terms: string) {
       lastName: values.get('nom') || '',
       firstName: values.get('prénom') || values.get('prenom') || '',
       birthDate: values.get('date de naissance') || '',
+      birthPlace: values.get('lieu de naissance') || '',
       nationality: values.get('nationalité') || values.get('nationalite') || '',
       idNumber: values.get('cin/passeport') || '',
       licenseNumber: values.get('permis n°') || values.get('permis n') || '',
+      licenseIssuedAt: values.get('permis délivré le') || values.get('permis delivre le') || '',
+      licenseIssuedPlace: values.get('permis délivré à') || values.get('permis delivre a') || '',
+      licenseExpiresAt: values.get("permis valable jusqu'au") || '',
       phone: values.get('téléphone') || values.get('telephone') || '',
       address: values.get('adresse') || '',
     },
@@ -617,16 +633,18 @@ export default function ContractsPage() {
         pickupTime,
         returnDate: formatDateFr(returnDate),
         returnTime,
+        actualReturnDate: readString(reservationSource, ['actualReturnDate', 'actual_return_date', 'returnRealDate', 'return_real_date']),
+        actualReturnTime: readString(reservationSource, ['actualReturnTime', 'actual_return_time', 'returnRealTime', 'return_real_time']),
         rentalDays,
         pickupLocation: selectedReservation?.pickupLocation || selectedReservation?.city || '',
         returnLocation: selectedReservation?.returnLocation || selectedReservation?.city || '',
-        agentName: profile?.fullName || profile?.email || '',
       },
       client: {
         fullName: client.fullName || selectedReservation?.client || '',
         firstName: readString(clientSource, ['firstName', 'first_name']) || clientNameParts.firstName,
         lastName: readString(clientSource, ['lastName', 'last_name']) || clientNameParts.lastName,
         birthDate: readString(clientSource, ['birthDate', 'birth_date', 'dateOfBirth', 'date_of_birth']),
+        birthPlace: readString(clientSource, ['birthPlace', 'birth_place', 'placeOfBirth', 'place_of_birth']),
         nationality: readString(clientSource, ['nationality', 'nationalite']),
         address: client.address || '',
         phone: client.phone || '',
@@ -634,6 +652,7 @@ export default function ContractsPage() {
         idNumber: client.cin || '',
         licenseNumber: client.license || '',
         licenseIssuedAt: readString(clientSource, ['licenseIssuedAt', 'license_issued_at', 'licenseIssueDate', 'license_issue_date']),
+        licenseIssuedPlace: readString(clientSource, ['licenseIssuedPlace', 'license_issued_place', 'licenseIssuePlace', 'license_issue_place']),
         licenseExpiresAt: readString(clientSource, ['licenseExpiresAt', 'license_expires_at', 'licenseExpiryDate', 'license_expiry_date']),
       },
       secondDriver,
@@ -643,9 +662,8 @@ export default function ContractsPage() {
         plate: vehicle.plate || '',
         mileageOut: selectedReservation?.mileageOut ?? (vehicle.mileage || ''),
         mileageReturn: readString(reservationSource, ['mileageReturn', 'mileage_return', 'mileageIn', 'mileage_in']),
-        fuelLevel: selectedReservation?.fuelLevelOut || readString(vehicleSource, ['fuelLevel', 'fuel_level']) || vehicle.fuel,
-        insuranceAllRisk: null,
-        franchise: readNumber(reservationSource, ['franchise']) ?? readNumber(vehicleSource, ['franchise']),
+        fuelOut: selectedReservation?.fuelLevelOut || readString(vehicleSource, ['fuelLevel', 'fuel_level']) || vehicle.fuel,
+        fuelReturn: readString(reservationSource, ['fuelLevelReturn', 'fuel_level_return', 'fuelLevelIn', 'fuel_level_in']),
         observations: selectedReservation?.notes || '',
         damageObservations: damageSummary,
         papers: {
@@ -654,14 +672,18 @@ export default function ContractsPage() {
           insurance: Boolean(vehicle.insuranceExpiry),
           vignette: false,
           circulationAuthorization: false,
+          other: false,
         },
       },
       payment: {
+        dailyPrice: selectedReservation?.dailyPrice || vehicle.dailyPrice || undefined,
+        rentalDays,
         totalAmount,
         paidAmount: effectivePaidAmount,
         remainingAmount: Math.max(0, (totalAmount || 0) - effectivePaidAmount),
         deposit: effectiveDeposit,
         method: selectedReservationPayments[0]?.method || readString(reservationSource, ['paymentMethod', 'payment_method', 'method']),
+        status: selectedReservationPaymentSummary?.statusFr || (effectivePaidAmount >= totalAmount ? 'Payé' : effectivePaidAmount > 0 ? 'Partiel' : 'En attente'),
       },
       contract: {
         reference: contractReference,
@@ -689,6 +711,7 @@ export default function ContractsPage() {
     returnTime,
     secondDriver,
     selectedReservation,
+    selectedReservationPaymentSummary?.statusFr,
     selectedReservationPayments,
     totalAmount,
     vehicle,
@@ -1210,8 +1233,12 @@ export default function ContractsPage() {
                 <input className="form-control rounded-2xl border-[var(--app-border)] bg-[var(--app-input)] text-base sm:text-sm" placeholder="Permis N°" value={secondDriver.licenseNumber} onChange={(event) => setSecondDriver((current) => ({ ...current, licenseNumber: event.target.value }))} />
                 <input className="form-control rounded-2xl border-[var(--app-border)] bg-[var(--app-input)] text-base sm:text-sm" placeholder="Téléphone" value={secondDriver.phone} onChange={(event) => setSecondDriver((current) => ({ ...current, phone: event.target.value }))} />
                 <input className="form-control rounded-2xl border-[var(--app-border)] bg-[var(--app-input)] text-base sm:text-sm" placeholder="Date de naissance" value={secondDriver.birthDate} onChange={(event) => setSecondDriver((current) => ({ ...current, birthDate: event.target.value }))} />
+                <input className="form-control rounded-2xl border-[var(--app-border)] bg-[var(--app-input)] text-base sm:text-sm" placeholder="Lieu de naissance" value={secondDriver.birthPlace} onChange={(event) => setSecondDriver((current) => ({ ...current, birthPlace: event.target.value }))} />
                 <input className="form-control rounded-2xl border-[var(--app-border)] bg-[var(--app-input)] text-base sm:text-sm" placeholder="Nationalité" value={secondDriver.nationality} onChange={(event) => setSecondDriver((current) => ({ ...current, nationality: event.target.value }))} />
                 <input className="form-control rounded-2xl border-[var(--app-border)] bg-[var(--app-input)] text-base sm:text-sm" placeholder="Adresse" value={secondDriver.address} onChange={(event) => setSecondDriver((current) => ({ ...current, address: event.target.value }))} />
+                <input className="form-control rounded-2xl border-[var(--app-border)] bg-[var(--app-input)] text-base sm:text-sm" placeholder="Permis délivré le" value={secondDriver.licenseIssuedAt} onChange={(event) => setSecondDriver((current) => ({ ...current, licenseIssuedAt: event.target.value }))} />
+                <input className="form-control rounded-2xl border-[var(--app-border)] bg-[var(--app-input)] text-base sm:text-sm" placeholder="Permis délivré à" value={secondDriver.licenseIssuedPlace} onChange={(event) => setSecondDriver((current) => ({ ...current, licenseIssuedPlace: event.target.value }))} />
+                <input className="form-control rounded-2xl border-[var(--app-border)] bg-[var(--app-input)] text-base sm:text-sm sm:col-span-2" placeholder="Permis valable jusqu’au" value={secondDriver.licenseExpiresAt} onChange={(event) => setSecondDriver((current) => ({ ...current, licenseExpiresAt: event.target.value }))} />
               </div>
             ) : (
               <p className="text-sm text-[var(--app-text-muted)]">Optionnel. Les champs vides afficheront “—” dans le contrat.</p>

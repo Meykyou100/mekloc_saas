@@ -17,10 +17,11 @@ export type ContractPdfReservation = {
   pickupTime?: string;
   returnDate?: string;
   returnTime?: string;
+  actualReturnDate?: string;
+  actualReturnTime?: string;
   rentalDays?: number;
   pickupLocation?: string;
   returnLocation?: string;
-  agentName?: string;
 };
 
 export type ContractPdfClient = {
@@ -28,6 +29,7 @@ export type ContractPdfClient = {
   firstName?: string;
   lastName?: string;
   birthDate?: string;
+  birthPlace?: string;
   nationality?: string;
   address?: string;
   phone?: string;
@@ -35,6 +37,7 @@ export type ContractPdfClient = {
   idNumber?: string;
   licenseNumber?: string;
   licenseIssuedAt?: string;
+  licenseIssuedPlace?: string;
   licenseExpiresAt?: string;
 };
 
@@ -43,9 +46,13 @@ export type ContractPdfSecondDriver = {
   firstName?: string;
   lastName?: string;
   birthDate?: string;
+  birthPlace?: string;
   nationality?: string;
   idNumber?: string;
   licenseNumber?: string;
+  licenseIssuedAt?: string;
+  licenseIssuedPlace?: string;
+  licenseExpiresAt?: string;
   phone?: string;
   address?: string;
 };
@@ -56,9 +63,8 @@ export type ContractPdfVehicle = {
   plate?: string;
   mileageOut?: string | number;
   mileageReturn?: string | number;
-  fuelLevel?: string;
-  insuranceAllRisk?: boolean | null;
-  franchise?: string | number;
+  fuelOut?: string;
+  fuelReturn?: string;
   observations?: string;
   damageObservations?: string;
   papers?: {
@@ -67,15 +73,19 @@ export type ContractPdfVehicle = {
     insurance?: boolean;
     vignette?: boolean;
     circulationAuthorization?: boolean;
+    other?: boolean;
   };
 };
 
 export type ContractPdfPayment = {
+  dailyPrice?: number;
+  rentalDays?: number;
   totalAmount?: number;
   paidAmount?: number;
   remainingAmount?: number;
   deposit?: number;
   method?: 'cash' | 'cheque' | 'card' | 'transfer' | string;
+  status?: string;
 };
 
 export type ContractPdfContract = {
@@ -100,82 +110,53 @@ type ContractPdfTemplateProps = {
   className?: string;
 };
 
-const emptyLine = '........................';
-const missingMark = '—';
+const blankLine = '................................';
 
-function valueOrLine(value: unknown) {
-  if (value === null || value === undefined) return emptyLine;
-  const normalized = String(value).trim();
-  return normalized || emptyLine;
-}
+const conditions = [
+  ['OBJET DU CONTRAT', 'Le présent contrat a pour objet la mise à disposition d’un véhicule automobile par l’agence au profit du locataire, selon les informations indiquées au recto.'],
+  ['CONDITIONS D’ÉLIGIBILITÉ', 'Le locataire doit présenter une pièce d’identité valide et un permis de conduire valide. L’agence peut refuser la location si les documents sont incomplets ou non conformes.'],
+  ['PRISE EN CHARGE DU VÉHICULE', 'Le locataire reconnaît avoir reçu le véhicule en bon état apparent de fonctionnement, propre et conforme à l’état indiqué au recto.'],
+  ['UTILISATION DU VÉHICULE', 'Le véhicule doit être utilisé de manière normale, responsable et conforme à la loi. Toute utilisation dangereuse, abusive, illégale, sous-location ou conduite par une personne non déclarée est interdite.'],
+  ['CONDUCTEUR AUTORISÉ', 'Le véhicule ne peut être conduit que par le locataire ou par le conducteur autorisé mentionné dans le contrat.'],
+  ['CARBURANT', 'Le véhicule doit être restitué avec le même niveau de carburant qu’au départ. Toute différence peut être facturée au locataire.'],
+  ['KILOMÉTRAGE', 'Le kilométrage au départ et au retour est indiqué au contrat. Tout dépassement ou anomalie peut être facturé selon les conditions de l’agence.'],
+  ['RETOUR DU VÉHICULE', 'Le véhicule doit être restitué à la date, à l’heure et au lieu convenus. Tout retard peut entraîner des frais supplémentaires.'],
+  ['CAUTION ET PAIEMENT', 'La caution peut être utilisée pour couvrir les dommages, retards, carburant, nettoyage, contraventions, documents ou accessoires manquants, ou tout autre montant dû.'],
+  ['ASSURANCE ET RESPONSABILITÉ', 'Le véhicule est couvert selon les conditions d’assurance de l’agence. La franchise et les exclusions restent à la charge du locataire selon le cas.'],
+  ['ACCIDENT OU SINISTRE', 'En cas d’accident, panne, vol ou dommage, le locataire doit informer immédiatement l’agence et fournir les documents nécessaires.'],
+  ['PANNE / ASSISTANCE', 'Aucune réparation ne doit être engagée sans l’accord préalable de l’agence.'],
+  ['VOL DU VÉHICULE', 'En cas de vol, le locataire doit déposer plainte et remettre à l’agence tous les documents et clés disponibles.'],
+  ['INFRACTIONS ET AMENDES', 'Les amendes, contraventions, frais de fourrière, péages ou infractions pendant la location sont à la charge du locataire.'],
+  ['PROLONGATION / MODIFICATION', 'Toute prolongation ou modification doit être validée par l’agence avant l’échéance prévue.'],
+  ['NETTOYAGE ET ACCESSOIRES', 'Le véhicule doit être rendu dans un état de propreté normal avec ses documents, clés et accessoires. Tout élément manquant ou détérioré peut être facturé.'],
+  ['PROTECTION DES DONNÉES', 'Les données du locataire sont utilisées uniquement pour la gestion de la location et peuvent être communiquées aux autorités en cas d’infraction ou de litige.'],
+  ['ACCEPTATION', 'La signature du contrat vaut acceptation complète des présentes conditions générales de location.'],
+] as const;
 
-function isBlankValue(value: unknown) {
-  if (value === null || value === undefined) return true;
-  if (typeof value === 'string') return !value.trim() || value.trim() === emptyLine;
-  return false;
-}
-
-function agencyInitials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  return parts.slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'AG';
-}
-
-function optionalValue(value: unknown) {
+function text(value: unknown) {
   if (value === null || value === undefined) return '';
   return String(value).trim();
 }
 
-function formatMoney(value?: number) {
-  if (typeof value !== 'number' || Number.isNaN(value)) return emptyLine;
-  return new Intl.NumberFormat('fr-MA', { maximumFractionDigits: 0 }).format(value);
+function display(value: unknown) {
+  return text(value) || blankLine;
 }
 
-function checked(value?: boolean | null) {
-  return value ? '☑' : '☐';
+function money(value?: number) {
+  if (typeof value !== 'number' || Number.isNaN(value)) return blankLine;
+  return `${new Intl.NumberFormat('fr-MA', { maximumFractionDigits: 2 }).format(value)} MAD`;
 }
 
-function paymentChecked(method: ContractPdfPayment['method'], target: string) {
-  const normalized = String(method || '').toLowerCase();
-  const aliases: Record<string, string[]> = {
-    cash: ['cash', 'espèces', 'especes'],
-    cheque: ['cheque', 'chèque', 'check'],
-    card: ['card', 'carte', 'carte bancaire'],
-    transfer: ['transfer', 'bank transfer', 'virement'],
-  };
-  return aliases[target]?.some((item) => normalized.includes(item)) ? '☑' : '☐';
+function agencyInitials(name: string) {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'AG';
 }
 
-function fullSecondDriverName(secondDriver: ContractPdfSecondDriver) {
-  return [secondDriver.lastName, secondDriver.firstName].map(optionalValue).filter(Boolean).join(' ');
-}
-
-function FieldRow({
-  label,
-  value,
-  unit,
-  narrow = false,
-}: {
-  label: string;
-  value?: ReactNode;
-  unit?: string;
-  narrow?: boolean;
-}) {
-  const missing = isBlankValue(value);
+function Field({ label, value, className = '' }: { label: string; value?: ReactNode; className?: string }) {
+  const hasValue = value !== null && value !== undefined && String(value).trim() !== '';
   return (
-    <div className={`cp-field-row${narrow ? ' cp-field-row-narrow' : ''}`}>
-      <span className={`cp-field-label${narrow ? ' cp-field-label-narrow' : ''}`}>{label}</span>
-      <span className={`cp-field-value ${missing ? 'cp-field-value-empty' : 'cp-field-value-filled'}`}>{missing ? emptyLine : value}</span>
-      {unit ? <span className="cp-field-unit">{unit}</span> : null}
-    </div>
-  );
-}
-
-function DetailRow({ label, value }: { label: string; value?: ReactNode }) {
-  const missing = isBlankValue(value);
-  return (
-    <div className="cp-detail-row">
-      <span className="cp-detail-label">{label}</span>
-      <span className={`cp-detail-value ${missing ? 'cp-detail-value-empty' : ''}`}>{missing ? missingMark : value}</span>
+    <div className={`cp-field ${className}`}>
+      <span className="cp-field-label">{label}</span>
+      <span className={`cp-field-value${hasValue ? '' : ' cp-field-empty'}`}>{hasValue ? value : blankLine}</span>
     </div>
   );
 }
@@ -189,86 +170,127 @@ function Section({ title, children, className = '' }: { title: string; children:
   );
 }
 
-function FuelTrack({ value }: { value?: string }) {
-  const normalized = optionalValue(value).toLowerCase();
-  const filledSegments = normalized.includes('plein') || normalized.includes('full') ? 8 : normalized.includes('1/2') || normalized.includes('demi') ? 4 : 0;
+function Check({ checked, label }: { checked?: boolean; label: string }) {
   return (
-    <div className="cp-fuel-row">
-      <span className="cp-field-label">Carburant :</span>
-      <div className="cp-fuel-track">
-        <span className="cp-fuel-label">E</span>
-        {Array.from({ length: 8 }).map((_, index) => (
-          <span key={index} className={`cp-fuel-seg${index < filledSegments ? ' cp-fuel-seg-filled' : ''}`} />
-        ))}
-        <span className="cp-fuel-label">F</span>
-        {!normalized ? <span className="cp-fuel-text">Non renseigné</span> : null}
-        {normalized && !filledSegments ? <span className="cp-fuel-text">{value}</span> : null}
-      </div>
+    <span className="cp-check">
+      <span className="cp-check-box">{checked ? '✓' : ''}</span>
+      {label}
+    </span>
+  );
+}
+
+function CarView({ label, kind }: { label: string; kind: 'front' | 'rear' | 'side' | 'top' }) {
+  const isSide = kind === 'side';
+  const isTop = kind === 'top';
+  return (
+    <div className={`cp-car-view cp-car-${kind}`}>
+      <svg viewBox="0 0 150 64" aria-hidden="true">
+        {isSide ? (
+          <>
+            <path d="M17 43h116l-7-21-27-8H55l-24 9-14 20Z" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M48 22h56l18 17H31l17-17Z" fill="none" stroke="currentColor" strokeWidth="1.1" />
+            <circle cx="43" cy="45" r="8" fill="white" stroke="currentColor" strokeWidth="1.5" />
+            <circle cx="111" cy="45" r="8" fill="white" stroke="currentColor" strokeWidth="1.5" />
+          </>
+        ) : isTop ? (
+          <>
+            <rect x="48" y="5" width="54" height="54" rx="18" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <rect x="55" y="17" width="40" height="29" rx="9" fill="none" stroke="currentColor" strokeWidth="1.1" />
+            <path d="M55 23h40M55 41h40" fill="none" stroke="currentColor" strokeWidth="1" />
+          </>
+        ) : (
+          <>
+            <path d="M39 50h72l8-19-17-16H48L31 31l8 19Z" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M48 17h54l10 14H38l10-14Z" fill="none" stroke="currentColor" strokeWidth="1.1" />
+            <rect x="38" y="37" width="16" height="7" rx="2" fill="none" stroke="currentColor" />
+            <rect x="96" y="37" width="16" height="7" rx="2" fill="none" stroke="currentColor" />
+          </>
+        )}
+      </svg>
+      <span>{label}</span>
     </div>
   );
 }
 
-function CarDiagram() {
+function AgencyHeader({
+  agency,
+  contract,
+  logoBroken,
+  onLogoError,
+  compact = false,
+}: {
+  agency: ContractPdfAgency;
+  contract: ContractPdfContract;
+  logoBroken: boolean;
+  onLogoError?: () => void;
+  compact?: boolean;
+}) {
+  const legal = [
+    agency.ice ? `ICE ${agency.ice}` : '',
+    agency.rc ? `RC ${agency.rc}` : '',
+    agency.ifNumber ? `IF ${agency.ifNumber}` : '',
+    agency.cnss ? `CNSS ${agency.cnss}` : '',
+  ].filter(Boolean);
   return (
-    <div className="cp-vehicle-diagram">
-      <svg className="cp-vehicle-svg" viewBox="0 0 120 56" width="110" height="52" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <rect x="10" y="12" width="100" height="32" rx="10" ry="10" fill="none" stroke="#333" strokeWidth="1.5" />
-        <rect x="32" y="14" width="56" height="28" rx="5" fill="none" stroke="#333" strokeWidth="1" />
-        <rect x="10" y="10" width="14" height="9" rx="3" fill="none" stroke="#333" strokeWidth="1" />
-        <rect x="96" y="10" width="14" height="9" rx="3" fill="none" stroke="#333" strokeWidth="1" />
-        <rect x="10" y="37" width="14" height="9" rx="3" fill="none" stroke="#333" strokeWidth="1" />
-        <rect x="96" y="37" width="14" height="9" rx="3" fill="none" stroke="#333" strokeWidth="1" />
-        <text x="60" y="8" textAnchor="middle" fontSize="5" fill="#666">AVANT</text>
-      </svg>
-      <span className="cp-damage-note">Indiquer les dommages sur le schéma</span>
-    </div>
+    <header className={`cp-header${compact ? ' cp-header-compact' : ''}`}>
+      <div className="cp-agency">
+        {agency.logoUrl && !logoBroken ? (
+          <img
+            src={agency.logoUrl}
+            alt={`${agency.name || 'Agence'} logo`}
+            className="cp-logo"
+            data-pdf-logo="agency"
+            crossOrigin="anonymous"
+            onError={onLogoError}
+          />
+        ) : (
+          <div className="cp-logo-fallback">{agencyInitials(agency.name)}</div>
+        )}
+        <div className="cp-agency-copy">
+          <strong>{display(agency.name)}</strong>
+          <span>{text(agency.address) || 'Adresse agence non renseignée'}</span>
+          <span>{[agency.phone, agency.email].filter(Boolean).join(' · ') || 'Contact non renseigné'}</span>
+          {legal.length ? <span>{legal.join(' · ')}</span> : null}
+        </div>
+      </div>
+      <div className="cp-header-meta">
+        <span>Contrat N° <strong>{display(contract.reference)}</strong></span>
+        <span>Date <strong>{display(contract.date)}</strong></span>
+      </div>
+    </header>
   );
 }
 
 export default function ContractPdfTemplate({ data, logoBroken = false, onLogoError, className = '' }: ContractPdfTemplateProps) {
   const { agency, reservation, client, secondDriver, vehicle, payment, contract } = data;
-  const secondDriverName = secondDriver.enabled ? fullSecondDriverName(secondDriver) : '';
-  const agencyName = optionalValue(agency.name);
-  const agencyContactLines = [
-    optionalValue(agency.address),
-    [agency.phone ? `Tél : ${agency.phone}` : '', agency.email ? `Email : ${agency.email}` : ''].filter(Boolean).join(' · '),
-  ].filter(Boolean);
-  const agencyLegalItems = [
-    ['RC', agency.rc],
-    ['IF', agency.ifNumber],
-    ['ICE', agency.ice],
-    ['CNSS', agency.cnss],
-  ].map(([label, value]) => ({ label, value: optionalValue(value) })).filter((item) => item.value);
-  const remainingAmount =
-    typeof payment.remainingAmount === 'number'
-      ? payment.remainingAmount
-      : typeof payment.totalAmount === 'number' && typeof payment.paidAmount === 'number'
-        ? Math.max(0, payment.totalAmount - payment.paidAmount)
-        : undefined;
+  const remaining = typeof payment.remainingAmount === 'number'
+    ? payment.remainingAmount
+    : Math.max(0, (payment.totalAmount || 0) - (payment.paidAmount || 0));
+  const firstConditions = conditions.slice(0, 9);
+  const secondConditions = conditions.slice(9);
 
   return (
     <div className={`contract-pdf-template ${className}`}>
       <style>{`
         .contract-pdf-template {
-          --cp-ink: #1c1b19;
-          --cp-mid: #55514c;
-          --cp-light: #88827a;
-          --cp-line: #d8d3ca;
-          --cp-paper: #fffdfa;
+          --cp-black: #111;
+          --cp-gray: #555;
+          --cp-line: #9b9b9b;
           width: 794px;
-          color: var(--cp-ink);
+          color: var(--cp-black);
           font-family: Arial, Helvetica, sans-serif;
-          line-height: 1.28;
+          font-size: 10px;
+          line-height: 1.25;
         }
         .cp-page {
           position: relative;
           width: 794px;
           height: 1123px;
-          overflow: hidden;
-          background: var(--cp-paper);
-          padding: 42px;
           box-sizing: border-box;
-          border: 1px solid #e6e0d7;
+          overflow: hidden;
+          padding: 30px 34px 28px;
+          background: #fff;
+          border: 1px solid #ddd;
           box-shadow: 0 18px 45px rgba(0,0,0,.16);
         }
         .cp-page + .cp-page { margin-top: 18px; }
@@ -277,781 +299,362 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           align-items: flex-start;
           justify-content: space-between;
           gap: 18px;
-          padding-bottom: 11px;
-          border-bottom: 2px solid var(--cp-ink);
+          min-height: 58px;
+          padding-bottom: 8px;
+          border-bottom: 2px solid var(--cp-black);
         }
-        .cp-logo-block {
-          display: flex;
-          align-items: flex-start;
-          gap: 10px;
-          min-width: 0;
-          flex: 1 1 auto;
-        }
-        .cp-logo-img {
-          display: block;
-          width: auto;
-          max-width: 70px;
-          max-height: 45px;
-          object-fit: contain;
-          flex: 0 0 auto;
-        }
+        .cp-header-compact { min-height: 48px; }
+        .cp-agency { display: flex; min-width: 0; gap: 10px; }
+        .cp-logo { width: auto; max-width: 72px; max-height: 48px; object-fit: contain; }
         .cp-logo-fallback {
           display: grid;
-          place-items: center;
-          width: 44px;
-          height: 44px;
-          border: 1px solid var(--cp-ink);
-          font-weight: 800;
-          font-size: 13px;
-          letter-spacing: .02em;
-          text-transform: uppercase;
-        }
-        .cp-agency-name {
-          font-size: 17px;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: .04em;
-          line-height: 1.1;
-        }
-        .cp-agency-sub, .cp-reg-row {
-          color: var(--cp-mid);
-          font-size: 9.6px;
-          line-height: 1.45;
-        }
-        .cp-reg-row {
-          display: flex;
-          flex-wrap: wrap;
-          justify-content: flex-end;
-          gap: 3px 9px;
-        }
-        .cp-header-right {
-          max-width: 300px;
-          flex: 0 0 300px;
-          text-align: right;
-          padding-top: 2px;
-        }
-        .cp-title-bar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          margin: 10px 0 8px;
-          padding: 8px 11px;
-          background: var(--cp-ink);
-          color: #fff;
-          text-transform: uppercase;
-          letter-spacing: .08em;
-          font-size: 18.5px;
-          font-weight: 800;
-          line-height: 1;
-        }
-        .cp-contract-meta {
-          display: flex;
-          gap: 14px;
-          font-size: 10.4px;
-          font-weight: 600;
-          letter-spacing: .04em;
-          line-height: 1;
-        }
-        .cp-grid-2 {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 7px;
-          margin-bottom: 7px;
-        }
-        .cp-grid-3 {
-          display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
-          gap: 7px;
-          margin-top: 2px;
-        }
-        .cp-section {
-          border: 1px solid var(--cp-line);
-          background: #fff;
-        }
-        .cp-section-title {
-          background: #f1eee9;
-          border-bottom: 1px solid var(--cp-line);
-          padding: 5px 7px 3px;
-          color: var(--cp-ink);
-          font-size: 10.5px;
-          font-weight: 800;
-          letter-spacing: .11em;
-          line-height: 1;
-          text-transform: uppercase;
-        }
-        .cp-section-body {
-          padding: 6px 7px;
-        }
-        .cp-field-row {
-          display: grid;
-          grid-template-columns: 98px minmax(0, 1fr) auto;
-          align-items: center;
-          gap: 5px;
-          min-height: 22px;
-          margin-bottom: 2px;
-          color: var(--cp-mid);
-          font-size: 10.7px;
-          line-height: 1;
-        }
-        .cp-field-row-narrow {
-          grid-template-columns: 82px minmax(0, 1fr) auto;
-        }
-        .cp-field-label {
-          display: flex;
-          align-items: center;
-          min-height: 18px;
-          color: var(--cp-mid);
-          font-weight: 700;
-          line-height: 1;
-          white-space: nowrap;
-        }
-        .cp-field-label-narrow { font-size: 9.7px; }
-        .cp-field-value {
-          display: block;
-          position: relative;
-          top: -3px;
-          align-items: center;
-          min-width: 0;
-          min-height: 19px;
-          box-sizing: border-box;
-          color: var(--cp-ink);
-          font-weight: 700;
-          line-height: 19px;
-          padding: 0 4px;
-          overflow: visible;
-          white-space: nowrap;
-          text-overflow: ellipsis;
-        }
-        .cp-field-value-empty {
-          color: var(--cp-light);
-          font-weight: 500;
-          border-bottom: 1px dotted #999;
-          background: transparent;
-        }
-        .cp-field-value-filled {
-          border-bottom: 0;
-          background: transparent;
-          box-shadow: none;
-        }
-        .cp-detail-row {
-          display: grid;
-          grid-template-columns: 86px minmax(0, 1fr);
-          gap: 6px;
-          align-items: center;
-          min-height: 20px;
-          margin-bottom: 2px;
-          color: var(--cp-mid);
-          font-size: 9.8px;
-          line-height: 1;
-        }
-        .cp-detail-label {
-          display: flex;
-          align-items: center;
-          min-height: 18px;
-          color: var(--cp-mid);
-          font-weight: 800;
-          line-height: 1;
-          white-space: nowrap;
-        }
-        .cp-detail-value {
-          display: block;
-          position: relative;
-          top: -3px;
-          align-items: center;
-          min-width: 0;
-          min-height: 19px;
-          box-sizing: border-box;
-          padding: 0 4px;
-          background: transparent;
-          border-bottom: 0;
-          box-shadow: none;
-          overflow-wrap: anywhere;
-          word-break: break-word;
-          color: var(--cp-ink);
-          font-weight: 700;
-          line-height: 19px;
-        }
-        .cp-detail-value-empty {
-          background: transparent;
-          border-bottom: 1px dotted #bdb7ad;
-          box-shadow: none;
-          color: var(--cp-light);
-          font-weight: 600;
-        }
-        .cp-field-unit {
-          display: flex;
-          align-items: center;
-          min-height: 18px;
-          color: var(--cp-light);
-          font-size: 9.3px;
-          line-height: 1;
-        }
-        .cp-field-inline-2 {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 8px;
-        }
-        .cp-stack {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-        }
-        .cp-check-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 5px 8px;
-        }
-        .cp-check-row {
-          display: flex;
-          align-items: center;
-          gap: 4px;
-          color: var(--cp-mid);
-          font-size: 9.5px;
-          font-weight: 600;
-        }
-        .cp-cb {
-          color: var(--cp-ink);
-          font-size: 10.5px;
-          line-height: 1;
-        }
-        .cp-fuel-row {
-          display: flex;
-          align-items: center;
-          gap: 5px;
-          margin: 4px 0 2px;
-        }
-        .cp-fuel-track {
-          display: flex;
-          gap: 2px;
-          align-items: center;
-          min-width: 0;
-        }
-        .cp-fuel-label, .cp-fuel-text {
-          color: var(--cp-light);
-          font-size: 8.5px;
-        }
-        .cp-fuel-seg {
-          width: 16px;
-          height: 10px;
-          border: 1px solid #999;
-          box-sizing: border-box;
-        }
-        .cp-fuel-seg-filled {
-          background: #1c1b19;
-        }
-        .cp-vehicle-diagram {
-          position: relative;
-          height: 60px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
-          margin: 4px 0;
-          border: 1px solid #ccc;
-          background: #fafafa;
-        }
-        .cp-vehicle-svg { opacity: .35; }
-        .cp-damage-note {
-          position: absolute;
-          right: 5px;
-          bottom: 3px;
-          color: var(--cp-light);
-          font-size: 8.4px;
-        }
-        .cp-observation-box {
-          width: 100%;
-          min-height: 22px;
-          border: 1px dotted #bbb;
-          color: var(--cp-mid);
-          font-size: 9.4px;
-          padding: 3px;
-          box-sizing: border-box;
-        }
-        .cp-payment-table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 10.4px;
-          line-height: 1.15;
-        }
-        .cp-payment-table td {
-          height: 21px;
-          padding: 3px 6px 5px;
-          border-bottom: 1px solid #e0ddd8;
-          vertical-align: middle;
-        }
-        .cp-payment-table td:last-child {
-          text-align: right;
-          font-weight: 700;
-          color: var(--cp-ink);
-          white-space: nowrap;
-        }
-        .cp-payment-table tr.cp-total td {
-          border-top: 1.5px solid var(--cp-ink);
-          border-bottom: 0;
-          font-weight: 800;
-          font-size: 11.2px;
-        }
-        .cp-sig-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 6px;
-          margin-top: 8px;
-        }
-        .cp-sig-box {
-          min-height: 78px;
-          border: 1px solid #bbb;
-          background: #fafafa;
-          padding: 5px 6px;
-          box-sizing: border-box;
-        }
-        .cp-sig-label {
-          margin-bottom: 4px;
-          padding-bottom: 3px;
-          border-bottom: 1px solid #ddd;
-          color: var(--cp-mid);
-          font-size: 8.5px;
-          font-weight: 800;
-          letter-spacing: .08em;
-          text-transform: uppercase;
-        }
-        .cp-sig-subtext {
-          color: var(--cp-light);
-          font-size: 8.4px;
-          line-height: 1.55;
-        }
-        .cp-acceptance {
-          margin-top: 6px;
-          padding-top: 6px;
-          border-top: 1px solid #e0ddd8;
-          color: var(--cp-mid);
-          font-size: 9.2px;
-          font-style: italic;
-          text-align: center;
-        }
-        .cp-page-num {
-          position: absolute;
-          right: 42px;
-          bottom: 23px;
-          color: var(--cp-light);
-          font-size: 9.2px;
-          letter-spacing: .06em;
-        }
-        .cp-cg-header-strip {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          margin-bottom: 12px;
-        }
-        .cp-cg-logo-mini {
-          display: flex;
-          align-items: center;
-          gap: 7px;
-          padding: 4px 8px;
-          border: 1.5px solid var(--cp-ink);
-          font-size: 13px;
-          font-weight: 800;
-          letter-spacing: .06em;
-          text-transform: uppercase;
-        }
-        .cp-cg-logo-img {
-          width: auto;
-          max-width: 34px;
-          max-height: 24px;
-          object-fit: contain;
-        }
-        .cp-cg-title {
-          margin-bottom: 12px;
-          padding-bottom: 7px;
-          border-bottom: 2px solid var(--cp-ink);
-          color: var(--cp-ink);
-          font-size: 24.5px;
-          font-weight: 700;
-          letter-spacing: .03em;
-          text-align: center;
-        }
-        .cp-cg-cols {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 14px;
-        }
-        .cp-cg-article {
-          margin-bottom: 10px;
-        }
-        .cp-cg-article-title {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          min-height: 18px;
-          margin-bottom: 5px;
-          padding: 4px 6px;
-          background: var(--cp-ink);
-          color: #fff;
-          font-size: 9.7px;
-          font-weight: 800;
-          letter-spacing: .075em;
-          line-height: 12px;
-          overflow: visible;
-          text-transform: uppercase;
-        }
-        .cp-cg-article-num {
+          width: 48px;
+          height: 48px;
           flex: 0 0 auto;
-          white-space: nowrap;
-          opacity: .75;
-          font-size: 8.5px;
-          line-height: 12px;
+          place-items: center;
+          border: 2px solid var(--cp-black);
+          font-size: 14px;
+          font-weight: 900;
         }
-        .cp-cg-article p,
-        .cp-cg-article li {
-          margin: 0 0 3px;
-          color: var(--cp-mid);
-          font-size: 9.15px;
-          line-height: 1.52;
-        }
-        .cp-cg-article ul {
-          margin: 2px 0 0;
-          padding-left: 14px;
-        }
-        .cp-cg-sig-block {
-          margin-top: 13px;
-          padding-top: 9px;
-          border-top: 2px solid var(--cp-ink);
-        }
-        .cp-cg-sig-title {
-          margin-bottom: 7px;
-          color: var(--cp-ink);
-          font-size: 11px;
-          font-weight: 800;
-          letter-spacing: .12em;
+        .cp-agency-copy { display: flex; min-width: 0; flex-direction: column; gap: 1px; }
+        .cp-agency-copy strong { font-size: 16px; line-height: 1.05; text-transform: uppercase; }
+        .cp-agency-copy span { color: var(--cp-gray); font-size: 8.4px; }
+        .cp-header-meta { display: flex; flex-direction: column; gap: 5px; text-align: right; font-size: 9.5px; }
+        .cp-document-title {
+          margin: 8px 0 7px;
+          padding: 7px 10px;
+          background: var(--cp-black);
+          color: #fff;
           text-align: center;
+          font-size: 18px;
+          font-weight: 900;
+          letter-spacing: .1em;
           text-transform: uppercase;
         }
-        .cp-cg-sig-grid {
+        .cp-document-subtitle { display: block; margin-top: 2px; font-size: 8px; letter-spacing: .22em; }
+        .cp-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
+        .cp-grid-condition { display: grid; grid-template-columns: 1.36fr .84fr; gap: 6px; margin-bottom: 6px; }
+        .cp-section { min-width: 0; border: 1px solid var(--cp-black); background: #fff; }
+        .cp-section-title {
+          padding: 4px 7px;
+          background: var(--cp-black);
+          color: #fff;
+          font-size: 9.3px;
+          font-weight: 900;
+          letter-spacing: .1em;
+          text-transform: uppercase;
+        }
+        .cp-section-body { padding: 5px 7px; }
+        .cp-field {
+          display: grid;
+          grid-template-columns: 103px minmax(0, 1fr);
+          gap: 5px;
+          align-items: start;
+          min-height: 16px;
+          margin-bottom: 1px;
+          font-size: 8.8px;
+        }
+        .cp-field-label { color: var(--cp-gray); font-weight: 700; }
+        .cp-field-value {
+          min-width: 0;
+          min-height: 14px;
+          padding: 0 2px 1px;
+          border-bottom: 1px dotted var(--cp-line);
+          color: var(--cp-black);
+          font-weight: 700;
+          overflow-wrap: anywhere;
+        }
+        .cp-field-empty { color: #888; font-weight: 400; letter-spacing: .03em; }
+        .cp-inline-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+        .cp-inline-2 .cp-field { grid-template-columns: 70px minmax(0, 1fr); }
+        .cp-checks { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+        .cp-check { display: inline-flex; align-items: center; gap: 4px; font-size: 8.5px; color: var(--cp-gray); }
+        .cp-check-box {
+          display: inline-grid;
+          width: 10px;
+          height: 10px;
+          place-items: center;
+          border: 1px solid var(--cp-black);
+          color: var(--cp-black);
+          font-size: 8px;
+          line-height: 1;
+        }
+        .cp-car-grid {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 8px;
+          gap: 4px;
         }
-        .cp-cg-sig-box {
-          min-height: 64px;
+        .cp-car-view {
+          min-height: 48px;
+          padding: 2px;
           border: 1px solid #bbb;
-          background: #fafafa;
-          padding: 5px 6px;
+          color: #555;
+          text-align: center;
           box-sizing: border-box;
         }
-        .cp-cg-sig-lbl {
-          margin-bottom: 3px;
-          padding-bottom: 3px;
-          border-bottom: 1px solid #e0ddd8;
-          color: var(--cp-mid);
+        .cp-car-side { grid-column: span 2; }
+        .cp-car-view svg { display: block; width: 100%; height: 35px; }
+        .cp-car-view span { display: block; margin-top: -1px; font-size: 7px; font-weight: 800; text-transform: uppercase; }
+        .cp-observations {
+          min-height: 31px;
+          margin-top: 4px;
+          padding: 4px;
+          border: 1px dotted var(--cp-line);
+          color: var(--cp-gray);
           font-size: 8.5px;
-          font-weight: 800;
-          letter-spacing: .08em;
+          overflow-wrap: anywhere;
+        }
+        .cp-payment-table { width: 100%; border-collapse: collapse; font-size: 8.8px; }
+        .cp-payment-table td { padding: 3px 4px; border-bottom: 1px solid #ddd; }
+        .cp-payment-table td:last-child { text-align: right; font-weight: 800; white-space: nowrap; }
+        .cp-payment-table tr:last-child td { border-top: 1.5px solid var(--cp-black); border-bottom: 0; font-size: 9.4px; }
+        .cp-payment-meta { margin-top: 5px; padding-top: 4px; border-top: 1px dotted var(--cp-line); }
+        .cp-signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 6px; }
+        .cp-signature {
+          min-height: 70px;
+          padding: 5px;
+          border: 1px solid var(--cp-black);
+          box-sizing: border-box;
+        }
+        .cp-signature strong { display: block; padding-bottom: 3px; border-bottom: 1px solid #ccc; font-size: 8.2px; text-transform: uppercase; }
+        .cp-signature span { display: block; margin-top: 4px; color: var(--cp-gray); font-size: 8px; }
+        .cp-acceptance { margin-top: 5px; text-align: center; color: var(--cp-gray); font-size: 7.8px; font-style: italic; }
+        .cp-page-number { position: absolute; right: 34px; bottom: 15px; color: #777; font-size: 8px; }
+        .cp-conditions-title {
+          margin: 9px 0 8px;
+          padding-bottom: 6px;
+          border-bottom: 2px solid var(--cp-black);
+          text-align: center;
+          font-size: 20px;
+          font-weight: 900;
+          letter-spacing: .06em;
           text-transform: uppercase;
         }
-        .cp-cg-sig-sub {
-          color: var(--cp-light);
-          font-size: 8.4px;
-          line-height: 1.55;
+        .cp-conditions-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .cp-condition { margin-bottom: 5px; break-inside: avoid; }
+        .cp-condition-title {
+          padding: 3px 5px;
+          background: var(--cp-black);
+          color: #fff;
+          font-size: 7.6px;
+          font-weight: 900;
+          letter-spacing: .045em;
+          text-transform: uppercase;
         }
+        .cp-condition p { margin: 3px 2px 0; color: #333; font-size: 7.55px; line-height: 1.34; text-align: justify; }
+        .cp-conditions-signatures {
+          margin-top: 7px;
+          padding-top: 6px;
+          border-top: 2px solid var(--cp-black);
+        }
+        .cp-conditions-signatures > strong { display: block; margin-bottom: 5px; text-align: center; font-size: 9px; text-transform: uppercase; }
+        .cp-conditions-signature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .cp-conditions-signature {
+          min-height: 72px;
+          padding: 5px;
+          border: 1px solid var(--cp-black);
+          box-sizing: border-box;
+          color: var(--cp-gray);
+          font-size: 8px;
+        }
+        .cp-conditions-signature b { display: block; margin-bottom: 4px; color: var(--cp-black); text-transform: uppercase; }
       `}</style>
 
       <div className="cp-page contract-pdf-page" data-contract-page="1">
-        <header className="cp-header">
-          <div className="cp-logo-block">
-            {agency.logoUrl && !logoBroken ? (
-              <img
-                src={agency.logoUrl}
-                alt={`${agency.name || 'Agence'} logo`}
-                className="cp-logo-img"
-                data-pdf-logo="agency"
-                crossOrigin="anonymous"
-                onError={onLogoError}
-              />
-            ) : (
-              <div className="cp-logo-fallback">{agencyInitials(agencyName)}</div>
-            )}
-            <div>
-              <div className="cp-agency-name">{valueOrLine(agency.name)}</div>
-              <div className="cp-agency-sub">
-                {agencyContactLines.length ? (
-                  agencyContactLines.map((line) => <div key={line}>{line}</div>)
-                ) : (
-                  <div>Informations agence non renseignées</div>
-                )}
-              </div>
-            </div>
-          </div>
-          {agencyLegalItems.length ? (
-            <div className="cp-header-right">
-              <div className="cp-reg-row">
-                {agencyLegalItems.map((item) => (
-                  <span key={item.label}>{item.label} : {item.value}</span>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </header>
-
-        <div className="cp-title-bar">
-          <span>Contrat de Location</span>
-          <div className="cp-contract-meta">
-            <span>N° {valueOrLine(contract.reference)}</span>
-            <span>Date : {valueOrLine(contract.date)}</span>
-          </div>
+        <AgencyHeader agency={agency} contract={contract} logoBroken={logoBroken} onLogoError={onLogoError} />
+        <div className="cp-document-title">
+          Contrat de location
+          <span className="cp-document-subtitle">Location de voiture · Rent car</span>
         </div>
 
         <div className="cp-grid-2">
-          <Section title="Durée de location">
-            <FieldRow label="Départ :" value={reservation.pickupDate} unit={reservation.pickupTime ? `à ${reservation.pickupTime}` : 'à ........'} />
-            <FieldRow label="Retour :" value={reservation.returnDate} unit={reservation.returnTime ? `à ${reservation.returnTime}` : 'à ........'} />
-            <FieldRow label="Durée :" value={reservation.rentalDays} unit="jour(s)" />
-            <FieldRow label="Lieu de livraison :" value={reservation.pickupLocation} />
-            <FieldRow label="Lieu de reprise :" value={reservation.returnLocation} />
+          <Section title="Location">
+            <div className="cp-inline-2">
+              <Field label="Départ" value={[reservation.pickupDate, reservation.pickupTime].filter(Boolean).join(' à ')} />
+              <Field label="Retour prévu" value={[reservation.returnDate, reservation.returnTime].filter(Boolean).join(' à ')} />
+            </div>
+            <div className="cp-inline-2">
+              <Field label="Durée" value={reservation.rentalDays ? `${reservation.rentalDays} jour(s)` : ''} />
+              <Field label="Retour réel" value={[reservation.actualReturnDate, reservation.actualReturnTime].filter(Boolean).join(' à ')} />
+            </div>
+            <Field label="Lieu de livraison / départ" value={reservation.pickupLocation} />
+            <Field label="Lieu de reprise / retour" value={reservation.returnLocation} />
           </Section>
 
-          <Section title="Informations véhicule">
-            <div className="cp-field-inline-2">
-              <FieldRow label="Marque :" value={vehicle.brand} narrow />
-              <FieldRow label="Modèle :" value={vehicle.model} narrow />
+          <Section title="Véhicule">
+            <div className="cp-inline-2">
+              <Field label="Marque" value={vehicle.brand} />
+              <Field label="Modèle" value={vehicle.model} />
             </div>
-            <FieldRow label="Immatriculation :" value={vehicle.plate ? <span dir="ltr" style={{ unicodeBidi: 'isolate' }}>{vehicle.plate}</span> : ''} />
-            <div className="cp-field-inline-2">
-              <FieldRow label="Km départ :" value={vehicle.mileageOut} narrow />
-              <FieldRow label="Km retour :" value={vehicle.mileageReturn} narrow />
+            <Field label="N° immatriculation" value={vehicle.plate ? <span dir="ltr">{vehicle.plate}</span> : ''} />
+            <div className="cp-inline-2">
+              <Field label="Km départ" value={vehicle.mileageOut} />
+              <Field label="Km retour" value={vehicle.mileageReturn} />
             </div>
-            <FuelTrack value={vehicle.fuelLevel} />
-            <FieldRow label="Agent commercial :" value={reservation.agentName} />
+            <div className="cp-inline-2">
+              <Field label="Carburant départ" value={vehicle.fuelOut} />
+              <Field label="Carburant retour" value={vehicle.fuelReturn} />
+            </div>
           </Section>
         </div>
 
         <div className="cp-grid-2">
-          <Section title="Informations locataire">
-            <FieldRow label="Nom complet :" value={client.fullName} />
-            <div className="cp-field-inline-2">
-              <FieldRow label="Date naissance :" value={client.birthDate} narrow />
-              <FieldRow label="Nationalité :" value={client.nationality} narrow />
+          <Section title="Locataire">
+            <Field label="Nom complet" value={client.fullName} />
+            <div className="cp-inline-2">
+              <Field label="Nom" value={client.lastName} />
+              <Field label="Prénom" value={client.firstName} />
             </div>
-            <FieldRow label="Adresse :" value={client.address} />
-            <FieldRow label="Téléphone :" value={client.phone} />
-            <FieldRow label="CIN / Passeport :" value={client.idNumber} />
-            <FieldRow label="Permis N° :" value={client.licenseNumber} />
-            <div className="cp-field-inline-2">
-              <FieldRow label="Délivré le :" value={client.licenseIssuedAt} narrow />
-              <FieldRow label="Valable jusqu'au :" value={client.licenseExpiresAt} narrow />
+            <div className="cp-inline-2">
+              <Field label="Date de naissance" value={client.birthDate} />
+              <Field label="Lieu de naissance" value={client.birthPlace} />
             </div>
+            <Field label="Adresse au Maroc" value={client.address} />
+            <div className="cp-inline-2">
+              <Field label="Nationalité" value={client.nationality} />
+              <Field label="Téléphone" value={client.phone} />
+            </div>
+            <div className="cp-inline-2">
+              <Field label="CIN / Passeport" value={client.idNumber} />
+              <Field label="Permis N°" value={client.licenseNumber} />
+            </div>
+            <div className="cp-inline-2">
+              <Field label="Permis délivré le" value={client.licenseIssuedAt} />
+              <Field label="Permis délivré à" value={client.licenseIssuedPlace} />
+            </div>
+            <Field label="Permis valable jusqu’au" value={client.licenseExpiresAt} />
           </Section>
 
-          <div className="cp-stack">
-            <Section title="2ème conducteur">
-              <DetailRow label="Nom complet :" value={secondDriverName} />
-              <DetailRow label="CIN / Passeport :" value={secondDriver.idNumber} />
-              <DetailRow label="Téléphone :" value={secondDriver.phone} />
-              <DetailRow label="Permis N° :" value={secondDriver.licenseNumber} />
-              <DetailRow label="Naissance :" value={secondDriver.birthDate} />
-              <DetailRow label="Nationalité :" value={secondDriver.nationality} />
-            </Section>
-            <Section title="Papiers du véhicule">
-              <div className="cp-check-grid">
-                <div className="cp-check-row"><span className="cp-cb">{checked(vehicle.papers?.registrationCard)}</span> Carte grise</div>
-                <div className="cp-check-row"><span className="cp-cb">{checked(vehicle.papers?.technicalInspection)}</span> Visite technique</div>
-                <div className="cp-check-row"><span className="cp-cb">{checked(vehicle.papers?.insurance)}</span> Assurance</div>
-                <div className="cp-check-row"><span className="cp-cb">{checked(vehicle.papers?.vignette)}</span> Vignette</div>
-                <div className="cp-check-row" style={{ gridColumn: 'span 2' }}><span className="cp-cb">{checked(vehicle.papers?.circulationAuthorization)}</span> Autorisation de circulation</div>
-              </div>
-            </Section>
-          </div>
+          <Section title="Chauffeur autorisé / 2ème conducteur">
+            <div className="cp-inline-2">
+              <Field label="Nom" value={secondDriver.enabled ? secondDriver.lastName : ''} />
+              <Field label="Prénom" value={secondDriver.enabled ? secondDriver.firstName : ''} />
+            </div>
+            <div className="cp-inline-2">
+              <Field label="Date de naissance" value={secondDriver.enabled ? secondDriver.birthDate : ''} />
+              <Field label="Lieu de naissance" value={secondDriver.enabled ? secondDriver.birthPlace : ''} />
+            </div>
+            <Field label="Adresse au Maroc" value={secondDriver.enabled ? secondDriver.address : ''} />
+            <div className="cp-inline-2">
+              <Field label="Nationalité" value={secondDriver.enabled ? secondDriver.nationality : ''} />
+              <Field label="Téléphone" value={secondDriver.enabled ? secondDriver.phone : ''} />
+            </div>
+            <div className="cp-inline-2">
+              <Field label="CIN / Passeport" value={secondDriver.enabled ? secondDriver.idNumber : ''} />
+              <Field label="Permis N°" value={secondDriver.enabled ? secondDriver.licenseNumber : ''} />
+            </div>
+            <div className="cp-inline-2">
+              <Field label="Délivré le" value={secondDriver.enabled ? secondDriver.licenseIssuedAt : ''} />
+              <Field label="Délivré à" value={secondDriver.enabled ? secondDriver.licenseIssuedPlace : ''} />
+            </div>
+            <Field label="Valable jusqu’au" value={secondDriver.enabled ? secondDriver.licenseExpiresAt : ''} />
+          </Section>
         </div>
 
-        <div className="cp-grid-3">
-          <Section title="Assurance & franchise">
-            <div style={{ marginBottom: 4 }}>
-              <div style={{ fontSize: 9, color: 'var(--cp-mid)', marginBottom: 3, fontWeight: 700 }}>Assurance tous risques :</div>
-              <div style={{ display: 'flex', gap: 14 }}>
-                <div className="cp-check-row"><span className="cp-cb">{checked(vehicle.insuranceAllRisk === true)}</span> Oui</div>
-                <div className="cp-check-row"><span className="cp-cb">{checked(vehicle.insuranceAllRisk === false)}</span> Non</div>
-              </div>
-            </div>
-            <FieldRow label="Franchise :" value={vehicle.franchise} unit="DH" narrow />
-            <div style={{ fontSize: 9, color: 'var(--cp-mid)', margin: '4px 0 2px', fontWeight: 700 }}>Observations :</div>
-            <div className="cp-observation-box">{optionalValue(vehicle.observations)}</div>
-          </Section>
-
+        <div className="cp-grid-condition">
           <Section title="État du véhicule">
-            <CarDiagram />
-            <div style={{ fontSize: 8.5, color: 'var(--cp-mid)', marginTop: 3 }}>
-              Observations :
-              <div className="cp-observation-box" style={{ minHeight: 17, marginTop: 2 }}>{optionalValue(vehicle.damageObservations)}</div>
+            <div className="cp-car-grid">
+              <CarView label="Avant" kind="front" />
+              <CarView label="Vue gauche" kind="side" />
+              <CarView label="Arrière" kind="rear" />
+              <CarView label="Vue droite" kind="side" />
+              <CarView label="Dessus" kind="top" />
+            </div>
+            <div className="cp-observations">
+              <strong>Observations / dommages :</strong> {text(vehicle.damageObservations) || text(vehicle.observations) || blankLine}
             </div>
           </Section>
 
-          <Section title="Paiement">
-            <table className="cp-payment-table">
-              <tbody>
-                <tr>
-                  <td>Total général</td>
-                  <td>{formatMoney(payment.totalAmount)} DH</td>
-                </tr>
-                <tr>
-                  <td>Caution</td>
-                  <td>{formatMoney(payment.deposit)} DH</td>
-                </tr>
-                <tr>
-                  <td>Montant payé</td>
-                  <td>{formatMoney(payment.paidAmount)} DH</td>
-                </tr>
-                <tr className="cp-total">
-                  <td>Reste à payer</td>
-                  <td>{formatMoney(remainingAmount)} DH</td>
-                </tr>
-              </tbody>
-            </table>
-            <div style={{ fontSize: 8.5, color: 'var(--cp-mid)', fontWeight: 800, margin: '5px 0 3px', textTransform: 'uppercase', letterSpacing: '.06em' }}>Mode de règlement :</div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px 8px' }}>
-              <div className="cp-check-row"><span className="cp-cb">{paymentChecked(payment.method, 'cash')}</span> Espèces</div>
-              <div className="cp-check-row"><span className="cp-cb">{paymentChecked(payment.method, 'cheque')}</span> Chèque</div>
-              <div className="cp-check-row"><span className="cp-cb">{paymentChecked(payment.method, 'card')}</span> Carte bancaire</div>
-              <div className="cp-check-row"><span className="cp-cb">{paymentChecked(payment.method, 'transfer')}</span> Virement</div>
-            </div>
-          </Section>
-        </div>
+          <div>
+            <Section title="Paiement" className="cp-payment-section">
+              <table className="cp-payment-table">
+                <tbody>
+                  <tr><td>Prix journalier</td><td>{money(payment.dailyPrice)}</td></tr>
+                  <tr><td>Nombre de jours</td><td>{payment.rentalDays || reservation.rentalDays || blankLine}</td></tr>
+                  <tr><td>Total location</td><td>{money(payment.totalAmount)}</td></tr>
+                  <tr><td>Caution</td><td>{money(payment.deposit)}</td></tr>
+                  <tr><td>Montant payé</td><td>{money(payment.paidAmount)}</td></tr>
+                  <tr><td>Reste à payer</td><td>{money(remaining)}</td></tr>
+                </tbody>
+              </table>
+              <div className="cp-payment-meta">
+                <Field label="Mode de paiement" value={payment.method} />
+                <Field label="Statut" value={payment.status} />
+              </div>
+            </Section>
 
-        <div className="cp-sig-grid">
-          <div className="cp-sig-box">
-            <div className="cp-sig-label">Le locataire</div>
-            <div className="cp-sig-subtext">Lu et approuvé</div>
-          </div>
-          <div className="cp-sig-box">
-            <div className="cp-sig-label">2ème conducteur</div>
-            <div className="cp-sig-subtext">Lu et approuvé</div>
-          </div>
-          <div className="cp-sig-box">
-            <div className="cp-sig-label">Le loueur / Agence</div>
-            <div className="cp-sig-subtext">{valueOrLine(agency.name)}</div>
-          </div>
-          <div className="cp-sig-box">
-            <div className="cp-sig-label">Signature & date de retour</div>
-            <div className="cp-sig-subtext">Date : .........................<br />Heure : ......................<br />Lieu : ..........................</div>
+            <Section title="Papiers du véhicule" className="cp-papers-section">
+              <div className="cp-checks">
+                <Check checked={vehicle.papers?.registrationCard} label="Carte grise" />
+                <Check checked={vehicle.papers?.insurance} label="Assurance" />
+                <Check checked={vehicle.papers?.technicalInspection} label="Visite technique" />
+                <Check checked={vehicle.papers?.vignette} label="Vignette" />
+                <Check checked={vehicle.papers?.circulationAuthorization} label="Autorisation de circulation" />
+                <Check checked={vehicle.papers?.other} label="Autre" />
+              </div>
+            </Section>
           </div>
         </div>
 
-        <div className="cp-acceptance">
-          J'ai lu et accepté les conditions générales de location figurant au verso du présent contrat. Le locataire est seul responsable des infractions au code de la route commises durant la période de location.
+        <div className="cp-signatures">
+          <div className="cp-signature">
+            <strong>Signature locataire</strong>
+            <span>Lu et approuvé</span>
+          </div>
+          <div className="cp-signature">
+            <strong>{secondDriver.enabled ? 'Signature chauffeur autorisé' : 'Chauffeur autorisé'}</strong>
+            <span>{secondDriver.enabled ? 'Lu et approuvé' : 'Non applicable / signature libre'}</span>
+          </div>
+          <div className="cp-signature">
+            <strong>Signature agence</strong>
+            <span>{display(agency.name)}<br />Cachet et signature</span>
+          </div>
         </div>
-        <div className="cp-page-num">Page 1 / 2</div>
+        <div className="cp-acceptance">La signature du présent contrat vaut lecture et acceptation des conditions générales figurant au verso.</div>
+        <div className="cp-page-number">Page 1 / 2</div>
       </div>
 
       <div className="cp-page contract-pdf-page" data-contract-page="2">
-        <div className="cp-cg-header-strip">
-          <div className="cp-cg-logo-mini">
-            {agency.logoUrl && !logoBroken ? (
-              <img
-                src={agency.logoUrl}
-                alt={`${agency.name || 'Agence'} logo`}
-                className="cp-cg-logo-img"
-                data-pdf-logo="agency"
-                crossOrigin="anonymous"
-                onError={onLogoError}
-              />
-            ) : null}
-            {valueOrLine(agency.name)}
-          </div>
-          <div style={{ color: 'var(--cp-light)', fontSize: 9, lineHeight: 1.7, textAlign: 'right' }}>
-            Réf. contrat N° {valueOrLine(contract.reference)}<br />
-            Date : {valueOrLine(contract.date)}
-          </div>
-        </div>
+        <AgencyHeader agency={agency} contract={contract} logoBroken={logoBroken} onLogoError={onLogoError} compact />
+        <div className="cp-conditions-title">Conditions générales de location</div>
 
-        <div className="cp-cg-title">Conditions Générales de Location</div>
-
-        <div className="cp-cg-cols">
+        <div className="cp-conditions-columns">
           <div>
-            <div className="cp-cg-article">
-              <div className="cp-cg-article-title"><span className="cp-cg-article-num">ART. 1</span> État du véhicule, usage et réparations</div>
-              <p>Le locataire déclare avoir pris connaissance du véhicule et constate son bon état général. Il s'engage à le restituer dans un état propre, à l'intérieur comme à l'extérieur, à défaut de quoi les frais de nettoyage lui seront facturés.</p>
-              <p>Les pneumatiques du véhicule sont réputés en bon état à la remise des clés. Toute détérioration anormale sera à la charge du locataire, qui devra les remplacer par des pneus de même dimension et marque.</p>
-              <p>Les réparations mécaniques résultant d'une utilisation normale sont à la charge de l'agence. Toute réparation résultant d'une négligence, d'un mauvais usage ou d'un impact anormal est à la charge exclusive du locataire.</p>
-              <p>Le locataire ne peut prétendre à aucune indemnisation pour retard de remise ou immobilisation du véhicule due à un incident imprévu en cours de location.</p>
-              <p>Le véhicule ne peut être utilisé pour :</p>
-              <ul>
-                <li>Transport de marchandises illicites ou de passagers à titre lucratif</li>
-                <li>Remorquage ou dépannage d'autres véhicules</li>
-                <li>Compétitions sportives ou circuits</li>
-                <li>Terrains inadaptés à la nature du véhicule</li>
-                <li>Sortie du territoire national sans accord écrit préalable de l'agence</li>
-              </ul>
-            </div>
-
-            <div className="cp-cg-article">
-              <div className="cp-cg-article-title"><span className="cp-cg-article-num">ART. 2</span> Assurance, accident, vol et responsabilité</div>
-              <p>Le véhicule bénéficie d'une couverture assurance comprenant : responsabilité civile, vol, incendie, dommages collision, personnes transportées et défense-recours, conformément aux polices souscrites par l'agence de location.</p>
-              <p>En cas d'accident, le locataire s'engage à déclarer immédiatement l'incident à l'agence, fournir un constat amiable signé et, le cas échéant, un rapport des autorités compétentes.</p>
-              <p>La franchise contractuelle reste à la charge du locataire, ainsi que les frais d'immobilisation du véhicule pendant la durée des réparations. Les effets personnels et accessoires ne sont pas couverts par l'assurance.</p>
-              <p>Le nombre de passagers ne doit pas dépasser la capacité indiquée sur la police d'assurance du véhicule.</p>
-            </div>
-
-            <div className="cp-cg-article">
-              <div className="cp-cg-article-title"><span className="cp-cg-article-num">ART. 3</span> Paiement, durée et prolongation</div>
-              <p>Le montant de la location est payable d'avance. Toute journée commencée est intégralement due.</p>
-              <p>Toute prolongation doit faire l'objet d'un accord écrit de l'agence de location, accompagné du règlement correspondant. À défaut de restitution dans les 48 heures suivant l'échéance du contrat, le locataire s'expose à des poursuites pénales pour détournement de véhicule, conformément aux articles 505 et 547 du Code Pénal marocain.</p>
-              <p>L'agence se réserve le droit de récupérer le véhicule sans préavis par voie d'huissier de justice. Toute contestation devra être notifiée par e-mail ou lettre recommandée avec accusé de réception.</p>
-            </div>
+            {firstConditions.map(([title, body], index) => (
+              <article className="cp-condition" key={title}>
+                <div className="cp-condition-title">{index + 1}. {title}</div>
+                <p>{body}</p>
+              </article>
+            ))}
           </div>
-
           <div>
-            <div className="cp-cg-article">
-              <div className="cp-cg-article-title"><span className="cp-cg-article-num">ART. 4</span> Restitution du véhicule, documents et clés</div>
-              <p>Le véhicule doit être restitué au siège de l'agence de location, accompagné de l'ensemble des documents de bord et des clés. Toute pièce manquante entraîne la facturation du contrat jusqu'à récupération ou reconstitution du document.</p>
-              <p>En cas de perte de clé, le locataire devra signer un engagement de remboursement et prendre en charge les frais de duplication ou de remplacement du système de démarrage.</p>
-              <p>Le locataire s'engage à ne laisser conduire le véhicule qu'à lui-même ou aux conducteurs expressément autorisés par écrit par l'agence.</p>
-            </div>
-
-            <div className="cp-cg-article">
-              <div className="cp-cg-article-title"><span className="cp-cg-article-num">ART. 5</span> Conducteur autorisé</div>
-              <p>Seuls les conducteurs expressément mentionnés sur le présent contrat sont habilités à conduire le véhicule loué. Tout conducteur doit être titulaire d'un permis de conduire valide correspondant à la catégorie du véhicule.</p>
-              <p>Le locataire ne peut réclamer aucun remboursement pour une durée de location non consommée, sauf accord écrit de l'agence.</p>
-            </div>
-
-            <div className="cp-cg-article">
-              <div className="cp-cg-article-title"><span className="cp-cg-article-num">ART. 6</span> Contraventions, radar et infractions</div>
-              <p>Le locataire reconnaît être seul responsable de toute infraction au code de la route commise durant la période de location, qu'elle soit constatée en temps réel ou ultérieurement par contrôle automatisé. Les frais d'amende, de traitement administratif et les pénalités éventuelles seront facturés au locataire.</p>
-            </div>
-
-            <div className="cp-cg-article">
-              <div className="cp-cg-article-title"><span className="cp-cg-article-num">ART. 7</span> GPS / Suivi du véhicule</div>
-              <p>L'ensemble des véhicules de l'agence est équipé d'un traceur GPS permettant la localisation en cas de sinistre, de vol ou d'urgence, ainsi que le suivi de l'entretien préventif. Le locataire déclare en avoir été informé et y consent expressément.</p>
-            </div>
-
-            <div className="cp-cg-article">
-              <div className="cp-cg-article-title"><span className="cp-cg-article-num">ART. 8</span> Litiges et juridiction</div>
-              <p>En cas de litige, et à défaut de règlement amiable, les parties conviennent de soumettre le différend aux tribunaux compétents du lieu de situation de l'agence de location, ou, à l'initiative de l'agence, aux tribunaux du lieu de résidence du locataire.</p>
-              <p>Le non-respect de l'une des clauses du présent contrat autorise l'agence de location à récupérer le véhicule sans préavis et à engager toute action en justice appropriée.</p>
-            </div>
+            {secondConditions.map(([title, body], index) => (
+              <article className="cp-condition" key={title}>
+                <div className="cp-condition-title">{index + 10}. {title}</div>
+                <p>{body}</p>
+              </article>
+            ))}
           </div>
         </div>
 
-        <div className="cp-cg-sig-block">
-          <div className="cp-cg-sig-title">Article 9 — Signature du locataire</div>
-          <div style={{ color: 'var(--cp-mid)', fontSize: 9.5, marginBottom: 8, textAlign: 'center' }}>
-            En signant ce document, le locataire déclare avoir lu, compris et accepté l'intégralité des présentes conditions générales de location.
-          </div>
-          <div className="cp-cg-sig-grid">
-            <div className="cp-cg-sig-box">
-              <div className="cp-cg-sig-lbl">Le locataire</div>
-              <div className="cp-cg-sig-sub">Fait le : ____/____/________<br />à _____________ h _________<br />à ________________________</div>
+        <div className="cp-conditions-signatures">
+          <strong>Acceptation et signatures</strong>
+          <div className="cp-conditions-signature-grid">
+            <div className="cp-conditions-signature">
+              <b>Signature du locataire</b>
+              Date : ........................................<br />
+              Lieu : ........................................<br />
+              Signature :
             </div>
-            <div className="cp-cg-sig-box">
-              <div className="cp-cg-sig-lbl">2ème conducteur (si applicable)</div>
-              <div className="cp-cg-sig-sub">Fait le : ____/____/________<br />à _____________ h _________</div>
-            </div>
-            <div className="cp-cg-sig-box">
-              <div className="cp-cg-sig-lbl">L'agence de location</div>
-              <div className="cp-cg-sig-sub">{valueOrLine(agency.name)}<br />Cachet & signature :</div>
+            <div className="cp-conditions-signature">
+              <b>Cachet et signature de l’agence</b>
+              {display(agency.name)}<br />
+              Date : ........................................<br />
+              Signature / cachet :
             </div>
           </div>
         </div>
-
-        <div className="cp-page-num">Page 2 / 2</div>
+        <div className="cp-page-number">Page 2 / 2</div>
       </div>
     </div>
   );
