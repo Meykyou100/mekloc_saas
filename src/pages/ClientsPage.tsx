@@ -934,7 +934,7 @@ export default function ClientsPage() {
             )}
           </Card>
 
-          <Card className="min-h-[520px] border-[var(--app-border)] bg-[var(--app-card)] p-5 shadow-[0_24px_70px_rgba(0,0,0,.30)]">
+          <Card className="min-h-[420px] border-[var(--app-border)] bg-[var(--app-card)] p-5 shadow-[0_24px_70px_rgba(0,0,0,.30)]">
             {selectedClient ? (
               <div className="space-y-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -1040,7 +1040,7 @@ export default function ClientsPage() {
                 </div>
               </div>
             ) : (
-              <div className="flex min-h-[440px] flex-col items-center justify-center text-center">
+              <div className="flex min-h-[320px] flex-col items-center justify-center text-center">
                 <div className="grid h-16 w-16 place-items-center rounded-3xl border border-[#D4A017]/25 bg-[#D4A017]/10 text-[var(--app-gold-text)]">
                   <Users className="h-8 w-8" />
                 </div>
