@@ -561,7 +561,7 @@ export default function ReservationsPage() {
   ];
 
   return (
-    <div className="overflow-x-hidden pb-[calc(96px+env(safe-area-inset-bottom))] md:pb-6">
+    <div className="min-w-0 max-w-full overflow-x-clip pb-[calc(124px+env(safe-area-inset-bottom))] md:pb-6">
       <PageHeader
         eyebrow="Réservations"
         title="Réservations"
@@ -577,11 +577,11 @@ export default function ReservationsPage() {
         }
       />
 
-      <div className="no-scrollbar -mx-4 mb-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 md:mb-5 xl:grid-cols-6">
+      <div className="no-scrollbar -mx-4 mb-4 flex snap-x snap-mandatory gap-3 overflow-x-auto overscroll-x-contain px-4 pb-1 scroll-px-4 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 md:mb-5 xl:grid-cols-6">
         {reservationStatCards.map(({ label, value, trend, icon: Icon, accent }) => (
           <div
             key={label}
-            className="relative min-h-[118px] min-w-[148px] overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3.5 shadow-[0_14px_36px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.05)] sm:min-w-0 sm:p-4"
+            className="relative min-h-[112px] min-w-[148px] snap-start overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_14px_36px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.05)] sm:min-h-[118px] sm:min-w-0 sm:p-4"
           >
             <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${accent} to-transparent`} />
             <div className="relative flex h-full flex-col justify-between">
@@ -600,8 +600,8 @@ export default function ReservationsPage() {
         ))}
       </div>
 
-      <Card className="mb-5 rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_18px_46px_rgba(0,0,0,.24)] md:p-4">
-        <div className="grid gap-3 xl:grid-cols-[minmax(260px,1fr)_auto_auto_auto] xl:items-center">
+      <Card className="mb-5 min-w-0 rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_18px_46px_rgba(0,0,0,.24)] md:p-4">
+        <div className="grid min-w-0 gap-2.5 xl:grid-cols-[minmax(260px,1fr)_auto_auto_auto] xl:items-center">
           <label className="relative">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--app-text-muted)]" />
             <input
@@ -611,11 +611,11 @@ export default function ReservationsPage() {
               className="focus-ring h-12 w-full rounded-2xl border border-[var(--app-border)] bg-[var(--app-input)] pl-10 pr-4 text-sm text-[var(--app-text)] shadow-[inset_0_1px_0_rgba(255,255,255,.035)] transition placeholder:text-[var(--app-text-muted)] hover:border-gold-300/25"
             />
           </label>
-          <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
+          <div className="no-scrollbar -mx-1 flex snap-x gap-2 overflow-x-auto overscroll-x-contain px-1 pb-0.5 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0">
             {statuses.map((item) => (
               <button
                 key={item}
-                className={`focus-ring h-10 shrink-0 rounded-xl px-3 text-xs font-black transition md:text-sm ${
+                className={`focus-ring h-10 shrink-0 snap-start rounded-xl px-3 text-xs font-black transition md:text-sm ${
                   status === item ? 'bg-gold-400 text-carbon-950 shadow-[0_10px_22px_rgba(212,160,23,.14)]' : 'border border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] hover:bg-[var(--app-gold-soft)]'
                 }`}
                 onClick={() => setStatus(item)}
@@ -636,10 +636,10 @@ export default function ReservationsPage() {
             Filtres
           </button>
           <div className="grid grid-cols-2 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-1 md:flex">
-            <button className={`focus-ring grid h-10 min-w-0 place-items-center rounded-xl ${view === 'list' ? 'bg-gold-400 text-carbon-950' : 'text-[var(--app-text-soft)]'}`} onClick={() => setView('list')} aria-label="Vue liste">
+            <button title="Afficher en liste" className={`focus-ring grid h-10 min-w-0 place-items-center rounded-xl ${view === 'list' ? 'bg-gold-400 text-carbon-950' : 'text-[var(--app-text-soft)]'}`} onClick={() => setView('list')} aria-label="Vue liste">
               <ListFilter className="h-4 w-4" />
             </button>
-            <button className={`focus-ring grid h-10 min-w-0 place-items-center rounded-xl ${view === 'grid' ? 'bg-gold-400 text-carbon-950' : 'text-[var(--app-text-soft)]'}`} onClick={() => setView('grid')} aria-label="Vue cartes">
+            <button title="Afficher en cartes" className={`focus-ring grid h-10 min-w-0 place-items-center rounded-xl ${view === 'grid' ? 'bg-gold-400 text-carbon-950' : 'text-[var(--app-text-soft)]'}`} onClick={() => setView('grid')} aria-label="Vue cartes">
               <LayoutGrid className="h-4 w-4" />
             </button>
           </div>
@@ -699,25 +699,25 @@ export default function ReservationsPage() {
           </div>
         </Card>
       ) : (
-        <div className="grid gap-3.5 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
+        <div className="grid min-w-0 gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3">
           {filteredReservations.map((reservation) => {
             const days = getRentalDays(reservation.pickupDate, reservation.returnDate);
             const urgency = urgencyBadge(reservation, todayIso);
             const paymentSummary = getReservationPaymentSummary(reservation, payments);
             return (
-              <Card key={reservation.id} interactive className="group relative overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-0 shadow-[0_16px_42px_rgba(16,24,32,.12),inset_0_1px_0_rgba(255,255,255,.06)] transition-all hover:border-[#D4A017]/35 dark:shadow-[0_18px_48px_rgba(0,0,0,.28),inset_0_1px_0_rgba(255,255,255,.04)]">
+              <Card key={reservation.id} interactive className="group relative min-w-0 overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-0 shadow-[0_16px_42px_rgba(16,24,32,.12),inset_0_1px_0_rgba(255,255,255,.06)] transition-all hover:border-[#D4A017]/35 dark:shadow-[0_18px_48px_rgba(0,0,0,.28),inset_0_1px_0_rgba(255,255,255,.04)]">
                 <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-[#D4A017]/10 to-transparent opacity-80" />
-                <div className="relative border-b border-[var(--app-border)] px-4 pb-3 pt-4 md:px-5 md:pt-5">
+                <div className="relative border-b border-[var(--app-border)] px-3.5 pb-2.5 pt-3.5 md:px-5 md:pb-3 md:pt-5">
                   <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="inline-flex rounded-full border border-gold-300/25 bg-gold-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-[var(--app-gold-text)]">{reservation.id}</p>
-                    <h3 className="mt-2 truncate text-base font-black text-[var(--app-text)] md:text-lg">{reservation.vehicle}</h3>
-                    <p className="mt-1 flex min-w-0 items-center gap-1.5 truncate text-sm font-semibold text-[var(--app-text-soft)]">
+                    <p className="inline-flex rounded-full border border-gold-300/25 bg-gold-400/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-[var(--app-gold-text)]">{reservation.id}</p>
+                    <h3 className="mt-1.5 truncate text-base font-black text-[var(--app-text)] md:mt-2 md:text-lg">{reservation.vehicle}</h3>
+                    <p className="mt-0.5 flex min-w-0 items-center gap-1.5 truncate text-sm font-semibold text-[var(--app-text-soft)] md:mt-1">
                       <UserRound className="h-3.5 w-3.5 shrink-0 text-[var(--app-text-muted)]" />
                       <span className="truncate">{reservation.client}</span>
                     </p>
                   </div>
-                    <div className="flex shrink-0 flex-col items-end gap-2">
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
                       <Badge>{reservation.status}</Badge>
                       {urgency ? (
                         <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${urgency.className}`}>
@@ -727,7 +727,7 @@ export default function ReservationsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 py-2.5 text-xs">
+                  <div className="mt-2.5 grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-2.5 py-2 text-xs md:mt-3 md:px-3 md:py-2.5">
                     <div className="min-w-0">
                       <p className="font-black text-[var(--app-text)]">{formatReservationDateTime(reservation.pickupDate, reservation.pickupTime)}</p>
                       <p className="mt-0.5 truncate text-[var(--app-text-muted)]">Départ</p>
@@ -740,13 +740,13 @@ export default function ReservationsPage() {
                   </div>
                 </div>
 
-                <div className="relative px-4 py-3 md:px-5">
-                  <div className="grid gap-2 text-sm text-[var(--app-text-soft)]">
-                    <p className="flex min-w-0 items-start gap-2 leading-5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--app-gold-text)]" /> <span className="truncate">Départ: {reservation.pickupLocation || 'Lieu non renseigné'}</span></p>
-                    <p className="flex min-w-0 items-start gap-2 leading-5"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[var(--app-gold-text)]" /> <span className="truncate">Retour: {reservation.returnLocation || 'Lieu non renseigné'}</span></p>
+                <div className="relative px-3.5 py-2.5 md:px-5 md:py-3">
+                  <div className="grid gap-1 text-xs font-medium text-[var(--app-text-soft)] md:gap-2 md:text-sm">
+                    <p className="flex min-w-0 items-start gap-2 leading-5"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--app-gold-text)] md:h-4 md:w-4" /> <span className="truncate">Départ: {reservation.pickupLocation || 'Lieu non renseigné'}</span></p>
+                    <p className="flex min-w-0 items-start gap-2 leading-5"><MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--app-gold-text)] md:h-4 md:w-4" /> <span className="truncate">Retour: {reservation.returnLocation || 'Lieu non renseigné'}</span></p>
                   </div>
 
-                  <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="mt-2.5 grid grid-cols-2 gap-1.5 md:mt-3 md:gap-2">
                     <ReservationMoneyTile label="Total" value={formatMAD(paymentSummary.total)} />
                     <ReservationMoneyTile label="Caution" value={formatMAD(reservation.deposit || 0)} />
                     <ReservationMoneyTile label="Payé" value={formatMAD(paymentSummary.paid)} />
@@ -757,7 +757,7 @@ export default function ReservationsPage() {
                     />
                   </div>
 
-                  <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 py-2.5">
+                  <div className="mt-2.5 flex items-center justify-between gap-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-2.5 py-2 md:mt-3 md:px-3 md:py-2.5">
                     <div className="flex min-w-0 items-center gap-2">
                       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-gold-300/20 bg-gold-400/10 text-[var(--app-gold-text)]">
                         <Wallet className="h-4 w-4" />
@@ -772,10 +772,10 @@ export default function ReservationsPage() {
                 </div>
 
                 <div className="relative grid grid-cols-2 gap-2 border-t border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3 sm:grid-cols-4">
-                  <Button variant="secondary" className="h-10 min-w-0 rounded-xl px-2 text-xs" icon={<Pencil className="h-3.5 w-3.5 shrink-0" />} onClick={() => openEditReservation(reservation)}>Modifier</Button>
-                  <Button variant="secondary" className="h-10 min-w-0 rounded-xl px-2 text-xs" icon={<Eye className="h-3.5 w-3.5 shrink-0" />} onClick={() => setDetailsTarget(reservation)}>Détails</Button>
-                  <Button variant="secondary" className="h-10 min-w-0 rounded-xl px-2 text-xs" icon={<FileSignature className="h-3.5 w-3.5 shrink-0" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}`)}>Générer</Button>
-                  <Button variant="danger" className="h-10 min-w-0 rounded-xl px-2 text-xs" icon={<Trash2 className="h-3.5 w-3.5 shrink-0" />} onClick={() => setDeleteTarget(reservation)}>Supprimer</Button>
+                  <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2 text-[13px] sm:h-10 sm:text-xs" icon={<Pencil className="h-4 w-4 shrink-0 sm:h-3.5 sm:w-3.5" />} onClick={() => openEditReservation(reservation)}>Modifier</Button>
+                  <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2 text-[13px] sm:h-10 sm:text-xs" icon={<Eye className="h-4 w-4 shrink-0 sm:h-3.5 sm:w-3.5" />} onClick={() => setDetailsTarget(reservation)}>Détails</Button>
+                  <Button variant="secondary" className="h-11 min-w-0 rounded-xl px-2 text-[13px] sm:h-10 sm:text-xs" icon={<FileSignature className="h-4 w-4 shrink-0 sm:h-3.5 sm:w-3.5" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}`)}>Générer</Button>
+                  <Button variant="danger" className="h-11 min-w-0 rounded-xl px-2 text-[13px] sm:h-10 sm:text-xs" icon={<Trash2 className="h-4 w-4 shrink-0 sm:h-3.5 sm:w-3.5" />} onClick={() => setDeleteTarget(reservation)}>Supprimer</Button>
                 </div>
               </Card>
             );
@@ -1467,9 +1467,9 @@ export default function ReservationsPage() {
 
 function ReservationMoneyTile({ label, value, valueClassName = 'text-[var(--app-text)]' }: { label: string; value: string; valueClassName?: string }) {
   return (
-    <div className="min-w-0 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
-      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--app-text-muted)]">{label}</p>
-      <p className={`mt-1 truncate text-sm font-black md:text-base ${valueClassName}`}>{value}</p>
+    <div className="min-w-0 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-2.5 py-2 md:rounded-2xl md:p-3">
+      <p className="text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--app-text-muted)] md:text-[11px] md:tracking-[0.12em]">{label}</p>
+      <p className={`mt-0.5 truncate text-[13px] font-black md:mt-1 md:text-base ${valueClassName}`} title={value}>{value}</p>
     </div>
   );
 }
