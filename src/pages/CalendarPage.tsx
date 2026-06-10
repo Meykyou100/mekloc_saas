@@ -26,9 +26,9 @@ import PlateNumber from '../components/ui/PlateNumber';
 import { useData } from '../context/DataContext';
 import { formatMAD, type Reservation, type ReservationStatus } from '../data/mockData';
 
-const MOBILE_VEHICLE_COL_WIDTH = 144;
+const MOBILE_VEHICLE_COL_WIDTH = 168;
 const MOBILE_DAY_COL_WIDTH = 72;
-const MOBILE_ROW_HEIGHT = 84;
+const MOBILE_ROW_HEIGHT = 88;
 const VEHICLE_COL_WIDTH = 260;
 const DAY_COL_WIDTH = 118;
 const ROW_HEIGHT = 112;
@@ -165,6 +165,10 @@ function formatMoroccoTel(phone?: string) {
   return cleaned.startsWith('+') ? cleaned : `+212${cleaned}`;
 }
 
+function uniqueReservationsById(items: Reservation[]) {
+  return Array.from(new Map(items.map((reservation) => [reservation.id, reservation])).values());
+}
+
 export default function CalendarPage() {
   const { vehicles, reservations, maintenance, clients, loading } = useData();
   const navigate = useNavigate();
@@ -245,10 +249,16 @@ export default function CalendarPage() {
   }, [selectedDate]);
 
   const dayDetails = useMemo(() => {
-    const departures = activeReservationsInWindow.filter((reservation) => dateKey(reservation.pickupDate) === selectedDayIso);
-    const returns = activeReservationsInWindow.filter((reservation) => dateKey(reservation.returnDate) === selectedDayIso);
-    const active = activeReservationsInWindow.filter(
-      (reservation) => dateKey(reservation.pickupDate) <= selectedDayIso && dateKey(reservation.returnDate) >= selectedDayIso,
+    const departures = uniqueReservationsById(
+      activeReservationsInWindow.filter((reservation) => dateKey(reservation.pickupDate) === selectedDayIso),
+    );
+    const returns = uniqueReservationsById(
+      activeReservationsInWindow.filter((reservation) => dateKey(reservation.returnDate) === selectedDayIso),
+    );
+    const active = uniqueReservationsById(
+      activeReservationsInWindow.filter(
+        (reservation) => dateKey(reservation.pickupDate) <= selectedDayIso && dateKey(reservation.returnDate) >= selectedDayIso,
+      ),
     );
     const maintenanceItems = maintenance.filter((item) => {
       if (!visibleVehicleIds.has(item.vehicleId)) return false;
@@ -301,7 +311,7 @@ export default function CalendarPage() {
   };
 
   return (
-    <section className="relative overflow-x-hidden pb-[calc(100px+env(safe-area-inset-bottom))] md:pb-8">
+    <section className="relative min-w-0 max-w-full overflow-x-clip pb-[calc(124px+env(safe-area-inset-bottom))] md:pb-8">
       <div className="pointer-events-none absolute right-[-24%] top-5 h-64 w-64 rounded-full bg-[#D4A017]/10 blur-3xl" />
       <div className="md:hidden">
         <div className="mb-4 flex items-start justify-between gap-3">
@@ -364,7 +374,7 @@ export default function CalendarPage() {
         />
       </div>
 
-      <div className="no-scrollbar relative -mx-4 mb-3 flex gap-2.5 overflow-x-auto px-4 pb-1 md:mx-0 md:mb-6 md:grid md:grid-cols-2 md:overflow-visible md:px-0 md:pb-0 xl:grid-cols-5">
+      <div className="no-scrollbar relative -mx-4 mb-3 flex snap-x snap-mandatory gap-2.5 overflow-x-auto overscroll-x-contain px-4 pb-1 scroll-px-4 md:mx-0 md:mb-6 md:grid md:grid-cols-2 md:overflow-visible md:px-0 md:pb-0 xl:grid-cols-5">
         {[
           { label: 'Véhicules', value: String(calendarStats.activeVehicles), helper: 'Dans votre flotte', icon: Car, tone: 'text-emerald-500', glow: 'from-emerald-400/14' },
           { label: 'Réserv.', value: String(calendarStats.reservationsToday), helper: 'Aujourd’hui', icon: CalendarDays, tone: 'text-violet-500', glow: 'from-violet-400/14' },
@@ -372,11 +382,11 @@ export default function CalendarPage() {
           { label: 'Maintenance', value: String(calendarStats.maintenanceCount), helper: 'Non disponibles', icon: Wrench, tone: 'text-amber-500', glow: 'from-amber-400/14' },
           { label: 'Occupation', value: `${calendarStats.occupancy}%`, helper: 'Cette semaine', icon: TrendingUp, tone: 'text-sky-500', glow: 'from-sky-400/14' },
         ].map(({ label, value, helper, icon: Icon, tone, glow }) => (
-          <div key={label} className="group relative min-h-[118px] min-w-[136px] overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[var(--app-shadow)] transition hover:border-[#D4A017]/35 md:min-h-[126px] md:min-w-0 md:rounded-3xl md:p-4">
+          <div key={label} className="group relative min-h-[118px] min-w-[148px] snap-start overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[var(--app-shadow)] transition hover:border-[#D4A017]/35 md:min-h-[126px] md:min-w-0 md:rounded-3xl md:p-4">
             <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${glow} to-transparent opacity-80`} />
             <div className="relative flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-[var(--app-text-muted)]">{label}</p>
+                <p className="text-[11px] font-black uppercase leading-4 tracking-[0.1em] text-[var(--app-text-muted)]">{label}</p>
                 <p className="mt-2 truncate text-[1.7rem] font-black leading-none text-[var(--app-text)] md:text-3xl">{value}</p>
               </div>
               <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[14px] border border-[#D4A017]/20 bg-[#D4A017]/10 shadow-[0_0_20px_rgba(212,160,23,0.10)] md:h-10 md:w-10">
@@ -384,7 +394,7 @@ export default function CalendarPage() {
               </span>
             </div>
             <div className="relative mt-2.5">
-              <p className="truncate text-[11px] font-medium text-[var(--app-text-muted)]">{helper}</p>
+              <p className="truncate text-xs font-medium text-[var(--app-text-muted)]">{helper}</p>
               <span className="mt-1.5 block h-1 w-14 rounded-full bg-gradient-to-r from-[#D4A017]/70 via-white/20 to-transparent" />
             </div>
           </div>
@@ -418,15 +428,15 @@ export default function CalendarPage() {
           </div>
 
           <div className="flex flex-col gap-2 xl:items-end">
-            <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-2 md:flex md:flex-wrap md:items-center">
-              <button type="button" className="focus-ring inline-flex h-10 items-center gap-1.5 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 text-xs font-bold text-[var(--app-text-soft)] transition hover:border-[#D4A017]/30 md:gap-2 md:rounded-2xl">
+            <div className="grid grid-cols-2 items-center gap-2 md:flex md:flex-wrap md:items-center">
+              <button type="button" className="focus-ring inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 text-xs font-bold text-[var(--app-text-soft)] transition hover:border-[#D4A017]/30 md:w-auto md:gap-2 md:rounded-2xl">
                 <Filter className="h-3.5 w-3.5" />
                 Filtres
               </button>
               {archivedVehicleCount > 0 ? (
                 <button
                   type="button"
-                  className={`focus-ring h-8 rounded-xl border px-2.5 text-xs font-bold transition md:h-10 md:rounded-2xl md:px-3 ${
+                  className={`focus-ring h-10 w-full rounded-xl border px-2.5 text-xs font-bold transition md:w-auto md:rounded-2xl md:px-3 ${
                     showArchived ? 'border-gold-300/40 bg-gold-400 text-carbon-950' : 'border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)] hover:bg-[var(--app-gold-soft)]'
                   }`}
                   onClick={() => setShowArchived((current) => !current)}
@@ -434,11 +444,11 @@ export default function CalendarPage() {
                   Afficher archivés
                 </button>
               ) : null}
-              <div className="flex h-10 min-w-0 items-center gap-1 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-0.5 md:rounded-2xl md:p-1">
+              <div className="col-span-2 flex h-10 min-w-0 items-center gap-1 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-0.5 md:col-span-1 md:rounded-2xl md:p-1">
                 {DAY_OPTIONS.map((option) => (
                   <button
                     key={option}
-                    className={`flex-1 rounded-lg px-2 py-1.5 text-xs font-black transition md:flex-none md:rounded-xl md:px-3 md:py-2 ${
+                    className={`h-9 flex-1 rounded-lg px-2 text-xs font-black transition md:flex-none md:rounded-xl md:px-3 ${
                       daysToShow === option ? 'bg-[#D4A017] text-carbon-950' : 'text-[var(--app-text-soft)] hover:bg-[var(--app-gold-soft)]'
                     }`}
                     onClick={() => setDaysToShow(option)}
@@ -466,8 +476,8 @@ export default function CalendarPage() {
         </div>
       </Card>
 
-      <div className="relative grid gap-4 md:gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
-        <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-0 shadow-[var(--app-shadow)]">
+      <div className="relative grid min-w-0 gap-4 md:gap-5 2xl:grid-cols-[minmax(0,1fr)_360px]">
+        <Card className="min-w-0 overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-0 shadow-[var(--app-shadow)]">
           {loading ? (
             <div className="space-y-3 p-5">
               <div className="h-24 animate-pulse rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)]" />
@@ -492,12 +502,15 @@ export default function CalendarPage() {
                     <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--app-text-muted)] md:text-xs md:tracking-[0.22em]">Planning flotte</p>
                     <h2 className="mt-1 text-[1rem] font-black text-[var(--app-text)] md:text-lg">Vue hebdomadaire des véhicules</h2>
                   </div>
-                  <p className="text-[11px] text-[var(--app-text-muted)] md:text-sm">{visibleVehicles.length} véhicule{visibleVehicles.length > 1 ? 's' : ''} affiché{visibleVehicles.length > 1 ? 's' : ''}</p>
+                  <div className="text-right">
+                    <p className="text-[11px] font-medium text-[var(--app-text-muted)] md:text-sm">{visibleVehicles.length} véhicule{visibleVehicles.length > 1 ? 's' : ''} affiché{visibleVehicles.length > 1 ? 's' : ''}</p>
+                    <p className="mt-0.5 text-[10px] font-semibold text-[var(--app-gold-text)] md:hidden">Glissez horizontalement →</p>
+                  </div>
                 </div>
               </div>
 
               <div className="p-0 md:hidden">
-                <div className="no-scrollbar overflow-x-auto">
+                <div className="no-scrollbar max-w-full touch-pan-x overflow-x-auto overscroll-x-contain">
                   <div className="min-w-max">
                     <div className="flex border-t border-[var(--app-border)] bg-[var(--app-card)]">
                       <div
@@ -548,7 +561,7 @@ export default function CalendarPage() {
                             style={{ width: MOBILE_VEHICLE_COL_WIDTH, minHeight: MOBILE_ROW_HEIGHT }}
                           >
                             <div className="flex gap-2">
-                              <div className="grid h-11 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)]">
+                              <div className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)]">
                                 {vehicle.imageUrl ? (
                                   <img src={vehicle.imageUrl} alt={`${vehicle.brand} ${vehicle.model}`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                                 ) : (
@@ -556,8 +569,15 @@ export default function CalendarPage() {
                                 )}
                               </div>
                               <div className="min-w-0">
-                                <p className="truncate text-[11px] font-black text-[var(--app-text)]">{vehicle.brand} {vehicle.model}</p>
-                                <p className="mt-0.5 truncate text-[10px] text-[var(--app-text-muted)]"><PlateNumber value={vehicle.plate} /></p>
+                                <p
+                                  className="line-clamp-2 text-[11px] font-black leading-4 text-[var(--app-text)]"
+                                  title={`${vehicle.brand} ${vehicle.model}`}
+                                >
+                                  {vehicle.brand} {vehicle.model}
+                                </p>
+                                <p className="mt-0.5 whitespace-nowrap text-[10px] font-medium text-[var(--app-text-muted)]">
+                                  <PlateNumber value={vehicle.plate} />
+                                </p>
                                 <span className={`mt-1 inline-flex max-w-full rounded-full border px-1.5 py-0.5 text-[9px] font-bold ${vehicleStatusClass(vehicle.status, isArchivedVehicle(vehicle))}`}>
                                   {vehicleStatusLabel(vehicle.status, isArchivedVehicle(vehicle))}
                                 </span>
@@ -615,13 +635,14 @@ export default function CalendarPage() {
                                   key={`mobile-block-${vehicle.id}-${block.reservation.id}`}
                                   className={`absolute top-3 z-10 rounded-xl border px-2.5 py-2 text-left shadow-[0_12px_22px_rgba(0,0,0,.38)] transition active:scale-[0.98] ${blockClass(block.reservation, startDayIso)}`}
                                   style={{ left, width, minHeight: 50 }}
+                                  title={`${block.reservation.id} • ${block.reservation.client} • ${formatCalendarDate(block.reservation.pickupDate)} → ${formatCalendarDate(block.reservation.returnDate)}`}
                                   onClick={() => {
                                     setSelectedReservation(block.reservation);
                                     setSelectedDayIso(dateKey(block.reservation.pickupDate));
                                   }}
                                 >
-                                  <span className="block truncate text-[11px] font-black">{block.reservation.id} · {block.reservation.client}</span>
-                                  <span className="mt-1 block truncate text-[11px] opacity-85">
+                                  <span className="block truncate text-[11px] font-black leading-4">{block.reservation.id} · {block.reservation.client}</span>
+                                  <span className="mt-0.5 block truncate text-[10px] font-semibold opacity-90">
                                     {formatCalendarDate(block.reservation.pickupDate)} → {formatCalendarDate(block.reservation.returnDate)}
                                   </span>
                                 </button>
@@ -647,7 +668,7 @@ export default function CalendarPage() {
                 </div>
               </div>
 
-              <div className="hidden overflow-x-auto pb-3 md:block">
+              <div className="hidden max-w-full overflow-x-auto overscroll-x-contain pb-3 md:block">
                 <div className="min-w-max">
                   <div className="sticky top-0 z-20 flex">
                     <div
