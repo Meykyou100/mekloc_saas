@@ -279,15 +279,15 @@ export default function SettingsPage() {
     const baseNotifications = getNotificationPreferences(profile?.agency?.settings);
     return (
       agencyName !== baseName ||
-      agencyPhone !== basePhone ||
+      agencyPhone !== (settingValue(baseSettings, 'contract_phone') || basePhone || profile?.phone || '') ||
       agencyAddress !== baseAddress ||
-      agencyEmail !== (profile?.agency?.email || '') ||
+      agencyEmail !== (settingValue(baseSettings, 'contract_email') || profile?.agency?.email || profile?.email || '') ||
       agencyActivityLabel !== settingValue(baseSettings, 'activity_label') ||
       agencyCity !== settingValue(baseSettings, 'city') ||
       agencyWhatsapp !== settingValue(baseSettings, 'whatsapp') ||
       agencyWebsite !== settingValue(baseSettings, 'website') ||
-      agencyIce !== (profile?.agency?.ice || '') ||
-      agencyRc !== (profile?.agency?.rc || '') ||
+      agencyIce !== (settingValue(baseSettings, 'contract_ice') || profile?.agency?.ice || '') ||
+      agencyRc !== (settingValue(baseSettings, 'contract_rc') || profile?.agency?.rc || '') ||
       agencyIfNumber !== settingValue(baseSettings, 'if_number') ||
       agencyCnss !== settingValue(baseSettings, 'cnss') ||
       agencyFooterNote !== settingValue(baseSettings, 'contract_footer_note') ||
@@ -297,19 +297,19 @@ export default function SettingsPage() {
       Boolean(pendingLogoFile) ||
       notificationPreferenceItems.some((item) => notificationPreferences[item.key] !== baseNotifications[item.key])
     );
-  }, [agencyActivityLabel, agencyAddress, agencyCity, agencyCnss, agencyEmail, agencyFooterNote, agencyIce, agencyIfNumber, agencyName, agencyPhone, agencyRc, agencyWebsite, agencyWhatsapp, contractLogoHeight, contractLogoWidth, logoPreviewUrl, notificationPreferences, pendingLogoFile, profile?.agency?.address, profile?.agency?.email, profile?.agency?.ice, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.rc, profile?.agency?.settings]);
+  }, [agencyActivityLabel, agencyAddress, agencyCity, agencyCnss, agencyEmail, agencyFooterNote, agencyIce, agencyIfNumber, agencyName, agencyPhone, agencyRc, agencyWebsite, agencyWhatsapp, contractLogoHeight, contractLogoWidth, logoPreviewUrl, notificationPreferences, pendingLogoFile, profile?.agency?.address, profile?.agency?.email, profile?.agency?.ice, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.rc, profile?.agency?.settings, profile?.email, profile?.phone]);
   useEffect(() => {
     setAgencyName(profile?.agency?.name || '');
     const settings = profile?.agency?.settings;
-    setAgencyEmail(profile?.agency?.email || '');
-    setAgencyPhone(profile?.agency?.phone || '');
+    setAgencyEmail(settingValue(settings, 'contract_email') || profile?.agency?.email || profile?.email || '');
+    setAgencyPhone(settingValue(settings, 'contract_phone') || profile?.agency?.phone || profile?.phone || '');
     setAgencyAddress(profile?.agency?.address || '');
     setAgencyActivityLabel(settingValue(settings, 'activity_label'));
     setAgencyCity(settingValue(settings, 'city'));
     setAgencyWhatsapp(settingValue(settings, 'whatsapp'));
     setAgencyWebsite(settingValue(settings, 'website'));
-    setAgencyIce(profile?.agency?.ice || '');
-    setAgencyRc(profile?.agency?.rc || '');
+    setAgencyIce(settingValue(settings, 'contract_ice') || profile?.agency?.ice || '');
+    setAgencyRc(settingValue(settings, 'contract_rc') || profile?.agency?.rc || '');
     setAgencyIfNumber(settingValue(settings, 'if_number'));
     setAgencyCnss(settingValue(settings, 'cnss'));
     setAgencyFooterNote(settingValue(settings, 'contract_footer_note'));
@@ -321,7 +321,7 @@ export default function SettingsPage() {
     setNotificationPreferences(getNotificationPreferences(profile?.agency?.settings));
     setSaveState('idle');
     setLogoPreviewBroken(false);
-  }, [profile?.agency?.address, profile?.agency?.email, profile?.agency?.ice, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.rc, profile?.agency?.settings]);
+  }, [profile?.agency?.address, profile?.agency?.email, profile?.agency?.ice, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.rc, profile?.agency?.settings, profile?.email, profile?.phone]);
 
   useEffect(() => {
     setLogoPreviewBroken(false);
@@ -888,6 +888,10 @@ startxref
         notifications: notificationPreferences,
         activity_label: sanitizeText(agencyActivityLabel, 120),
         city: sanitizeText(agencyCity, 100),
+        contract_phone: safeAgencyPhone,
+        contract_email: safeAgencyEmail,
+        contract_ice: sanitizeText(agencyIce, 60),
+        contract_rc: sanitizeText(agencyRc, 60),
         whatsapp: normalizeText(agencyWhatsapp, 20),
         website: sanitizeText(agencyWebsite, 180),
         if_number: sanitizeText(agencyIfNumber, 60),
@@ -899,26 +903,18 @@ startxref
       const agencyPayload: Record<string, unknown> = {
         name: safeAgencyName,
         address: safeAgencyAddress,
-        phone: safeAgencyPhone || null,
-        email: safeAgencyEmail || null,
-        ice: sanitizeText(agencyIce, 60) || null,
-        rc: sanitizeText(agencyRc, 60) || null,
         settings: nextAgencySettings,
       };
       type SavedAgencySettingsRow = {
         name?: string | null;
         address?: string | null;
-        phone?: string | null;
-        email?: string | null;
-        ice?: string | null;
-        rc?: string | null;
         settings?: Record<string, unknown> | null;
       };
       const { data: savedAgencyData, error: agencyErr } = await supabase
         .from('agencies')
         .update(agencyPayload)
         .eq('id', agencyId)
-        .select('name,address,phone,email,ice,rc,settings')
+        .select('name,address,settings')
         .single();
       if (agencyErr) {
         const missingColumn = extractMissingColumnName(agencyErr.message || '');
@@ -940,22 +936,14 @@ startxref
       if (String(savedAgency.address || '') !== safeAgencyAddress) {
         throw new Error('Adresse non enregistrée dans Supabase. Vérifiez la colonne agencies.address et les règles RLS.');
       }
-      if (String(savedAgency.phone || '') !== String(safeAgencyPhone || '')) {
-        throw new Error("Le téléphone de l’agence n’a pas été enregistré.");
-      }
-      if (String(savedAgency.email || '') !== String(safeAgencyEmail || '')) {
-        throw new Error("L’email de l’agence n’a pas été enregistré.");
-      }
-      if (String(savedAgency.ice || '') !== String(sanitizeText(agencyIce, 60) || '')) {
-        throw new Error("L’ICE de l’agence n’a pas été enregistré.");
-      }
-      if (String(savedAgency.rc || '') !== String(sanitizeText(agencyRc, 60) || '')) {
-        throw new Error("Le RC de l’agence n’a pas été enregistré.");
-      }
       const savedSettings = savedAgency.settings || {};
       const settingsChecks: Array<[string, string | number]> = [
         ['activity_label', nextAgencySettings.activity_label],
         ['city', nextAgencySettings.city],
+        ['contract_phone', nextAgencySettings.contract_phone],
+        ['contract_email', nextAgencySettings.contract_email],
+        ['contract_ice', nextAgencySettings.contract_ice],
+        ['contract_rc', nextAgencySettings.contract_rc],
         ['whatsapp', nextAgencySettings.whatsapp],
         ['website', nextAgencySettings.website],
         ['if_number', nextAgencySettings.if_number],
@@ -1221,7 +1209,7 @@ startxref
               <div className="grid gap-2">
                 <Field
                   label="Email"
-                  value={agencyEmail}
+                  value={profile?.email || ''}
                   disabled
                   readOnly
                   className="cursor-not-allowed opacity-75"
