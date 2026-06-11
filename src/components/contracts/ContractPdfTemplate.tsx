@@ -261,8 +261,10 @@ function AgencyBrand({
         <img
           src={agency.logoUrl}
           alt={`${agency.name || 'Agence'} logo`}
-          className="rc-brand-logo"
-          style={{ maxWidth: `${logoWidth}px`, maxHeight: `${logoHeight}px` }}
+          className={`rc-brand-logo${compact ? ' rc-brand-logo-compact' : ''}`}
+          style={compact
+            ? { maxWidth: `${logoWidth}px`, maxHeight: `${logoHeight}px` }
+            : { width: `${logoWidth}px`, height: `${logoHeight}px` }}
           data-pdf-logo="agency"
           onError={onLogoError}
         />
@@ -312,11 +314,11 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           box-shadow: 0 18px 45px rgba(0,0,0,.16);
         }
         .rc-page + .rc-page { margin-top: 18px; }
-        .rc-page-one { padding: 22px 32px 24px 56px; }
+        .rc-page-one { padding: 9px 32px 24px 56px; }
         .rc-top {
           display: grid;
           grid-template-columns: 345px minmax(0, 1fr);
-          min-height: 190px;
+          min-height: 183px;
           gap: 8px;
         }
         .rc-brand {
@@ -326,15 +328,17 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           align-items: center;
           justify-content: flex-start;
           text-align: center;
+          transform: translateY(-2px);
         }
         .rc-brand-logo {
           display: block;
-          width: auto;
           max-width: 340px;
           max-height: 132px;
-          margin: 0 auto 3px;
-          object-fit: contain;
+          margin: 0 auto 1px;
+          object-fit: cover;
+          object-position: center;
         }
+        .rc-brand-logo-compact { width: auto; height: auto; object-fit: contain; }
         .rc-brand-fallback { position: relative; padding-top: 21px; text-transform: uppercase; }
         .rc-brand-fallback::before {
           content: "";
@@ -353,16 +357,16 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           display: flex;
           width: 100%;
           flex-direction: column;
-          gap: 3px;
-          margin-top: 2px;
-          font-size: 11px;
+          gap: 2px;
+          margin-top: 0;
+          font-size: 11.2px;
           font-weight: 800;
           line-height: 1.18;
         }
         .rc-brand-contact strong { font-size: 15px; letter-spacing: .015em; }
         .rc-brand-contact span { display: block; overflow-wrap: anywhere; }
         .rc-header-right { position: relative; min-width: 0; }
-        .rc-header-cars { height: 174px; overflow: hidden; }
+        .rc-header-cars { height: 171px; overflow: hidden; }
         .rc-header-cars img {
           display: block;
           width: 100%;
@@ -372,7 +376,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         }
         .rc-contract-ref {
           min-height: 22px;
-          margin: -2px 0 2px 7px;
+          margin: -4px 0 2px 7px;
           font-size: 16px;
           font-weight: 900;
           letter-spacing: .16em;
