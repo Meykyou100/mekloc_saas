@@ -11,7 +11,7 @@ import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { normalizeText, sanitizeText, validateEmail, validateFileUpload, validatePhone } from '../lib/security';
 import { getNotificationPreferences, type NotificationPreferenceKey, type NotificationPreferences } from '../lib/notificationPreferences';
-import { uploadAgencyLogo } from '../lib/storage';
+import { uploadAgencyLogo, uploadAgencyStamp } from '../lib/storage';
 import { supabase } from '../lib/supabase';
 
 type TeamMember = {
@@ -183,6 +183,7 @@ export default function SettingsPage() {
   const { agencyId, isSupabaseEnabled, profile, signOut, deleteAccountWithPassword, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const logoInputRef = useRef<HTMLInputElement | null>(null);
+  const stampInputRef = useRef<HTMLInputElement | null>(null);
   const [tab, setTab] = useState<SettingsTab>(readInitialSettingsTab);
   const tabs = settingsTabs;
   const agency = profile?.agency;
@@ -250,6 +251,11 @@ export default function SettingsPage() {
   const cropFrameRef = useRef<HTMLDivElement | null>(null);
   const dragStartRef = useRef<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [stampFileName, setStampFileName] = useState('');
+  const [stampPreviewUrl, setStampPreviewUrl] = useState('');
+  const [stampPreviewBroken, setStampPreviewBroken] = useState(false);
+  const [pendingStampFile, setPendingStampFile] = useState<File | null>(null);
+  const [stampRemoved, setStampRemoved] = useState(false);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [saveState, setSaveState] = useState<'idle' | 'dirty' | 'saving' | 'saved'>('idle');
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
@@ -295,9 +301,11 @@ export default function SettingsPage() {
       contractLogoHeight !== settingNumber(baseSettings, 'contract_logo_height', 120) ||
       logoPreviewUrl !== baseLogo ||
       Boolean(pendingLogoFile) ||
+      Boolean(pendingStampFile) ||
+      stampRemoved ||
       notificationPreferenceItems.some((item) => notificationPreferences[item.key] !== baseNotifications[item.key])
     );
-  }, [agencyActivityLabel, agencyAddress, agencyCity, agencyCnss, agencyEmail, agencyFooterNote, agencyIce, agencyIfNumber, agencyName, agencyPhone, agencyRc, agencyWebsite, agencyWhatsapp, contractLogoHeight, contractLogoWidth, logoPreviewUrl, notificationPreferences, pendingLogoFile, profile?.agency?.address, profile?.agency?.email, profile?.agency?.ice, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.rc, profile?.agency?.settings, profile?.email, profile?.phone]);
+  }, [agencyActivityLabel, agencyAddress, agencyCity, agencyCnss, agencyEmail, agencyFooterNote, agencyIce, agencyIfNumber, agencyName, agencyPhone, agencyRc, agencyWebsite, agencyWhatsapp, contractLogoHeight, contractLogoWidth, logoPreviewUrl, notificationPreferences, pendingLogoFile, pendingStampFile, profile?.agency?.address, profile?.agency?.email, profile?.agency?.ice, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.rc, profile?.agency?.settings, profile?.email, profile?.phone, stampRemoved]);
   useEffect(() => {
     setAgencyName(profile?.agency?.name || '');
     const settings = profile?.agency?.settings;
@@ -318,6 +326,9 @@ export default function SettingsPage() {
     setLogoPreviewUrl(profile?.agency?.logoUrl || '');
     setPendingLogoFile(null);
     setLogoFileName('');
+    setPendingStampFile(null);
+    setStampFileName('');
+    setStampRemoved(false);
     setNotificationPreferences(getNotificationPreferences(profile?.agency?.settings));
     setSaveState('idle');
     setLogoPreviewBroken(false);
@@ -326,6 +337,36 @@ export default function SettingsPage() {
   useEffect(() => {
     setLogoPreviewBroken(false);
   }, [logoPreviewUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadStampPreview() {
+      const settings = profile?.agency?.settings;
+      const stampPath = settingValue(settings, 'contract_stamp_path');
+      if (!stampPath || !supabase) {
+        if (!cancelled) setStampPreviewUrl('');
+        return;
+      }
+      const savedBucket = settingValue(settings, 'contract_stamp_bucket');
+      const candidateBuckets = Array.from(new Set([savedBucket, 'agency-assets', 'logos'].filter(Boolean)));
+      for (const bucket of candidateBuckets) {
+        const signed = await supabase.storage.from(bucket).createSignedUrl(stampPath, 60 * 60);
+        if (!signed.error && signed.data?.signedUrl) {
+          if (!cancelled) setStampPreviewUrl(signed.data.signedUrl);
+          return;
+        }
+      }
+      if (!cancelled) setStampPreviewUrl('');
+    }
+    void loadStampPreview();
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.agency?.settings]);
+
+  useEffect(() => {
+    setStampPreviewBroken(false);
+  }, [stampPreviewUrl]);
 
   useEffect(() => {
     if (!hasChanges) {
@@ -747,6 +788,31 @@ startxref
     setCropOpen(true);
   }
 
+  function handleStampUpload(file: File | undefined) {
+    if (!file) return;
+    const validation = validateFileUpload(file, {
+      maxSizeMb: 3,
+      allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'],
+    });
+    if (validation) {
+      notify({ title: 'Fichier non autorisé', message: validation, type: 'warning' });
+      return;
+    }
+    setStampFileName(file.name);
+    setPendingStampFile(file);
+    setStampRemoved(false);
+    setStampPreviewBroken(false);
+    setStampPreviewUrl(URL.createObjectURL(file));
+  }
+
+  function handleRemoveStamp() {
+    setStampFileName('');
+    setPendingStampFile(null);
+    setStampPreviewUrl('');
+    setStampPreviewBroken(false);
+    setStampRemoved(true);
+  }
+
   async function handleRemoveLogo() {
     setLogoFileName('');
     setLogoPreviewUrl('');
@@ -894,6 +960,16 @@ startxref
         const uploadedLogo = await uploadAgencyLogo(agencyId, pendingLogoFile);
         uploadedLogoBucket = uploadedLogo?.bucket || uploadedLogoBucket;
       }
+      let stampPath = settingValue(profile?.agency?.settings, 'contract_stamp_path');
+      let stampBucket = settingValue(profile?.agency?.settings, 'contract_stamp_bucket');
+      if (pendingStampFile) {
+        const uploadedStamp = await uploadAgencyStamp(agencyId, pendingStampFile);
+        stampPath = uploadedStamp?.path || stampPath;
+        stampBucket = uploadedStamp?.bucket || stampBucket;
+      } else if (stampRemoved) {
+        stampPath = '';
+        stampBucket = '';
+      }
       const nextAgencySettings = {
         ...(profile?.agency?.settings || {}),
         notifications: notificationPreferences,
@@ -911,6 +987,8 @@ startxref
         contract_logo_width: Math.min(340, Math.max(200, contractLogoWidth)),
         contract_logo_height: Math.min(132, Math.max(70, contractLogoHeight)),
         logo_storage_bucket: uploadedLogoBucket,
+        contract_stamp_path: stampPath,
+        contract_stamp_bucket: stampBucket,
       };
       const agencyPayload: Record<string, unknown> = {
         name: safeAgencyName,
@@ -964,6 +1042,8 @@ startxref
         ['contract_logo_width', nextAgencySettings.contract_logo_width],
         ['contract_logo_height', nextAgencySettings.contract_logo_height],
         ['logo_storage_bucket', nextAgencySettings.logo_storage_bucket],
+        ['contract_stamp_path', nextAgencySettings.contract_stamp_path],
+        ['contract_stamp_bucket', nextAgencySettings.contract_stamp_bucket],
       ];
       const unsavedSetting = settingsChecks.find(([key, expected]) => String(savedSettings[key] ?? '') !== String(expected));
       if (unsavedSetting) {
@@ -988,6 +1068,9 @@ startxref
       await refreshProfile();
       setPendingLogoFile(null);
       setLogoFileName('');
+      setPendingStampFile(null);
+      setStampFileName('');
+      setStampRemoved(false);
 
       notify({ title: 'Paramètres enregistrés', message: 'Profil agence mis à jour.', type: 'success' });
       setSaveState('saved');
@@ -1401,6 +1484,7 @@ startxref
             <div className="mt-4 grid gap-2 text-sm">
               {[
                 ['Logo', logoPreviewUrl ? 'Configuré' : 'À ajouter'],
+                ['Cachet', stampPreviewUrl && !stampPreviewBroken ? 'Configuré' : 'À ajouter'],
                 ['Adresse', agencyAddress || 'À compléter dans Général'],
                 ['Téléphone', agencyPhone || 'À compléter dans Général'],
                 ['Ville', agencyCity || 'À compléter'],
@@ -1447,6 +1531,50 @@ startxref
                   <Field label="RC" value={agencyRc} onChange={(event) => setAgencyRc(event.target.value)} />
                   <Field label="IF / Identifiant fiscal" value={agencyIfNumber} onChange={(event) => setAgencyIfNumber(event.target.value)} />
                   <Field label="CNSS" value={agencyCnss} onChange={(event) => setAgencyCnss(event.target.value)} />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--app-gold-text)]">Cachet de l’agence</p>
+                    <p className="mt-1 text-xs leading-5 text-[var(--app-text-muted)]">
+                      Cette image apparaît uniquement dans la zone de cachet et signature, à la page 2 du contrat.
+                    </p>
+                    {stampFileName ? <p className="mt-1 text-xs text-[var(--app-gold-text)]">{stampFileName}</p> : null}
+                  </div>
+                  <div className="grid h-28 w-full shrink-0 place-items-center overflow-hidden rounded-2xl border border-[var(--app-border)] bg-white p-2 sm:w-56">
+                    {stampPreviewUrl && !stampPreviewBroken ? (
+                      <img
+                        src={stampPreviewUrl}
+                        alt="Aperçu du cachet de l’agence"
+                        className="h-full w-full object-contain"
+                        onError={() => setStampPreviewBroken(true)}
+                      />
+                    ) : (
+                      <span className="text-center text-xs font-bold text-slate-500">Aucun cachet enregistré</span>
+                    )}
+                  </div>
+                </div>
+                <input
+                  ref={stampInputRef}
+                  className="hidden"
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  onChange={(event) => {
+                    handleStampUpload(event.target.files?.[0]);
+                    event.currentTarget.value = '';
+                  }}
+                />
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <Button type="button" variant="secondary" onClick={() => stampInputRef.current?.click()}>
+                    {stampPreviewUrl ? 'Remplacer le cachet' : 'Ajouter le cachet'}
+                  </Button>
+                  {stampPreviewUrl ? (
+                    <Button type="button" variant="danger" onClick={handleRemoveStamp}>
+                      Retirer
+                    </Button>
+                  ) : null}
                 </div>
               </div>
 

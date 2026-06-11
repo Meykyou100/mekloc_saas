@@ -417,6 +417,8 @@ export default function ContractsPage() {
   const [previewMaxHeight, setPreviewMaxHeight] = useState(560);
   const [logoBroken, setLogoBroken] = useState(false);
   const [preparedLogoUrl, setPreparedLogoUrl] = useState<string | null>(null);
+  const [stampPublicUrl, setStampPublicUrl] = useState<string | null>(null);
+  const [preparedStampUrl, setPreparedStampUrl] = useState<string | null>(null);
   const [renderedPageImages, setRenderedPageImages] = useState<string[]>([]);
   const [previewRendering, setPreviewRendering] = useState(false);
   const renderVersionRef = useRef(0);
@@ -494,6 +496,23 @@ export default function ContractsPage() {
     let cancelled = false;
     async function loadAgencyMeta() {
       const profileAgency = profile?.agency;
+      async function resolveStamp(settings: Record<string, unknown> | null | undefined) {
+        const stampPath = readString(settings, ['contract_stamp_path']);
+        if (!stampPath || !supabase) {
+          if (!cancelled) setStampPublicUrl(null);
+          return;
+        }
+        const savedBucket = readString(settings, ['contract_stamp_bucket']);
+        const candidateBuckets = Array.from(new Set([savedBucket, 'agency-assets', 'logos'].filter(Boolean)));
+        for (const bucket of candidateBuckets) {
+          const signed = await supabase.storage.from(bucket).createSignedUrl(stampPath, 60 * 60);
+          if (!signed.error && signed.data?.signedUrl) {
+            if (!cancelled) setStampPublicUrl(signed.data.signedUrl);
+            return;
+          }
+        }
+        if (!cancelled) setStampPublicUrl(null);
+      }
       setAgencyMeta({
         name: profileAgency?.name || '',
         address: profileAgency?.address || '',
@@ -506,6 +525,7 @@ export default function ContractsPage() {
         settings: profileAgency?.settings || {},
       });
       setLogoPublicUrl(profileAgency?.logoUrl || null);
+      await resolveStamp(profileAgency?.settings);
       if (!agencyId || !supabase) {
         return;
       }
@@ -537,6 +557,7 @@ export default function ContractsPage() {
         rc: agencyRow.rc || profileAgency?.rc || '',
         settings: agencyRow.settings || profileAgency?.settings || {},
       });
+      await resolveStamp(agencyRow.settings || profileAgency?.settings);
       const logoPath = agencyRow.logo_path || profileAgency?.logoPath;
       if (logoPath) {
         const savedBucket = readString(
@@ -696,6 +717,20 @@ export default function ContractsPage() {
     };
   }, [effectiveLogoUrl]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setPreparedStampUrl(null);
+    if (!stampPublicUrl) return () => {
+      cancelled = true;
+    };
+    void loadLogoForPdf(stampPublicUrl).then((asset) => {
+      if (!cancelled) setPreparedStampUrl(asset?.dataUrl || null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [stampPublicUrl]);
+
   const selectedReservationPaymentSummary = useMemo(() => (
     selectedReservation ? getReservationPaymentSummary(selectedReservation, payments) : null
   ), [payments, selectedReservation]);
@@ -726,6 +761,7 @@ export default function ContractsPage() {
         phone: readString(agencySettings, ['contract_phone']) || agencyMeta.phone || '',
         email: readString(agencySettings, ['contract_email']) || agencyMeta.email || '',
         logoUrl: displayedLogoUrl,
+        stampUrl: preparedStampUrl || stampPublicUrl,
         logoWidth: readNumber(agencySettings, ['contract_logo_width']) || 315,
         logoHeight: readNumber(agencySettings, ['contract_logo_height']) || 120,
         rc: readString(agencySettings, ['contract_rc']) || agencyMeta.rc || '',
@@ -810,6 +846,7 @@ export default function ContractsPage() {
     damageMarks,
     deposit,
     displayedLogoUrl,
+    preparedStampUrl,
     paidAmount,
     pickupDate,
     pickupTime,
@@ -824,6 +861,7 @@ export default function ContractsPage() {
     selectedReservationPayments,
     totalAmount,
     vehicle,
+    stampPublicUrl,
   ]);
 
   useEffect(() => {

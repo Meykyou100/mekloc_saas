@@ -6,6 +6,7 @@ export type ContractPdfAgency = {
   phone?: string;
   email?: string;
   logoUrl?: string | null;
+  stampUrl?: string | null;
   logoWidth?: number;
   logoHeight?: number;
   rc?: string;
@@ -645,6 +646,14 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         .rc-signature-side p { margin: 7px 0 0; }
         .rc-signature-line { display: inline-block; min-width: 118px; border-bottom: 1px solid #555; }
         .rc-agency-signature-name { margin-top: 9px; font-size: 9px; font-weight: 700; }
+        .rc-agency-stamp {
+          display: block;
+          width: 210px;
+          height: 82px;
+          margin: 1px auto 0;
+          object-fit: contain;
+          object-position: center;
+        }
         .rc-terms-footer {
           display: flex;
           min-height: 20px;
@@ -789,7 +798,11 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           </div>
           <div className="rc-signature-side">
             <strong>Cachet et signature de l’agence</strong>
-            <div className="rc-agency-signature-name">{agencyName}</div>
+            {agency.stampUrl ? (
+              <img className="rc-agency-stamp" src={agency.stampUrl} alt={`Cachet ${agencyName}`} />
+            ) : (
+              <div className="rc-agency-signature-name">{agencyName}</div>
+            )}
           </div>
         </div>
         <div className="rc-terms-footer">

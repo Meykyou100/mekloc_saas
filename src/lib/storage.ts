@@ -76,6 +76,34 @@ export async function uploadAgencyLogo(agencyId: string, file: File) {
   return { path: uploadData.path, bucket: usedBucket };
 }
 
+export async function uploadAgencyStamp(agencyId: string, file: File) {
+  if (!supabase) return null;
+  const validation = validateFileUpload(file, {
+    maxSizeMb: 3,
+    allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'],
+  });
+  if (validation) throw new Error(validation);
+
+  const path = safeStoragePath(agencyId, 'stamps', file.name || 'cachet-agence.png');
+  const { data, error } = await supabase.storage.from(storageBuckets.agencyAssets).upload(path, file, {
+    cacheControl: '3600',
+    upsert: true,
+  });
+
+  if (error || !data) {
+    const message = error ? toErrorMessage(error) : 'Erreur inconnue';
+    if (/bucket not found|not found/i.test(message)) {
+      throw new Error('Bucket "agency-assets" introuvable dans Supabase Storage.');
+    }
+    if (/row-level security|policy|permission denied|not authorized/i.test(message)) {
+      throw new Error('Permission refusée pour enregistrer le cachet de cette agence.');
+    }
+    throw new Error(`Upload cachet impossible: ${message}`);
+  }
+
+  return { path: data.path, bucket: storageBuckets.agencyAssets };
+}
+
 export async function uploadContractPdf(agencyId: string, contractId: string, file: File) {
   if (!supabase) return null;
 
