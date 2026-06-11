@@ -415,6 +415,7 @@ export default function ContractsPage() {
   const [previewScale, setPreviewScale] = useState(1);
   const [previewMaxHeight, setPreviewMaxHeight] = useState(560);
   const [logoBroken, setLogoBroken] = useState(false);
+  const [preparedLogoUrl, setPreparedLogoUrl] = useState<string | null>(null);
 
   const [agencyMeta, setAgencyMeta] = useState<{
     name?: string;
@@ -451,8 +452,8 @@ export default function ContractsPage() {
       setPreviewMaxHeight(nextMaxHeight);
       const availableWidth = Math.max(240, viewport.clientWidth - (isMobile ? 28 : 56));
       const widthScale = availableWidth / A4_SOURCE_WIDTH;
-      const minScale = isMobile ? 0.34 : 0.42;
-      const maxScale = isMobile ? 0.68 : 0.74;
+      const minScale = isMobile ? 0.3 : 0.36;
+      const maxScale = isMobile ? 0.56 : 0.58;
       setPreviewScale(Math.max(minScale, Math.min(maxScale, widthScale)));
     };
 
@@ -468,14 +469,14 @@ export default function ContractsPage() {
     const nextMaxHeight = Math.max(isMobile ? 520 : 620, window.innerHeight - 260);
     const availableWidth = Math.max(240, viewport.clientWidth - (isMobile ? 28 : 56));
     const widthScale = availableWidth / A4_SOURCE_WIDTH;
-    const minScale = isMobile ? 0.34 : 0.42;
-    const maxScale = isMobile ? 0.68 : 0.74;
+    const minScale = isMobile ? 0.3 : 0.36;
+    const maxScale = isMobile ? 0.56 : 0.58;
     setPreviewMaxHeight(nextMaxHeight);
     setPreviewScale(Math.max(minScale, Math.min(maxScale, widthScale)));
   }
 
   function nudgePreviewScale(delta: number) {
-    setPreviewScale((current) => Math.max(0.34, Math.min(0.82, Number((current + delta).toFixed(2)))));
+    setPreviewScale((current) => Math.max(0.3, Math.min(0.72, Number((current + delta).toFixed(2)))));
   }
 
   useEffect(() => {
@@ -675,6 +676,21 @@ export default function ContractsPage() {
   }, [contracts, reservations]);
 
   const effectiveLogoUrl = logoPublicUrl || agencyMeta.logo_url || profile?.agency?.logoUrl || null;
+  const displayedLogoUrl = preparedLogoUrl || effectiveLogoUrl;
+
+  useEffect(() => {
+    let cancelled = false;
+    setPreparedLogoUrl(null);
+    if (!effectiveLogoUrl) return () => {
+      cancelled = true;
+    };
+    void loadLogoForPdf(effectiveLogoUrl).then((asset) => {
+      if (!cancelled) setPreparedLogoUrl(asset?.dataUrl || null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [effectiveLogoUrl]);
 
   const selectedReservationPaymentSummary = useMemo(() => (
     selectedReservation ? getReservationPaymentSummary(selectedReservation, payments) : null
@@ -705,7 +721,7 @@ export default function ContractsPage() {
         address: agencyMeta.address || profile?.agency?.address || '',
         phone: readString(agencySettings, ['contract_phone']) || agencyMeta.phone || '',
         email: readString(agencySettings, ['contract_email']) || agencyMeta.email || '',
-        logoUrl: effectiveLogoUrl,
+        logoUrl: displayedLogoUrl,
         logoWidth: readNumber(agencySettings, ['contract_logo_width']) || 315,
         logoHeight: readNumber(agencySettings, ['contract_logo_height']) || 120,
         rc: readString(agencySettings, ['contract_rc']) || agencyMeta.rc || '',
@@ -789,7 +805,7 @@ export default function ContractsPage() {
     contractReference,
     damageMarks,
     deposit,
-    effectiveLogoUrl,
+    displayedLogoUrl,
     paidAmount,
     pickupDate,
     pickupTime,

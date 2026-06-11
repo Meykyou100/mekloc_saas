@@ -336,7 +336,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           max-width: 340px;
           max-height: 132px;
           margin: 0 auto 1px;
-          object-fit: cover;
+          object-fit: contain;
           object-position: center;
         }
         .rc-brand-logo-compact { width: auto; height: auto; object-fit: contain; }
