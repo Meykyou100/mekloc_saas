@@ -415,6 +415,7 @@ export default function ContractsPage() {
   const [logoBroken, setLogoBroken] = useState(false);
 
   const [agencyMeta, setAgencyMeta] = useState<{
+    name?: string;
     address?: string;
     phone?: string;
     email?: string;
@@ -485,31 +486,64 @@ export default function ContractsPage() {
   useEffect(() => {
     let cancelled = false;
     async function loadAgencyMeta() {
-      setAgencyMeta({});
-      setLogoPublicUrl(null);
+      const profileAgency = profile?.agency;
+      setAgencyMeta({
+        name: profileAgency?.name || '',
+        address: profileAgency?.address || '',
+        phone: profileAgency?.phone || '',
+        email: profileAgency?.email || '',
+        logo_path: profileAgency?.logoPath || '',
+        logo_url: profileAgency?.logoUrl || '',
+        ice: profileAgency?.ice || '',
+        rc: profileAgency?.rc || '',
+        settings: profileAgency?.settings || {},
+      });
+      setLogoPublicUrl(profileAgency?.logoUrl || null);
       if (!agencyId || !supabase) {
         return;
       }
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('agencies')
-        .select('address,phone,email,logo_path,logo_url,ice,rc,settings')
+        .select('*')
         .eq('id', agencyId)
         .maybeSingle();
-      if (!data || cancelled) return;
-      setAgencyMeta(data);
-      if (data.logo_path) {
+      if (error || !data || cancelled) return;
+      const agencyRow = data as {
+        name?: string | null;
+        address?: string | null;
+        phone?: string | null;
+        email?: string | null;
+        logo_path?: string | null;
+        logo_url?: string | null;
+        ice?: string | null;
+        rc?: string | null;
+        settings?: Record<string, unknown> | null;
+      };
+      setAgencyMeta({
+        name: agencyRow.name || profileAgency?.name || '',
+        address: agencyRow.address || profileAgency?.address || '',
+        phone: agencyRow.phone || profileAgency?.phone || '',
+        email: agencyRow.email || profileAgency?.email || '',
+        logo_path: agencyRow.logo_path || profileAgency?.logoPath || '',
+        logo_url: agencyRow.logo_url || profileAgency?.logoUrl || '',
+        ice: agencyRow.ice || profileAgency?.ice || '',
+        rc: agencyRow.rc || profileAgency?.rc || '',
+        settings: agencyRow.settings || profileAgency?.settings || {},
+      });
+      const logoPath = agencyRow.logo_path || profileAgency?.logoPath;
+      if (logoPath) {
         const candidateBuckets = ['logos', 'agency-assets'];
         let resolvedLogo: string | null = null;
         for (const bucket of candidateBuckets) {
-          const signed = await supabase.storage.from(bucket).createSignedUrl(data.logo_path, 60 * 60);
+          const signed = await supabase.storage.from(bucket).createSignedUrl(logoPath, 60 * 60);
           if (!signed.error && signed.data?.signedUrl) {
             resolvedLogo = signed.data.signedUrl;
             break;
           }
         }
-        if (!cancelled) setLogoPublicUrl(resolvedLogo || (data as { logo_url?: string | null }).logo_url || null);
-      } else if ((data as { logo_url?: string | null }).logo_url) {
-        if (!cancelled) setLogoPublicUrl((data as { logo_url?: string | null }).logo_url || null);
+        if (!cancelled) setLogoPublicUrl(resolvedLogo || agencyRow.logo_url || profileAgency?.logoUrl || null);
+      } else if (agencyRow.logo_url || profileAgency?.logoUrl) {
+        if (!cancelled) setLogoPublicUrl(agencyRow.logo_url || profileAgency?.logoUrl || null);
       } else {
         if (!cancelled) setLogoPublicUrl(null);
       }
@@ -518,7 +552,7 @@ export default function ContractsPage() {
     return () => {
       cancelled = true;
     };
-  }, [agencyId]);
+  }, [agencyId, profile?.agency]);
 
   const emptyClient: Client = {
     id: '',
@@ -634,7 +668,7 @@ export default function ContractsPage() {
     };
   }, [contracts, reservations]);
 
-  const effectiveLogoUrl = logoPublicUrl || agencyMeta.logo_url || null;
+  const effectiveLogoUrl = logoPublicUrl || agencyMeta.logo_url || profile?.agency?.logoUrl || null;
 
   const selectedReservationPaymentSummary = useMemo(() => (
     selectedReservation ? getReservationPaymentSummary(selectedReservation, payments) : null
@@ -646,7 +680,7 @@ export default function ContractsPage() {
 
   const contractPdfData = useMemo<ContractPdfData>(() => {
     const agencySource = agencyMeta as LooseRecord;
-    const agencySettings = (agencyMeta.settings || {}) as LooseRecord;
+    const agencySettings = (agencyMeta.settings || profile?.agency?.settings || {}) as LooseRecord;
     const clientSource = client as unknown as LooseRecord;
     const vehicleSource = vehicle as unknown as LooseRecord;
     const reservationSource = selectedReservation as unknown as LooseRecord | undefined;
@@ -661,8 +695,8 @@ export default function ContractsPage() {
 
     return {
       agency: {
-        name: profile?.agency?.name || '',
-        address: agencyMeta.address || '',
+        name: agencyMeta.name || profile?.agency?.name || '',
+        address: agencyMeta.address || profile?.agency?.address || '',
         phone: readString(agencySettings, ['contract_phone']) || agencyMeta.phone || '',
         email: readString(agencySettings, ['contract_email']) || agencyMeta.email || '',
         logoUrl: effectiveLogoUrl,

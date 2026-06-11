@@ -51,10 +51,17 @@ export async function uploadAgencyLogo(agencyId: string, file: File) {
 
   const signed = await supabase.storage.from(usedBucket).createSignedUrl(uploadData.path, 60 * 60);
   const resolvedLogoUrl = signed.data?.signedUrl || null;
-  const { error: saveError } = await supabase
+  let { error: saveError } = await supabase
     .from('agencies')
     .update({ logo_path: uploadData.path, logo_url: resolvedLogoUrl })
     .eq('id', agencyId);
+  if (saveError && /logo_url|schema cache|does not exist/i.test(saveError.message || '')) {
+    const fallback = await supabase
+      .from('agencies')
+      .update({ logo_path: uploadData.path })
+      .eq('id', agencyId);
+    saveError = fallback.error;
+  }
   if (saveError) {
     throw new Error(`Sauvegarde logo impossible: ${toErrorMessage(saveError)}`);
   }
