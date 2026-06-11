@@ -213,23 +213,7 @@ function VehicleSketch({ view }: { view: 'front' | 'rear' | 'left' | 'right' | '
 function HeaderCars() {
   return (
     <div className="rc-header-cars" aria-hidden="true">
-      <svg viewBox="0 0 350 125">
-        <g transform="translate(1 7)">
-          <path d="M7 87 16 55l33-13 20-23h50l28 21 14 47H7Z" fill="#171717" stroke="#000" strokeWidth="2.4" />
-          <path d="m72 25-17 22h81l-22-22H72Z" fill="#f8f8f8" stroke="#000" strokeWidth="2" />
-          <path d="M19 58h30m90-9 12 28M38 48l-9 39m117-20H18" fill="none" stroke="#555" strokeWidth="1.4" />
-          <rect x="70" y="72" width="31" height="9" rx="2" fill="#eee" />
-          <circle cx="47" cy="87" r="18" fill="#090909" /><circle cx="47" cy="87" r="8" fill="#a7a7a7" />
-          <circle cx="126" cy="87" r="18" fill="#090909" /><circle cx="126" cy="87" r="8" fill="#a7a7a7" />
-        </g>
-        <g transform="translate(170 16)">
-          <path d="M5 78 14 48l34-11 19-21h52l29 22 14 40H5Z" fill="#fff" stroke="#000" strokeWidth="3" />
-          <path d="m69 22-17 20h82l-21-20H69Z" fill="#111" stroke="#000" strokeWidth="2" />
-          <path d="M14 59h137M47 38l-9 40m97-40 10 40" fill="none" stroke="#000" strokeWidth="1.4" />
-          <circle cx="43" cy="80" r="17" fill="#0b0b0b" /><circle cx="43" cy="80" r="7" fill="#aaa" />
-          <circle cx="129" cy="80" r="17" fill="#0b0b0b" /><circle cx="129" cy="80" r="7" fill="#aaa" />
-        </g>
-      </svg>
+      <img src="/contract-header-dacia.jpeg" alt="" />
     </div>
   );
 }
@@ -327,15 +311,13 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         .rc-brand-contact { display: flex; flex-direction: column; gap: 3px; margin-top: 5px; font-size: 10.5px; font-weight: 700; }
         .rc-brand-contact strong { font-size: 14px; }
         .rc-header-right { position: relative; min-width: 0; }
-        .rc-header-cars { height: 126px; overflow: hidden; }
-        .rc-header-cars svg { width: 100%; height: 100%; }
-        .rc-activity-line {
-          margin-top: 2px;
-          text-align: center;
-          font-size: 15.5px;
-          font-weight: 900;
-          text-transform: uppercase;
-          white-space: nowrap;
+        .rc-header-cars { height: 158px; overflow: hidden; }
+        .rc-header-cars img {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center;
         }
         .rc-contract-ref { position: absolute; left: 58px; top: 153px; font-size: 16px; font-weight: 900; letter-spacing: .16em; }
         .rc-main-title {
@@ -516,11 +498,6 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           <AgencyBrand agency={agency} logoBroken={logoBroken} onLogoError={onLogoError} />
           <div className="rc-header-right">
             <HeaderCars />
-            <div className="rc-activity-line">
-              {agency.activityLabel || 'LOCATION DE VOITURE'} &nbsp;
-              {agency.arabicActivityLabel || ''} &nbsp;
-              {agency.contractHeaderText || 'RENT CAR'}
-            </div>
           </div>
         </div>
         <div className="rc-contract-ref">N° {contract.reference}</div>
