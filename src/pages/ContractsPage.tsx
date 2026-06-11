@@ -885,7 +885,8 @@ export default function ContractsPage() {
 
       const pages = Array.from(captureSource.element.querySelectorAll<HTMLElement>('.contract-pdf-page'));
       const captureTargets = pages.length ? pages : [captureSource.element];
-      const scale = Math.min(Math.max(window.devicePixelRatio || 3, 3), 4);
+      // 2x keeps A4 text print-friendly without producing oversized raw page images.
+      const scale = 2;
       const canvases: HTMLCanvasElement[] = [];
 
       for (const page of captureTargets) {
@@ -922,14 +923,19 @@ export default function ContractsPage() {
     try {
       setDownloadingPdf(true);
       const canvases = await captureContractPages(previewRef.current);
-      const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'pt',
+        format: 'a4',
+        compress: true,
+      });
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
 
       canvases.forEach((canvas, index) => {
         if (index > 0) pdf.addPage();
-        const imageData = canvas.toDataURL('image/png');
-        pdf.addImage(imageData, 'PNG', 0, 0, pdfWidth, pdfHeight, undefined, 'NONE');
+        const imageData = canvas.toDataURL('image/jpeg', 0.88);
+        pdf.addImage(imageData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
       });
 
       pdf.save(contractFileName);
