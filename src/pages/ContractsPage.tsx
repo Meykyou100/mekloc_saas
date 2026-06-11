@@ -324,6 +324,7 @@ function createPdfCaptureSource(source: HTMLElement, logoDataUrl?: string | null
 
   const clone = source.cloneNode(true) as HTMLElement;
   clone.removeAttribute('id');
+  clone.classList.add('pdf-capture-mode');
   clone.style.width = `${A4_SOURCE_WIDTH}px`;
   clone.style.minHeight = '0';
   clone.style.height = 'auto';
@@ -929,6 +930,7 @@ export default function ContractsPage() {
           onclone: (clonedDocument) => {
             const clonedTemplate = clonedDocument.querySelector<HTMLElement>('.contract-pdf-template');
             if (clonedTemplate) {
+              clonedTemplate.classList.add('pdf-capture-mode');
               clonedTemplate.style.fontFamily = 'Arial, Helvetica, sans-serif';
               clonedTemplate.style.fontSynthesis = 'none';
             }

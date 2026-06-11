@@ -400,7 +400,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           position: absolute;
           inset: 0;
           display: block;
-          padding-top: 6px;
+          padding-top: 2px;
           box-sizing: border-box;
           line-height: 22px;
           white-space: nowrap;
@@ -515,7 +515,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           text-align: center;
           text-transform: uppercase;
         }
-        .rc-black-title > span { padding-top: 5px; line-height: 20px; }
+        .rc-black-title > span { padding-top: 1px; line-height: 20px; }
         .rc-person-box {
           border: 1.8px solid #111;
           border-top: 0;
@@ -571,7 +571,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         .rc-term { margin-bottom: 8px; break-inside: avoid; }
         .rc-term-title {
           min-height: 20px;
-          padding: 5px 6px 3px;
+          padding: 2px 6px 3px;
           box-sizing: border-box;
           background: #050505;
           color: #fff;
@@ -580,6 +580,27 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           line-height: 1.05;
           letter-spacing: .03em;
           text-transform: uppercase;
+        }
+        .pdf-capture-mode .rc-line-label,
+        .pdf-capture-mode .rc-line-suffix,
+        .pdf-capture-mode .rc-line-value > span {
+          transform: translateY(-2px);
+        }
+        .pdf-capture-mode .rc-brand-contact,
+        .pdf-capture-mode .rc-contract-ref,
+        .pdf-capture-mode .rc-terms-title,
+        .pdf-capture-mode .rc-page-badge,
+        .pdf-capture-mode .rc-term p,
+        .pdf-capture-mode .rc-signature-side,
+        .pdf-capture-mode .rc-terms-footer {
+          transform: translateY(-2px);
+        }
+        .pdf-capture-mode .rc-main-title > span,
+        .pdf-capture-mode .rc-black-title > span {
+          transform: translateY(-2px);
+        }
+        .pdf-capture-mode .rc-term-title {
+          transform: translateY(-1px);
         }
         .rc-term p {
           margin: 4px 3px 0;
