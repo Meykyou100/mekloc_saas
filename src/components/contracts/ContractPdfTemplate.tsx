@@ -542,6 +542,21 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         .rc-person-box .rc-line-field { min-height: 25px; font-size: 10.2px; }
         .rc-person-box .rc-line-value { font-size: 9.7px; }
         .rc-person-section { margin-bottom: 7px; }
+        .rc-second-driver-section { margin-bottom: 4px; }
+        .rc-second-driver-section .rc-black-title {
+          height: 27px;
+          font-size: 16px;
+        }
+        .rc-second-driver-section .rc-black-title > span {
+          padding-top: 0;
+          line-height: 18px;
+        }
+        .rc-second-driver-section .rc-person-box {
+          padding-top: 5px;
+          padding-bottom: 4px;
+        }
+        .rc-second-driver-section .rc-line-field { min-height: 21px; font-size: 9.7px; }
+        .rc-second-driver-section .rc-line-value { height: 18px; padding-bottom: 3px; font-size: 9.2px; }
         .rc-declaration { margin: 9px 7px 0; font-size: 10.4px; font-weight: 700; line-height: 1.4; }
         .rc-page-one-footer { position: absolute; right: 34px; bottom: 12px; color: #555; font-size: 7.5px; }
         .rc-page-two { padding: 39px 43px 25px; }
@@ -629,8 +644,8 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         .rc-signature-panel {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          min-height: 138px;
-          margin-top: 18px;
+          min-height: 130px;
+          margin-top: 10px;
           border: 1.5px solid #111;
           border-radius: 12px;
           overflow: hidden;
@@ -732,8 +747,8 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           </div>
         </div>
 
-        <div className="rc-person-section">
-          <BlackTitle>Chauffeur autorisé</BlackTitle>
+        <div className="rc-person-section rc-second-driver-section">
+          <BlackTitle>2ème conducteur autorisé</BlackTitle>
           <div className="rc-person-box">
             <div className="rc-inline-2">
               <LineField label="Nom :" value={secondDriver.enabled ? secondDriver.lastName : ''} />
@@ -741,7 +756,6 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
             </div>
             <LineField label="Date et lieu de naissance :" value={secondDriver.enabled ? birthDriver : ''} />
             <LineField label="Adresse au Maroc :" value={secondDriver.enabled ? secondDriver.address : ''} />
-            <LineField label="" value="" className="rc-spacer-line" />
             <LineField label="Nationalité :" value={secondDriver.enabled ? secondDriver.nationality : ''} />
             <LineField label="Permis de conduire N° :" value={secondDriver.enabled ? secondDriver.licenseNumber : ''} />
             <div className="rc-inline-2">
