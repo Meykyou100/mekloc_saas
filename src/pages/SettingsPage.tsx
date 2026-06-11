@@ -760,9 +760,18 @@ startxref
       setLogoUploading(true);
       const previousPath = profile?.agency?.logoPath;
       if (previousPath) {
-        await supabase.storage.from('logos').remove([previousPath]);
+        const savedBucket = settingValue(profile?.agency?.settings, 'logo_storage_bucket');
+        const candidateBuckets = Array.from(new Set([savedBucket, 'logos', 'agency-assets'].filter(Boolean)));
+        for (const bucket of candidateBuckets) {
+          const removal = await supabase.storage.from(bucket).remove([previousPath]);
+          if (!removal.error) break;
+        }
       }
-      const { error } = await supabase.from('agencies').update({ logo_path: null, logo_url: null }).eq('id', agencyId);
+      let { error } = await supabase.from('agencies').update({ logo_path: null, logo_url: null }).eq('id', agencyId);
+      if (error && /logo_url|schema cache|does not exist/i.test(error.message || '')) {
+        const fallback = await supabase.from('agencies').update({ logo_path: null }).eq('id', agencyId);
+        error = fallback.error;
+      }
       if (error) throw error;
       await refreshProfile();
       notify({ title: 'Logo supprimé', message: 'Le logo agence a été retiré.', type: 'success' });
@@ -880,8 +889,10 @@ startxref
       setSettingsSaving(true);
       setSaveState('saving');
       if (!supabase) throw new Error('Supabase non configuré');
+      let uploadedLogoBucket = settingValue(profile?.agency?.settings, 'logo_storage_bucket');
       if (pendingLogoFile && agencyId) {
-        await uploadAgencyLogo(agencyId, pendingLogoFile);
+        const uploadedLogo = await uploadAgencyLogo(agencyId, pendingLogoFile);
+        uploadedLogoBucket = uploadedLogo?.bucket || uploadedLogoBucket;
       }
       const nextAgencySettings = {
         ...(profile?.agency?.settings || {}),
@@ -899,6 +910,7 @@ startxref
         contract_footer_note: sanitizeText(agencyFooterNote, 300),
         contract_logo_width: Math.min(300, Math.max(160, contractLogoWidth)),
         contract_logo_height: Math.min(120, Math.max(55, contractLogoHeight)),
+        logo_storage_bucket: uploadedLogoBucket,
       };
       const agencyPayload: Record<string, unknown> = {
         name: safeAgencyName,
@@ -951,6 +963,7 @@ startxref
         ['contract_footer_note', nextAgencySettings.contract_footer_note],
         ['contract_logo_width', nextAgencySettings.contract_logo_width],
         ['contract_logo_height', nextAgencySettings.contract_logo_height],
+        ['logo_storage_bucket', nextAgencySettings.logo_storage_bucket],
       ];
       const unsavedSetting = settingsChecks.find(([key, expected]) => String(savedSettings[key] ?? '') !== String(expected));
       if (unsavedSetting) {

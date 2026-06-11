@@ -149,6 +149,39 @@ function text(value: unknown) {
   return String(value).trim();
 }
 
+function comparisonKey(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function formatAgencyLocation(addressValue?: string, cityValue?: string) {
+  const city = text(cityValue);
+  const cityKey = comparisonKey(city);
+  const addressParts = text(addressValue)
+    .split(/\s*(?:,|·)\s*/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const uniqueParts = addressParts.filter((part, index) => {
+    const key = comparisonKey(part);
+    return addressParts.findIndex((candidate) => comparisonKey(candidate) === key) === index;
+  });
+  const detailedPartContainsCity = cityKey
+    ? uniqueParts.some((part) => comparisonKey(part) !== cityKey && comparisonKey(part).includes(cityKey))
+    : false;
+  const cleanParts = detailedPartContainsCity
+    ? uniqueParts.filter((part) => comparisonKey(part) !== cityKey)
+    : uniqueParts;
+  const address = cleanParts.join(', ');
+  const addressContainsCity = cityKey && comparisonKey(address).includes(cityKey);
+
+  return [address, city && !addressContainsCity ? city : ''].filter(Boolean).join(' · ');
+}
+
 function agencyInitials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]?.toUpperCase()).join('') || 'AG';
 }
@@ -213,6 +246,7 @@ function AgencyBrand({
   const logoHeight = compact
     ? Math.min(68, Math.round((agency.logoHeight || 92) * 0.7))
     : agency.logoHeight || 92;
+  const locationLine = formatAgencyLocation(agency.address, agency.city);
 
   return (
     <div className={`rc-brand${compact ? ' rc-brand-compact' : ''}`}>
@@ -223,7 +257,6 @@ function AgencyBrand({
           className="rc-brand-logo"
           style={{ maxWidth: `${logoWidth}px`, maxHeight: `${logoHeight}px` }}
           data-pdf-logo="agency"
-          crossOrigin="anonymous"
           onError={onLogoError}
         />
       ) : (
@@ -235,7 +268,7 @@ function AgencyBrand({
       {!compact ? (
         <div className="rc-brand-contact">
           <strong>{agency.activityLabel || 'LOCATION DE VOITURE'}</strong>
-          <span>{[agency.address, agency.city].filter(Boolean).join(' · ') || 'Adresse non renseignée'}</span>
+          <span>{locationLine || 'Adresse non renseignée'}</span>
           <span>{[agency.phone, agency.whatsapp ? `WhatsApp ${agency.whatsapp}` : '', agency.email].filter(Boolean).join(' · ') || 'Contact non renseigné'}</span>
         </div>
       ) : null}

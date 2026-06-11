@@ -323,7 +323,10 @@ async function fetchProfile(userId: string, email?: string | null): Promise<User
     });
   }
   if (agency?.logo_path) {
-    const candidateBuckets = ['logos', 'agency-assets'];
+    const savedBucket = typeof agency.settings?.logo_storage_bucket === 'string'
+      ? agency.settings.logo_storage_bucket
+      : '';
+    const candidateBuckets = Array.from(new Set([savedBucket, 'logos', 'agency-assets'].filter(Boolean)));
     let resolvedLogoUrl: string | null = null;
     for (const bucket of candidateBuckets) {
       const signed = await supabase.storage.from(bucket).createSignedUrl(agency.logo_path, 60 * 60);

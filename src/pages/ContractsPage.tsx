@@ -532,7 +532,11 @@ export default function ContractsPage() {
       });
       const logoPath = agencyRow.logo_path || profileAgency?.logoPath;
       if (logoPath) {
-        const candidateBuckets = ['logos', 'agency-assets'];
+        const savedBucket = readString(
+          (agencyRow.settings || profileAgency?.settings || {}) as LooseRecord,
+          ['logo_storage_bucket'],
+        );
+        const candidateBuckets = Array.from(new Set([savedBucket, 'logos', 'agency-assets'].filter(Boolean)));
         let resolvedLogo: string | null = null;
         for (const bucket of candidateBuckets) {
           const signed = await supabase.storage.from(bucket).createSignedUrl(logoPath, 60 * 60);

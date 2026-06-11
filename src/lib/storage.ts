@@ -51,21 +51,29 @@ export async function uploadAgencyLogo(agencyId: string, file: File) {
 
   const signed = await supabase.storage.from(usedBucket).createSignedUrl(uploadData.path, 60 * 60);
   const resolvedLogoUrl = signed.data?.signedUrl || null;
-  let { error: saveError } = await supabase
+  let { data: savedLogo, error: saveError } = await supabase
     .from('agencies')
     .update({ logo_path: uploadData.path, logo_url: resolvedLogoUrl })
-    .eq('id', agencyId);
+    .eq('id', agencyId)
+    .select('logo_path')
+    .maybeSingle();
   if (saveError && /logo_url|schema cache|does not exist/i.test(saveError.message || '')) {
     const fallback = await supabase
       .from('agencies')
       .update({ logo_path: uploadData.path })
-      .eq('id', agencyId);
+      .eq('id', agencyId)
+      .select('logo_path')
+      .maybeSingle();
+    savedLogo = fallback.data;
     saveError = fallback.error;
   }
   if (saveError) {
     throw new Error(`Sauvegarde logo impossible: ${toErrorMessage(saveError)}`);
   }
-  return uploadData.path;
+  if (!savedLogo || savedLogo.logo_path !== uploadData.path) {
+    throw new Error("Le logo a été envoyé mais son chemin n'a pas été enregistré pour cette agence.");
+  }
+  return { path: uploadData.path, bucket: usedBucket };
 }
 
 export async function uploadContractPdf(agencyId: string, contractId: string, file: File) {
