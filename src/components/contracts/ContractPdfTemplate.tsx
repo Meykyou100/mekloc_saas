@@ -628,23 +628,38 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         .rc-signature-panel {
           display: grid;
           grid-template-columns: 1fr 1fr;
-          min-height: 111px;
-          margin-top: 9px;
+          min-height: 138px;
+          margin-top: 18px;
           border: 1.5px solid #111;
           border-radius: 12px;
           overflow: hidden;
         }
-        .rc-signature-side { padding: 9px 12px; font-size: 9px; }
-        .rc-signature-side + .rc-signature-side { border-left: 1px solid #999; }
-        .rc-signature-side strong { display: block; margin-bottom: 5px; font-size: 10px; text-transform: uppercase; }
-        .rc-signature-line { display: inline-block; min-width: 130px; border-bottom: 1px solid #555; }
-        .rc-terms-footer {
-          margin-top: 8px;
-          text-align: center;
-          font-size: 8px;
-          font-weight: 700;
-          white-space: nowrap;
+        .rc-signature-side {
+          min-width: 0;
+          padding: 12px 15px;
+          box-sizing: border-box;
+          font-size: 9px;
         }
+        .rc-signature-side + .rc-signature-side { border-left: 1px solid #999; }
+        .rc-signature-side strong { display: block; margin-bottom: 9px; font-size: 10px; text-transform: uppercase; }
+        .rc-signature-side p { margin: 7px 0 0; }
+        .rc-signature-line { display: inline-block; min-width: 118px; border-bottom: 1px solid #555; }
+        .rc-agency-signature-name { margin-top: 9px; font-size: 9px; font-weight: 700; }
+        .rc-terms-footer {
+          display: flex;
+          min-height: 20px;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: center;
+          gap: 3px 9px;
+          margin-top: 10px;
+          padding: 0 8px;
+          text-align: center;
+          font-size: 7.8px;
+          font-weight: 700;
+          line-height: 1.25;
+        }
+        .rc-terms-footer span { white-space: nowrap; }
       `}</style>
 
       <div className="rc-page rc-page-one contract-pdf-page" data-contract-page="1">
@@ -774,12 +789,15 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           </div>
           <div className="rc-signature-side">
             <strong>Cachet et signature de l’agence</strong>
-            {agencyName}
+            <div className="rc-agency-signature-name">{agencyName}</div>
           </div>
         </div>
         <div className="rc-terms-footer">
-          {[agency.name, agency.address, agency.city, agency.phone, agency.whatsapp, agency.email, agency.website].filter(Boolean).join(' — ')}
-          {agency.footerNote ? ` — ${agency.footerNote}` : ''}
+          {agency.name ? <span>{agency.name}</span> : null}
+          {agency.ice ? <span>ICE : {agency.ice}</span> : null}
+          {agency.ifNumber ? <span>IF : {agency.ifNumber}</span> : null}
+          {agency.phone ? <span>Tél : {agency.phone}</span> : null}
+          {agency.email ? <span>Email : {agency.email}</span> : null}
         </div>
       </div>
     </div>

@@ -729,7 +729,7 @@ export default function ContractsPage() {
         logoWidth: readNumber(agencySettings, ['contract_logo_width']) || 315,
         logoHeight: readNumber(agencySettings, ['contract_logo_height']) || 120,
         rc: readString(agencySettings, ['contract_rc']) || agencyMeta.rc || '',
-        ifNumber: readString(agencySource, ['if', 'if_number', 'fiscal_id', 'tax_id']) || readString(agencySettings, ['if', 'if_number', 'fiscal_id', 'tax_id']),
+        ifNumber: readString(agencySettings, ['if_number', 'if', 'fiscal_id', 'tax_id']) || readString(agencySource, ['if', 'if_number', 'fiscal_id', 'tax_id']),
         ice: readString(agencySettings, ['contract_ice']) || agencyMeta.ice || '',
         cnss: readString(agencySource, ['cnss', 'cnss_number']) || readString(agencySettings, ['cnss', 'cnss_number']),
         activityLabel: readString(agencySettings, ['activity_label']),
