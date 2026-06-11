@@ -174,39 +174,12 @@ function BlackTitle({ children }: { children: ReactNode }) {
   return <div className="rc-black-title">{children}</div>;
 }
 
-function VehicleSketch({ view }: { view: 'front' | 'rear' | 'left' | 'right' | 'top' | 'bottom' }) {
-  const side = view === 'left' || view === 'right';
-  const top = view === 'top' || view === 'bottom';
+function VehicleDamagePanel({ observations }: { observations?: string }) {
   return (
-    <svg className="rc-vehicle-sketch" viewBox="0 0 160 82" aria-hidden="true">
-      {side ? (
-        <g transform={view === 'right' ? 'translate(160 0) scale(-1 1)' : undefined}>
-          <path d="M8 58 14 43l20-7 18-18h50l27 17 20 5 4 18H8Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
-          <path d="m55 21-16 16h82l-22-16H55Z" fill="none" stroke="currentColor" strokeWidth="1.35" />
-          <path d="M74 21v16m27-15 18 15M38 41h88m-75 0-4 17m76-17 5 17M15 49h15m105 0h15" fill="none" stroke="currentColor" strokeWidth="1.05" />
-          <circle cx="42" cy="58" r="12" fill="#fff" stroke="currentColor" strokeWidth="1.8" />
-          <circle cx="126" cy="58" r="12" fill="#fff" stroke="currentColor" strokeWidth="1.8" />
-          <circle cx="42" cy="58" r="5.5" fill="none" stroke="currentColor" />
-          <circle cx="126" cy="58" r="5.5" fill="none" stroke="currentColor" />
-        </g>
-      ) : top ? (
-        <>
-          <path d="M51 4h58l15 13 7 48-15 13H44L29 65l7-48L51 4Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
-          <path d="M52 14h56l10 13-3 37-12 8H57l-12-8-3-37 10-13Z" fill="none" stroke="currentColor" strokeWidth="1.15" />
-          <path d="M45 28h73M45 57h70M80 14v58M31 38h13m72 0h13" fill="none" stroke="currentColor" strokeWidth="1.05" />
-          {view === 'bottom' ? <path d="M54 64h52m-43 8h34" fill="none" stroke="currentColor" strokeWidth="1.2" /> : null}
-        </>
-      ) : (
-        <>
-          <path d="M43 70h74l11-19-5-28-18-16H55L37 23l-5 28 11 19Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
-          <path d="m54 13-12 17h76l-12-17H54Z" fill="none" stroke="currentColor" strokeWidth="1.15" />
-          <path d="M41 33h78M36 50h88M54 13l-5 17m57-17 5 17" fill="none" stroke="currentColor" strokeWidth="1.05" />
-          <rect x="39" y="53" width="21" height="9" rx="2" fill="none" stroke="currentColor" />
-          <rect x="100" y="53" width="21" height="9" rx="2" fill="none" stroke="currentColor" />
-          <path d="M44 70v7m72-7v7M68 58h24" fill="none" stroke="currentColor" strokeWidth="1.8" />
-        </>
-      )}
-    </svg>
+    <div className="rc-damage-panel">
+      <img src="/contract-vehicle-damage-panel.png" alt="Schéma d’état du véhicule" />
+      {observations ? <p>{observations}</p> : null}
+    </div>
   );
 }
 
@@ -380,15 +353,33 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         .rc-line-suffix { white-space: nowrap; }
         .rc-inline-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
         .rc-inline-2 .rc-line-field { grid-template-columns: max-content minmax(0, 1fr); }
-        .rc-diagrams {
-          display: grid;
-          grid-template-columns: 1fr 1.35fr;
-          grid-template-rows: repeat(3, 1fr);
-          gap: 2px 5px;
-          padding: 4px 2px 2px;
+        .rc-damage-panel {
+          position: relative;
+          height: 100%;
+          min-height: 230px;
+          overflow: hidden;
+          background: #fff;
         }
-        .rc-diagram { display: grid; min-height: 75px; place-items: center; color: #222; }
-        .rc-vehicle-sketch { width: 100%; height: 72px; }
+        .rc-damage-panel img {
+          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          object-position: center top;
+        }
+        .rc-damage-panel p {
+          position: absolute;
+          left: 7px;
+          right: 7px;
+          bottom: 14px;
+          max-height: 42px;
+          margin: 0;
+          overflow: hidden;
+          color: #222;
+          font-size: 8px;
+          font-weight: 700;
+          line-height: 1.25;
+        }
         .rc-black-title {
           height: 31px;
           border-radius: 5px 5px 0 0;
@@ -523,11 +514,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
               <LineField label="Date et heure de retour réel :" value={[reservation.actualReturnDate, reservation.actualReturnTime].filter(Boolean).join(' à ')} suffix="H." />
             </div>
           </div>
-          <div className="rc-diagrams">
-            {(['front', 'left', 'rear', 'right', 'top', 'bottom'] as const).map((view) => (
-              <div className="rc-diagram" key={view}><VehicleSketch view={view} /></div>
-            ))}
-          </div>
+          <VehicleDamagePanel observations={vehicle.damageObservations || vehicle.observations} />
         </div>
 
         <div className="rc-person-section">
