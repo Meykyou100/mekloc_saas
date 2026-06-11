@@ -196,6 +196,13 @@ type ClientRow = {
   cin_passport: string;
   driving_license_number: string;
   address: string;
+  birth_date?: string | null;
+  birth_place?: string | null;
+  nationality?: string | null;
+  driving_license_issued_at?: string | null;
+  driving_license_issued_place?: string | null;
+  driving_license_expires_at?: string | null;
+  identity_document_issued_at?: string | null;
   total_rentals: number | null;
   total_spent: number | null;
   status: 'VIP' | 'Regular' | 'New';
@@ -364,6 +371,13 @@ function mapClient(row: ClientRow): Client {
     cin: row.cin_passport,
     license: row.driving_license_number,
     address: row.address,
+    birthDate: row.birth_date || undefined,
+    birthPlace: row.birth_place || undefined,
+    nationality: row.nationality || undefined,
+    licenseIssuedAt: row.driving_license_issued_at || undefined,
+    licenseIssuedPlace: row.driving_license_issued_place || undefined,
+    licenseExpiresAt: row.driving_license_expires_at || undefined,
+    identityDocumentIssuedAt: row.identity_document_issued_at || undefined,
     totalRentals: row.total_rentals ?? 0,
     totalSpent: row.total_spent ?? 0,
     status: row.status,
@@ -389,6 +403,13 @@ function toClientRow(client: Client, agencyId: string, withIdentityImages = true
     cin_passport: sanitizeText(client.cin, 80),
     driving_license_number: sanitizeText(client.license, 80),
     address: sanitizeText(client.address, 220),
+    birth_date: client.birthDate || null,
+    birth_place: sanitizeText(client.birthPlace || '', 120) || null,
+    nationality: sanitizeText(client.nationality || '', 80) || null,
+    driving_license_issued_at: client.licenseIssuedAt || null,
+    driving_license_issued_place: sanitizeText(client.licenseIssuedPlace || '', 120) || null,
+    driving_license_expires_at: client.licenseExpiresAt || null,
+    identity_document_issued_at: client.identityDocumentIssuedAt || null,
     total_rentals: client.totalRentals,
     total_spent: client.totalSpent,
     status: client.status,

@@ -87,6 +87,13 @@ export type Client = {
   cin: string;
   license: string;
   address: string;
+  birthDate?: string;
+  birthPlace?: string;
+  nationality?: string;
+  licenseIssuedAt?: string;
+  licenseIssuedPlace?: string;
+  licenseExpiresAt?: string;
+  identityDocumentIssuedAt?: string;
   totalRentals: number;
   totalSpent: number;
   status: 'VIP' | 'Regular' | 'New';

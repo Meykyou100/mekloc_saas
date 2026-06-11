@@ -46,6 +46,7 @@ export type ContractPdfClient = {
   licenseIssuedAt?: string;
   licenseIssuedPlace?: string;
   licenseExpiresAt?: string;
+  identityDocumentIssuedAt?: string;
 };
 
 export type ContractPdfSecondDriver = {
@@ -166,7 +167,9 @@ function LineField({
   return (
     <div className={`rc-line-field ${className}`}>
       <span className="rc-line-label">{label}</span>
-      <span className="rc-line-value">{value || ''}</span>
+      <span className={`rc-line-value${value ? ' rc-line-value-filled' : ''}`}>
+        {value ? <span>{value}</span> : null}
+      </span>
       {suffix ? <span className="rc-line-suffix">{suffix}</span> : null}
     </div>
   );
@@ -334,8 +337,8 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         .rc-line-field {
           display: grid;
           grid-template-columns: max-content minmax(0, 1fr) max-content;
-          align-items: end;
-          gap: 6px;
+          align-items: center;
+          column-gap: 9px;
           min-height: 29px;
           font-size: 10.8px;
           font-weight: 800;
@@ -343,18 +346,39 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         }
         .rc-line-label { white-space: nowrap; }
         .rc-line-value {
+          position: relative;
+          display: flex;
+          align-items: flex-end;
           min-width: 0;
-          min-height: 17px;
-          padding: 0 3px 2px;
-          border-bottom: 1.2px dotted #333;
+          height: 21px;
+          padding: 0 5px 4px;
           font-size: 10px;
           font-weight: 700;
           text-transform: none;
           overflow-wrap: anywhere;
         }
+        .rc-line-value::after {
+          content: "";
+          position: absolute;
+          right: 0;
+          bottom: 2px;
+          left: 0;
+          border-bottom: 1.2px dotted #333;
+        }
+        .rc-line-value > span {
+          position: relative;
+          z-index: 1;
+          max-width: 100%;
+          padding: 0 4px;
+          background: #fff;
+          line-height: 1.2;
+        }
+        .rc-line-value-filled { padding-left: 1px; }
         .rc-line-suffix { white-space: nowrap; }
-        .rc-inline-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .rc-inline-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
         .rc-inline-2 .rc-line-field { grid-template-columns: max-content minmax(0, 1fr); }
+        .rc-spacer-line { min-height: 18px !important; }
+        .rc-spacer-line .rc-line-value { height: 16px; }
         .rc-damage-panel {
           position: relative;
           height: 100%;
@@ -399,7 +423,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           border-radius: 0 0 13px 13px;
           padding: 8px 11px 7px;
         }
-        .rc-person-box .rc-line-field { min-height: 24px; font-size: 10.2px; }
+        .rc-person-box .rc-line-field { min-height: 25px; font-size: 10.2px; }
         .rc-person-box .rc-line-value { font-size: 9.7px; }
         .rc-person-section { margin-bottom: 7px; }
         .rc-declaration { margin: 9px 7px 0; font-size: 10.4px; font-weight: 700; line-height: 1.4; }
@@ -537,7 +561,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
             </div>
             <LineField label="C.I.N & Passeport N° :" value={client.idNumber} />
             <div className="rc-inline-2">
-              <LineField label="Délivré le :" value="" />
+              <LineField label="Délivré le :" value={client.identityDocumentIssuedAt} />
               <LineField label="Tél :" value={client.phone} />
             </div>
           </div>

@@ -76,6 +76,10 @@ function formatDateFr(date: string) {
   return parsed.toLocaleDateString('fr-MA', { day: '2-digit', month: 'long', year: 'numeric' });
 }
 
+function formatOptionalDateFr(date: string) {
+  return date ? formatDateFr(date) : '';
+}
+
 function sanitizeFileName(value: string) {
   return value
     .normalize('NFD')
@@ -689,7 +693,7 @@ export default function ContractsPage() {
         fullName: client.fullName || selectedReservation?.client || '',
         firstName: readString(clientSource, ['firstName', 'first_name']) || clientNameParts.firstName,
         lastName: readString(clientSource, ['lastName', 'last_name']) || clientNameParts.lastName,
-        birthDate: readString(clientSource, ['birthDate', 'birth_date', 'dateOfBirth', 'date_of_birth']),
+        birthDate: formatOptionalDateFr(readString(clientSource, ['birthDate', 'birth_date', 'dateOfBirth', 'date_of_birth'])),
         birthPlace: readString(clientSource, ['birthPlace', 'birth_place', 'placeOfBirth', 'place_of_birth']),
         nationality: readString(clientSource, ['nationality', 'nationalite']),
         address: client.address || '',
@@ -697,9 +701,10 @@ export default function ContractsPage() {
         email: client.email || '',
         idNumber: client.cin || '',
         licenseNumber: client.license || '',
-        licenseIssuedAt: readString(clientSource, ['licenseIssuedAt', 'license_issued_at', 'licenseIssueDate', 'license_issue_date']),
+        licenseIssuedAt: formatOptionalDateFr(readString(clientSource, ['licenseIssuedAt', 'license_issued_at', 'licenseIssueDate', 'license_issue_date'])),
         licenseIssuedPlace: readString(clientSource, ['licenseIssuedPlace', 'license_issued_place', 'licenseIssuePlace', 'license_issue_place']),
-        licenseExpiresAt: readString(clientSource, ['licenseExpiresAt', 'license_expires_at', 'licenseExpiryDate', 'license_expiry_date']),
+        licenseExpiresAt: formatOptionalDateFr(readString(clientSource, ['licenseExpiresAt', 'license_expires_at', 'licenseExpiryDate', 'license_expiry_date'])),
+        identityDocumentIssuedAt: formatOptionalDateFr(readString(clientSource, ['identityDocumentIssuedAt', 'identity_document_issued_at'])),
       },
       secondDriver,
       vehicle: {

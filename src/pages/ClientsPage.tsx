@@ -53,6 +53,13 @@ type ClientFormState = {
   cin: string;
   license: string;
   address: string;
+  birthDate: string;
+  birthPlace: string;
+  nationality: string;
+  licenseIssuedAt: string;
+  licenseIssuedPlace: string;
+  licenseExpiresAt: string;
+  identityDocumentIssuedAt: string;
 };
 
 type ClientFormErrors = Partial<Record<keyof ClientFormState, string>>;
@@ -65,6 +72,13 @@ function buildInitialForm(client?: Client | null): ClientFormState {
     cin: client?.cin || '',
     license: client?.license || '',
     address: client?.address || '',
+    birthDate: client?.birthDate || '',
+    birthPlace: client?.birthPlace || '',
+    nationality: client?.nationality || '',
+    licenseIssuedAt: client?.licenseIssuedAt || '',
+    licenseIssuedPlace: client?.licenseIssuedPlace || '',
+    licenseExpiresAt: client?.licenseExpiresAt || '',
+    identityDocumentIssuedAt: client?.identityDocumentIssuedAt || '',
   };
 }
 
@@ -495,6 +509,13 @@ export default function ClientsPage() {
         cin: sanitizeText(formState.cin, 80),
         license: sanitizeText(formState.license, 80),
         address: sanitizeText(formState.address, 220),
+        birthDate: formState.birthDate || undefined,
+        birthPlace: sanitizeText(formState.birthPlace, 120) || undefined,
+        nationality: sanitizeText(formState.nationality, 80) || undefined,
+        licenseIssuedAt: formState.licenseIssuedAt || undefined,
+        licenseIssuedPlace: sanitizeText(formState.licenseIssuedPlace, 120) || undefined,
+        licenseExpiresAt: formState.licenseExpiresAt || undefined,
+        identityDocumentIssuedAt: formState.identityDocumentIssuedAt || undefined,
         totalRentals: editingClient?.totalRentals || 0,
         totalSpent: editingClient?.totalSpent || 0,
         status: editingClient?.status || 'New',
@@ -1204,6 +1225,9 @@ export default function ClientsPage() {
               <InputField label="Téléphone" required value={formState.phone} onChange={(value) => setFormState((s) => ({ ...s, phone: value }))} error={formErrors.phone} />
               <InputField label="Email" type="email" value={formState.email} onChange={(value) => setFormState((s) => ({ ...s, email: value }))} error={formErrors.email} />
               <InputField label="Adresse" value={formState.address} onChange={(value) => setFormState((s) => ({ ...s, address: value }))} />
+              <InputField label="Date de naissance" type="date" value={formState.birthDate} onChange={(value) => setFormState((s) => ({ ...s, birthDate: value }))} />
+              <InputField label="Lieu de naissance" value={formState.birthPlace} onChange={(value) => setFormState((s) => ({ ...s, birthPlace: value }))} />
+              <InputField label="Nationalité" value={formState.nationality} onChange={(value) => setFormState((s) => ({ ...s, nationality: value }))} />
             </div>
           </section>
 
@@ -1211,7 +1235,11 @@ export default function ClientsPage() {
             <h3 className="mb-4 text-xs font-black uppercase tracking-[0.18em] text-[var(--app-gold-text)]">Documents</h3>
             <div className="grid gap-4 sm:grid-cols-2">
               <InputField label="CIN/Passport" value={formState.cin} onChange={(value) => setFormState((s) => ({ ...s, cin: value }))} />
+              <InputField label="CIN/Passport délivré le" type="date" value={formState.identityDocumentIssuedAt} onChange={(value) => setFormState((s) => ({ ...s, identityDocumentIssuedAt: value }))} />
               <InputField label="Numéro de permis" value={formState.license} onChange={(value) => setFormState((s) => ({ ...s, license: value }))} />
+              <InputField label="Permis délivré le" type="date" value={formState.licenseIssuedAt} onChange={(value) => setFormState((s) => ({ ...s, licenseIssuedAt: value }))} />
+              <InputField label="Permis délivré à" value={formState.licenseIssuedPlace} onChange={(value) => setFormState((s) => ({ ...s, licenseIssuedPlace: value }))} />
+              <InputField label="Permis valable jusqu’au" type="date" value={formState.licenseExpiresAt} onChange={(value) => setFormState((s) => ({ ...s, licenseExpiresAt: value }))} />
             </div>
           </section>
 
