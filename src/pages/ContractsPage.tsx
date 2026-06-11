@@ -394,7 +394,7 @@ export default function ContractsPage() {
     [agencyId, allPayments, reservations],
   );
 
-  const previewRef = useRef<HTMLDivElement | null>(null);
+  const renderSourceRef = useRef<HTMLDivElement | null>(null);
   const previewViewportRef = useRef<HTMLDivElement | null>(null);
   const [template, setTemplate] = useState(templates[0]);
   const [clientId, setClientId] = useState('');
@@ -416,6 +416,9 @@ export default function ContractsPage() {
   const [previewMaxHeight, setPreviewMaxHeight] = useState(560);
   const [logoBroken, setLogoBroken] = useState(false);
   const [preparedLogoUrl, setPreparedLogoUrl] = useState<string | null>(null);
+  const [renderedPageImages, setRenderedPageImages] = useState<string[]>([]);
+  const [previewRendering, setPreviewRendering] = useState(false);
+  const renderVersionRef = useRef(0);
 
   const [agencyMeta, setAgencyMeta] = useState<{
     name?: string;
@@ -939,15 +942,42 @@ export default function ContractsPage() {
     }
   }
 
-  async function downloadContractPreview() {
-    if (!ensureRequiredData('preview')) return;
-    if (!previewRef.current) {
-      notify({ title: 'Téléchargement impossible', message: 'Aperçu du contrat introuvable.', type: 'warning' });
+  async function renderContractPageImages() {
+    if (!renderSourceRef.current) return [];
+    const canvases = await captureContractPages(renderSourceRef.current);
+    return canvases.map((canvas) => canvas.toDataURL('image/jpeg', 0.88));
+  }
+
+  useEffect(() => {
+    if (!hasPreviewSource) {
+      setRenderedPageImages([]);
       return;
     }
+    const version = renderVersionRef.current + 1;
+    renderVersionRef.current = version;
+    setPreviewRendering(true);
+    const timer = window.setTimeout(() => {
+      void renderContractPageImages()
+        .then((images) => {
+          if (renderVersionRef.current === version) setRenderedPageImages(images);
+        })
+        .finally(() => {
+          if (renderVersionRef.current === version) setPreviewRendering(false);
+        });
+    }, 80);
+    return () => window.clearTimeout(timer);
+    // The complete PDF data object is the rendering source of truth.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contractPdfData, hasPreviewSource, logoBroken]);
+
+  async function downloadContractPreview() {
+    if (!ensureRequiredData('preview')) return;
     try {
       setDownloadingPdf(true);
-      const canvases = await captureContractPages(previewRef.current);
+      const pageImages = renderedPageImages.length ? renderedPageImages : await renderContractPageImages();
+      if (!pageImages.length) {
+        throw new Error('Aperçu du contrat introuvable.');
+      }
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'pt',
@@ -957,9 +987,8 @@ export default function ContractsPage() {
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = pdf.internal.pageSize.getHeight();
 
-      canvases.forEach((canvas, index) => {
+      pageImages.forEach((imageData, index) => {
         if (index > 0) pdf.addPage();
-        const imageData = canvas.toDataURL('image/jpeg', 0.88);
         pdf.addImage(imageData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
       });
 
@@ -1412,29 +1441,48 @@ export default function ContractsPage() {
               className="max-h-[calc(100vh-260px)] overflow-auto rounded-3xl bg-[radial-gradient(circle_at_top,rgba(212,160,23,.12),transparent_30%),linear-gradient(135deg,#111722,#070b10)] p-5 sm:p-6"
               style={{ maxHeight: `${previewMaxHeight}px` }}
             >
-            <div
-              className="relative mx-auto"
-              style={{
-                width: A4_SOURCE_WIDTH * previewScale,
-                height: ((A4_SOURCE_HEIGHT * 2) + 18) * previewScale,
-              }}
-            >
-              <div
-                ref={previewRef}
-                className="absolute left-0 top-0 origin-top-left"
-                style={{ transform: `scale(${previewScale})` }}
-              >
-                <ContractPdfTemplate
-                  data={contractPdfData}
-                  logoBroken={logoBroken}
-                  onLogoError={() => setLogoBroken(true)}
-                />
-              </div>
-            </div>
+              {renderedPageImages.length ? (
+                <div
+                  className="mx-auto flex flex-col"
+                  style={{
+                    width: A4_SOURCE_WIDTH * previewScale,
+                    gap: 18 * previewScale,
+                  }}
+                >
+                  {renderedPageImages.map((pageImage, index) => (
+                    <img
+                      key={`${index}-${pageImage.slice(-24)}`}
+                      src={pageImage}
+                      alt={`Aperçu du contrat, page ${index + 1}`}
+                      className="block h-auto w-full bg-white shadow-[0_18px_45px_rgba(0,0,0,.24)]"
+                      draggable={false}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="grid min-h-[420px] place-items-center text-center text-sm font-semibold text-white/70" aria-live="polite">
+                  {previewRendering ? 'Préparation de l’aperçu PDF...' : 'Aperçu indisponible'}
+                </div>
+              )}
           </div>
           )}
         </div>
       </div>
+
+      {hasPreviewSource ? (
+        <div
+          ref={renderSourceRef}
+          aria-hidden="true"
+          className="pointer-events-none fixed left-[-10000px] top-0 -z-50"
+          style={{ width: A4_SOURCE_WIDTH }}
+        >
+          <ContractPdfTemplate
+            data={contractPdfData}
+            logoBroken={logoBroken}
+            onLogoError={() => setLogoBroken(true)}
+          />
+        </div>
+      ) : null}
 
       <div className="mt-3 rounded-3xl border border-gold-300/15 bg-[linear-gradient(135deg,rgba(227,177,23,.10),rgba(255,255,255,.035),rgba(0,0,0,.20))] p-3 shadow-[0_20px_70px_rgba(0,0,0,.24),inset_0_1px_0_rgba(255,255,255,.04)] md:mt-5 md:p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

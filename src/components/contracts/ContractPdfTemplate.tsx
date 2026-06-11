@@ -209,7 +209,7 @@ function LineField({
 }
 
 function BlackTitle({ children }: { children: ReactNode }) {
-  return <div className="rc-black-title">{children}</div>;
+  return <div className="rc-black-title"><span>{children}</span></div>;
 }
 
 function VehicleDamagePanel({ observations }: { observations?: string }) {
@@ -383,9 +383,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           letter-spacing: .16em;
         }
         .rc-main-title {
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          position: relative;
           height: 35px;
           margin: 0 0 8px;
           border-radius: 6px;
@@ -396,6 +394,16 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           letter-spacing: .08em;
           text-align: center;
           text-transform: uppercase;
+        }
+        .rc-main-title > span,
+        .rc-black-title > span {
+          position: absolute;
+          inset: 0;
+          display: block;
+          padding-top: 6px;
+          box-sizing: border-box;
+          line-height: 22px;
+          white-space: nowrap;
         }
         .rc-side-notice {
           position: absolute;
@@ -496,9 +504,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           line-height: 1.25;
         }
         .rc-black-title {
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          position: relative;
           height: 31px;
           border-radius: 5px 5px 0 0;
           background: #050505;
@@ -509,6 +515,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           text-align: center;
           text-transform: uppercase;
         }
+        .rc-black-title > span { padding-top: 5px; line-height: 20px; }
         .rc-person-box {
           border: 1.8px solid #111;
           border-top: 0;
@@ -563,10 +570,9 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         }
         .rc-term { margin-bottom: 8px; break-inside: avoid; }
         .rc-term-title {
-          display: flex;
-          align-items: center;
           min-height: 20px;
-          padding: 0 6px;
+          padding: 5px 6px 3px;
+          box-sizing: border-box;
           background: #050505;
           color: #fff;
           font-size: 9px;
@@ -612,7 +618,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           </div>
         </div>
         <div className="rc-contract-ref">N° {contract.reference}</div>
-        <div className="rc-main-title">Contrat de location</div>
+        <div className="rc-main-title"><span>Contrat de location</span></div>
         <div className="rc-side-notice">
           Le locataire est le seul conducteur du véhicule et s’engage à ne pas céder à autrui à moins d’une stipulation sur le présent contrat.
         </div>
