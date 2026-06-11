@@ -300,8 +300,9 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         .contract-pdf-template {
           width: 794px;
           color: #0a0a0a;
-          font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+          font-family: Arial, Helvetica, sans-serif;
           line-height: 1.15;
+          font-synthesis: none;
         }
         .rc-page {
           position: relative;
@@ -382,27 +383,32 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           letter-spacing: .16em;
         }
         .rc-main-title {
+          display: flex;
+          align-items: center;
+          justify-content: center;
           height: 35px;
           margin: 0 0 8px;
           border-radius: 6px;
           background: #050505;
           color: #fff;
           font-size: 22px;
-          line-height: 35px;
+          line-height: 1;
           letter-spacing: .08em;
           text-align: center;
           text-transform: uppercase;
         }
         .rc-side-notice {
           position: absolute;
-          left: 17px;
+          left: 25px;
           top: 245px;
-          height: 755px;
-          writing-mode: vertical-rl;
-          text-orientation: mixed;
+          width: 755px;
+          transform: rotate(90deg);
+          transform-origin: left top;
+          white-space: nowrap;
           font-size: 9.5px;
           font-weight: 800;
           letter-spacing: .025em;
+          line-height: 1;
         }
         .rc-vehicle-area {
           display: grid;
@@ -490,12 +496,15 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           line-height: 1.25;
         }
         .rc-black-title {
+          display: flex;
+          align-items: center;
+          justify-content: center;
           height: 31px;
           border-radius: 5px 5px 0 0;
           background: #050505;
           color: #fff;
           font-size: 19px;
-          line-height: 31px;
+          line-height: 1;
           letter-spacing: .04em;
           text-align: center;
           text-transform: uppercase;
@@ -554,13 +563,15 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         }
         .rc-term { margin-bottom: 8px; break-inside: avoid; }
         .rc-term-title {
+          display: flex;
+          align-items: center;
           min-height: 20px;
           padding: 0 6px;
           background: #050505;
           color: #fff;
           font-size: 9px;
           font-weight: 900;
-          line-height: 20px;
+          line-height: 1.05;
           letter-spacing: .03em;
           text-transform: uppercase;
         }

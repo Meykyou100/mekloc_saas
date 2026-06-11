@@ -333,6 +333,8 @@ function createPdfCaptureSource(source: HTMLElement, logoDataUrl?: string | null
   clone.style.borderRadius = '0';
   clone.style.margin = '0';
   clone.style.background = '#ffffff';
+  clone.style.fontFamily = 'Arial, Helvetica, sans-serif';
+  clone.style.fontSynthesis = 'none';
   clone.style.setProperty('-webkit-font-smoothing', 'antialiased');
 
   if (logoDataUrl) {
@@ -905,6 +907,13 @@ export default function ContractsPage() {
           logging: false,
           scrollX: 0,
           scrollY: 0,
+          onclone: (clonedDocument) => {
+            const clonedTemplate = clonedDocument.querySelector<HTMLElement>('.contract-pdf-template');
+            if (clonedTemplate) {
+              clonedTemplate.style.fontFamily = 'Arial, Helvetica, sans-serif';
+              clonedTemplate.style.fontSynthesis = 'none';
+            }
+          },
         }));
       }
 
