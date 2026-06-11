@@ -6,6 +6,8 @@ export type ContractPdfAgency = {
   phone?: string;
   email?: string;
   logoUrl?: string | null;
+  logoWidth?: number;
+  logoHeight?: number;
   rc?: string;
   ifNumber?: string;
   ice?: string;
@@ -14,8 +16,6 @@ export type ContractPdfAgency = {
   city?: string;
   whatsapp?: string;
   website?: string;
-  contractHeaderText?: string;
-  arabicActivityLabel?: string;
   footerNote?: string;
 };
 
@@ -207,6 +207,13 @@ function AgencyBrand({
   onLogoError?: () => void;
   compact?: boolean;
 }) {
+  const logoWidth = compact
+    ? Math.min(175, Math.round((agency.logoWidth || 250) * 0.66))
+    : agency.logoWidth || 250;
+  const logoHeight = compact
+    ? Math.min(68, Math.round((agency.logoHeight || 92) * 0.7))
+    : agency.logoHeight || 92;
+
   return (
     <div className={`rc-brand${compact ? ' rc-brand-compact' : ''}`}>
       {agency.logoUrl && !logoBroken ? (
@@ -214,6 +221,7 @@ function AgencyBrand({
           src={agency.logoUrl}
           alt={`${agency.name || 'Agence'} logo`}
           className="rc-brand-logo"
+          style={{ maxWidth: `${logoWidth}px`, maxHeight: `${logoHeight}px` }}
           data-pdf-logo="agency"
           crossOrigin="anonymous"
           onError={onLogoError}

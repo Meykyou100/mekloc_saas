@@ -666,6 +666,8 @@ export default function ContractsPage() {
         phone: agencyMeta.phone || '',
         email: agencyMeta.email || '',
         logoUrl: effectiveLogoUrl,
+        logoWidth: readNumber(agencySettings, ['contract_logo_width']) || 250,
+        logoHeight: readNumber(agencySettings, ['contract_logo_height']) || 92,
         rc: agencyMeta.rc || '',
         ifNumber: readString(agencySource, ['if', 'if_number', 'fiscal_id', 'tax_id']) || readString(agencySettings, ['if', 'if_number', 'fiscal_id', 'tax_id']),
         ice: agencyMeta.ice || '',
@@ -674,8 +676,6 @@ export default function ContractsPage() {
         city: readString(agencySettings, ['city']),
         whatsapp: readString(agencySettings, ['whatsapp']),
         website: readString(agencySettings, ['website']),
-        contractHeaderText: readString(agencySettings, ['contract_header_text']),
-        arabicActivityLabel: readString(agencySettings, ['arabic_activity_label']),
         footerNote: readString(agencySettings, ['contract_footer_note']),
       },
       reservation: {

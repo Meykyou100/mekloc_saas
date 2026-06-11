@@ -58,12 +58,6 @@ const teamRoleOptions: Array<{ value: TeamRole; label: string }> = [
   { value: 'accountant', label: 'Comptable' },
 ];
 
-const contractSettingCards = [
-  { title: 'Valeurs par défaut', text: 'Langue, modèles et règles appliqués aux nouveaux contrats.' },
-  { title: 'Caution', text: 'Montant ou méthode utilisée pour sécuriser chaque location.' },
-  { title: 'Retards', text: 'Frais horaires affichés clairement dans les documents client.' },
-];
-
 const notificationDescriptions: Record<NotificationPreferenceKey, string> = {
   reservationConfirmation: 'Prépare un message WhatsApp pour confirmer les dates, le véhicule et le montant.',
   paymentReminder: 'Prépare un rappel de paiement avec le montant et la date limite.',
@@ -158,6 +152,11 @@ function settingValue(settings: Record<string, unknown> | undefined, key: string
   return typeof value === 'string' ? value : '';
 }
 
+function settingNumber(settings: Record<string, unknown> | undefined, key: string, fallback: number) {
+  const value = Number(settings?.[key]);
+  return Number.isFinite(value) ? value : fallback;
+}
+
 function formatBillingDate(value: string | null | undefined) {
   const dateKey = normalizeDateValue(value);
   if (!dateKey) return '—';
@@ -234,9 +233,9 @@ export default function SettingsPage() {
   const [agencyRc, setAgencyRc] = useState('');
   const [agencyIfNumber, setAgencyIfNumber] = useState('');
   const [agencyCnss, setAgencyCnss] = useState('');
-  const [agencyContractHeader, setAgencyContractHeader] = useState('');
-  const [agencyArabicLabel, setAgencyArabicLabel] = useState('');
   const [agencyFooterNote, setAgencyFooterNote] = useState('');
+  const [contractLogoWidth, setContractLogoWidth] = useState(250);
+  const [contractLogoHeight, setContractLogoHeight] = useState(92);
   const [logoFileName, setLogoFileName] = useState('');
   const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
   const [logoPreviewBroken, setLogoPreviewBroken] = useState(false);
@@ -291,14 +290,14 @@ export default function SettingsPage() {
       agencyRc !== (profile?.agency?.rc || '') ||
       agencyIfNumber !== settingValue(baseSettings, 'if_number') ||
       agencyCnss !== settingValue(baseSettings, 'cnss') ||
-      agencyContractHeader !== settingValue(baseSettings, 'contract_header_text') ||
-      agencyArabicLabel !== settingValue(baseSettings, 'arabic_activity_label') ||
       agencyFooterNote !== settingValue(baseSettings, 'contract_footer_note') ||
+      contractLogoWidth !== settingNumber(baseSettings, 'contract_logo_width', 250) ||
+      contractLogoHeight !== settingNumber(baseSettings, 'contract_logo_height', 92) ||
       logoPreviewUrl !== baseLogo ||
       Boolean(pendingLogoFile) ||
       notificationPreferenceItems.some((item) => notificationPreferences[item.key] !== baseNotifications[item.key])
     );
-  }, [agencyActivityLabel, agencyAddress, agencyArabicLabel, agencyCity, agencyCnss, agencyContractHeader, agencyEmail, agencyFooterNote, agencyIce, agencyIfNumber, agencyName, agencyPhone, agencyRc, agencyWebsite, agencyWhatsapp, logoPreviewUrl, notificationPreferences, pendingLogoFile, profile?.agency?.address, profile?.agency?.email, profile?.agency?.ice, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.rc, profile?.agency?.settings]);
+  }, [agencyActivityLabel, agencyAddress, agencyCity, agencyCnss, agencyEmail, agencyFooterNote, agencyIce, agencyIfNumber, agencyName, agencyPhone, agencyRc, agencyWebsite, agencyWhatsapp, contractLogoHeight, contractLogoWidth, logoPreviewUrl, notificationPreferences, pendingLogoFile, profile?.agency?.address, profile?.agency?.email, profile?.agency?.ice, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.rc, profile?.agency?.settings]);
   useEffect(() => {
     setAgencyName(profile?.agency?.name || '');
     const settings = profile?.agency?.settings;
@@ -313,9 +312,9 @@ export default function SettingsPage() {
     setAgencyRc(profile?.agency?.rc || '');
     setAgencyIfNumber(settingValue(settings, 'if_number'));
     setAgencyCnss(settingValue(settings, 'cnss'));
-    setAgencyContractHeader(settingValue(settings, 'contract_header_text'));
-    setAgencyArabicLabel(settingValue(settings, 'arabic_activity_label'));
     setAgencyFooterNote(settingValue(settings, 'contract_footer_note'));
+    setContractLogoWidth(settingNumber(settings, 'contract_logo_width', 250));
+    setContractLogoHeight(settingNumber(settings, 'contract_logo_height', 92));
     setLogoPreviewUrl(profile?.agency?.logoUrl || '');
     setPendingLogoFile(null);
     setLogoFileName('');
@@ -823,8 +822,7 @@ startxref
       canvas.height = size;
       const context = canvas.getContext('2d');
       if (!context) throw new Error('Canvas indisponible');
-      context.fillStyle = '#111315';
-      context.fillRect(0, 0, size, size);
+      context.clearRect(0, 0, size, size);
       const frameRect = cropFrameRef.current.getBoundingClientRect();
       const baseScale = Math.min(frameRect.width / image.width, frameRect.height / image.height);
       const finalScale = baseScale * cropScale;
@@ -901,9 +899,9 @@ startxref
           website: sanitizeText(agencyWebsite, 180),
           if_number: sanitizeText(agencyIfNumber, 60),
           cnss: sanitizeText(agencyCnss, 60),
-          contract_header_text: sanitizeText(agencyContractHeader, 160),
-          arabic_activity_label: sanitizeText(agencyArabicLabel, 120),
           contract_footer_note: sanitizeText(agencyFooterNote, 300),
+          contract_logo_width: Math.min(300, Math.max(160, contractLogoWidth)),
+          contract_logo_height: Math.min(120, Math.max(55, contractLogoHeight)),
         },
       };
       for (let attempt = 0; attempt < 6; attempt += 1) {
@@ -1192,28 +1190,34 @@ startxref
               </div>
               <Field label="Adresse" value={agencyAddress} onChange={(e) => setAgencyAddress(e.target.value)} placeholder="Adresse agence" />
             </div>
-            <div className="mt-4 grid gap-3 rounded-2xl border border-dashed border-gold-300/30 bg-[var(--app-gold-soft)] p-4 lg:grid-cols-[1fr_auto] lg:items-center md:mt-5 md:gap-4 md:p-5">
-              <div className="flex items-center gap-3">
+            <div className="mt-4 rounded-2xl border border-gold-300/25 bg-[linear-gradient(135deg,var(--app-gold-soft),var(--app-card-soft))] p-4 md:mt-5 md:p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex items-center gap-3">
                 <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400 text-[#101820] md:h-14 md:w-14">
                   <Camera className="h-5 w-5 md:h-6 md:w-6" />
                 </div>
                 <div>
                   <p className="font-bold text-[var(--app-text)] ">Logo agence</p>
-                  <p className="text-sm text-[var(--app-text-muted)]">PNG, JPG, ou SVG pour contrats et factures.</p>
+                  <p className="text-sm text-[var(--app-text-muted)]">Logo unique utilisé dans MekLoc, les contrats PDF et les factures.</p>
                   {logoFileName ? <p className="mt-1 text-xs text-[var(--app-gold-text)]">{logoFileName}</p> : null}
                 </div>
               </div>
-              <div className="flex items-center gap-3 lg:justify-end">
-                <div className={logoBadgeClass}>
+                <div className="grid min-h-20 min-w-44 place-items-center overflow-hidden rounded-2xl border border-[var(--app-border)] bg-white p-3 shadow-inner">
                   {logoPreviewUrl && !logoPreviewBroken ? (
                     <img
                       src={logoPreviewUrl}
-                      alt="Logo agence"
-                      className="h-full w-full object-contain"
+                      alt="Aperçu du logo agence"
+                      className="max-w-full object-contain"
+                      style={{
+                        width: `${Math.min(210, contractLogoWidth * 0.7)}px`,
+                        height: `${Math.min(84, contractLogoHeight * 0.7)}px`,
+                      }}
                       onError={() => setLogoPreviewBroken(true)}
                     />
                   ) : (
-                    <div className="grid h-full w-full place-items-center text-xl font-black text-[var(--app-gold-text)] ">M</div>
+                    <div className={logoBadgeClass}>
+                      <div className="grid h-full w-full place-items-center text-xl font-black text-[var(--app-gold-text)]">M</div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1224,7 +1228,7 @@ startxref
                 accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
                 onChange={(event) => handleLogoUpload(event.target.files?.[0])}
               />
-              <div className="flex flex-wrap gap-2 lg:col-span-2">
+              <div className="mt-4 flex flex-wrap gap-2">
                 <Button type="button" variant="secondary" onClick={() => logoInputRef.current?.click()} loading={logoUploading}>
                   {logoPreviewUrl ? 'Modifier le logo' : 'Choisir le logo'}
                 </Button>
@@ -1234,25 +1238,27 @@ startxref
                   </Button>
                 ) : null}
               </div>
-            </div>
-            <div className="mt-4 rounded-2xl border border-[var(--app-border)] bg-[var(--app-card-soft)] p-3 shadow-inner  md:mt-5 md:p-4">
-              <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[var(--app-gold-text)]">Aperçu du logo</p>
-              <div className="flex items-center gap-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
-                <div className={logoBadgeClass}>
-                  {logoPreviewUrl && !logoPreviewBroken ? (
-                    <img
-                      src={logoPreviewUrl}
-                      alt="Aperçu logo agence"
-                      className="h-full w-full object-contain"
-                      onError={() => setLogoPreviewBroken(true)}
-                    />
-                  ) : (
-                    <div className="grid h-full w-full place-items-center text-xl font-black text-[var(--app-gold-text)] ">M</div>
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xl font-black tracking-wide text-[var(--app-text)] ">MekLoc</p>
-                  <p className="max-w-[220px] text-xs leading-4 text-[var(--app-text-muted)]">Smart Rental Management System</p>
+              <div className="mt-4 grid gap-3 border-t border-[var(--app-border)] pt-4 sm:grid-cols-2">
+                <Field
+                  label="Largeur du logo dans le contrat (px)"
+                  type="number"
+                  min="160"
+                  max="300"
+                  value={contractLogoWidth}
+                  onChange={(event) => setContractLogoWidth(Number(event.target.value) || 250)}
+                />
+                <Field
+                  label="Hauteur maximale dans le contrat (px)"
+                  type="number"
+                  min="55"
+                  max="120"
+                  value={contractLogoHeight}
+                  onChange={(event) => setContractLogoHeight(Number(event.target.value) || 92)}
+                />
+                <div className="sm:col-span-2">
+                  <p className="text-xs leading-5 text-[var(--app-text-muted)]">
+                    Recommandé: largeur 220–270 px et hauteur 75–100 px. Le logo conserve automatiquement ses proportions.
+                  </p>
                 </div>
               </div>
             </div>
@@ -1312,43 +1318,96 @@ startxref
       ) : null}
 
       {tab === 'Contrats' ? (
-        <div className="grid gap-3 md:gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-          <div className="grid gap-4">
-            {contractSettingCards.map((item, index) => (
-              <Card key={item.title} className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
-                <div className="flex items-start gap-4">
-                  <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gold-400/12 text-[var(--app-gold-text)]">
-                    {index === 0 ? <FileSignature className="h-5 w-5" /> : index === 1 ? <ShieldCheck className="h-5 w-5" /> : <Percent className="h-5 w-5" />}
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-[var(--app-text)] ">{item.title}</h3>
-                    <p className="mt-1 text-sm leading-6 text-[var(--app-text-muted)]">{item.text}</p>
-                  </div>
+        <div className="grid gap-4 xl:grid-cols-[0.72fr_1.28fr]">
+          <Card className="h-fit rounded-2xl border-gold-300/20 bg-[linear-gradient(145deg,var(--app-card),var(--app-gold-soft))] p-4 md:rounded-3xl md:p-5">
+            <div className="flex items-start gap-3">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gold-400 text-[#101820]">
+                <FileSignature className="h-5 w-5" />
+              </div>
+              <div>
+                <h2 className="font-semibold text-[var(--app-text)]">Identité du contrat PDF</h2>
+                <p className="mt-1 text-sm leading-6 text-[var(--app-text-muted)]">
+                  Ces informations sont injectées automatiquement dans l’en-tête, les clauses et le pied de page.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 overflow-hidden rounded-2xl border border-[var(--app-border)] bg-white p-4 text-[#111820] shadow-inner">
+              <div className="flex min-h-20 items-center justify-center">
+                {logoPreviewUrl && !logoPreviewBroken ? (
+                  <img
+                    src={logoPreviewUrl}
+                    alt="Logo utilisé dans le contrat"
+                    className="max-w-full object-contain"
+                    style={{
+                      width: `${Math.min(250, contractLogoWidth * 0.82)}px`,
+                      height: `${Math.min(98, contractLogoHeight * 0.82)}px`,
+                    }}
+                    onError={() => setLogoPreviewBroken(true)}
+                  />
+                ) : (
+                  <span className="text-sm font-bold text-slate-500">Aucun logo enregistré</span>
+                )}
+              </div>
+              <div className="mt-3 border-t border-slate-200 pt-3 text-center">
+                <p className="font-black uppercase">{agencyName || 'Nom de l’agence'}</p>
+                <p className="mt-1 text-xs text-slate-600">{agencyActivityLabel || 'Location de voiture'}</p>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-2 text-sm">
+              {[
+                ['Logo', logoPreviewUrl ? 'Configuré' : 'À ajouter'],
+                ['Adresse', agencyAddress || 'À compléter dans Général'],
+                ['Téléphone', agencyPhone || 'À compléter dans Général'],
+                ['Ville', agencyCity || 'À compléter'],
+                ['Identifiants légaux', agencyIce || agencyRc || agencyIfNumber || agencyCnss ? 'Configurés' : 'Optionnels'],
+              ].map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 py-2.5">
+                  <span className="font-semibold text-[var(--app-text)]">{label}</span>
+                  <span className="text-right text-xs text-[var(--app-text-muted)]">{value}</span>
                 </div>
-              </Card>
-            ))}
-          </div>
+              ))}
+            </div>
+
+            <p className="mt-4 text-xs leading-5 text-[var(--app-text-muted)]">
+              Le logo et sa taille se modifient une seule fois dans l’onglet Général.
+            </p>
+          </Card>
+
           <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
             <div className="mb-4 flex items-center gap-3">
               <FileSignature className="h-5 w-5 text-[var(--app-gold-text)]" />
               <div>
                 <h2 className="font-semibold text-[var(--app-text)]">Informations contrat</h2>
-                <p className="text-xs text-[var(--app-text-muted)]">Ces informations apparaîtront automatiquement dans les contrats PDF.</p>
+                <p className="text-xs text-[var(--app-text-muted)]">Uniquement les informations réellement affichées dans le PDF.</p>
               </div>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Activité / slogan" value={agencyActivityLabel} onChange={(event) => setAgencyActivityLabel(event.target.value)} placeholder="Location de voiture" />
-              <Field label="Ville" value={agencyCity} onChange={(event) => setAgencyCity(event.target.value)} placeholder="Meknès" />
-              <Field label="Email agence" value={agencyEmail} onChange={(event) => setAgencyEmail(event.target.value)} placeholder="contact@agence.ma" />
-              <Field label="WhatsApp contrat" value={agencyWhatsapp} onChange={(event) => setAgencyWhatsapp(event.target.value)} placeholder="+212..." />
-              <Field label="Site web" value={agencyWebsite} onChange={(event) => setAgencyWebsite(event.target.value)} placeholder="https://..." />
-              <Field label="ICE" value={agencyIce} onChange={(event) => setAgencyIce(event.target.value)} />
-              <Field label="RC" value={agencyRc} onChange={(event) => setAgencyRc(event.target.value)} />
-              <Field label="IF / Identifiant fiscal" value={agencyIfNumber} onChange={(event) => setAgencyIfNumber(event.target.value)} />
-              <Field label="CNSS" value={agencyCnss} onChange={(event) => setAgencyCnss(event.target.value)} />
-              <Field label="Texte en-tête contrat" value={agencyContractHeader} onChange={(event) => setAgencyContractHeader(event.target.value)} placeholder="LOCATION DE VOITURE / RENT CAR" />
-              <Field label="Libellé arabe optionnel" value={agencyArabicLabel} onChange={(event) => setAgencyArabicLabel(event.target.value)} placeholder="كراء السيارات" />
-              <div className="sm:col-span-2">
+            <div className="grid gap-4">
+              <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
+                <p className="mb-3 text-xs font-black uppercase tracking-[0.16em] text-[var(--app-gold-text)]">Coordonnées PDF</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Activité / slogan" value={agencyActivityLabel} onChange={(event) => setAgencyActivityLabel(event.target.value)} placeholder="Location de voiture" />
+                  <Field label="Ville / juridiction" value={agencyCity} onChange={(event) => setAgencyCity(event.target.value)} placeholder="Meknès" />
+                  <Field label="Email agence" value={agencyEmail} onChange={(event) => setAgencyEmail(event.target.value)} placeholder="contact@agence.ma" />
+                  <Field label="WhatsApp contrat" value={agencyWhatsapp} onChange={(event) => setAgencyWhatsapp(event.target.value)} placeholder="+212..." />
+                  <div className="sm:col-span-2">
+                    <Field label="Site web" value={agencyWebsite} onChange={(event) => setAgencyWebsite(event.target.value)} placeholder="https://..." />
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
+                <p className="mb-3 text-xs font-black uppercase tracking-[0.16em] text-[var(--app-gold-text)]">Identifiants légaux</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="ICE" value={agencyIce} onChange={(event) => setAgencyIce(event.target.value)} />
+                  <Field label="RC" value={agencyRc} onChange={(event) => setAgencyRc(event.target.value)} />
+                  <Field label="IF / Identifiant fiscal" value={agencyIfNumber} onChange={(event) => setAgencyIfNumber(event.target.value)} />
+                  <Field label="CNSS" value={agencyCnss} onChange={(event) => setAgencyCnss(event.target.value)} />
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
                 <Field label="Note de pied de page" value={agencyFooterNote} onChange={(event) => setAgencyFooterNote(event.target.value)} placeholder="Mention légale ou note de contact optionnelle" />
               </div>
             </div>
