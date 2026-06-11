@@ -289,7 +289,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           display: block;
           width: 100%;
           height: 100%;
-          object-fit: cover;
+          object-fit: contain;
           object-position: center;
         }
         .rc-contract-ref { position: absolute; left: 58px; top: 153px; font-size: 16px; font-weight: 900; letter-spacing: .16em; }
