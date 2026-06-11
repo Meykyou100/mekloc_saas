@@ -557,6 +557,48 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         }
         .rc-second-driver-section .rc-line-field { min-height: 21px; font-size: 9.7px; }
         .rc-second-driver-section .rc-line-value { height: 18px; padding-bottom: 3px; font-size: 9.2px; }
+        .rc-page-one-bottom {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          align-items: stretch;
+          gap: 8px;
+          margin-top: 2px;
+        }
+        .rc-page-one-bottom .rc-person-section { min-width: 0; margin-bottom: 0; }
+        .rc-page-one-bottom .rc-inline-2 { gap: 8px; }
+        .rc-page-one-bottom .rc-line-field {
+          column-gap: 4px;
+          font-size: 8.2px;
+        }
+        .rc-page-one-bottom .rc-line-value { font-size: 8px; }
+        .rc-page-one-signatures {
+          display: grid;
+          grid-template-rows: 1fr 1fr;
+          min-width: 0;
+          overflow: hidden;
+          border: 1.8px solid #111;
+          border-radius: 13px;
+        }
+        .rc-page-one-signature-side {
+          min-height: 0;
+          padding: 8px 11px;
+          box-sizing: border-box;
+          font-size: 8.5px;
+        }
+        .rc-page-one-signature-side + .rc-page-one-signature-side { border-top: 1px solid #999; }
+        .rc-page-one-signature-side strong {
+          display: block;
+          margin-bottom: 5px;
+          font-size: 9px;
+          text-transform: uppercase;
+        }
+        .rc-page-one-signature-side p { margin: 4px 0 0; }
+        .rc-page-one-signature-side .rc-signature-line { min-width: 72px; }
+        .rc-page-one-signature-side .rc-agency-stamp {
+          width: 145px;
+          height: 48px;
+          margin-top: -2px;
+        }
         .rc-declaration { margin: 9px 7px 0; font-size: 10.4px; font-weight: 700; line-height: 1.4; }
         .rc-page-one-footer { position: absolute; right: 34px; bottom: 12px; color: #555; font-size: 7.5px; }
         .rc-page-two { padding: 39px 43px 25px; }
@@ -747,25 +789,41 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           </div>
         </div>
 
-        <div className="rc-person-section rc-second-driver-section">
-          <BlackTitle>2ème conducteur autorisé</BlackTitle>
-          <div className="rc-person-box">
-            <div className="rc-inline-2">
-              <LineField label="Nom :" value={secondDriver.enabled ? secondDriver.lastName : ''} />
-              <LineField label="Prénom :" value={secondDriver.enabled ? secondDriver.firstName : ''} />
-            </div>
-            <LineField label="Date et lieu de naissance :" value={secondDriver.enabled ? birthDriver : ''} />
-            <LineField label="Adresse au Maroc :" value={secondDriver.enabled ? secondDriver.address : ''} />
-            <LineField label="Nationalité :" value={secondDriver.enabled ? secondDriver.nationality : ''} />
-            <LineField label="Permis de conduire N° :" value={secondDriver.enabled ? secondDriver.licenseNumber : ''} />
-            <div className="rc-inline-2">
-              <LineField label="Délivré le :" value={secondDriver.enabled ? secondDriver.licenseIssuedAt : ''} />
-              <LineField label="À :" value={secondDriver.enabled ? secondDriver.licenseIssuedPlace : ''} />
-            </div>
-            <LineField label="C.I.N & Passeport N° :" value={secondDriver.enabled ? secondDriver.idNumber : ''} />
-            <div className="rc-inline-2">
-              <LineField label="Délivré le :" value="" />
+        <div className="rc-page-one-bottom">
+          <div className="rc-person-section rc-second-driver-section">
+            <BlackTitle>2ème conducteur autorisé</BlackTitle>
+            <div className="rc-person-box">
+              <div className="rc-inline-2">
+                <LineField label="Nom :" value={secondDriver.enabled ? secondDriver.lastName : ''} />
+                <LineField label="Prénom :" value={secondDriver.enabled ? secondDriver.firstName : ''} />
+              </div>
+              <LineField label="Date et lieu de naissance :" value={secondDriver.enabled ? birthDriver : ''} />
+              <LineField label="Adresse au Maroc :" value={secondDriver.enabled ? secondDriver.address : ''} />
+              <LineField label="Nationalité :" value={secondDriver.enabled ? secondDriver.nationality : ''} />
+              <LineField label="Permis de conduire N° :" value={secondDriver.enabled ? secondDriver.licenseNumber : ''} />
+              <div className="rc-inline-2">
+                <LineField label="Délivré le :" value={secondDriver.enabled ? secondDriver.licenseIssuedAt : ''} />
+                <LineField label="À :" value={secondDriver.enabled ? secondDriver.licenseIssuedPlace : ''} />
+              </div>
+              <LineField label="C.I.N / Passeport :" value={secondDriver.enabled ? secondDriver.idNumber : ''} />
               <LineField label="Tél :" value={secondDriver.enabled ? secondDriver.phone : ''} />
+            </div>
+          </div>
+
+          <div className="rc-page-one-signatures">
+            <div className="rc-page-one-signature-side">
+              <strong>Signature du locataire</strong>
+              Lu et approuvé
+              <p>Date : <span className="rc-signature-line" /> &nbsp; Lieu : <span className="rc-signature-line" /></p>
+              <p>Signature : <span className="rc-signature-line" style={{ minWidth: 185 }} /></p>
+            </div>
+            <div className="rc-page-one-signature-side">
+              <strong>Cachet et signature de l’agence</strong>
+              {agency.stampUrl ? (
+                <img className="rc-agency-stamp" src={agency.stampUrl} alt={`Cachet ${agencyName}`} />
+              ) : (
+                <div className="rc-agency-signature-name">{agencyName}</div>
+              )}
             </div>
           </div>
         </div>
@@ -803,22 +861,6 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           </div>
         </div>
 
-        <div className="rc-signature-panel">
-          <div className="rc-signature-side">
-            <strong>Signature du locataire</strong>
-            Lu et approuvé
-            <p>Date : <span className="rc-signature-line" /> &nbsp; Lieu : <span className="rc-signature-line" /></p>
-            <p>Signature : <span className="rc-signature-line" style={{ minWidth: 250 }} /></p>
-          </div>
-          <div className="rc-signature-side">
-            <strong>Cachet et signature de l’agence</strong>
-            {agency.stampUrl ? (
-              <img className="rc-agency-stamp" src={agency.stampUrl} alt={`Cachet ${agencyName}`} />
-            ) : (
-              <div className="rc-agency-signature-name">{agencyName}</div>
-            )}
-          </div>
-        </div>
         <div className="rc-terms-footer">
           {agency.name ? <span>{agency.name}</span> : null}
           {agency.ice ? <span>ICE : {agency.ice}</span> : null}
