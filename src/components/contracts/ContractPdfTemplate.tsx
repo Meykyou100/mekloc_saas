@@ -118,28 +118,30 @@ type ContractPdfTemplateProps = {
 };
 
 const conditions = [
-  ['OBJET DU CONTRAT', 'Le présent contrat a pour objet la mise à disposition d’un véhicule automobile par l’Agence au profit du Locataire, aux conditions définies ci-dessous.'],
-  ['CONDITIONS D’ÉLIGIBILITÉ', 'Le Locataire doit être titulaire d’un permis de conduire valide et présenter une pièce d’identité en cours de validité. L’Agence se réserve le droit de refuser toute location si les documents sont incomplets ou non conformes.'],
-  ['PRISE EN CHARGE DU VÉHICULE', 'Le véhicule est remis en bon état de marche, propre et complet, conformément à l’état des lieux. Le kilométrage et le niveau de carburant sont consignés au départ. Tout dommage non mentionné sera imputé au Locataire au retour.'],
-  ['UTILISATION DU VÉHICULE', 'Le véhicule est loué pour un usage normal et légal. Le Locataire s’engage à respecter le Code de la Route et à n’autoriser la conduite qu’aux personnes inscrites au contrat. La sous-location, le prêt à un tiers et toute utilisation dangereuse sont interdits.'],
-  ['CARBURANT', 'Le véhicule est fourni avec le niveau de carburant indiqué au départ. Le Locataire s’engage à le restituer avec le même niveau. Toute différence pourra être facturée.'],
-  ['KILOMÉTRAGE', 'Le kilométrage au départ et au retour est indiqué au contrat. Tout dépassement ou toute anomalie pourra être facturé selon les conditions de l’Agence.'],
-  ['RETOUR DU VÉHICULE', 'Le véhicule doit être restitué à la date, à l’heure et au lieu convenus. Tout retard doit être signalé immédiatement et peut entraîner des frais supplémentaires.'],
-  ['CAUTION ET PAIEMENT', 'Une caution peut être exigée au début de la location. Elle est restituée après retour du véhicule, déduction faite des montants restant dus, dommages, carburant, nettoyage, infractions ou accessoires manquants.'],
-  ['ASSURANCES ET RESPONSABILITÉS', 'Le véhicule est couvert conformément aux conditions d’assurance de l’Agence et à la législation marocaine. La franchise et les exclusions restent à la charge du Locataire selon le cas.'],
-  ['ACCIDENT OU SINISTRE', 'En cas d’accident ou de sinistre, le Locataire doit informer immédiatement les autorités et l’Agence, remplir les documents nécessaires et ne reconnaître aucune responsabilité sans accord de l’Agence.'],
-  ['PANNE / ASSISTANCE', 'En cas de panne non imputable au Locataire, l’Agence organisera l’assistance. Aucune réparation engagée sans autorisation écrite préalable ne sera prise en charge.'],
-  ['VOL DU VÉHICULE', 'En cas de vol, le Locataire doit déposer plainte immédiatement et remettre à l’Agence le récépissé, les documents et les clés disponibles.'],
-  ['INFRACTIONS ET AMENDES', 'Le Locataire est seul responsable des infractions commises pendant la location. Les amendes et frais reçus après restitution lui seront transmis et pourront être majorés de frais de gestion.'],
-  ['PROLONGATION / MODIFICATION', 'Toute prolongation ou modification de la durée, du lieu de retour ou du conducteur doit être validée par écrit par l’Agence avant l’échéance prévue.'],
-  ['RÉSILIATION', 'L’Agence peut résilier le contrat en cas de violation des présentes conditions et procéder à la récupération du véhicule. Les jours prépayés non utilisés ne donnent lieu à aucun remboursement sauf accord écrit.'],
-  ['FORCE MAJEURE', 'Aucune partie ne peut être tenue responsable d’un manquement résultant d’un cas de force majeure, notamment catastrophe naturelle, émeute ou décision gouvernementale.'],
-  ['PROTECTION DES DONNÉES', 'Les informations collectées sont utilisées pour la gestion du contrat et peuvent être communiquées aux autorités en cas d’infraction ou de litige, conformément à la réglementation applicable.'],
-  ['LITIGES ET JURIDICTION', 'Tout litige relatif au présent contrat sera soumis aux tribunaux compétents conformément à la législation marocaine. Le présent contrat est régi par le droit marocain.'],
+  ['OBJET DU CONTRAT', 'Le présent contrat a pour objet la mise à disposition d’un véhicule automobile par {{AGENCY}} (ci-après « l’Agence ») au profit du Locataire, aux conditions définies ci-dessous.'],
+  ['CONDITIONS D’ÉLIGIBILITÉ', 'Le Locataire doit être âgé d’au moins 21 ans et titulaire d’un permis de conduire valide depuis au moins un an. Une pièce d’identité (CIN ou passeport) en cours de validité est obligatoire. Un supplément peut être appliqué pour les conducteurs de moins de 25 ans ou de permis de moins de 2 ans. L’Agence se réserve le droit de refuser toute location sans justification.'],
+  ['PRISE EN CHARGE DU VÉHICULE', 'Le véhicule est remis en parfait état de marche, propre et complet, conformément à l’état des lieux signé par les parties. Le compteur kilométrique et le niveau de carburant sont consignés au départ. Tout dommage non mentionné à la prise en charge sera imputé au Locataire au retour.'],
+  ['UTILISATION DU VÉHICULE', 'Le véhicule est loué pour un usage personnel et non professionnel. Le Locataire s’engage à respecter le Code de la Route et à n’autoriser la conduite qu’à des personnes inscrites au contrat. Sont interdits : le transport rémunéré de personnes ou de marchandises, la sous-location, le prêt à un tiers, la participation à des compétitions ou à des événements pouvant endommager le véhicule. Toute infraction entraîne la résiliation immédiate du contrat.'],
+  ['CARBURANT', 'Le véhicule est fourni avec un niveau de carburant indiqué au départ. Le Locataire s’engage à le restituer avec le même niveau. En cas de niveau inférieur, le carburant manquant sera facturé avec des frais de service de 50 DH.'],
+  ['KILOMÉTRAGE', 'Le kilométrage journalier inclus est précisé dans le contrat. Tout kilomètre supplémentaire sera facturé au tarif indiqué au recto. Le surplus sera déduit de la caution ou facturé séparément.'],
+  ['RETOUR DU VÉHICULE', 'Le véhicule doit être restitué à la date, à l’heure et au lieu convenus. Tout retard doit être signalé immédiatement à l’Agence et sera facturé au tarif journalier en vigueur, avec une tolérance d’une heure incluse. Au-delà, une journée supplémentaire est due. En cas de non-restitution sous 24 h après l’échéance, l’Agence se réserve le droit de déclarer le véhicule volé.'],
+  ['CAUTION ET PAIEMENT', 'Une caution est exigée au début de la location (chèque, espèces ou empreinte CB). Elle est restituée à la restitution du véhicule en bon état, déduction faite de tout montant dû. Le loyer est payable d’avance. Tout chèque sans provision entraîne des frais de 200 DH. La TVA de 20 % est incluse dans tous les tarifs.'],
+  ['ASSURANCES ET RESPONSABILITÉS', 'Le véhicule est couvert par une assurance responsabilité civile obligatoire et une couverture tous risques limitée, conformément à la législation marocaine. La franchise reste à la charge du Locataire sauf souscription d’une option de rachat. L’assurance exclut : conduite en état d’ivresse, fautes intentionnelles, objets personnels, crevaisons, bris de glace (sauf option), dommages hors routes goudronnées.'],
+  ['ACCIDENT OU SINISTRE', 'En cas d’accident : (1) avertir immédiatement la police et l’Agence ; (2) remplir un constat amiable signé ; (3) recueillir les coordonnées des témoins ; (4) ne pas reconnaître sa responsabilité sans accord de l’Agence. Toute réparation effectuée sans accord préalable ne sera pas remboursée.'],
+  ['PANNE / ASSISTANCE', 'En cas de panne mécanique non imputable au Locataire, l’Agence organisera l’assistance dans les meilleurs délais. Aucune réparation sans autorisation écrite préalable ne sera prise en charge.'],
+  ['VOL DU VÉHICULE', 'En cas de vol, le Locataire doit déposer une plainte immédiatement auprès des autorités et remettre à l’Agence le récépissé de plainte et les clés du véhicule. En cas de négligence (véhicule ouvert, clés accessibles), le Locataire est tenu responsable de la valeur intégrale du véhicule.'],
+  ['INFRACTIONS ET AMENDES', 'Le Locataire est seul responsable des infractions commises pendant la location. Les amendes reçues par l’Agence après restitution seront transmises au Locataire, majorées de frais de gestion de 100 DH.'],
+  ['PROLONGATION / MODIFICATION', 'Toute prolongation ou modification du contrat (durée, lieu de retour ou conducteur) doit être validée par écrit par l’Agence. Une prolongation non autorisée est assimilée à un refus de restitution. Les tarifs applicables sont ceux en vigueur à la date de la demande.'],
+  ['RÉSILIATION', 'L’Agence peut résilier le contrat à tout moment en cas de violation des présentes conditions, sans remboursement des sommes versées, et procéder à la récupération du véhicule aux frais du Locataire. Le Locataire ne bénéficie d’aucun remboursement pour les jours prépayés non utilisés.'],
+  ['FORCE MAJEURE', 'Aucune des deux parties ne peut être tenue responsable d’un manquement à ses obligations contractuelles résultant d’un cas de force majeure (catastrophe naturelle, émeute, décision gouvernementale, etc.).'],
+  ['PROTECTION DES DONNÉES', 'Les informations collectées sont utilisées exclusivement pour la gestion du contrat et peuvent être communiquées aux autorités en cas d’infraction ou de litige. Conformément à la loi n° 09-08 relative à la protection des personnes physiques, le Locataire dispose d’un droit d’accès et de rectification.'],
+  ['LITIGES ET JURIDICTION', 'Tout litige relatif au présent contrat sera soumis aux tribunaux compétents {{JURISDICTION}}, conformément à la législation marocaine en vigueur. Le présent contrat est régi par le droit marocain.'],
 ] as const;
 
-const personalizeCondition = (body: string, agencyName: string) =>
-  body.split('l’Agence').join(agencyName).split('L’Agence').join(agencyName);
+const personalizeCondition = (body: string, agencyName: string, agencyCity?: string) =>
+  body
+    .split('{{AGENCY}}').join(agencyName)
+    .split('{{JURISDICTION}}').join(agencyCity ? `de ${agencyCity}, Maroc` : 'du Maroc');
 
 function text(value: unknown) {
   if (value === null || value === undefined) return '';
@@ -443,23 +445,23 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           width: 1px;
           background: #c7c7c7;
         }
-        .rc-term { margin-bottom: 11px; break-inside: avoid; }
+        .rc-term { margin-bottom: 8px; break-inside: avoid; }
         .rc-term-title {
-          min-height: 22px;
+          min-height: 20px;
           padding: 0 6px;
           background: #050505;
           color: #fff;
-          font-size: 9.6px;
+          font-size: 9px;
           font-weight: 900;
-          line-height: 22px;
+          line-height: 20px;
           letter-spacing: .03em;
           text-transform: uppercase;
         }
         .rc-term p {
           margin: 4px 3px 0;
           color: #111;
-          font-size: 9.15px;
-          line-height: 1.38;
+          font-size: 8.2px;
+          line-height: 1.28;
           text-align: justify;
         }
         .rc-signature-panel {
@@ -584,7 +586,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
             {leftConditions.map(([title, body], index) => (
               <article className="rc-term" key={title}>
                 <div className="rc-term-title">{index + 1}. {title}</div>
-                <p>{personalizeCondition(body, agencyName)}</p>
+                <p>{personalizeCondition(body, agencyName, agency.city)}</p>
               </article>
             ))}
           </div>
@@ -592,7 +594,7 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
             {rightConditions.map(([title, body], index) => (
               <article className="rc-term" key={title}>
                 <div className="rc-term-title">{index + 9}. {title}</div>
-                <p>{personalizeCondition(body, agencyName)}</p>
+                <p>{personalizeCondition(body, agencyName, agency.city)}</p>
               </article>
             ))}
           </div>
