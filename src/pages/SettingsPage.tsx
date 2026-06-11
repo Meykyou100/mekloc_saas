@@ -234,8 +234,8 @@ export default function SettingsPage() {
   const [agencyIfNumber, setAgencyIfNumber] = useState('');
   const [agencyCnss, setAgencyCnss] = useState('');
   const [agencyFooterNote, setAgencyFooterNote] = useState('');
-  const [contractLogoWidth, setContractLogoWidth] = useState(250);
-  const [contractLogoHeight, setContractLogoHeight] = useState(92);
+  const [contractLogoWidth, setContractLogoWidth] = useState(315);
+  const [contractLogoHeight, setContractLogoHeight] = useState(120);
   const [logoFileName, setLogoFileName] = useState('');
   const [logoPreviewUrl, setLogoPreviewUrl] = useState('');
   const [logoPreviewBroken, setLogoPreviewBroken] = useState(false);
@@ -291,8 +291,8 @@ export default function SettingsPage() {
       agencyIfNumber !== settingValue(baseSettings, 'if_number') ||
       agencyCnss !== settingValue(baseSettings, 'cnss') ||
       agencyFooterNote !== settingValue(baseSettings, 'contract_footer_note') ||
-      contractLogoWidth !== settingNumber(baseSettings, 'contract_logo_width', 250) ||
-      contractLogoHeight !== settingNumber(baseSettings, 'contract_logo_height', 92) ||
+      contractLogoWidth !== settingNumber(baseSettings, 'contract_logo_width', 315) ||
+      contractLogoHeight !== settingNumber(baseSettings, 'contract_logo_height', 120) ||
       logoPreviewUrl !== baseLogo ||
       Boolean(pendingLogoFile) ||
       notificationPreferenceItems.some((item) => notificationPreferences[item.key] !== baseNotifications[item.key])
@@ -313,8 +313,8 @@ export default function SettingsPage() {
     setAgencyIfNumber(settingValue(settings, 'if_number'));
     setAgencyCnss(settingValue(settings, 'cnss'));
     setAgencyFooterNote(settingValue(settings, 'contract_footer_note'));
-    setContractLogoWidth(settingNumber(settings, 'contract_logo_width', 250));
-    setContractLogoHeight(settingNumber(settings, 'contract_logo_height', 92));
+    setContractLogoWidth(settingNumber(settings, 'contract_logo_width', 315));
+    setContractLogoHeight(settingNumber(settings, 'contract_logo_height', 120));
     setLogoPreviewUrl(profile?.agency?.logoUrl || '');
     setPendingLogoFile(null);
     setLogoFileName('');
@@ -908,8 +908,8 @@ startxref
         if_number: sanitizeText(agencyIfNumber, 60),
         cnss: sanitizeText(agencyCnss, 60),
         contract_footer_note: sanitizeText(agencyFooterNote, 300),
-        contract_logo_width: Math.min(300, Math.max(160, contractLogoWidth)),
-        contract_logo_height: Math.min(120, Math.max(55, contractLogoHeight)),
+        contract_logo_width: Math.min(340, Math.max(200, contractLogoWidth)),
+        contract_logo_height: Math.min(132, Math.max(70, contractLogoHeight)),
         logo_storage_bucket: uploadedLogoBucket,
       };
       const agencyPayload: Record<string, unknown> = {
@@ -1285,22 +1285,22 @@ startxref
                 <Field
                   label="Largeur du logo dans le contrat (px)"
                   type="number"
-                  min="160"
-                  max="300"
+                  min="200"
+                  max="340"
                   value={contractLogoWidth}
-                  onChange={(event) => setContractLogoWidth(Number(event.target.value) || 250)}
+                  onChange={(event) => setContractLogoWidth(Number(event.target.value) || 315)}
                 />
                 <Field
                   label="Hauteur maximale dans le contrat (px)"
                   type="number"
-                  min="55"
-                  max="120"
+                  min="70"
+                  max="132"
                   value={contractLogoHeight}
-                  onChange={(event) => setContractLogoHeight(Number(event.target.value) || 92)}
+                  onChange={(event) => setContractLogoHeight(Number(event.target.value) || 120)}
                 />
                 <div className="sm:col-span-2">
                   <p className="text-xs leading-5 text-[var(--app-text-muted)]">
-                    Recommandé: largeur 220–270 px et hauteur 75–100 px. Le logo conserve automatiquement ses proportions.
+                    Recommandé: largeur 300–330 px et hauteur 110–125 px. Le logo conserve automatiquement ses proportions.
                   </p>
                 </div>
               </div>

@@ -242,11 +242,18 @@ function AgencyBrand({
 }) {
   const logoWidth = compact
     ? Math.min(175, Math.round((agency.logoWidth || 250) * 0.66))
-    : agency.logoWidth || 250;
+    : Math.min(340, Math.max(285, agency.logoWidth || 315));
   const logoHeight = compact
     ? Math.min(68, Math.round((agency.logoHeight || 92) * 0.7))
-    : agency.logoHeight || 92;
+    : Math.min(132, Math.max(105, agency.logoHeight || 120));
   const locationLine = formatAgencyLocation(agency.address, agency.city);
+  const phoneKey = comparisonKey(text(agency.phone)).replace(/\D/g, '');
+  const whatsappKey = comparisonKey(text(agency.whatsapp)).replace(/\D/g, '');
+  const contactNumbers = [
+    agency.phone,
+    agency.whatsapp && whatsappKey !== phoneKey ? `WhatsApp ${agency.whatsapp}` : '',
+  ].filter(Boolean).join(' · ');
+  const digitalContact = [agency.email, agency.website].filter(Boolean).join(' · ');
 
   return (
     <div className={`rc-brand${compact ? ' rc-brand-compact' : ''}`}>
@@ -269,7 +276,8 @@ function AgencyBrand({
         <div className="rc-brand-contact">
           <strong>{agency.activityLabel || 'LOCATION DE VOITURE'}</strong>
           <span>{locationLine || 'Adresse non renseignée'}</span>
-          <span>{[agency.phone, agency.whatsapp ? `WhatsApp ${agency.whatsapp}` : '', agency.email].filter(Boolean).join(' · ') || 'Contact non renseigné'}</span>
+          <span>{contactNumbers || 'Contact non renseigné'}</span>
+          {digitalContact ? <span>{digitalContact}</span> : null}
         </div>
       ) : null}
     </div>
@@ -304,15 +312,29 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           box-shadow: 0 18px 45px rgba(0,0,0,.16);
         }
         .rc-page + .rc-page { margin-top: 18px; }
-        .rc-page-one { padding: 27px 32px 24px 56px; }
+        .rc-page-one { padding: 22px 32px 24px 56px; }
         .rc-top {
           display: grid;
-          grid-template-columns: 300px 1fr;
-          min-height: 174px;
-          gap: 12px;
+          grid-template-columns: 345px minmax(0, 1fr);
+          min-height: 190px;
+          gap: 8px;
         }
-        .rc-brand { min-width: 0; text-align: center; }
-        .rc-brand-logo { display: block; width: auto; max-width: 270px; max-height: 100px; margin: 0 auto 4px; object-fit: contain; }
+        .rc-brand {
+          display: flex;
+          min-width: 0;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-start;
+          text-align: center;
+        }
+        .rc-brand-logo {
+          display: block;
+          width: auto;
+          max-width: 340px;
+          max-height: 132px;
+          margin: 0 auto 3px;
+          object-fit: contain;
+        }
         .rc-brand-fallback { position: relative; padding-top: 21px; text-transform: uppercase; }
         .rc-brand-fallback::before {
           content: "";
@@ -327,10 +349,20 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         }
         .rc-brand-fallback span { position: relative; display: block; font-size: 34px; font-weight: 900; letter-spacing: .02em; }
         .rc-brand-fallback strong { position: relative; display: block; margin-top: -3px; font-size: 20px; }
-        .rc-brand-contact { display: flex; flex-direction: column; gap: 3px; margin-top: 5px; font-size: 10.5px; font-weight: 700; }
-        .rc-brand-contact strong { font-size: 14px; }
+        .rc-brand-contact {
+          display: flex;
+          width: 100%;
+          flex-direction: column;
+          gap: 3px;
+          margin-top: 2px;
+          font-size: 11px;
+          font-weight: 800;
+          line-height: 1.18;
+        }
+        .rc-brand-contact strong { font-size: 15px; letter-spacing: .015em; }
+        .rc-brand-contact span { display: block; overflow-wrap: anywhere; }
         .rc-header-right { position: relative; min-width: 0; }
-        .rc-header-cars { height: 158px; overflow: hidden; }
+        .rc-header-cars { height: 174px; overflow: hidden; }
         .rc-header-cars img {
           display: block;
           width: 100%;
@@ -338,10 +370,16 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           object-fit: contain;
           object-position: center;
         }
-        .rc-contract-ref { position: absolute; left: 58px; top: 153px; font-size: 16px; font-weight: 900; letter-spacing: .16em; }
+        .rc-contract-ref {
+          min-height: 22px;
+          margin: -2px 0 2px 7px;
+          font-size: 16px;
+          font-weight: 900;
+          letter-spacing: .16em;
+        }
         .rc-main-title {
           height: 35px;
-          margin: 2px 0 8px;
+          margin: 0 0 8px;
           border-radius: 6px;
           background: #050505;
           color: #fff;
