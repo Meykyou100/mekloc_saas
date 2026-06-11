@@ -471,6 +471,14 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           line-height: 1.2;
         }
         .rc-line-value-filled { padding-left: 1px; }
+        .rc-plate-field .rc-line-value > span {
+          max-width: 100%;
+          overflow: hidden;
+          font-size: 8.6px;
+          letter-spacing: -.02em;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
         .rc-line-suffix { white-space: nowrap; }
         .rc-inline-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
         .rc-inline-2 .rc-line-field { grid-template-columns: max-content minmax(0, 1fr); }
@@ -649,7 +657,11 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
             <div className="rc-rounded-box">
               <div className="rc-inline-2">
                 <LineField label="Marque :" value={[vehicle.brand, vehicle.model].filter(Boolean).join(' ')} />
-                <LineField label="N° immatriculation :" value={vehicle.plate ? <span dir="ltr">{vehicle.plate}</span> : ''} />
+                <LineField
+                  label="N° immatriculation :"
+                  value={vehicle.plate ? <span dir="ltr">{vehicle.plate}</span> : ''}
+                  className="rc-plate-field"
+                />
               </div>
               <LineField label="Lieu de livraison :" value={reservation.pickupLocation} />
               <LineField label="Lieu de reprise :" value={reservation.returnLocation} />
