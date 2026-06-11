@@ -883,6 +883,19 @@ startxref
       if (pendingLogoFile && agencyId) {
         await uploadAgencyLogo(agencyId, pendingLogoFile);
       }
+      const nextAgencySettings = {
+        ...(profile?.agency?.settings || {}),
+        notifications: notificationPreferences,
+        activity_label: sanitizeText(agencyActivityLabel, 120),
+        city: sanitizeText(agencyCity, 100),
+        whatsapp: normalizeText(agencyWhatsapp, 20),
+        website: sanitizeText(agencyWebsite, 180),
+        if_number: sanitizeText(agencyIfNumber, 60),
+        cnss: sanitizeText(agencyCnss, 60),
+        contract_footer_note: sanitizeText(agencyFooterNote, 300),
+        contract_logo_width: Math.min(300, Math.max(160, contractLogoWidth)),
+        contract_logo_height: Math.min(120, Math.max(55, contractLogoHeight)),
+      };
       const agencyPayload: Record<string, unknown> = {
         name: safeAgencyName,
         address: safeAgencyAddress,
@@ -890,41 +903,70 @@ startxref
         email: safeAgencyEmail || null,
         ice: sanitizeText(agencyIce, 60) || null,
         rc: sanitizeText(agencyRc, 60) || null,
-        settings: {
-          ...(profile?.agency?.settings || {}),
-          notifications: notificationPreferences,
-          activity_label: sanitizeText(agencyActivityLabel, 120),
-          city: sanitizeText(agencyCity, 100),
-          whatsapp: normalizeText(agencyWhatsapp, 20),
-          website: sanitizeText(agencyWebsite, 180),
-          if_number: sanitizeText(agencyIfNumber, 60),
-          cnss: sanitizeText(agencyCnss, 60),
-          contract_footer_note: sanitizeText(agencyFooterNote, 300),
-          contract_logo_width: Math.min(300, Math.max(160, contractLogoWidth)),
-          contract_logo_height: Math.min(120, Math.max(55, contractLogoHeight)),
-        },
+        settings: nextAgencySettings,
       };
-      for (let attempt = 0; attempt < 6; attempt += 1) {
-        const { error: agencyErr } = await supabase.from('agencies').update(agencyPayload).eq('id', agencyId);
-        if (!agencyErr) break;
+      type SavedAgencySettingsRow = {
+        name?: string | null;
+        address?: string | null;
+        phone?: string | null;
+        email?: string | null;
+        ice?: string | null;
+        rc?: string | null;
+        settings?: Record<string, unknown> | null;
+      };
+      const { data: savedAgencyData, error: agencyErr } = await supabase
+        .from('agencies')
+        .update(agencyPayload)
+        .eq('id', agencyId)
+        .select('name,address,phone,email,ice,rc,settings')
+        .single();
+      if (agencyErr) {
         const missingColumn = extractMissingColumnName(agencyErr.message || '');
         if (missingColumn === 'address') {
           throw new Error('Colonne agencies.address manquante. Appliquez la migration agencies_address_safe.sql dans Supabase.');
         }
-        if (!missingColumn || !(missingColumn in agencyPayload)) throw agencyErr;
-        delete agencyPayload[missingColumn];
-        if (Object.keys(agencyPayload).length === 0) throw agencyErr;
+        if (missingColumn === 'settings') {
+          throw new Error('Colonne agencies.settings manquante. Appliquez la migration agency_settings_notifications_safe.sql dans Supabase.');
+        }
+        throw agencyErr;
       }
-
-      const { data: updatedAgency, error: addressCheckError } = await supabase
-        .from('agencies')
-        .select('address')
-        .eq('id', agencyId)
-        .maybeSingle();
-      if (addressCheckError) throw addressCheckError;
-      const savedAddress = String((updatedAgency as { address?: string | null } | null)?.address || '');
-      if (savedAddress !== safeAgencyAddress) {
+      const savedAgency = savedAgencyData as SavedAgencySettingsRow | null;
+      if (!savedAgency) {
+        throw new Error('Les paramètres agence n’ont pas été enregistrés.');
+      }
+      if (String(savedAgency.name || '') !== safeAgencyName) {
+        throw new Error("Le nom de l’agence n’a pas été enregistré.");
+      }
+      if (String(savedAgency.address || '') !== safeAgencyAddress) {
         throw new Error('Adresse non enregistrée dans Supabase. Vérifiez la colonne agencies.address et les règles RLS.');
+      }
+      if (String(savedAgency.phone || '') !== String(safeAgencyPhone || '')) {
+        throw new Error("Le téléphone de l’agence n’a pas été enregistré.");
+      }
+      if (String(savedAgency.email || '') !== String(safeAgencyEmail || '')) {
+        throw new Error("L’email de l’agence n’a pas été enregistré.");
+      }
+      if (String(savedAgency.ice || '') !== String(sanitizeText(agencyIce, 60) || '')) {
+        throw new Error("L’ICE de l’agence n’a pas été enregistré.");
+      }
+      if (String(savedAgency.rc || '') !== String(sanitizeText(agencyRc, 60) || '')) {
+        throw new Error("Le RC de l’agence n’a pas été enregistré.");
+      }
+      const savedSettings = savedAgency.settings || {};
+      const settingsChecks: Array<[string, string | number]> = [
+        ['activity_label', nextAgencySettings.activity_label],
+        ['city', nextAgencySettings.city],
+        ['whatsapp', nextAgencySettings.whatsapp],
+        ['website', nextAgencySettings.website],
+        ['if_number', nextAgencySettings.if_number],
+        ['cnss', nextAgencySettings.cnss],
+        ['contract_footer_note', nextAgencySettings.contract_footer_note],
+        ['contract_logo_width', nextAgencySettings.contract_logo_width],
+        ['contract_logo_height', nextAgencySettings.contract_logo_height],
+      ];
+      const unsavedSetting = settingsChecks.find(([key, expected]) => String(savedSettings[key] ?? '') !== String(expected));
+      if (unsavedSetting) {
+        throw new Error(`Le paramètre contrat « ${unsavedSetting[0]} » n’a pas été enregistré.`);
       }
 
       let profileErr: { message?: string } | null = null;

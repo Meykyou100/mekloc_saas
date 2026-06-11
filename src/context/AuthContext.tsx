@@ -306,13 +306,6 @@ async function fetchProfile(userId: string, email?: string | null): Promise<User
     agency = await fetchAgencyById(row.agency_id);
     row.agencies = agency;
   }
-  if (row.id === userId && normalizedEmail && agency?.id && normalizeEmail(agency.email || '') !== normalizedEmail) {
-    const { error: syncAgencyEmailError } = await supabase
-      .from('agencies')
-      .update({ email: normalizedEmail })
-      .eq('id', agency.id);
-    if (!syncAgencyEmailError) agency.email = normalizedEmail;
-  }
   if (import.meta.env.DEV) {
     console.log('MekLoc profile loader: result', {
       authUserId: userId,
