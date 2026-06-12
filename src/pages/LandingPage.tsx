@@ -7,7 +7,6 @@ import {
   Check,
   ChevronDown,
   CircleDollarSign,
-  Cloud,
   Facebook,
   FileCheck2,
   FileText,
@@ -949,6 +948,32 @@ function RealDashboardShowcase({ mobile = false }: { mobile?: boolean }) {
   );
 }
 
+function PremiumHeroShowcase() {
+  return (
+    <div className="landing-hero-visual relative mx-auto w-full max-w-[720px] lg:mx-0">
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[70%] w-[76%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#E3B117]/12 blur-[70px]" />
+      <div className="relative rounded-[24px] border border-white/12 bg-[#090a0a] p-2 shadow-[0_34px_90px_rgba(0,0,0,.56),0_0_0_1px_rgba(227,177,23,.08)] sm:rounded-[28px] sm:p-3">
+        <div className="flex h-9 items-center gap-1.5 border-b border-white/8 px-3 sm:h-10">
+          <span className="h-2.5 w-2.5 rounded-full bg-white/18" />
+          <span className="h-2.5 w-2.5 rounded-full bg-white/12" />
+          <span className="h-2.5 w-2.5 rounded-full bg-[#E3B117]/55" />
+          <span className="ml-auto text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">MekLoc Dashboard</span>
+        </div>
+        <div className="overflow-hidden rounded-b-[18px] bg-black sm:rounded-b-[21px]">
+          <img
+            src="/landing/app-dashboard.png"
+            alt="Tableau de bord MekLoc"
+            className="block h-auto w-full object-contain"
+            loading="eager"
+            decoding="async"
+          />
+        </div>
+      </div>
+      <div className="mx-auto h-3 w-[72%] rounded-b-[50%] bg-gradient-to-b from-zinc-600/45 to-zinc-950 shadow-[0_12px_28px_rgba(0,0,0,.55)]" />
+    </div>
+  );
+}
+
 function InterfaceDashboardMockup({ activeTab }: { activeTab: number }) {
   const screens = [
     {
@@ -1049,74 +1074,51 @@ export default function LandingPage() {
       <TrialAnnouncement />
 
       <main className="landing-gradient-motion bg-[radial-gradient(circle_at_18%_6%,rgba(245,197,66,.16),transparent_30%),radial-gradient(circle_at_82%_24%,rgba(227,177,23,.12),transparent_32%),linear-gradient(rgba(255,255,255,.026)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:auto,auto,72px_72px,72px_72px]">
-        <section className="landing-ambient relative overflow-hidden border-b border-white/10">
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-[#E3B117]/10 to-transparent" />
-          <div className="pointer-events-none absolute -left-28 top-40 h-80 w-80 rounded-full bg-[#E3B117]/10 blur-3xl lg:hidden" />
-          <div className="mx-auto grid w-full max-w-[1540px] items-center gap-9 px-4 py-9 sm:px-6 sm:py-14 lg:min-h-[calc(100vh-80px)] lg:grid-cols-[0.78fr_1.22fr] lg:gap-8 lg:px-8 lg:pb-8 lg:pt-4 xl:grid-cols-[0.8fr_1.2fr] xl:gap-10 xl:px-10 xl:pt-5">
-            <div className="landing-reveal is-visible max-w-[610px]">
-              <div className="landing-hero-kicker inline-flex max-w-full items-center gap-2 rounded-full border border-[#E3B117]/30 bg-[#E3B117]/10 px-3.5 py-2 text-xs font-bold leading-5 text-[#F5C542] sm:px-4 sm:text-sm">
+        <section className="relative overflow-hidden border-b border-white/10 bg-[linear-gradient(180deg,#080908_0%,#050606_100%)]">
+          <div className="mx-auto grid w-full max-w-[1360px] items-center gap-12 px-4 py-14 sm:px-6 sm:py-20 lg:min-h-[690px] lg:grid-cols-[0.88fr_1.12fr] lg:gap-14 lg:px-8 lg:py-20 xl:gap-20 xl:px-10">
+            <div className="landing-reveal is-visible mx-auto max-w-[610px] text-center lg:mx-0 lg:text-left">
+              <div className="landing-hero-kicker inline-flex max-w-full items-center gap-2 rounded-full border border-[#E3B117]/25 bg-[#E3B117]/[0.07] px-3.5 py-2 text-xs font-bold leading-5 text-[#F5C542] sm:px-4 sm:text-sm">
                 <Zap className="h-4 w-4" />
                 <span className="lg:hidden">SaaS de gestion pour agences au Maroc</span>
                 <span className="hidden lg:inline">SaaS de gestion pour agences de location au Maroc</span>
               </div>
-              <h1 className="mt-6 text-[42px] font-black leading-[1.02] tracking-[-0.035em] text-white sm:text-6xl lg:text-[3.2rem] lg:leading-[1.035] xl:text-[3.62rem] 2xl:text-[3.88rem]">
-                <span className="landing-hero-line block">Logiciel de gestion</span>
-                <span className="landing-hero-line block">pour agences de location</span>
-                <span className="landing-hero-line block">de voitures <span className="landing-gold-word text-[#E3B117]">au Maroc</span></span>
+              <h1 className="mt-6 text-[38px] font-black leading-[1.08] tracking-[-0.035em] text-white sm:text-5xl lg:text-[3.15rem] xl:text-[3.45rem]">
+                <span className="landing-hero-line block">Logiciel de gestion pour</span>
+                <span className="landing-hero-line block">agences de location de voitures</span>
+                <span className="landing-hero-line block text-[#E3B117]">au Maroc</span>
               </h1>
-              <p className="landing-hero-copy mt-5 max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg sm:leading-8 lg:hidden">
-                Réservations, véhicules, contrats PDF, paiements et alertes dans une seule plateforme.
+              <p className="landing-hero-copy mx-auto mt-5 max-w-[570px] text-base leading-7 text-zinc-400 sm:text-lg sm:leading-8 lg:mx-0">
+                Gérez réservations, flotte, clients, contrats PDF et paiements depuis une plateforme simple et centralisée.
               </p>
-              <p className="landing-hero-copy mt-5 hidden max-w-2xl text-base leading-7 text-zinc-300 sm:text-lg sm:leading-8 lg:block">
-                MekLoc centralise vos réservations, véhicules, clients, contrats PDF, paiements, cautions et alertes dans une seule plateforme.
-              </p>
-              <div className="landing-hero-actions mt-7 flex flex-col gap-3 sm:flex-row">
+              <div className="landing-hero-actions mt-8 flex flex-col justify-center gap-3 sm:flex-row lg:justify-start">
                 <a
                   href={accessRequestUrl}
-                  className="landing-cta-shine inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-[#F5C542]/45 bg-[#E3B117] px-7 text-sm font-black text-[#070807] shadow-[0_18px_52px_rgba(227,177,23,.25),inset_0_1px_0_rgba(255,255,255,.30)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0 sm:w-auto"
+                  className="landing-cta-shine inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-xl border border-[#F5C542]/40 bg-[#E3B117] px-7 text-sm font-black text-[#070807] shadow-[0_14px_34px_rgba(227,177,23,.18)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0 sm:w-auto"
                 >
-                  <CalendarDays className="h-4 w-4" />
                   <span>Demandez votre accès</span>
+                  <ArrowRight className="h-4 w-4" />
                 </a>
                 <a
                   href={demoUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.07] px-7 text-sm font-black text-white shadow-[inset_0_1px_0_rgba(255,255,255,.08)] transition hover:-translate-y-0.5 hover:border-[#E3B117]/40 hover:bg-white/[0.10] active:translate-y-0 sm:w-auto"
+                  className="inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.045] px-7 text-sm font-black text-white transition hover:-translate-y-0.5 hover:border-[#E3B117]/35 hover:bg-white/[0.08] active:translate-y-0 sm:w-auto"
                 >
                   <MessageCircle className="h-4 w-4" />
                   Voir la démo
                 </a>
               </div>
-              <div className="landing-hero-proof mt-5 grid grid-cols-3 gap-2.5 sm:max-w-[540px] sm:gap-3">
-                {[
-                  ['10 min', 'prise en main'],
-                  ['MAD', 'prêt Maroc'],
-                  ['PDF', 'contrats propres'],
-                ].map(([value, label]) => (
-                  <div key={label} className="rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,.06)] backdrop-blur">
-                    <p className="text-lg font-black leading-none text-white">{value}</p>
-                    <p className="mt-1 text-[11px] font-semibold leading-4 text-zinc-400 sm:text-xs">{label}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-7 hidden grid-cols-2 gap-3 text-sm text-white/75 sm:flex sm:flex-wrap sm:gap-5 sm:text-white/68 lg:flex">
-                {[
-                  [FileText, 'Contrats PDF'],
-                  [BellRing, 'Alertes & rappels'],
-                  [CircleDollarSign, 'Paiements suivis'],
-                  [Cloud, '100% Cloud'],
-                ].map(([Icon, label]) => (
-                  <span key={label as string} className="flex min-h-11 items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.035] px-3 sm:min-h-0 sm:border-0 sm:bg-transparent sm:px-0">
-                    <Icon className="h-4 w-4 text-[#F5C542]" />
-                    {label as string}
+              <div className="landing-hero-proof mt-7 flex flex-wrap justify-center gap-x-5 gap-y-3 text-sm font-semibold text-white/65 lg:justify-start">
+                {['Contrats PDF', 'Paiements suivis', 'Alertes & rappels'].map((label) => (
+                  <span key={label} className="inline-flex items-center gap-2">
+                    <Check className="h-4 w-4 text-[#F5C542]" />
+                    {label}
                   </span>
                 ))}
               </div>
-              <RealDashboardShowcase mobile />
             </div>
-            <div className="landing-reveal is-visible landing-hero-visual hidden lg:block">
-              <RealDashboardShowcase />
+            <div className="landing-reveal is-visible">
+              <PremiumHeroShowcase />
             </div>
           </div>
         </section>
