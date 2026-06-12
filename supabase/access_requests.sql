@@ -10,7 +10,7 @@ create table if not exists public.access_requests (
   phone_country_code text not null default '+212',
   phone_number text not null,
   vehicle_count int not null default 0,
-  selected_plan text not null check (selected_plan in ('gratuit', 'starter', 'business', 'lifetime')),
+  selected_plan text not null check (selected_plan in ('gratuit', 'starter', 'pro', 'business', 'lifetime')),
   billing_type text not null check (billing_type in ('monthly', 'annual', 'lifetime')),
   monthly_price numeric(12,2) not null default 0,
   annual_price numeric(12,2) not null default 0,

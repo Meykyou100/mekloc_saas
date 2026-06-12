@@ -13,7 +13,7 @@ begin
 
   alter table public.access_requests
     add constraint access_requests_selected_plan_check
-    check (selected_plan in ('gratuit', 'starter', 'business', 'lifetime'));
+    check (selected_plan in ('gratuit', 'starter', 'pro', 'business', 'lifetime'));
 end $$;
 
 do $$

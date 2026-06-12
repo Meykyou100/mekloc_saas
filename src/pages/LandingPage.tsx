@@ -19,9 +19,13 @@ import {
   Mail,
   Menu,
   MessageCircle,
+  Receipt,
+  Settings2,
   ShieldCheck,
   Sparkles,
+  UserRoundCog,
   Users,
+  Wrench,
   X,
   XCircle,
   Zap,
@@ -30,7 +34,7 @@ import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import SEO, { baseStructuredData, faqStructuredData } from '../components/system/SEO';
 import { SUPPORT_EMAIL, SUPPORT_PHONE, WHATSAPP_URL } from '../config/app';
-import { MEKLOC_PLANS } from '../config/pricing';
+import { MEKLOC_PLAN_LIST } from '../config/pricing';
 import { DEFAULT_DESCRIPTION, DEFAULT_KEYWORDS, DEFAULT_TITLE } from '../config/seo';
 
 const whatsappNumber = SUPPORT_PHONE.replace(/^\+/, '');
@@ -44,9 +48,18 @@ const navItems = [
 ];
 
 const choiceCards = [
-  ['Réservations & calendrier', 'Gérez vos réservations en temps réel et évitez les doubles réservations.', CalendarDays],
-  ['Contrats PDF automatiques', 'Générez des contrats propres et professionnels en un clic.', FileText],
-  ['Paiements, cautions & rappels', 'Suivez les paiements, les restes à payer, les cautions et les alertes.', CircleDollarSign],
+  ['Réservations & calendrier', 'Planning clair, disponibilités en temps réel et contrôle des chevauchements.', CalendarDays],
+  ['Clients & documents', 'Fiches clients, CIN, permis et historique regroupés au même endroit.', Users],
+  ['Gestion de flotte', 'Véhicules, photos, kilométrage, tarifs, statuts et villes de location.', Car],
+  ['Contrats PDF professionnels', 'Contrats avec logo, cachet, données agence et deuxième conducteur.', FileText],
+  ['Paiements & cautions', 'Suivi du total, payé, reste, caution et historique de chaque réservation.', CircleDollarSign],
+  ['Entretien & échéances', 'Vidanges, assurances, visites techniques et maintenance sous contrôle.', Wrench],
+  ['Rapports & statistiques', 'Revenus, activité et indicateurs utiles pour piloter votre agence.', Gauge],
+  ['Alertes & rappels', 'Retards, retours, documents expirés et actions importantes.', BellRing],
+  ['Équipe & sécurité', 'Accès multi-utilisateurs, rôles, sessions et paramètres sécurisés.', UserRoundCog],
+  ['Facturation & suivi', 'Gardez une vision financière claire de chaque location.', Receipt],
+  ['Personnalisation agence', 'Logo, coordonnées, identité légale et paramètres de contrats.', Settings2],
+  ['Cloud responsive', 'Utilisez MekLoc sur téléphone, tablette et ordinateur, partout.', Cloud],
 ];
 
 const beforeItems = [
@@ -85,37 +98,11 @@ const interfaceBenefits = [
   [BellRing, 'Alertes importantes', 'Ne manquez plus assurance, visite ou paiement.'],
 ];
 
-const plans = [
-  {
-    id: 'starter',
-    name: 'Starter',
-    monthlyPrice: MEKLOC_PLANS.starter.monthlyPrice,
-    annualPrice: MEKLOC_PLANS.starter.annualPrice,
-    annualBillingLabel: MEKLOC_PLANS.starter.annualBillingLabel,
-    note: 'Pour les petites agences',
-    features: ['Réservations', 'Gestion de la flotte', 'Contrats PDF', 'Paiements & cautions', 'Support par email'],
-  },
-  {
-    id: 'business',
-    name: 'Business',
-    monthlyPrice: MEKLOC_PLANS.business.monthlyPrice,
-    annualPrice: MEKLOC_PLANS.business.annualPrice,
-    annualBillingLabel: MEKLOC_PLANS.business.annualBillingLabel,
-    note: 'Pour les agences en croissance',
-    recommended: true,
-    features: ['Tout ce qui est inclus dans Starter', 'Alertes & rappels automatiques', 'Rapports & tableaux de bord', 'Support prioritaire'],
-  },
-  {
-    id: 'lifetime',
-    name: 'Lifetime',
-    monthlyPrice: MEKLOC_PLANS.lifetime.lifetimePrice,
-    annualPrice: MEKLOC_PLANS.lifetime.lifetimePrice,
-    annualBillingLabel: MEKLOC_PLANS.lifetime.annualBillingLabel,
-    note: 'Paiement unique',
-    lifetime: true,
-    features: ['Accès à vie', 'Toutes les fonctionnalités', 'Mises à jour incluses', 'Support à vie'],
-  },
-];
+const plans = MEKLOC_PLAN_LIST.map((plan) => ({
+  ...plan,
+  recommended: plan.id === 'business',
+  lifetime: plan.id === 'lifetime',
+}));
 
 const faqs: Array<[string, string]> = [
   ['Est-ce que MekLoc fonctionne sur téléphone ?', 'Oui. MekLoc fonctionne sur téléphone, tablette et ordinateur depuis un navigateur récent.'],
@@ -249,6 +236,13 @@ function LandingMotionStyles() {
         30% { opacity: .5; }
         100% { transform: translateX(150%) skewX(-18deg); opacity: 0; }
       }
+
+      @keyframes mekloc-trial-glow {
+        0%, 100% { box-shadow: 0 0 0 0 rgba(245,197,66,.10), 0 12px 34px rgba(227,177,23,.18); }
+        50% { box-shadow: 0 0 0 8px rgba(245,197,66,0), 0 18px 52px rgba(227,177,23,.34); }
+      }
+
+      .landing-trial-pulse { animation: mekloc-trial-glow 2.6s ease-in-out infinite; }
 
       .landing-ambient::before,
       .landing-ambient::after {
@@ -547,6 +541,10 @@ function LandingMotionStyles() {
         .landing-card:hover {
           transform: none;
         }
+
+        .landing-trial-pulse {
+          animation: none !important;
+        }
       }
     `}</style>
   );
@@ -613,6 +611,12 @@ function LandingHeader() {
           >
             Connexion
           </Link>
+          <Link
+            to="/demande-acces?plan=business&billing=monthly&trial=7"
+            className="landing-trial-pulse inline-flex h-11 items-center justify-center rounded-xl border border-[#E3B117]/35 bg-[#E3B117]/10 px-5 text-sm font-black text-[#F5C542] transition hover:-translate-y-0.5 hover:border-[#F5C542]/60 hover:bg-[#E3B117]/16"
+          >
+            7 jours gratuits
+          </Link>
           <a
             href={accessRequestUrl}
             className="landing-cta-shine inline-flex h-11 items-center justify-center rounded-xl border border-[#F5C542]/40 bg-[#E3B117] px-6 text-sm font-black text-[#070807] shadow-[0_12px_30px_rgba(227,177,23,.22),inset_0_1px_0_rgba(255,255,255,.28)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0"
@@ -677,6 +681,15 @@ function LandingHeader() {
                   Connexion
                 </Button>
               </Link>
+              <Link to="/demande-acces?plan=business&billing=monthly&trial=7" onClick={() => setOpen(false)}>
+                <Button
+                  variant="secondary"
+                  className="landing-trial-pulse h-14 w-full rounded-2xl border-[#E3B117]/30 bg-[#E3B117]/10 font-black text-[#F5C542] hover:border-[#E3B117]/50"
+                  icon={<Sparkles className="h-4 w-4" />}
+                >
+                  Essai gratuit 7 jours
+                </Button>
+              </Link>
               <a href={accessRequestUrl} onClick={() => setOpen(false)}>
                 <Button
                   className="landing-cta-shine h-14 w-full rounded-2xl !border-[#F5C542]/50 !bg-[#E3B117] font-black !text-[#070807] shadow-[0_14px_34px_rgba(227,177,23,.28),inset_0_1px_0_rgba(255,255,255,.28)] transition hover:-translate-y-0.5 hover:!bg-[#F5C542] active:translate-y-0"
@@ -690,6 +703,27 @@ function LandingHeader() {
         </div>
       </div>
     </header>
+  );
+}
+
+function TrialAnnouncement() {
+  return (
+    <div className="relative z-40 overflow-hidden border-b border-[#F5C542]/25 bg-[linear-gradient(90deg,#6f4d06,#E3B117_48%,#6f4d06)] px-4 py-2.5 text-[#070807]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent_30%,rgba(255,255,255,.35)_48%,transparent_66%)]" />
+      <div className="relative mx-auto flex max-w-[1240px] flex-col items-center justify-center gap-2 text-center sm:flex-row sm:gap-4">
+        <span className="inline-flex items-center gap-2 text-sm font-black sm:text-base">
+          <Sparkles className="h-4 w-4" />
+          Testez toutes les fonctionnalités MekLoc gratuitement pendant 7 jours
+        </span>
+        <Link
+          to="/demande-acces?plan=business&billing=monthly&trial=7"
+          className="landing-trial-pulse inline-flex h-9 items-center justify-center rounded-full border border-black/20 bg-[#070807] px-5 text-xs font-black uppercase tracking-[0.08em] text-[#F5C542] transition hover:-translate-y-0.5 hover:bg-black"
+        >
+          Essai gratuit 7 jours
+        </Link>
+        <span className="text-xs font-bold opacity-75">Sans carte bancaire</span>
+      </div>
+    </div>
   );
 }
 
@@ -1024,6 +1058,7 @@ export default function LandingPage() {
         jsonLd={[...baseStructuredData(), faqStructuredData(faqs)]}
       />
       <LandingHeader />
+      <TrialAnnouncement />
 
       <main className="landing-gradient-motion bg-[radial-gradient(circle_at_18%_6%,rgba(245,197,66,.16),transparent_30%),radial-gradient(circle_at_82%_24%,rgba(227,177,23,.12),transparent_32%),linear-gradient(rgba(255,255,255,.026)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:auto,auto,72px_72px,72px_72px]">
         <section className="landing-ambient relative overflow-hidden border-b border-white/10">
@@ -1127,17 +1162,31 @@ export default function LandingPage() {
 
         <section id="fonctionnalites" className="landing-reveal border-b border-white/10 pb-8 pt-12 sm:pb-10 sm:pt-14">
           <div className="mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8">
-            <SectionTitle eyebrow="Fonctions essentielles" title="Tout ce qu’il vous faut pour gérer votre agence" />
-            <div className="landing-stagger mt-7 grid gap-4 md:grid-cols-3">
+            <SectionTitle
+              eyebrow="Plateforme complète"
+              title="Toutes les fonctionnalités MekLoc"
+              subtitle="Un seul espace premium pour gérer votre activité, de la première réservation jusqu’au suivi financier."
+            />
+            <div className="landing-stagger mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {choiceCards.map(([title, text, Icon]) => (
-                <Card key={title as string} className="landing-reveal group relative overflow-hidden p-6 hover:-translate-y-1 hover:border-[#E3B117]/30">
-                  <span className="grid h-11 w-11 place-items-center rounded-xl border border-[#E3B117]/20 bg-[#E3B117]/8 text-[#F5C542]">
+                <Card key={title as string} className="landing-reveal group relative overflow-hidden p-5 hover:-translate-y-1 hover:border-[#E3B117]/35 sm:p-6">
+                  <span className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[#E3B117]/8 blur-2xl transition group-hover:bg-[#E3B117]/14" />
+                  <span className="relative grid h-11 w-11 place-items-center rounded-xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542] shadow-[0_10px_30px_rgba(227,177,23,.08)]">
                     <Icon className="h-5 w-5" />
                   </span>
-                  <h3 className="mt-5 text-lg font-black text-white">{title as string}</h3>
-                  <p className="mt-3 text-sm leading-6 text-zinc-400">{text as string}</p>
+                  <h3 className="relative mt-4 text-lg font-black text-white">{title as string}</h3>
+                  <p className="relative mt-2 text-sm leading-6 text-zinc-400">{text as string}</p>
                 </Card>
               ))}
+            </div>
+            <div className="mt-7 flex flex-col items-center justify-between gap-4 rounded-3xl border border-[#E3B117]/25 bg-[#E3B117]/[0.07] p-5 text-center sm:flex-row sm:text-left">
+              <div>
+                <p className="font-black text-white">Tout MekLoc, gratuitement pendant 7 jours</p>
+                <p className="mt-1 text-sm text-zinc-400">Explorez réservations, contrats, paiements, rapports et entretien sans carte bancaire.</p>
+              </div>
+              <Link to="/demande-acces?plan=business&billing=monthly&trial=7" className="landing-trial-pulse inline-flex h-12 shrink-0 items-center justify-center rounded-2xl bg-[#E3B117] px-6 text-sm font-black text-[#070807] hover:bg-[#F5C542]">
+                Commencer gratuitement
+              </Link>
             </div>
           </div>
         </section>
@@ -1216,7 +1265,7 @@ export default function LandingPage() {
                 Annuel (-20%)
               </button>
             </div>
-            <div className="landing-stagger mt-8 grid gap-5 md:grid-cols-3 md:gap-5 xl:gap-7">
+            <div className="landing-stagger mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4 xl:gap-5">
               {plans.map((plan) => {
                 const isLifetime = 'lifetime' in plan && plan.lifetime;
                 const displayPrice = isLifetime ? plan.annualPrice : billingCycle === 'annual' ? plan.annualPrice : plan.monthlyPrice;
@@ -1256,6 +1305,14 @@ export default function LandingPage() {
                     >
                       Choisir {plan.name}
                     </Link>
+                    {!isLifetime ? (
+                      <Link
+                        to={`${planUrl}&trial=7`}
+                        className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl border border-[#E3B117]/30 bg-[#E3B117]/8 text-sm font-black text-[#F5C542] transition hover:border-[#E3B117]/55 hover:bg-[#E3B117]/14"
+                      >
+                        Essai gratuit 7 jours
+                      </Link>
+                    ) : null}
                   </Card>
                 );
               })}

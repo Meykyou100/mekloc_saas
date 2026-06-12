@@ -31,8 +31,8 @@ const plans = [
     monthly: MEKLOC_PLANS.starter.monthlyPrice,
     annual: MEKLOC_PLANS.starter.annualPrice,
     annualBillingLabel: MEKLOC_PLANS.starter.annualBillingLabel,
-    note: 'Pour les petites agences',
-    features: ['Jusqu’à 5 véhicules', 'Réservations', 'Clients', 'Contrats PDF', 'Paiements basic', 'Entretien basic', 'Support standard'],
+    note: MEKLOC_PLANS.starter.note,
+    features: MEKLOC_PLANS.starter.features,
     cta: 'Choisir Starter',
   },
   {
@@ -41,9 +41,19 @@ const plans = [
     monthly: MEKLOC_PLANS.business.monthlyPrice,
     annual: MEKLOC_PLANS.business.annualPrice,
     annualBillingLabel: MEKLOC_PLANS.business.annualBillingLabel,
-    note: 'Recommandé',
-    features: ['Véhicules illimités', 'Réservations illimitées', 'Clients illimités', 'Contrats PDF illimités', 'Paiements & factures', 'Entretien véhicules avancé', 'Alertes WhatsApp', 'Équipe / multi-utilisateurs', 'Rapports', 'Support prioritaire'],
+    note: MEKLOC_PLANS.business.note,
+    features: MEKLOC_PLANS.business.features,
     cta: 'Choisir Business',
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    monthly: MEKLOC_PLANS.pro.monthlyPrice,
+    annual: MEKLOC_PLANS.pro.annualPrice,
+    annualBillingLabel: MEKLOC_PLANS.pro.annualBillingLabel,
+    note: MEKLOC_PLANS.pro.note,
+    features: MEKLOC_PLANS.pro.features,
+    cta: 'Choisir Pro',
   },
   {
     id: 'lifetime',
@@ -51,8 +61,8 @@ const plans = [
     monthly: MEKLOC_PLANS.lifetime.lifetimePrice,
     annual: MEKLOC_PLANS.lifetime.lifetimePrice,
     annualBillingLabel: MEKLOC_PLANS.lifetime.annualBillingLabel,
-    note: 'Paiement unique',
-    features: ['Accès à vie MekLoc', 'Véhicules illimités', 'Réservations illimitées', 'Contrats PDF illimités', 'Paiements & cautions', 'Rapports', 'Support prioritaire'],
+    note: MEKLOC_PLANS.lifetime.note,
+    features: MEKLOC_PLANS.lifetime.features,
     cta: 'Choisir Lifetime',
   },
 ] as const;
@@ -93,7 +103,7 @@ export default function DemandeAccesPage() {
   const prefilledEmail = searchParams.get('email') || '';
   const fromLogin = searchParams.get('from') === 'login';
   const isEmailTestMode = canShowEmailTestCode();
-  const requestedPlan = searchParams.get('plan') === 'starter' || searchParams.get('plan') === 'business' || searchParams.get('plan') === 'lifetime'
+  const requestedPlan = searchParams.get('plan') === 'starter' || searchParams.get('plan') === 'business' || searchParams.get('plan') === 'pro' || searchParams.get('plan') === 'lifetime'
     ? (searchParams.get('plan') as PlanId)
     : 'business';
   const requestedBilling: BillingType = requestedPlan === 'lifetime' || searchParams.get('billing') === 'lifetime'
@@ -372,6 +382,10 @@ export default function DemandeAccesPage() {
         </header>
 
         <div className="mx-auto mt-9 max-w-3xl text-center sm:mt-12">
+          <div className="mx-auto mb-5 flex w-fit items-center gap-2 rounded-full border border-[#F5C542]/35 bg-[#E3B117]/12 px-4 py-2 text-xs font-black text-[#F5C542] shadow-[0_0_35px_rgba(227,177,23,.12)]">
+            <Sparkles className="h-4 w-4" />
+            7 jours gratuits · Sans carte bancaire
+          </div>
           <span className="inline-flex rounded-full border border-[#E3B117]/30 bg-[#E3B117]/10 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-[#F5C542]">
             Demande d’accès
           </span>
@@ -416,6 +430,7 @@ export default function DemandeAccesPage() {
                         <CheckCircle2 className="h-3.5 w-3.5" />
                       </span>
                       {plan.id === 'business' ? <span className="absolute right-12 top-4 rounded-full bg-[#E3B117] px-2.5 py-1 text-[10px] font-black text-[#070807]">Populaire</span> : null}
+                      {plan.id === 'pro' ? <span className="absolute right-12 top-4 rounded-full border border-[#F5C542]/40 bg-[#E3B117]/15 px-2.5 py-1 text-[10px] font-black text-[#F5C542]">Illimité</span> : null}
                       {isLifetime ? <span className="absolute right-12 top-4 rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-[#070807]">À vie</span> : null}
                       <h3 className="text-xl font-black">{plan.name}</h3>
                       <p className="mt-1 text-sm text-zinc-400">{plan.note}</p>
@@ -435,6 +450,7 @@ export default function DemandeAccesPage() {
                       <span className={`mt-5 block rounded-xl px-4 py-3 text-center text-sm font-black ${active ? 'bg-[#E3B117] text-[#070807]' : 'border border-white/10 bg-white/[0.04] text-white'}`}>
                         {plan.cta}
                       </span>
+                      {!isLifetime ? <span className="mt-2 block text-center text-xs font-bold text-[#F5C542]">Inclut 7 jours d’essai gratuit</span> : null}
                     </button>
                   );
                 })}

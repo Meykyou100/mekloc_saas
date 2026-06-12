@@ -79,6 +79,13 @@ export function baseStructuredData() {
           priceCurrency: 'MAD',
           category: 'monthly subscription',
         },
+        {
+          '@type': 'Offer',
+          name: 'Pro',
+          price: MEKLOC_PLANS.pro.monthlyPrice,
+          priceCurrency: 'MAD',
+          category: 'monthly subscription',
+        },
       ],
     },
   ];

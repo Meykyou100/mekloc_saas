@@ -91,7 +91,7 @@ type SuperAdminView =
   | 'settings'
   | 'support';
 
-const monthlyPriceByPlan: Record<AgencyPlan, number> = { starter: 199, pro: 250, business: 319, lifetime: 5999 };
+const monthlyPriceByPlan: Record<AgencyPlan, number> = { starter: 199, pro: 599, business: 399, lifetime: 5999 };
 
 function addDays(baseDate: string | null, days: number) {
   const d = baseDate ? new Date(baseDate) : new Date();
