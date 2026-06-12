@@ -478,7 +478,15 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           overflow: hidden;
           font-size: 8.2px;
           letter-spacing: -.04em;
+          line-height: 1;
           white-space: nowrap;
+        }
+        .rc-plate-field .rc-line-value {
+          align-items: center;
+          padding-bottom: 0;
+        }
+        .rc-plate-field .rc-line-value::after {
+          display: none;
         }
         .rc-plate-field {
           column-gap: 5px;
