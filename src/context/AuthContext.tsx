@@ -1175,7 +1175,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       requestPasswordReset: async (email: string) => {
         if (!supabase) throw new Error('Supabase non configuré.');
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        const normalizedEmail = email.trim().toLowerCase();
+        if (!normalizedEmail) throw new Error('Adresse email obligatoire.');
+        const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
           redirectTo: `${window.location.origin}/set-password`,
         });
         if (error) throw error;

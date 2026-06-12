@@ -83,6 +83,8 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotCooldownUntil, setForgotCooldownUntil] = useState(0);
   const [resetMode, setResetMode] = useState(() => hasPasswordFlowInUrl());
   const [newPassword, setNewPassword] = useState('');
   const [loginStep, setLoginStep] = useState<'email' | 'password'>('email');
@@ -499,14 +501,36 @@ export default function AuthPage() {
   }
 
   async function handleForgotPassword() {
-    if (!forgotEmail) return;
+    const normalizedEmail = forgotEmail.trim().toLowerCase();
+    if (!normalizedEmail || forgotLoading) return;
+    if (forgotCooldownUntil > Date.now()) {
+      notify({
+        title: 'Demande déjà envoyée',
+        message: 'Patientez une minute avant de demander un nouveau lien.',
+        type: 'info',
+      });
+      return;
+    }
+    setForgotLoading(true);
     try {
-      await requestPasswordReset(forgotEmail);
-      notify({ title: 'Email envoyé', message: 'Le lien de réinitialisation a été envoyé à votre adresse Gmail.', type: 'success' });
+      await requestPasswordReset(normalizedEmail);
+      setForgotCooldownUntil(Date.now() + 60_000);
+      notify({ title: 'Email envoyé', message: 'Consultez votre boîte email et vos courriers indésirables.', type: 'success' });
       setForgotOpen(false);
       setForgotEmail('');
     } catch (error) {
-      notify({ title: 'Échec réinitialisation', message: error instanceof Error ? error.message : 'Réessayez plus tard.', type: 'warning' });
+      const message = error instanceof Error ? error.message : '';
+      const isRateLimited = /rate limit|too many requests|429/i.test(message);
+      if (isRateLimited) setForgotCooldownUntil(Date.now() + 60_000);
+      notify({
+        title: isRateLimited ? 'Trop de demandes' : 'Échec de la réinitialisation',
+        message: isRateLimited
+          ? 'La limite d’envoi Supabase est atteinte. Patientez quelques minutes avant de réessayer ou contactez le support MekLoc.'
+          : message || 'Vérifiez votre adresse email puis réessayez.',
+        type: 'warning',
+      });
+    } finally {
+      setForgotLoading(false);
     }
   }
 
@@ -798,9 +822,17 @@ export default function AuthPage() {
             onChange={(e) => setForgotEmail(e.target.value)}
             required
           />
-          <div className="flex justify-end gap-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             <Button type="button" variant="secondary" onClick={() => setForgotOpen(false)}>Annuler</Button>
-            <Button type="button" onClick={handleForgotPassword}>Envoyer le lien</Button>
+            <Button
+              type="button"
+              loading={forgotLoading}
+              disabled={!forgotEmail.trim()}
+              className="border-yellow-300 bg-yellow-400 text-black shadow-[0_10px_30px_rgba(250,204,21,.22)] hover:bg-yellow-300 disabled:bg-yellow-400 disabled:text-black"
+              onClick={handleForgotPassword}
+            >
+              Envoyer le lien
+            </Button>
           </div>
         </div>
       </Modal>

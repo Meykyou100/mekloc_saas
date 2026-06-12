@@ -473,16 +473,20 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
         }
         .rc-line-value-filled { padding-left: 1px; }
         .rc-plate-field .rc-line-value > span {
-          display: block;
+          display: flex;
+          align-items: center;
           max-width: 100%;
-          overflow: hidden;
-          font-size: 8.2px;
-          letter-spacing: -.04em;
-          line-height: 1;
+          min-height: 18px;
+          overflow: visible;
+          font-size: 8px;
+          letter-spacing: -.05em;
+          line-height: 18px;
           white-space: nowrap;
         }
         .rc-plate-field .rc-line-value {
           align-items: center;
+          height: 24px;
+          overflow: visible;
           padding-bottom: 0;
         }
         .rc-plate-field .rc-line-value::after {
@@ -492,8 +496,11 @@ export default function ContractPdfTemplate({ data, logoBroken = false, onLogoEr
           column-gap: 5px;
           font-size: 9.4px;
         }
+        .pdf-capture-mode .rc-plate-field .rc-line-value > span {
+          transform: none;
+        }
         .rc-vehicle-primary-row {
-          grid-template-columns: minmax(0, .88fr) minmax(0, 1.12fr);
+          grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr);
           gap: 12px;
         }
         .rc-line-suffix { white-space: nowrap; }
