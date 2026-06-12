@@ -31,11 +31,21 @@ import PlateNumber from '../components/ui/PlateNumber';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
-import { formatMAD, type Reservation, type ReservationStatus } from '../data/mockData';
+import {
+  formatMAD,
+  type Payment,
+  type PaymentStatus,
+  type Reservation,
+  type ReservationStatus,
+} from '../data/mockData';
 import { sanitizeText } from '../lib/security';
 import { buildWhatsAppReminderUrl } from '../lib/assistantDuJour';
 import { getNotificationPreferences } from '../lib/notificationPreferences';
-import { getReservationPaymentSummary } from '../lib/paymentBalance';
+import {
+  getReservationPaymentId,
+  getReservationPaymentSummary,
+  paymentMatchesReservation,
+} from '../lib/paymentBalance';
 
 type ViewMode = 'list' | 'grid';
 type ReservationFilterStatus = 'All' | ReservationStatus;
@@ -172,7 +182,18 @@ function generateReservationNumber(reservations: Reservation[]) {
 }
 
 export default function ReservationsPage() {
-  const { clients, vehicles, reservations, payments, refreshData, createReservation, updateReservation, deleteReservation } = useData();
+  const {
+    clients,
+    vehicles,
+    reservations,
+    payments,
+    refreshData,
+    createReservation,
+    updateReservation,
+    deleteReservation,
+    createPayment,
+    updatePayment,
+  } = useData();
   const { notify } = useApp();
   const { profile } = useAuth();
   const navigate = useNavigate();
@@ -193,6 +214,11 @@ export default function ReservationsPage() {
   const [editingReservation, setEditingReservation] = useState<Reservation | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Reservation | null>(null);
   const [detailsTarget, setDetailsTarget] = useState<Reservation | null>(null);
+  const [paymentTarget, setPaymentTarget] = useState<Reservation | null>(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<Payment['method']>('Cash');
+  const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [isSavingPayment, setIsSavingPayment] = useState(false);
 
   const [draftClientId, setDraftClientId] = useState('');
   const [draftVehicleId, setDraftVehicleId] = useState('');
@@ -542,6 +568,112 @@ export default function ReservationsPage() {
     }
   }
 
+  function openPaymentModal(reservation: Reservation) {
+    const summary = getReservationPaymentSummary(reservation, payments);
+    if (summary.remaining <= 0) {
+      notify({ title: 'Réservation déjà soldée', message: 'Aucun reste à payer.', type: 'success' });
+      return;
+    }
+
+    setPaymentTarget(reservation);
+    setPaymentAmount(String(summary.remaining));
+    setPaymentMethod('Cash');
+    setPaymentDate(todayIso);
+  }
+
+  function closePaymentModal() {
+    if (isSavingPayment) return;
+    setPaymentTarget(null);
+    setPaymentAmount('');
+  }
+
+  async function handleAddPayment(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!paymentTarget) return;
+
+    const summary = getReservationPaymentSummary(paymentTarget, payments);
+    const amount = Number(paymentAmount.replace(',', '.'));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      notify({ title: 'Validation', message: 'Saisissez un montant valide.', type: 'warning' });
+      return;
+    }
+    if (!paymentDate) {
+      notify({ title: 'Validation', message: 'Sélectionnez la date du paiement.', type: 'warning' });
+      return;
+    }
+    if (amount > summary.remaining + 0.01) {
+      notify({
+        title: 'Montant invalide',
+        message: `Le reste à payer est de ${formatMAD(summary.remaining)}.`,
+        type: 'warning',
+      });
+      return;
+    }
+
+    const fallbackClient = clients.find(
+      (item) => item.fullName.trim().toLowerCase() === (paymentTarget.client || '').trim().toLowerCase(),
+    );
+    const resolvedClientId = paymentTarget.clientId || fallbackClient?.id;
+    if (!resolvedClientId) {
+      notify({ title: 'Validation', message: 'Client invalide pour cette réservation.', type: 'warning' });
+      return;
+    }
+
+    try {
+      setIsSavingPayment(true);
+      const linkedPayment = payments.find((item) => paymentMatchesReservation(item, paymentTarget));
+      const reservationId = getReservationPaymentId(paymentTarget);
+
+      if (linkedPayment) {
+        const nextAmount = Math.max(0, linkedPayment.amount + amount);
+        const nextStatus: PaymentStatus =
+          nextAmount >= summary.total ? 'Paid' : nextAmount > 0 ? 'Partial' : 'Pending';
+
+        await updatePayment({
+          ...linkedPayment,
+          client: paymentTarget.client,
+          clientId: resolvedClientId,
+          reservationId,
+          vehicleId: paymentTarget.vehicleId,
+          amount: nextAmount,
+          method: paymentMethod,
+          status: nextStatus,
+          dueDate: paymentDate,
+        });
+      } else {
+        const nextPayment: Payment = {
+          id: `pay-${Date.now()}`,
+          invoice: `INV-${paymentTarget.id}`,
+          client: paymentTarget.client,
+          clientId: resolvedClientId,
+          reservationId,
+          vehicleId: paymentTarget.vehicleId,
+          amount,
+          method: paymentMethod,
+          status: amount >= summary.remaining ? 'Paid' : 'Partial',
+          dueDate: paymentDate,
+        };
+        await createPayment(nextPayment);
+      }
+
+      notify({
+        title: 'Paiement enregistré',
+        message: `${formatMAD(amount)} ajouté à la réservation ${paymentTarget.id}.`,
+        type: 'success',
+      });
+      setPaymentTarget(null);
+      setPaymentAmount('');
+    } catch (error) {
+      notify({
+        title: 'Paiement non enregistré',
+        message: error instanceof Error ? error.message : 'Réessayez.',
+        type: 'warning',
+      });
+    } finally {
+      setIsSavingPayment(false);
+    }
+  }
+
   async function confirmDeleteReservation() {
     if (!deleteTarget) return;
     try {
@@ -704,6 +836,9 @@ export default function ReservationsPage() {
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap gap-2">
+                          {paymentSummary.remaining > 0 ? (
+                            <Button className="h-9 rounded-xl px-2.5 text-xs" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => openPaymentModal(reservation)}>Paiement</Button>
+                          ) : null}
                           <Button variant="secondary" className="h-9 rounded-xl px-2.5 text-xs" icon={<Pencil className="h-3.5 w-3.5" />} onClick={() => openEditReservation(reservation)}>Modifier</Button>
                           <Button variant="secondary" className="h-9 rounded-xl px-2.5 text-xs" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setDetailsTarget(reservation)}>Détails</Button>
                           <Button variant="secondary" className="h-9 rounded-xl px-2.5 text-xs" icon={<FileSignature className="h-3.5 w-3.5" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(reservation.id)}`)}>Générer contrat</Button>
@@ -776,17 +911,32 @@ export default function ReservationsPage() {
                     />
                   </div>
 
-                  <div className="mt-2.5 flex items-center justify-between gap-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-2.5 py-2 md:mt-3 md:px-3 md:py-2.5">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-gold-300/20 bg-gold-400/10 text-[var(--app-gold-text)]">
-                        <Wallet className="h-4 w-4" />
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--app-text-muted)]">Paiement</p>
-                        <p className="mt-0.5 truncate text-xs font-semibold text-[var(--app-text-soft)]">{paymentSummary.relatedPayments.length} paiement(s) lié(s)</p>
+                  <div className="mt-2.5 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-2.5 md:mt-3 md:p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl border border-gold-300/20 bg-gold-400/10 text-[var(--app-gold-text)]">
+                          <Wallet className="h-4 w-4" />
+                        </span>
+                        <div className="min-w-0">
+                          <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--app-text-muted)]">Paiement</p>
+                          <p className="mt-0.5 truncate text-xs font-semibold text-[var(--app-text-soft)]">{paymentSummary.relatedPayments.length} paiement(s) lié(s)</p>
+                        </div>
                       </div>
+                      <Badge>{paymentSummary.statusFr}</Badge>
                     </div>
-                    <Badge>{paymentSummary.statusFr}</Badge>
+                    {paymentSummary.remaining > 0 ? (
+                      <Button
+                        className="mt-2.5 h-10 w-full rounded-xl text-sm font-black shadow-[0_8px_22px_rgba(212,160,23,.18)]"
+                        icon={<Plus className="h-4 w-4" />}
+                        onClick={() => openPaymentModal(reservation)}
+                      >
+                        Ajouter un paiement
+                      </Button>
+                    ) : (
+                      <p className="mt-2.5 rounded-xl border border-emerald-300/30 bg-emerald-500/10 px-3 py-2 text-center text-xs font-bold text-emerald-700 dark:text-emerald-200">
+                        Paiement soldé
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -1442,6 +1592,90 @@ export default function ReservationsPage() {
         ) : null}
       </AnimatePresence>
 
+      <Modal
+        open={Boolean(paymentTarget)}
+        onClose={closePaymentModal}
+        title={`Ajouter un paiement · ${paymentTarget?.id || ''}`}
+        subtitle="Le paiement sera immédiatement visible dans la page Paiements."
+        panelClassName="sm:max-w-xl"
+      >
+        {paymentTarget ? (
+          (() => {
+            const summary = getReservationPaymentSummary(paymentTarget, payments);
+            return (
+              <form className="space-y-4" onSubmit={handleAddPayment}>
+                <div className="overflow-hidden rounded-3xl border border-[var(--app-border)] bg-[var(--app-card)]">
+                  <div className="flex items-center gap-3 border-b border-[var(--app-border)] bg-gradient-to-r from-[#D4A017]/12 to-transparent p-4">
+                    <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-[var(--app-gold)] text-carbon-950 shadow-[0_8px_22px_rgba(212,160,23,.2)]">
+                      <Wallet className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate font-black text-[var(--app-text)]">{paymentTarget.client}</p>
+                      <p className="truncate text-sm text-[var(--app-text-muted)]">{paymentTarget.vehicle}</p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-px bg-[var(--app-border)]">
+                    <div className="min-w-0 bg-[var(--app-card)] p-3 text-center">
+                      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--app-text-muted)]">Total</p>
+                      <p className="mt-1 truncate text-sm font-black text-[var(--app-text)]" title={formatMAD(summary.total)}>{formatMAD(summary.total)}</p>
+                    </div>
+                    <div className="min-w-0 bg-[var(--app-card)] p-3 text-center">
+                      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--app-text-muted)]">Déjà payé</p>
+                      <p className="mt-1 truncate text-sm font-black text-emerald-700 dark:text-emerald-200" title={formatMAD(summary.paid)}>{formatMAD(summary.paid)}</p>
+                    </div>
+                    <div className="min-w-0 bg-[var(--app-card)] p-3 text-center">
+                      <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--app-text-muted)]">Reste</p>
+                      <p className="mt-1 truncate text-sm font-black text-amber-700 dark:text-amber-200" title={formatMAD(summary.remaining)}>{formatMAD(summary.remaining)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <ReservationField label="Montant reçu">
+                  <div className="relative">
+                    <input
+                      className={`${inputClass} h-12 pr-16 text-base font-black`}
+                      type="text"
+                      inputMode="decimal"
+                      autoFocus
+                      value={paymentAmount}
+                      onChange={(event) => setPaymentAmount(event.target.value)}
+                      placeholder="0"
+                    />
+                    <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-sm font-black text-[var(--app-gold-text)]">MAD</span>
+                  </div>
+                </ReservationField>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <ReservationField label="Moyen de paiement">
+                    <select className={`${inputClass} h-12`} value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value as Payment['method'])}>
+                      <option value="Cash">Espèces</option>
+                      <option value="Bank transfer">Virement bancaire</option>
+                      <option value="Card">Carte bancaire</option>
+                    </select>
+                  </ReservationField>
+                  <ReservationField label="Date du paiement">
+                    <input className={`${inputClass} h-12`} type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} />
+                  </ReservationField>
+                </div>
+
+                <button
+                  type="button"
+                  className="focus-ring w-full rounded-2xl border border-dashed border-[var(--app-gold)]/45 bg-[var(--app-gold)]/8 px-4 py-3 text-sm font-bold text-[var(--app-gold-text)] transition hover:bg-[var(--app-gold)]/14"
+                  onClick={() => setPaymentAmount(String(summary.remaining))}
+                >
+                  Régler le reste total · {formatMAD(summary.remaining)}
+                </button>
+
+                <div className="grid grid-cols-2 gap-2 border-t border-[var(--app-border)] pt-4">
+                  <Button type="button" variant="secondary" className="h-12" onClick={closePaymentModal}>Annuler</Button>
+                  <Button type="submit" className="h-12" loading={isSavingPayment} icon={<Wallet className="h-4 w-4" />}>Enregistrer</Button>
+                </div>
+              </form>
+            );
+          })()
+        ) : null}
+      </Modal>
+
       <Modal open={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} title="Supprimer la réservation">
         <div className="space-y-4">
           <p className="text-sm text-[var(--app-text-soft)]">Voulez-vous vraiment supprimer cette réservation ?</p>
@@ -1535,6 +1769,11 @@ export default function ReservationsPage() {
               <Button variant="secondary" className="min-w-0 rounded-xl px-2.5 text-xs sm:px-4 sm:text-sm" icon={<Pencil className="h-4 w-4" />} onClick={() => { setDetailsTarget(null); openEditReservation(detailsTarget); }}>
                 Modifier
               </Button>
+              {detailsPaymentSummary.remaining > 0 ? (
+                <Button className="min-w-0 rounded-xl px-2.5 text-xs sm:px-4 sm:text-sm" icon={<Plus className="h-4 w-4" />} onClick={() => { setDetailsTarget(null); openPaymentModal(detailsTarget); }}>
+                  Ajouter paiement
+                </Button>
+              ) : null}
               <Button variant="secondary" className="min-w-0 rounded-xl px-2.5 text-xs sm:px-4 sm:text-sm" icon={<FileSignature className="h-4 w-4" />} onClick={() => navigate(`/contracts?reservation=${encodeURIComponent(detailsTarget.id)}`)}>
                 Générer
               </Button>
