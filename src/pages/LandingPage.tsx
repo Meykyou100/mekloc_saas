@@ -19,11 +19,8 @@ import {
   Mail,
   Menu,
   MessageCircle,
-  Receipt,
-  Settings2,
   ShieldCheck,
   Sparkles,
-  UserRoundCog,
   Users,
   Wrench,
   X,
@@ -56,10 +53,6 @@ const choiceCards = [
   ['Entretien & échéances', 'Vidanges, assurances, visites techniques et maintenance sous contrôle.', Wrench],
   ['Rapports & statistiques', 'Revenus, activité et indicateurs utiles pour piloter votre agence.', Gauge],
   ['Alertes & rappels', 'Retards, retours, documents expirés et actions importantes.', BellRing],
-  ['Équipe & sécurité', 'Accès multi-utilisateurs, rôles, sessions et paramètres sécurisés.', UserRoundCog],
-  ['Facturation & suivi', 'Gardez une vision financière claire de chaque location.', Receipt],
-  ['Personnalisation agence', 'Logo, coordonnées, identité légale et paramètres de contrats.', Settings2],
-  ['Cloud responsive', 'Utilisez MekLoc sur téléphone, tablette et ordinateur, partout.', Cloud],
 ];
 
 const beforeItems = [
@@ -611,12 +604,6 @@ function LandingHeader() {
           >
             Connexion
           </Link>
-          <Link
-            to="/demande-acces?plan=business&billing=monthly&trial=7"
-            className="landing-trial-pulse inline-flex h-11 items-center justify-center rounded-xl border border-[#E3B117]/35 bg-[#E3B117]/10 px-5 text-sm font-black text-[#F5C542] transition hover:-translate-y-0.5 hover:border-[#F5C542]/60 hover:bg-[#E3B117]/16"
-          >
-            7 jours gratuits
-          </Link>
           <a
             href={accessRequestUrl}
             className="landing-cta-shine inline-flex h-11 items-center justify-center rounded-xl border border-[#F5C542]/40 bg-[#E3B117] px-6 text-sm font-black text-[#070807] shadow-[0_12px_30px_rgba(227,177,23,.22),inset_0_1px_0_rgba(255,255,255,.28)] transition hover:-translate-y-0.5 hover:bg-[#F5C542] active:translate-y-0"
@@ -717,9 +704,10 @@ function TrialAnnouncement() {
         </span>
         <Link
           to="/demande-acces?plan=business&billing=monthly&trial=7"
-          className="landing-trial-pulse inline-flex h-9 items-center justify-center rounded-full border border-black/20 bg-[#070807] px-5 text-xs font-black uppercase tracking-[0.08em] text-[#F5C542] transition hover:-translate-y-0.5 hover:bg-black"
+          className="landing-trial-pulse group inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-full border border-black/25 bg-[#070807] px-5 text-xs font-black uppercase tracking-[0.08em] text-[#F5C542] transition duration-200 hover:scale-[1.04] hover:border-black hover:bg-black hover:text-[#FFD95A]"
         >
           Essai gratuit 7 jours
+          <ArrowRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
         </Link>
         <span className="text-xs font-bold opacity-75">Sans carte bancaire</span>
       </div>
@@ -1160,16 +1148,16 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="fonctionnalites" className="landing-reveal border-b border-white/10 pb-8 pt-12 sm:pb-10 sm:pt-14">
+        <section id="fonctionnalites" className="landing-reveal border-b border-white/10 py-10 sm:py-12">
           <div className="mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8">
             <SectionTitle
               eyebrow="Plateforme complète"
               title="Toutes les fonctionnalités MekLoc"
               subtitle="Un seul espace premium pour gérer votre activité, de la première réservation jusqu’au suivi financier."
             />
-            <div className="landing-stagger mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="landing-stagger mt-7 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
               {choiceCards.map(([title, text, Icon]) => (
-                <Card key={title as string} className="landing-reveal group relative overflow-hidden p-5 hover:-translate-y-1 hover:border-[#E3B117]/35 sm:p-6">
+                <Card key={title as string} className="landing-reveal group relative min-h-[205px] overflow-hidden p-5 hover:-translate-y-1 hover:border-[#E3B117]/35 sm:p-6">
                   <span className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-[#E3B117]/8 blur-2xl transition group-hover:bg-[#E3B117]/14" />
                   <span className="relative grid h-11 w-11 place-items-center rounded-xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542] shadow-[0_10px_30px_rgba(227,177,23,.08)]">
                     <Icon className="h-5 w-5" />
