@@ -7,6 +7,9 @@ import { NavLink } from 'react-router-dom';
 import { useData } from '../../context/DataContext';
 import { useApp } from '../../context/AppContext';
 import SEO from '../system/SEO';
+import { useAuth } from '../../context/AuthContext';
+import { isTrialInGracePeriod, trialGraceHoursRemaining } from '../../lib/subscription';
+import { WHATSAPP_URL } from '../../config/app';
 
 function PageLoadingHint() {
   return (
@@ -22,6 +25,9 @@ export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { loading: dataLoading } = useData();
   const { theme } = useApp();
+  const { profile } = useAuth();
+  const inTrialGrace = isTrialInGracePeriod(profile?.agency);
+  const graceHours = trialGraceHoursRemaining(profile?.agency);
 
   return (
     <div
@@ -36,6 +42,21 @@ export default function AppLayout() {
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="min-h-screen lg:pl-72">
         <Topbar onMenu={() => setSidebarOpen(true)} />
+        {inTrialGrace ? (
+          <div className="mx-4 mt-4 flex flex-col gap-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-[var(--app-text)] sm:mx-6 sm:flex-row sm:items-center sm:justify-between lg:mx-8">
+            <p className="font-semibold">
+              Votre essai gratuit est terminé. Vous avez encore {graceHours}h pour régulariser votre abonnement.
+            </p>
+            <a
+              href={`${WHATSAPP_URL}?text=${encodeURIComponent(`Bonjour MekLoc, mon essai gratuit est terminé.\nJe souhaite activer mon abonnement.\nAgence: ${profile?.agency?.name || profile?.email || 'Non renseignée'}\nEmail: ${profile?.email || profile?.agency?.email || 'Non renseigné'}\nPlan: ${profile?.agency?.plan || 'Non renseigné'}\nPrix: ${profile?.agency?.monthlyPrice || 0} MAD/mois\nMerci.`)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-xl bg-[var(--app-gold)] px-4 font-black text-carbon-950 transition hover:bg-[var(--app-gold-hover)]"
+            >
+              Contacter sur WhatsApp
+            </a>
+          </div>
+        ) : null}
         <main className="relative px-4 pb-[calc(86px+env(safe-area-inset-bottom))] pt-4 sm:px-6 lg:px-8 lg:pb-10 lg:pt-5">
           <div
             className={`pointer-events-none absolute inset-x-4 top-0 h-0.5 overflow-hidden rounded-full bg-white/5 transition-opacity duration-200 sm:inset-x-6 lg:inset-x-8 ${

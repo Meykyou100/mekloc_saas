@@ -20,7 +20,8 @@ export type UserProfile = {
 export type AccountStatus = 'pending' | 'active' | 'rejected' | 'suspended' | 'pending_deletion';
 export type AgencyPlan = 'starter' | 'pro' | 'business' | 'lifetime';
 export type BillingStatus = 'trial' | 'paid' | 'unpaid' | 'overdue' | 'cancelled';
-export type PaymentMethod = 'cash' | 'bank_transfer' | 'card' | 'other';
+export type SubscriptionStatus = 'trial_active' | 'trial_expired' | 'active_paid' | 'payment_pending' | 'suspended';
+export type PaymentMethod = 'cash' | 'bank_transfer' | 'card' | 'cih' | 'paypal' | 'other';
 
 export type AgencySubscription = {
   id: string;
@@ -34,6 +35,18 @@ export type AgencySubscription = {
   rc?: string | null;
   plan: AgencyPlan;
   billingStatus: BillingStatus;
+  subscriptionStatus: SubscriptionStatus;
+  trialStartedAt: string | null;
+  trialEndsAt: string | null;
+  paidUntil: string | null;
+  lastTrialEmailSentAt: string | null;
+  trialExpiredNotifiedAt: string | null;
+  trialReminder3dSentAt: string | null;
+  trialReminder1dSentAt: string | null;
+  trialExpiredEmailSentAt: string | null;
+  lastTrialExtendedAt: string | null;
+  paymentMethod: PaymentMethod;
+  paymentNotes: string;
   subscriptionStartDate: string | null;
   subscriptionEndDate: string | null;
   lastPaymentDate: string | null;
@@ -41,8 +54,6 @@ export type AgencySubscription = {
   billingType?: 'monthly' | 'annual' | 'lifetime';
   monthlyPrice: number;
   annualPrice?: number;
-  paymentMethod: PaymentMethod;
-  paymentNotes: string;
   createdAt: string;
   settings?: Record<string, unknown>;
 };
@@ -119,6 +130,16 @@ type AgencyRow = {
   rc?: string | null;
   plan: AgencyPlan | null;
   billing_status: BillingStatus | null;
+  subscription_status?: SubscriptionStatus | null;
+  trial_started_at?: string | null;
+  trial_ends_at?: string | null;
+  paid_until?: string | null;
+  last_trial_email_sent_at?: string | null;
+  trial_expired_notified_at?: string | null;
+  trial_reminder_3d_sent_at?: string | null;
+  trial_reminder_1d_sent_at?: string | null;
+  trial_expired_email_sent_at?: string | null;
+  last_trial_extended_at?: string | null;
   subscription_start_date: string | null;
   subscription_end_date: string | null;
   last_payment_date: string | null;
@@ -137,6 +158,16 @@ const demoAgency: AgencySubscription = {
   name: 'Atlas Rent Marrakech',
   plan: 'pro',
   billingStatus: 'trial',
+  subscriptionStatus: 'trial_active',
+  trialStartedAt: '2026-05-01T00:00:00.000Z',
+  trialEndsAt: '2099-06-01T00:00:00.000Z',
+  paidUntil: null,
+  lastTrialEmailSentAt: null,
+  trialExpiredNotifiedAt: null,
+  trialReminder3dSentAt: null,
+  trialReminder1dSentAt: null,
+  trialExpiredEmailSentAt: null,
+  lastTrialExtendedAt: null,
   subscriptionStartDate: '2026-05-01',
   subscriptionEndDate: '2026-06-01',
   lastPaymentDate: '2026-05-01',
@@ -194,6 +225,16 @@ function mapAgency(row: AgencyRow | AgencyRow[] | null): AgencySubscription | nu
     rc: agency.rc || null,
     plan: agency.plan || 'starter',
     billingStatus: agency.billing_status || 'trial',
+    subscriptionStatus: agency.subscription_status || (agency.billing_status === 'paid' ? 'active_paid' : agency.billing_status === 'trial' ? 'trial_active' : agency.billing_status === 'cancelled' ? 'suspended' : 'payment_pending'),
+    trialStartedAt: agency.trial_started_at || agency.subscription_start_date || null,
+    trialEndsAt: agency.trial_ends_at || agency.subscription_end_date || null,
+    paidUntil: agency.paid_until || agency.subscription_end_date || agency.next_payment_due_date || null,
+    lastTrialEmailSentAt: agency.last_trial_email_sent_at || null,
+    trialExpiredNotifiedAt: agency.trial_expired_notified_at || null,
+    trialReminder3dSentAt: agency.trial_reminder_3d_sent_at || null,
+    trialReminder1dSentAt: agency.trial_reminder_1d_sent_at || null,
+    trialExpiredEmailSentAt: agency.trial_expired_email_sent_at || agency.trial_expired_notified_at || null,
+    lastTrialExtendedAt: agency.last_trial_extended_at || null,
     subscriptionStartDate: agency.subscription_start_date,
     subscriptionEndDate: agency.subscription_end_date,
     lastPaymentDate: agency.last_payment_date,
@@ -557,7 +598,9 @@ async function createAgencyAndProfile(
   if (!supabase) throw new Error('Supabase is not configured.');
 
   const today = new Date();
-  const trialEnd = addDays(today, 14);
+  const trialEnd = addDays(today, 7);
+  const trialStartedAt = today.toISOString();
+  const trialEndsAt = new Date(today.getTime() + 7 * 86_400_000).toISOString();
 
   const { data: agency, error: agencyError } = await supabase
     .from('agencies')
@@ -567,6 +610,9 @@ async function createAgencyAndProfile(
       created_by: user.id,
       plan: 'starter',
       billing_status: 'trial',
+      subscription_status: 'trial_active',
+      trial_started_at: trialStartedAt,
+      trial_ends_at: trialEndsAt,
       subscription_start_date: today.toISOString().slice(0, 10),
       subscription_end_date: trialEnd,
       next_payment_due_date: trialEnd,

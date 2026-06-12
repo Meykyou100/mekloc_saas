@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, Banknote, CalendarClock, CheckCircle2, ChevronDown, Crown, Eye, FileText, Laptop2, Mail, Menu, RefreshCw, Search, ShieldAlert, Smartphone, Trash2, UserPlus, Users, X, XCircle } from 'lucide-react';
+import { Activity, AlertTriangle, Banknote, CalendarClock, CheckCircle2, ChevronDown, Clock3, Crown, Eye, FileText, Laptop2, Mail, Menu, Play, RefreshCw, Search, ShieldAlert, Smartphone, Trash2, UserPlus, Users, X, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type ElementType } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
@@ -7,7 +7,7 @@ import Card from '../components/ui/Card';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import { useApp } from '../context/AppContext';
-import { useAuth, type AccountStatus, type AgencyPlan, type BillingStatus } from '../context/AuthContext';
+import { useAuth, type AccountStatus, type AgencyPlan, type BillingStatus, type PaymentMethod, type SubscriptionStatus } from '../context/AuthContext';
 import { formatMAD } from '../data/mockData';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
@@ -37,6 +37,17 @@ type AdminAgency = {
   email: string;
   plan: AgencyPlan;
   billingStatus: BillingStatus;
+  subscriptionStatus: SubscriptionStatus;
+  trialStartedAt: string | null;
+  trialEndsAt: string | null;
+  paidUntil: string | null;
+  lastPaymentDate: string | null;
+  paymentMethod: PaymentMethod;
+  paymentNotes: string;
+  trialReminder3dSentAt: string | null;
+  trialReminder1dSentAt: string | null;
+  trialExpiredEmailSentAt: string | null;
+  lastTrialExtendedAt: string | null;
   nextPaymentDueDate: string | null;
   vehiclesCount: number;
   usersCount: number;
@@ -131,6 +142,27 @@ function billingLabel(status: BillingStatus) {
   if (status === 'overdue') return 'En retard';
   if (status === 'cancelled') return 'Annulé';
   return status;
+}
+
+function subscriptionLabel(status: SubscriptionStatus) {
+  if (status === 'trial_active') return 'Essai actif';
+  if (status === 'trial_expired') return 'Essai expiré';
+  if (status === 'active_paid') return 'Abonnement actif';
+  if (status === 'payment_pending') return 'Paiement en attente';
+  return 'Suspendu';
+}
+
+function effectiveAdminStatus(agency: Pick<AdminAgency, 'subscriptionStatus' | 'trialEndsAt' | 'paidUntil'>): SubscriptionStatus {
+  if (agency.subscriptionStatus === 'trial_active' && agency.trialEndsAt && new Date(agency.trialEndsAt).getTime() < Date.now()) return 'trial_expired';
+  if (agency.subscriptionStatus === 'active_paid' && agency.paidUntil && new Date(agency.paidUntil).getTime() < Date.now()) return 'payment_pending';
+  return agency.subscriptionStatus;
+}
+
+function subscriptionTone(status: SubscriptionStatus) {
+  if (status === 'active_paid') return 'border-emerald-300/30 bg-emerald-400/15 text-emerald-200';
+  if (status === 'trial_active') return 'border-sky-300/30 bg-sky-400/15 text-sky-200';
+  if (status === 'payment_pending') return 'border-amber-300/30 bg-amber-400/15 text-amber-200';
+  return 'border-rose-300/30 bg-rose-400/15 text-rose-200';
 }
 
 function accountLabel(status: AccountStatus) {
@@ -315,10 +347,17 @@ export default function SuperAdminPage() {
   const [agencyStatusFilter, setAgencyStatusFilter] = useState<'all' | 'active' | 'suspended'>('all');
   const [agencyPaymentFilter, setAgencyPaymentFilter] = useState<'all' | 'paid' | 'unpaid'>('all');
   const [agencyDueFilter, setAgencyDueFilter] = useState<'all' | 'soon' | 'overdue' | 'deletion'>('all');
+  const [agencySubscriptionFilter, setAgencySubscriptionFilter] = useState<'all' | SubscriptionStatus>('all');
   const [selectedAgencyDetails, setSelectedAgencyDetails] = useState<AdminAgency | null>(null);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [activeView, setActiveView] = useState<SuperAdminView>('overview');
   const [showSessionHistoryAgencyId, setShowSessionHistoryAgencyId] = useState<string | null>(null);
+  const [trialExtensionAgency, setTrialExtensionAgency] = useState<AdminAgency | null>(null);
+  const [trialExtensionDays, setTrialExtensionDays] = useState<1 | 3 | 7>(7);
+  const [paymentAgency, setPaymentAgency] = useState<AdminAgency | null>(null);
+  const [paymentDuration, setPaymentDuration] = useState<1 | 3 | 6 | 12>(1);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('bank_transfer');
+  const [paymentNote, setPaymentNote] = useState('');
 
   const pendingDeletionAccounts = useMemo(() => {
     return Object.entries(agencyUsers).flatMap(([agencyId, users]) => {
@@ -364,7 +403,43 @@ export default function SuperAdminPage() {
     const alerts: Array<{ id: string; title: string; description: string; tone: 'danger' | 'warning' | 'gold'; agency?: AdminAgency }> = [];
     agencies.forEach((agency) => {
       const state = dueState(agency.nextPaymentDueDate);
-      if (agency.billingStatus === 'overdue') {
+      const subscriptionStatus = effectiveAdminStatus(agency);
+      if (subscriptionStatus === 'trial_expired') {
+        alerts.push({
+          id: `trial-expired-${agency.id}`,
+          title: `${agency.agencyName} · essai expiré`,
+          description: agency.trialEndsAt ? `L’essai de 7 jours a expiré le ${new Date(agency.trialEndsAt).toLocaleDateString('fr-FR')}.` : 'L’essai gratuit est expiré.',
+          tone: 'danger',
+          agency,
+        });
+      } else if (subscriptionStatus === 'trial_active' && agency.trialEndsAt) {
+        const trialState = dueState(agency.trialEndsAt);
+        if (trialState.days === 3) {
+          alerts.push({
+            id: `trial-3d-${agency.id}`,
+            title: `${agency.agencyName} · essai termine dans 3 jours`,
+            description: 'Le rappel à 3 jours peut être envoyé depuis la fiche agence.',
+            tone: 'gold',
+            agency,
+          });
+        } else if (trialState.days === 0) {
+          alerts.push({
+            id: `trial-today-${agency.id}`,
+            title: `${agency.agencyName} · essai termine aujourd’hui`,
+            description: 'L’agence entrera ensuite dans la période de grâce de 24 heures.',
+            tone: 'warning',
+            agency,
+          });
+        } else if (trialState.days !== null && trialState.days > 0 && trialState.days <= 2) {
+          alerts.push({
+            id: `trial-soon-${agency.id}`,
+            title: `${agency.agencyName} · fin d’essai proche`,
+            description: `Essai gratuit ${trialState.label.toLowerCase()}.`,
+            tone: 'warning',
+            agency,
+          });
+        }
+      } else if (agency.billingStatus === 'overdue') {
         alerts.push({
           id: `overdue-${agency.id}`,
           title: `${agency.agencyName} · paiement en retard`,
@@ -381,7 +456,16 @@ export default function SuperAdminPage() {
           agency,
         });
       }
-      if (agency.accountStatus === 'suspended') {
+      if (subscriptionStatus === 'payment_pending') {
+        alerts.push({
+          id: `payment-pending-${agency.id}`,
+          title: `${agency.agencyName} · paiement en attente`,
+          description: 'L’abonnement doit être régularisé ou activé manuellement.',
+          tone: 'warning',
+          agency,
+        });
+      }
+      if (agency.accountStatus === 'suspended' || subscriptionStatus === 'suspended') {
         alerts.push({
           id: `suspended-${agency.id}`,
           title: `${agency.agencyName} · compte suspendu`,
@@ -417,18 +501,20 @@ export default function SuperAdminPage() {
       const searchMatch = !q || `${agency.agencyName} ${agency.ownerName} ${agency.email}`.toLowerCase().includes(q);
       const planMatch = agencyPlanFilter === 'all' || agency.plan === agencyPlanFilter;
       const statusMatch = agencyStatusFilter === 'all' || agency.accountStatus === agencyStatusFilter;
+      const effectiveStatus = effectiveAdminStatus(agency);
       const paymentMatch =
         agencyPaymentFilter === 'all' ||
-        (agencyPaymentFilter === 'paid' ? agency.billingStatus === 'paid' : agency.billingStatus === 'unpaid' || agency.billingStatus === 'overdue');
+        (agencyPaymentFilter === 'paid' ? effectiveStatus === 'active_paid' : ['payment_pending', 'trial_expired'].includes(effectiveStatus));
+      const subscriptionMatch = agencySubscriptionFilter === 'all' || effectiveStatus === agencySubscriptionFilter;
       const due = dueState(agency.nextPaymentDueDate);
       const dueMatch =
         agencyDueFilter === 'all' ||
         (agencyDueFilter === 'soon' && due.days !== null && due.days >= 0 && due.days <= 7) ||
         (agencyDueFilter === 'overdue' && (agency.billingStatus === 'overdue' || (due.days !== null && due.days < 0))) ||
         (agencyDueFilter === 'deletion' && agency.accountStatus === 'pending_deletion');
-      return searchMatch && planMatch && statusMatch && paymentMatch && dueMatch;
+      return searchMatch && planMatch && statusMatch && paymentMatch && subscriptionMatch && dueMatch;
     });
-  }, [agencies, agencyDueFilter, agencyPaymentFilter, agencyPlanFilter, agencySearch, agencyStatusFilter]);
+  }, [agencies, agencyDueFilter, agencyPaymentFilter, agencyPlanFilter, agencySearch, agencyStatusFilter, agencySubscriptionFilter]);
 
   const loadAll = useCallback(async () => {
     if (!supabase || !isSupabaseConfigured) return;
@@ -436,7 +522,7 @@ export default function SuperAdminPage() {
     try {
       const [reqRes, agencyRes, usersRes, vehicleRes] = await Promise.all([
         supabase.from('access_requests').select('*').order('created_at', { ascending: false }),
-        supabase.from('agencies').select('id,name,plan,billing_status,next_payment_due_date,monthly_price,created_at'),
+        supabase.from('agencies').select('*'),
         supabase.from('users_profiles').select('id,agency_id,account_status,email,full_name,role,last_login_at,last_seen_at,deletion_requested_at,deletion_scheduled_at'),
         supabase.from('vehicles').select('agency_id'),
       ]);
@@ -450,7 +536,7 @@ export default function SuperAdminPage() {
 
       const profiles = (usersRes.data || []) as Array<{ agency_id: string | null; account_status: AccountStatus; email: string | null; full_name?: string | null; role: string | null; last_login_at?: string | null; last_seen_at?: string | null }>;
       const vehicles = (vehicleRes.data || []) as Array<{ agency_id: string | null }>;
-      const mapped = ((agencyRes.data || []) as Array<{ id: string; name: string; plan: AgencyPlan; billing_status: BillingStatus; next_payment_due_date: string | null; monthly_price: number | null; created_at?: string | null }>)
+      const mapped = ((agencyRes.data || []) as Array<{ id: string; name: string; plan: AgencyPlan; billing_status: BillingStatus; subscription_status?: SubscriptionStatus | null; trial_started_at?: string | null; trial_ends_at?: string | null; paid_until?: string | null; last_payment_date?: string | null; payment_method?: PaymentMethod | null; payment_notes?: string | null; trial_reminder_3d_sent_at?: string | null; trial_reminder_1d_sent_at?: string | null; trial_expired_email_sent_at?: string | null; last_trial_extended_at?: string | null; next_payment_due_date: string | null; monthly_price: number | null; created_at?: string | null }>)
         .map((a) => {
           const ownerProfile = pickAgencyOwnerProfile(profiles, a.id);
           const agencyProfiles = profiles.filter((p) => p.agency_id === a.id);
@@ -465,6 +551,17 @@ export default function SuperAdminPage() {
             email: ownerProfile?.email || approvedReqs.find((r) => r.agency_name === a.name)?.email || '—',
             plan: a.plan || 'starter',
             billingStatus: a.billing_status || 'trial',
+            subscriptionStatus: a.subscription_status || (a.billing_status === 'paid' ? 'active_paid' : a.billing_status === 'trial' ? 'trial_active' : a.billing_status === 'cancelled' ? 'suspended' : 'payment_pending'),
+            trialStartedAt: a.trial_started_at || null,
+            trialEndsAt: a.trial_ends_at || null,
+            paidUntil: a.paid_until || null,
+            lastPaymentDate: a.last_payment_date || null,
+            paymentMethod: a.payment_method || 'other',
+            paymentNotes: a.payment_notes || '',
+            trialReminder3dSentAt: a.trial_reminder_3d_sent_at || null,
+            trialReminder1dSentAt: a.trial_reminder_1d_sent_at || null,
+            trialExpiredEmailSentAt: a.trial_expired_email_sent_at || null,
+            lastTrialExtendedAt: a.last_trial_extended_at || null,
             nextPaymentDueDate: a.next_payment_due_date,
             vehiclesCount: vehicles.filter((v) => v.agency_id === a.id).length,
             usersCount: profiles.filter((p) => p.agency_id === a.id).length,
@@ -682,7 +779,8 @@ export default function SuperAdminPage() {
 
   async function markBilling(agency: AdminAgency, status: BillingStatus) {
     if (!supabase) return;
-    const { error } = await supabase.from('agencies').update({ billing_status: status }).eq('id', agency.id);
+    const subscriptionStatus: SubscriptionStatus = status === 'paid' ? 'active_paid' : status === 'cancelled' ? 'suspended' : 'payment_pending';
+    const { error } = await supabase.from('agencies').update({ billing_status: status, subscription_status: subscriptionStatus }).eq('id', agency.id);
     if (error) throw error;
     await loadAll();
   }
@@ -694,8 +792,87 @@ export default function SuperAdminPage() {
     await loadAll();
   }
 
+  async function activateTrial(agency: AdminAgency) {
+    if (!supabase) return;
+    const startedAt = new Date();
+    const endsAt = new Date(startedAt.getTime() + 7 * 86_400_000);
+    const { error } = await supabase.from('agencies').update({
+      subscription_status: 'trial_active',
+      billing_status: 'trial',
+      trial_started_at: startedAt.toISOString(),
+      trial_ends_at: endsAt.toISOString(),
+      subscription_start_date: startedAt.toISOString().slice(0, 10),
+      subscription_end_date: endsAt.toISOString().slice(0, 10),
+      paid_until: null,
+    }).eq('id', agency.id);
+    if (error) throw error;
+    await sendTrialEmail(agency, 'trial_started');
+    await loadAll();
+  }
+
+  async function extendTrial(agency: AdminAgency, days = 7) {
+    if (!supabase) return;
+    const base = agency.trialEndsAt && new Date(agency.trialEndsAt).getTime() > Date.now() ? new Date(agency.trialEndsAt) : new Date();
+    base.setDate(base.getDate() + days);
+    const { error } = await supabase.from('agencies').update({
+      subscription_status: 'trial_active',
+      billing_status: 'trial',
+      trial_ends_at: base.toISOString(),
+      subscription_end_date: base.toISOString().slice(0, 10),
+      last_trial_extended_at: new Date().toISOString(),
+      payment_notes: agency.paymentNotes
+        ? `${agency.paymentNotes}\nTrial extended by admin (+${days} day${days > 1 ? 's' : ''})`
+        : `Trial extended by admin (+${days} day${days > 1 ? 's' : ''})`,
+    }).eq('id', agency.id);
+    if (error) throw error;
+    await loadAll();
+    setTrialExtensionAgency(null);
+    setSelectedAgencyDetails(null);
+    notify({ title: 'Essai prolongé', message: `${agency.agencyName} · +${days} jour${days > 1 ? 's' : ''}`, type: 'success' });
+  }
+
+  async function activatePaidSubscription(agency: AdminAgency, months: 1 | 3 | 6 | 12, method: PaymentMethod, notes: string) {
+    if (!supabase) return;
+    const paidUntil = new Date();
+    paidUntil.setMonth(paidUntil.getMonth() + months);
+    const { error } = await supabase.from('agencies').update({
+      subscription_status: 'active_paid',
+      billing_status: 'paid',
+      paid_until: paidUntil.toISOString(),
+      subscription_end_date: paidUntil.toISOString().slice(0, 10),
+      next_payment_due_date: paidUntil.toISOString().slice(0, 10),
+      last_payment_date: new Date().toISOString().slice(0, 10),
+      payment_method: method,
+      payment_notes: notes,
+    }).eq('id', agency.id);
+    if (error) throw error;
+    await sendTrialEmail(agency, 'payment_confirmed');
+    await loadAll();
+    setPaymentAgency(null);
+    setSelectedAgencyDetails(null);
+    notify({ title: 'Abonnement activé', message: `${agency.agencyName} · ${months} mois`, type: 'success' });
+  }
+
+  async function sendTrialEmail(agency: AdminAgency, type: 'trial_started' | 'trial_reminder_3d' | 'trial_reminder_1d' | 'trial_expired' | 'payment_confirmed') {
+    if (!supabase) return;
+    const { data, error } = await supabase.functions.invoke('send-subscription-notification', {
+      body: { agencyId: agency.id, type },
+    });
+    if (error || !data?.sent) {
+      notify({
+        title: 'Abonnement mis à jour, email non envoyé',
+        message: data?.error || error?.message || 'Vérifiez RESEND_API_KEY et RESEND_FROM_EMAIL.',
+        type: 'warning',
+      });
+      return;
+    }
+    notify({ title: 'Email envoyé', message: agency.email, type: 'success' });
+  }
+
   async function suspendAgency(agency: AdminAgency) {
     if (!supabase) return;
+    const { error: agencyError } = await supabase.from('agencies').update({ subscription_status: 'suspended', billing_status: 'cancelled' }).eq('id', agency.id);
+    if (agencyError) throw agencyError;
     const { error } = await supabase.from('users_profiles').update({ account_status: 'suspended' }).eq('agency_id', agency.id);
     if (error) throw error;
     await loadAll();
@@ -1166,7 +1343,7 @@ export default function SuperAdminPage() {
             <h2 className="text-xl font-bold">Comptes agences approuvés</h2>
             <p className="mt-1 text-sm text-carbon-400">Suivi des agences, paiements, accès et sessions.</p>
           </div>
-          <div className="grid gap-3 border-b border-white/10 p-5 lg:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto_auto]">
+          <div className="grid gap-3 border-b border-white/10 p-5 lg:grid-cols-[minmax(0,1fr)_repeat(6,auto)]">
             <label className="relative block min-w-0">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-carbon-500" />
               <input
@@ -1193,6 +1370,14 @@ export default function SuperAdminPage() {
               <option value="paid">Payé</option>
               <option value="unpaid">Non payé</option>
             </select>
+            <select className="form-control min-w-44" value={agencySubscriptionFilter} onChange={(e) => setAgencySubscriptionFilter(e.target.value as typeof agencySubscriptionFilter)}>
+              <option value="all">Tous abonnements</option>
+              <option value="trial_active">Essai actif</option>
+              <option value="trial_expired">Essai expiré</option>
+              <option value="active_paid">Abonnement actif</option>
+              <option value="payment_pending">Paiement en attente</option>
+              <option value="suspended">Suspendu</option>
+            </select>
             <select className="form-control min-w-40" value={agencyDueFilter} onChange={(e) => setAgencyDueFilter(e.target.value as typeof agencyDueFilter)}>
               <option value="all">Toutes échéances</option>
               <option value="soon">Échéance proche</option>
@@ -1207,6 +1392,7 @@ export default function SuperAdminPage() {
                 setAgencyPlanFilter('all');
                 setAgencyStatusFilter('all');
                 setAgencyPaymentFilter('all');
+                setAgencySubscriptionFilter('all');
                 setAgencyDueFilter('all');
               }}
             >
@@ -1229,6 +1415,7 @@ export default function SuperAdminPage() {
                   <div className="flex flex-wrap gap-2">
                     <StatusPill className={statusPillClass('plan', agency.plan)}>{planLabel(agency.plan)}</StatusPill>
                     <StatusPill className={statusPillClass('billing', agency.billingStatus)}>{billingLabel(agency.billingStatus)}</StatusPill>
+                    <StatusPill className={subscriptionTone(effectiveAdminStatus(agency))}>{subscriptionLabel(effectiveAdminStatus(agency))}</StatusPill>
                     <StatusPill className={statusPillClass('account', agency.accountStatus)}>{accountLabel(agency.accountStatus)}</StatusPill>
                   </div>
                 </div>
@@ -1240,18 +1427,25 @@ export default function SuperAdminPage() {
                   <p className="rounded-2xl border border-white/10 bg-carbon-950/45 p-3"><strong className="block text-xs uppercase tracking-[0.14em] text-carbon-500">Créée</strong><span className="mt-1 block font-semibold text-white">{formatActivityTime(agency.createdAt)}</span></p>
                   <p className="rounded-2xl border border-white/10 bg-carbon-950/45 p-3"><strong className="block text-xs uppercase tracking-[0.14em] text-carbon-500">Activité</strong><span className="mt-1 block font-semibold text-white">{formatActivityTime(agency.latestActivityAt)}</span></p>
                 </div>
+                {agency.trialEndsAt ? (
+                  <div className="mt-3 flex items-center gap-2 rounded-xl border border-sky-300/15 bg-sky-400/[0.07] px-3 py-2 text-xs text-sky-100">
+                    <Clock3 className="h-4 w-4" />
+                    Essai: {dueState(agency.trialEndsAt).label} · fin le {new Date(agency.trialEndsAt).toLocaleDateString('fr-FR')}
+                  </div>
+                ) : null}
                 <div className="mt-4 grid gap-3 xl:grid-cols-[1fr_1fr_1fr_auto]">
                   <div className="rounded-2xl border border-white/10 bg-carbon-950/35 p-3">
                     <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Gestion</p>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="secondary" icon={<Crown className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-plan-${agency.id}`])} onClick={() => runAction(`agency-plan-${agency.id}`, async () => changeAgencyPlan(agency, agency.plan === 'starter' ? 'pro' : agency.plan === 'pro' ? 'business' : agency.plan === 'business' ? 'lifetime' : 'starter'))}>Changer plan</Button>
-                      <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-extend-${agency.id}`])} onClick={() => runAction(`agency-extend-${agency.id}`, async () => extendSubscription(agency, 30))}>Prolonger</Button>
+                      <Button variant="secondary" icon={<Play className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-trial-${agency.id}`])} onClick={() => runAction(`agency-trial-${agency.id}`, async () => activateTrial(agency))}>Activer essai 7 j</Button>
+                      <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} onClick={() => { setTrialExtensionDays(7); setTrialExtensionAgency(agency); }}>Prolonger essai</Button>
                     </div>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-carbon-950/35 p-3">
                     <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200">Paiement</p>
                     <div className="flex flex-wrap gap-2">
-                      <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-paid-${agency.id}`])} onClick={() => runAction(`agency-paid-${agency.id}`, async () => markBilling(agency, 'paid'))}>Marquer payé</Button>
+                      <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} onClick={() => { setPaymentDuration(1); setPaymentMethod(agency.paymentMethod || 'bank_transfer'); setPaymentNote(agency.paymentNotes); setPaymentAgency(agency); }}>Marquer comme payé</Button>
                       <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-unpaid-${agency.id}`])} onClick={() => runAction(`agency-unpaid-${agency.id}`, async () => markBilling(agency, 'unpaid'))}>Non payé</Button>
                     </div>
                   </div>
@@ -1259,6 +1453,7 @@ export default function SuperAdminPage() {
                     <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-sky-200">Communication</p>
                     <div className="flex flex-wrap gap-2">
                       <Button variant="secondary" icon={<Mail className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-resend-${agency.id}`])} onClick={() => runAction(`agency-resend-${agency.id}`, async () => resendAgencyActivationEmail(agency))}>Renvoyer email</Button>
+                      <Button variant="secondary" icon={<Clock3 className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-reminder-${agency.id}`])} onClick={() => runAction(`agency-reminder-${agency.id}`, async () => sendTrialEmail(agency, effectiveAdminStatus(agency) === 'trial_expired' ? 'trial_expired' : (dueState(agency.trialEndsAt).days ?? 3) <= 1 ? 'trial_reminder_1d' : 'trial_reminder_3d'))}>Rappel essai</Button>
                     </div>
                   </div>
                   <div className="flex flex-wrap items-start gap-2 xl:justify-end">
@@ -1480,7 +1675,7 @@ export default function SuperAdminPage() {
                     <p><span className="block text-xs text-carbon-500">Statut</span><StatusPill className={statusPillClass('billing', agency.billingStatus)}>{billingLabel(agency.billingStatus)}</StatusPill></p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Button variant="secondary" loading={Boolean(actionLoading[`pay-paid-${agency.id}`])} onClick={() => runAction(`pay-paid-${agency.id}`, async () => markBilling(agency, 'paid'))}>Marquer payé</Button>
+                    <Button variant="secondary" onClick={() => { setPaymentDuration(1); setPaymentMethod(agency.paymentMethod || 'bank_transfer'); setPaymentNote(agency.paymentNotes); setPaymentAgency(agency); }}>Marquer payé</Button>
                     <Button variant="secondary" loading={Boolean(actionLoading[`pay-unpaid-${agency.id}`])} onClick={() => runAction(`pay-unpaid-${agency.id}`, async () => markBilling(agency, 'unpaid'))}>Non payé</Button>
                     <Button variant="ghost" onClick={() => setSelectedAgencyDetails(agency)}>Voir agence</Button>
                   </div>
@@ -1698,11 +1893,52 @@ export default function SuperAdminPage() {
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-carbon-950/55 p-4">
+                <p className="text-sm font-black text-white">Historique abonnement</p>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-xs text-carbon-500">Rappel 3 jours</p>
+                    <p className={`mt-1 text-sm font-bold ${selectedAgencyDetails.trialReminder3dSentAt ? 'text-emerald-200' : 'text-amber-200'}`}>
+                      {selectedAgencyDetails.trialReminder3dSentAt ? 'Envoyé' : 'Non envoyé'}
+                    </p>
+                  </div>
+                  <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                    <p className="text-xs text-carbon-500">Rappel 1 jour</p>
+                    <p className={`mt-1 text-sm font-bold ${selectedAgencyDetails.trialReminder1dSentAt ? 'text-emerald-200' : 'text-amber-200'}`}>
+                      {selectedAgencyDetails.trialReminder1dSentAt ? 'Envoyé' : 'Non envoyé'}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 space-y-2">
+                  {[
+                    { label: 'Essai activé', date: selectedAgencyDetails.trialStartedAt },
+                    { label: 'Rappel 3 jours envoyé', date: selectedAgencyDetails.trialReminder3dSentAt },
+                    { label: 'Rappel 1 jour envoyé', date: selectedAgencyDetails.trialReminder1dSentAt },
+                    { label: 'Essai prolongé par admin', date: selectedAgencyDetails.lastTrialExtendedAt },
+                    { label: 'Essai expiré', date: effectiveAdminStatus(selectedAgencyDetails) === 'trial_expired' ? selectedAgencyDetails.trialEndsAt : null },
+                    { label: 'Paiement en attente', date: effectiveAdminStatus(selectedAgencyDetails) === 'payment_pending' ? selectedAgencyDetails.trialEndsAt || selectedAgencyDetails.paidUntil : null },
+                    { label: 'Marqué comme payé', date: selectedAgencyDetails.lastPaymentDate },
+                    { label: 'Compte suspendu', date: effectiveAdminStatus(selectedAgencyDetails) === 'suspended' ? selectedAgencyDetails.latestActivityAt : null },
+                  ].filter((item) => item.date).map((item) => (
+                    <div key={item.label} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#E3B117]" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white">{item.label}</p>
+                        <p className="text-xs text-carbon-400">{formatActivityTime(item.date)}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {!selectedAgencyDetails.trialStartedAt && !selectedAgencyDetails.lastPaymentDate ? (
+                    <p className="text-sm text-carbon-400">Aucun événement horodaté disponible.</p>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-carbon-950/55 p-4">
                 <p className="text-sm font-black text-white">Actions rapides</p>
                 <div className="flex flex-wrap gap-2">
                   <Button variant="secondary" icon={<Crown className="h-4 w-4" />} loading={Boolean(actionLoading[`drawer-plan-${selectedAgencyDetails.id}`])} onClick={() => runAction(`drawer-plan-${selectedAgencyDetails.id}`, async () => changeAgencyPlan(selectedAgencyDetails, selectedAgencyDetails.plan === 'starter' ? 'pro' : selectedAgencyDetails.plan === 'pro' ? 'business' : selectedAgencyDetails.plan === 'business' ? 'lifetime' : 'starter'))}>Changer plan</Button>
-                  <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} loading={Boolean(actionLoading[`drawer-extend-${selectedAgencyDetails.id}`])} onClick={() => runAction(`drawer-extend-${selectedAgencyDetails.id}`, async () => extendSubscription(selectedAgencyDetails, 30))}>Prolonger abonnement</Button>
-                  <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} loading={Boolean(actionLoading[`drawer-paid-${selectedAgencyDetails.id}`])} onClick={() => runAction(`drawer-paid-${selectedAgencyDetails.id}`, async () => markBilling(selectedAgencyDetails, 'paid'))}>Marquer payé</Button>
+                  <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} onClick={() => { setTrialExtensionDays(7); setTrialExtensionAgency(selectedAgencyDetails); }}>Prolonger essai</Button>
+                  <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} onClick={() => { setPaymentDuration(1); setPaymentMethod(selectedAgencyDetails.paymentMethod || 'bank_transfer'); setPaymentNote(selectedAgencyDetails.paymentNotes); setPaymentAgency(selectedAgencyDetails); }}>Marquer comme payé</Button>
                   <Button variant="secondary" icon={<Mail className="h-4 w-4" />} loading={Boolean(actionLoading[`drawer-resend-${selectedAgencyDetails.id}`])} onClick={() => runAction(`drawer-resend-${selectedAgencyDetails.id}`, async () => resendAgencyActivationEmail(selectedAgencyDetails))}>Renvoyer email</Button>
                 </div>
               </div>
@@ -1745,6 +1981,93 @@ export default function SuperAdminPage() {
           </aside>
         </div>
       ) : null}
+
+      <Modal
+        open={Boolean(trialExtensionAgency)}
+        onClose={() => setTrialExtensionAgency(null)}
+        title="Prolonger l’essai"
+        subtitle={trialExtensionAgency?.agencyName}
+      >
+        <div className="space-y-4">
+          <p className="text-sm leading-6 text-[var(--app-text-soft)]">
+            La nouvelle durée repart de la date de fin actuelle si elle est encore valide, sinon d’aujourd’hui. L’accès sera réactivé immédiatement.
+          </p>
+          <div className="grid grid-cols-3 gap-2">
+            {([1, 3, 7] as const).map((days) => (
+              <button
+                key={days}
+                type="button"
+                onClick={() => setTrialExtensionDays(days)}
+                className={`min-h-12 rounded-xl border px-3 text-sm font-black transition ${
+                  trialExtensionDays === days
+                    ? 'border-[#E3B117] bg-[#E3B117] text-carbon-950'
+                    : 'border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text)]'
+                }`}
+              >
+                +{days} jour{days > 1 ? 's' : ''}
+              </button>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setTrialExtensionAgency(null)}>Annuler</Button>
+            <Button
+              loading={Boolean(actionLoading['extend-trial-modal'])}
+              onClick={() => runAction('extend-trial-modal', async () => {
+                if (!trialExtensionAgency) return;
+                await extendTrial(trialExtensionAgency, trialExtensionDays);
+              })}
+            >
+              Confirmer
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(paymentAgency)}
+        onClose={() => setPaymentAgency(null)}
+        title="Marquer comme payé"
+        subtitle={paymentAgency?.agencyName}
+      >
+        <div className="space-y-4">
+          <label className="block">
+            <span className="mb-2 block text-sm font-bold text-[var(--app-text)]">Durée du paiement</span>
+            <select className="form-control" value={paymentDuration} onChange={(event) => setPaymentDuration(Number(event.target.value) as 1 | 3 | 6 | 12)}>
+              <option value={1}>1 mois</option>
+              <option value={3}>3 mois</option>
+              <option value={6}>6 mois</option>
+              <option value={12}>12 mois</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-2 block text-sm font-bold text-[var(--app-text)]">Méthode de paiement</span>
+            <select className="form-control" value={paymentMethod} onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)}>
+              <option value="cash">Espèces</option>
+              <option value="bank_transfer">Virement bancaire</option>
+              <option value="cih">CIH</option>
+              <option value="paypal">PayPal</option>
+              <option value="card">Carte</option>
+              <option value="other">Autre</option>
+            </select>
+          </label>
+          <label className="block">
+            <span className="mb-2 block text-sm font-bold text-[var(--app-text)]">Note de paiement</span>
+            <textarea className="form-control min-h-28 resize-y" value={paymentNote} onChange={(event) => setPaymentNote(event.target.value)} placeholder="Référence, montant reçu ou remarque interne..." />
+          </label>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setPaymentAgency(null)}>Annuler</Button>
+            <Button
+              loading={Boolean(actionLoading['payment-modal'])}
+              onClick={() => runAction('payment-modal', async () => {
+                if (!paymentAgency) return;
+                await activatePaidSubscription(paymentAgency, paymentDuration, paymentMethod, paymentNote.trim());
+              })}
+            >
+              Confirmer le paiement
+            </Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal open={Boolean(requestToDelete)} onClose={() => { setRequestToDelete(null); setAdminDeleteConfirmText(''); }} title="Confirmer la suppression">
         <div className="space-y-3">

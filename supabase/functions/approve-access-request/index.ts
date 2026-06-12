@@ -374,10 +374,12 @@ Deno.serve(async (req) => {
     const annualPriceByPlan: Record<typeof plan, number> = { starter: 1910, pro: 5750, business: 3830, lifetime: 5999 };
     const phone = `${String(row.phone_country_code || '+212')} ${String(row.phone_number || '')}`.trim();
     const today = new Date();
-    const startDate = today.toISOString().slice(0, 10);
-    const nextDue = new Date(today);
-    nextDue.setDate(nextDue.getDate() + 30);
-    const nextDueDate = nextDue.toISOString().slice(0, 10);
+    const trialStartedAt = today.toISOString();
+    const startDate = trialStartedAt.slice(0, 10);
+    const trialEnds = new Date(today);
+    trialEnds.setDate(trialEnds.getDate() + 7);
+    const trialEndsAt = trialEnds.toISOString();
+    const trialEndDate = trialEndsAt.slice(0, 10);
 
     let activationLink = '';
     let inviteInfo = 'activation_link_generated';
@@ -417,8 +419,12 @@ Deno.serve(async (req) => {
           created_by: approvedUserId,
           plan,
           billing_status: 'trial',
+          subscription_status: 'trial_active',
+          trial_started_at: trialStartedAt,
+          trial_ends_at: trialEndsAt,
           subscription_start_date: startDate,
-          next_payment_due_date: nextDueDate,
+          subscription_end_date: trialEndDate,
+          next_payment_due_date: trialEndDate,
           billing_type: billingType,
           monthly_price: monthlyPriceByPlan[plan],
           annual_price: annualPriceByPlan[plan],
@@ -438,7 +444,12 @@ Deno.serve(async (req) => {
         body: JSON.stringify({
           plan,
           billing_status: 'trial',
-          next_payment_due_date: nextDueDate,
+          subscription_status: 'trial_active',
+          trial_started_at: trialStartedAt,
+          trial_ends_at: trialEndsAt,
+          subscription_start_date: startDate,
+          subscription_end_date: trialEndDate,
+          next_payment_due_date: trialEndDate,
           billing_type: billingType,
           monthly_price: monthlyPriceByPlan[plan],
           annual_price: annualPriceByPlan[plan],
