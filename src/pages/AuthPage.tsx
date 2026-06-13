@@ -81,24 +81,27 @@ function writeRememberedEmails(emails: string[]) {
 const passwordResetCooldownKey = 'mekloc_password_reset_cooldowns';
 const passwordResetSuccessCooldownMs = 60_000;
 const passwordResetRateLimitCooldownMs = 5 * 60_000;
+type PasswordResetCooldown = { until: number; reason: 'sent' | 'rate_limited' };
 
-function readPasswordResetCooldown(email: string) {
-  if (typeof window === 'undefined' || !email) return 0;
+function readPasswordResetCooldown(email: string): PasswordResetCooldown | null {
+  if (typeof window === 'undefined' || !email) return null;
   try {
-    const values = JSON.parse(window.localStorage.getItem(passwordResetCooldownKey) || '{}') as Record<string, number>;
-    return Number(values[email] || 0);
+    const values = JSON.parse(window.localStorage.getItem(passwordResetCooldownKey) || '{}') as Record<string, number | PasswordResetCooldown>;
+    const saved = values[email];
+    if (typeof saved === 'number') return { until: saved, reason: 'rate_limited' };
+    return saved && typeof saved.until === 'number' ? saved : null;
   } catch {
-    return 0;
+    return null;
   }
 }
 
-function writePasswordResetCooldown(email: string, until: number) {
+function writePasswordResetCooldown(email: string, cooldown: PasswordResetCooldown) {
   if (!email) return;
   try {
-    const values = JSON.parse(window.localStorage.getItem(passwordResetCooldownKey) || '{}') as Record<string, number>;
-    window.localStorage.setItem(passwordResetCooldownKey, JSON.stringify({ ...values, [email]: until }));
+    const values = JSON.parse(window.localStorage.getItem(passwordResetCooldownKey) || '{}') as Record<string, PasswordResetCooldown>;
+    window.localStorage.setItem(passwordResetCooldownKey, JSON.stringify({ ...values, [email]: cooldown }));
   } catch {
-    window.localStorage.setItem(passwordResetCooldownKey, JSON.stringify({ [email]: until }));
+    window.localStorage.setItem(passwordResetCooldownKey, JSON.stringify({ [email]: cooldown }));
   }
 }
 
@@ -109,6 +112,7 @@ export default function AuthPage() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotCooldownUntil, setForgotCooldownUntil] = useState(0);
+  const [forgotCooldownReason, setForgotCooldownReason] = useState<'sent' | 'rate_limited' | null>(null);
   const [forgotCooldownSeconds, setForgotCooldownSeconds] = useState(0);
   const [resetMode, setResetMode] = useState(() => hasPasswordFlowInUrl());
   const [newPassword, setNewPassword] = useState('');
@@ -139,7 +143,13 @@ export default function AuthPage() {
     if (!forgotOpen) return;
     const normalizedEmail = forgotEmail.trim().toLowerCase();
     const storedCooldown = readPasswordResetCooldown(normalizedEmail);
-    if (storedCooldown > Date.now()) setForgotCooldownUntil(storedCooldown);
+    if (storedCooldown && storedCooldown.until > Date.now()) {
+      setForgotCooldownUntil(storedCooldown.until);
+      setForgotCooldownReason(storedCooldown.reason);
+    } else {
+      setForgotCooldownUntil(0);
+      setForgotCooldownReason(null);
+    }
   }, [forgotEmail, forgotOpen]);
 
   useEffect(() => {
@@ -547,9 +557,11 @@ export default function AuthPage() {
     if (!normalizedEmail || forgotLoading) return;
     if (forgotCooldownUntil > Date.now()) {
       notify({
-        title: 'Demande déjà envoyée',
-        message: `Patientez encore ${Math.ceil((forgotCooldownUntil - Date.now()) / 1000)} secondes avant de demander un nouveau lien.`,
-        type: 'info',
+        title: forgotCooldownReason === 'rate_limited' ? 'Envoi temporairement bloqué' : 'Lien déjà envoyé',
+        message: forgotCooldownReason === 'rate_limited'
+          ? `Supabase refuse encore les emails. Réessayez dans ${Math.ceil((forgotCooldownUntil - Date.now()) / 1000)} secondes.`
+          : `Vérifiez votre boîte email et les spams. Un nouveau lien sera disponible dans ${Math.ceil((forgotCooldownUntil - Date.now()) / 1000)} secondes.`,
+        type: forgotCooldownReason === 'rate_limited' ? 'warning' : 'info',
       });
       return;
     }
@@ -558,7 +570,8 @@ export default function AuthPage() {
       await requestPasswordReset(normalizedEmail);
       const cooldownUntil = Date.now() + passwordResetSuccessCooldownMs;
       setForgotCooldownUntil(cooldownUntil);
-      writePasswordResetCooldown(normalizedEmail, cooldownUntil);
+      setForgotCooldownReason('sent');
+      writePasswordResetCooldown(normalizedEmail, { until: cooldownUntil, reason: 'sent' });
       notify({ title: 'Email envoyé', message: 'Consultez votre boîte email et vos courriers indésirables.', type: 'success' });
       setForgotOpen(false);
       setForgotEmail('');
@@ -568,7 +581,8 @@ export default function AuthPage() {
       if (isRateLimited) {
         const cooldownUntil = Date.now() + passwordResetRateLimitCooldownMs;
         setForgotCooldownUntil(cooldownUntil);
-        writePasswordResetCooldown(normalizedEmail, cooldownUntil);
+        setForgotCooldownReason('rate_limited');
+        writePasswordResetCooldown(normalizedEmail, { until: cooldownUntil, reason: 'rate_limited' });
       }
       notify({
         title: isRateLimited ? 'Trop de demandes' : 'Échec de la réinitialisation',
@@ -886,7 +900,9 @@ export default function AuthPage() {
           </div>
           {forgotCooldownSeconds > 0 ? (
             <p className="rounded-xl border border-amber-300/20 bg-amber-400/10 px-3 py-2 text-center text-xs font-semibold text-amber-100">
-              Un seul lien suffit. Vérifiez aussi le dossier spam avant de réessayer.
+              {forgotCooldownReason === 'rate_limited'
+                ? 'L’email n’a pas été envoyé: Supabase a temporairement bloqué l’envoi. Attendez la fin du compteur.'
+                : 'Le lien a été envoyé. Vérifiez aussi le dossier spam avant de réessayer.'}
             </p>
           ) : null}
         </div>
