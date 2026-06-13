@@ -78,6 +78,30 @@ function writeRememberedEmails(emails: string[]) {
   window.localStorage.setItem(rememberedEmailsKey, JSON.stringify(emails.slice(0, 5)));
 }
 
+const passwordResetCooldownKey = 'mekloc_password_reset_cooldowns';
+const passwordResetSuccessCooldownMs = 60_000;
+const passwordResetRateLimitCooldownMs = 5 * 60_000;
+
+function readPasswordResetCooldown(email: string) {
+  if (typeof window === 'undefined' || !email) return 0;
+  try {
+    const values = JSON.parse(window.localStorage.getItem(passwordResetCooldownKey) || '{}') as Record<string, number>;
+    return Number(values[email] || 0);
+  } catch {
+    return 0;
+  }
+}
+
+function writePasswordResetCooldown(email: string, until: number) {
+  if (!email) return;
+  try {
+    const values = JSON.parse(window.localStorage.getItem(passwordResetCooldownKey) || '{}') as Record<string, number>;
+    window.localStorage.setItem(passwordResetCooldownKey, JSON.stringify({ ...values, [email]: until }));
+  } catch {
+    window.localStorage.setItem(passwordResetCooldownKey, JSON.stringify({ [email]: until }));
+  }
+}
+
 export default function AuthPage() {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(false);
@@ -85,6 +109,7 @@ export default function AuthPage() {
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotLoading, setForgotLoading] = useState(false);
   const [forgotCooldownUntil, setForgotCooldownUntil] = useState(0);
+  const [forgotCooldownSeconds, setForgotCooldownSeconds] = useState(0);
   const [resetMode, setResetMode] = useState(() => hasPasswordFlowInUrl());
   const [newPassword, setNewPassword] = useState('');
   const [loginStep, setLoginStep] = useState<'email' | 'password'>('email');
@@ -109,6 +134,23 @@ export default function AuthPage() {
     profile,
     session,
   } = useAuth();
+
+  useEffect(() => {
+    if (!forgotOpen) return;
+    const normalizedEmail = forgotEmail.trim().toLowerCase();
+    const storedCooldown = readPasswordResetCooldown(normalizedEmail);
+    if (storedCooldown > Date.now()) setForgotCooldownUntil(storedCooldown);
+  }, [forgotEmail, forgotOpen]);
+
+  useEffect(() => {
+    const updateCooldown = () => {
+      setForgotCooldownSeconds(Math.max(0, Math.ceil((forgotCooldownUntil - Date.now()) / 1000)));
+    };
+    updateCooldown();
+    if (forgotCooldownUntil <= Date.now()) return;
+    const interval = window.setInterval(updateCooldown, 1000);
+    return () => window.clearInterval(interval);
+  }, [forgotCooldownUntil]);
   const forceLogin = searchParams.get('force') === 'login';
 
   useEffect(() => {
@@ -506,7 +548,7 @@ export default function AuthPage() {
     if (forgotCooldownUntil > Date.now()) {
       notify({
         title: 'Demande déjà envoyée',
-        message: 'Patientez une minute avant de demander un nouveau lien.',
+        message: `Patientez encore ${Math.ceil((forgotCooldownUntil - Date.now()) / 1000)} secondes avant de demander un nouveau lien.`,
         type: 'info',
       });
       return;
@@ -514,18 +556,24 @@ export default function AuthPage() {
     setForgotLoading(true);
     try {
       await requestPasswordReset(normalizedEmail);
-      setForgotCooldownUntil(Date.now() + 60_000);
+      const cooldownUntil = Date.now() + passwordResetSuccessCooldownMs;
+      setForgotCooldownUntil(cooldownUntil);
+      writePasswordResetCooldown(normalizedEmail, cooldownUntil);
       notify({ title: 'Email envoyé', message: 'Consultez votre boîte email et vos courriers indésirables.', type: 'success' });
       setForgotOpen(false);
       setForgotEmail('');
     } catch (error) {
       const message = error instanceof Error ? error.message : '';
       const isRateLimited = /rate limit|too many requests|429/i.test(message);
-      if (isRateLimited) setForgotCooldownUntil(Date.now() + 60_000);
+      if (isRateLimited) {
+        const cooldownUntil = Date.now() + passwordResetRateLimitCooldownMs;
+        setForgotCooldownUntil(cooldownUntil);
+        writePasswordResetCooldown(normalizedEmail, cooldownUntil);
+      }
       notify({
         title: isRateLimited ? 'Trop de demandes' : 'Échec de la réinitialisation',
         message: isRateLimited
-          ? 'La limite d’envoi Supabase est atteinte. Patientez quelques minutes avant de réessayer ou contactez le support MekLoc.'
+          ? 'La limite d’envoi Supabase est atteinte. Un nouvel essai sera disponible dans 5 minutes.'
           : message || 'Vérifiez votre adresse email puis réessayez.',
         type: 'warning',
       });
@@ -827,13 +875,20 @@ export default function AuthPage() {
             <Button
               type="button"
               loading={forgotLoading}
-              disabled={!forgotEmail.trim()}
+              disabled={!forgotEmail.trim() || forgotCooldownSeconds > 0}
               className="border-yellow-300 bg-yellow-400 text-black shadow-[0_10px_30px_rgba(250,204,21,.22)] hover:bg-yellow-300 disabled:bg-yellow-400 disabled:text-black"
               onClick={handleForgotPassword}
             >
-              Envoyer le lien
+              {forgotCooldownSeconds > 0
+                ? `Réessayer dans ${Math.floor(forgotCooldownSeconds / 60)}:${String(forgotCooldownSeconds % 60).padStart(2, '0')}`
+                : 'Envoyer le lien'}
             </Button>
           </div>
+          {forgotCooldownSeconds > 0 ? (
+            <p className="rounded-xl border border-amber-300/20 bg-amber-400/10 px-3 py-2 text-center text-xs font-semibold text-amber-100">
+              Un seul lien suffit. Vérifiez aussi le dossier spam avant de réessayer.
+            </p>
+          ) : null}
         </div>
       </Modal>
     </div>
