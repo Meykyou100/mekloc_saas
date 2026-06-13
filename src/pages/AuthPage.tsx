@@ -567,6 +567,17 @@ export default function AuthPage() {
     }
     setForgotLoading(true);
     try {
+      const accountStatus = await checkLoginEmailStatus(normalizedEmail);
+      if (accountStatus !== 'active') {
+        if (accountStatus === 'pending') {
+          throw new Error('Ce compte n’est pas encore activé. Utilisez votre lien d’activation ou contactez MekLoc.');
+        }
+        if (accountStatus === 'suspended') {
+          throw new Error('Ce compte est suspendu. Contactez MekLoc pour rétablir l’accès.');
+        }
+        throw new Error('Aucun compte MekLoc actif ne correspond à cette adresse email.');
+      }
+
       await requestPasswordReset(normalizedEmail);
       const cooldownUntil = Date.now() + passwordResetSuccessCooldownMs;
       setForgotCooldownUntil(cooldownUntil);
