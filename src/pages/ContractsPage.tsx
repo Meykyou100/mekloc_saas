@@ -29,6 +29,7 @@ import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { useSupportMode } from '../context/SupportModeContext';
 import { useData } from '../context/DataContext';
 import { formatMAD, type Client, type Contract, type Vehicle } from '../data/mockData';
 import { buildWhatsAppReminderUrl } from '../lib/assistantDuJour';
@@ -366,7 +367,9 @@ export default function ContractsPage() {
     createContract,
     deleteContract,
   } = useData();
-  const { agencyId, profile } = useAuth();
+  const { agencyId: authAgencyId, profile } = useAuth();
+  const { supportAgencyId } = useSupportMode();
+  const agencyId = supportAgencyId || authAgencyId;
   const { notify } = useApp();
   const belongsToCurrentAgency = (itemAgencyId?: string | null) =>
     !agencyId || itemAgencyId === agencyId || (agencyId === 'demo-agency' && !itemAgencyId);

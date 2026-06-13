@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, Banknote, CalendarClock, CheckCircle2, ChevronDown, Clock3, Crown, Eye, FileText, Laptop2, Mail, Menu, Play, RefreshCw, Search, ShieldAlert, Smartphone, Trash2, UserPlus, Users, X, XCircle } from 'lucide-react';
+import { Activity, AlertTriangle, Banknote, CalendarClock, CheckCircle2, ChevronDown, Clock3, Crown, Eye, FileText, Headphones, Laptop2, Mail, Menu, Play, RefreshCw, Search, ShieldAlert, Smartphone, Trash2, UserPlus, Users, X, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type ElementType } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
@@ -10,6 +10,7 @@ import { useApp } from '../context/AppContext';
 import { useAuth, type AccountStatus, type AgencyPlan, type BillingStatus, type PaymentMethod, type SubscriptionStatus } from '../context/AuthContext';
 import { formatMAD } from '../data/mockData';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
+import { useSupportMode, type SupportAccessMode } from '../context/SupportModeContext';
 
 type AccessRequestStatus = 'pending' | 'pending_verification' | 'contacted' | 'payment_pending' | 'approved' | 'rejected' | 'verified';
 type AccessRequestRow = {
@@ -326,6 +327,7 @@ function HelpIcon({ className }: { className?: string }) {
 export default function SuperAdminPage() {
   const { profile, isSupabaseEnabled, signOut } = useAuth();
   const { notify } = useApp();
+  const { startSupportMode } = useSupportMode();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [accessRequests, setAccessRequests] = useState<AccessRequestRow[]>([]);
@@ -358,6 +360,34 @@ export default function SuperAdminPage() {
   const [paymentDuration, setPaymentDuration] = useState<1 | 3 | 6 | 12>(1);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('bank_transfer');
   const [paymentNote, setPaymentNote] = useState('');
+  const [supportAgency, setSupportAgency] = useState<AdminAgency | null>(null);
+  const [supportReason, setSupportReason] = useState('');
+  const [supportAccessMode, setSupportAccessMode] = useState<SupportAccessMode>('read_only');
+  const [startingSupport, setStartingSupport] = useState(false);
+
+  async function confirmSupportMode() {
+    if (!supportAgency) return;
+    try {
+      setStartingSupport(true);
+      await startSupportMode({
+        agencyId: supportAgency.id,
+        agencyName: supportAgency.agencyName,
+        mode: supportAccessMode,
+        reason: supportReason,
+      });
+      setSupportAgency(null);
+      setSelectedAgencyDetails(null);
+      setSupportReason('');
+    } catch (error) {
+      notify({
+        title: 'Mode assistance impossible',
+        message: error instanceof Error ? error.message : 'Veuillez réessayer.',
+        type: 'warning',
+      });
+    } finally {
+      setStartingSupport(false);
+    }
+  }
 
   const pendingDeletionAccounts = useMemo(() => {
     return Object.entries(agencyUsers).flatMap(([agencyId, users]) => {
@@ -1936,6 +1966,16 @@ export default function SuperAdminPage() {
               <div className="rounded-2xl border border-white/10 bg-carbon-950/55 p-4">
                 <p className="text-sm font-black text-white">Actions rapides</p>
                 <div className="flex flex-wrap gap-2">
+                  <Button
+                    icon={<Headphones className="h-4 w-4" />}
+                    onClick={() => {
+                      setSupportAgency(selectedAgencyDetails);
+                      setSupportReason('');
+                      setSupportAccessMode('read_only');
+                    }}
+                  >
+                    Ouvrir en mode assistance
+                  </Button>
                   <Button variant="secondary" icon={<Crown className="h-4 w-4" />} loading={Boolean(actionLoading[`drawer-plan-${selectedAgencyDetails.id}`])} onClick={() => runAction(`drawer-plan-${selectedAgencyDetails.id}`, async () => changeAgencyPlan(selectedAgencyDetails, selectedAgencyDetails.plan === 'starter' ? 'pro' : selectedAgencyDetails.plan === 'pro' ? 'business' : selectedAgencyDetails.plan === 'business' ? 'lifetime' : 'starter'))}>Changer plan</Button>
                   <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} onClick={() => { setTrialExtensionDays(7); setTrialExtensionAgency(selectedAgencyDetails); }}>Prolonger essai</Button>
                   <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} onClick={() => { setPaymentDuration(1); setPaymentMethod(selectedAgencyDetails.paymentMethod || 'bank_transfer'); setPaymentNote(selectedAgencyDetails.paymentNotes); setPaymentAgency(selectedAgencyDetails); }}>Marquer comme payé</Button>
@@ -2067,6 +2107,75 @@ export default function SuperAdminPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(supportAgency)}
+        onClose={() => {
+          if (startingSupport) return;
+          setSupportAgency(null);
+          setSupportReason('');
+        }}
+        title="Ouvrir en mode assistance"
+        subtitle="Accès temporaire, limité à 30 minutes et entièrement audité."
+        panelClassName="sm:max-w-xl"
+      >
+        {supportAgency ? (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/10 p-4">
+              <p className="text-xs font-black uppercase tracking-[0.16em] text-[#F5C542]">Agence sélectionnée</p>
+              <p className="mt-1 text-lg font-black text-white">{supportAgency.agencyName}</p>
+              <p className="mt-1 text-sm text-carbon-300">{supportAgency.ownerName} · {supportAgency.email}</p>
+            </div>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-bold text-white">Raison de l’accès</span>
+              <textarea
+                className="form-control min-h-24 resize-y"
+                value={supportReason}
+                onChange={(event) => setSupportReason(event.target.value)}
+                placeholder="Ex. Vérification d’un problème de contrat signalé par l’agence"
+                maxLength={500}
+              />
+              <span className="text-xs text-carbon-400">Obligatoire. Cette note sera conservée dans le journal d’audit.</span>
+            </label>
+
+            <fieldset className="grid gap-2">
+              <legend className="mb-2 text-sm font-bold text-white">Niveau d’accès</legend>
+              {([
+                ['read_only', 'Lecture seule', 'Consulter les données sans pouvoir créer, modifier ou supprimer.'],
+                ['full_access', 'Accès complet', 'Actions autorisées et automatiquement enregistrées dans le journal.'],
+              ] as const).map(([mode, label, description]) => (
+                <label key={mode} className={`flex cursor-pointer gap-3 rounded-2xl border p-4 transition ${supportAccessMode === mode ? 'border-[#E3B117]/60 bg-[#E3B117]/10' : 'border-white/10 bg-white/[0.03] hover:border-white/20'}`}>
+                  <input
+                    type="radio"
+                    name="support-mode"
+                    value={mode}
+                    checked={supportAccessMode === mode}
+                    onChange={() => setSupportAccessMode(mode)}
+                    className="mt-1 accent-[#E3B117]"
+                  />
+                  <span>
+                    <span className="block font-black text-white">{label}</span>
+                    <span className="mt-1 block text-sm text-carbon-400">{description}</span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+
+            <div className="grid grid-cols-2 gap-2 border-t border-white/10 pt-4">
+              <Button variant="secondary" disabled={startingSupport} onClick={() => setSupportAgency(null)}>Annuler</Button>
+              <Button
+                icon={<Headphones className="h-4 w-4" />}
+                loading={startingSupport}
+                disabled={supportReason.trim().length < 5}
+                onClick={() => void confirmSupportMode()}
+              >
+                Confirmer
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </Modal>
 
       <Modal open={Boolean(requestToDelete)} onClose={() => { setRequestToDelete(null); setAdminDeleteConfirmText(''); }} title="Confirmer la suppression">

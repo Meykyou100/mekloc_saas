@@ -11,6 +11,7 @@ import PageHeader from '../components/ui/PageHeader';
 import PlateNumber from '../components/ui/PlateNumber';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { useSupportMode } from '../context/SupportModeContext';
 import { useData } from '../context/DataContext';
 import { formatMAD, type DamageType, type Vehicle, type VehicleAccessories, type VehicleDamageMark, type VehicleStatus } from '../data/mockData';
 import { safeStoragePath, validateFileUpload } from '../lib/security';
@@ -169,7 +170,9 @@ function validateVehicle(vehicle: Vehicle): FormErrors {
 
 export default function VehiclesPage() {
   const { vehicles, reservations, contracts, payments, maintenance, createVehicle, updateVehicle, deleteVehicle: removeVehicle } = useData();
-  const { agencyId } = useAuth();
+  const { agencyId: authAgencyId } = useAuth();
+  const { supportAgencyId } = useSupportMode();
+  const agencyId = supportAgencyId || authAgencyId;
   const { notify } = useApp();
 
   const [query, setQuery] = useState('');

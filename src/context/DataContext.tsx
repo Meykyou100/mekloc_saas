@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useAuth } from './AuthContext';
+import { useSupportMode } from './SupportModeContext';
 import {
   type Client,
   type Contract,
@@ -648,7 +649,8 @@ function byId<T extends { id: string }>(items: T[]) {
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const { agencyId: authAgencyId, isSupabaseEnabled, loading: authLoading, profile, refreshProfile } = useAuth();
-  const agencyId = authAgencyId || profile?.agencyId || profile?.agency?.id || null;
+  const { supportAgencyId, isSupportMode, isReadOnly } = useSupportMode();
+  const agencyId = supportAgencyId || authAgencyId || profile?.agencyId || profile?.agency?.id || null;
   const [loading, setLoading] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
@@ -687,22 +689,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         maintenanceResult,
       ] = await withDataTimeout(Promise.all([
         canReadVehicles
-          ? supabase.from('vehicles').select('*').order('created_at', { ascending: false })
+          ? supabase.from('vehicles').select('*').eq('agency_id', agencyId).order('created_at', { ascending: false })
           : Promise.resolve({ data: [], error: null }),
         canReadClients
-          ? supabase.from('clients').select('*').order('created_at', { ascending: false })
+          ? supabase.from('clients').select('*').eq('agency_id', agencyId).order('created_at', { ascending: false })
           : Promise.resolve({ data: [], error: null }),
         canReadReservations
-          ? supabase.from('reservations').select('*').order('created_at', { ascending: false })
+          ? supabase.from('reservations').select('*').eq('agency_id', agencyId).order('created_at', { ascending: false })
           : Promise.resolve({ data: [], error: null }),
         canReadContracts
-          ? supabase.from('contracts').select('*').order('created_at', { ascending: false })
+          ? supabase.from('contracts').select('*').eq('agency_id', agencyId).order('created_at', { ascending: false })
           : Promise.resolve({ data: [], error: null }),
         canReadPayments
-          ? supabase.from('payments').select('*').order('created_at', { ascending: false })
+          ? supabase.from('payments').select('*').eq('agency_id', agencyId).order('created_at', { ascending: false })
           : Promise.resolve({ data: [], error: null }),
         canReadMaintenance
-          ? supabase.from('maintenance').select('*').order('service_date', { ascending: true })
+          ? supabase.from('maintenance').select('*').eq('agency_id', agencyId).order('service_date', { ascending: true })
           : Promise.resolve({ data: [], error: null }),
       ]));
 
@@ -876,6 +878,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       );
     };
     const assertPermission = (permission: AppPermission) => {
+      if (isSupportMode && isReadOnly) {
+        throw new Error('Mode assistance en lecture seule : modification bloquée.');
+      }
       if (profile?.isSuperAdmin) return;
       if (!canAccess(profile?.role, permission)) {
         throw new Error('Accès non autorisé');
@@ -1503,6 +1508,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     maintenance,
     payments,
     profile?.isSuperAdmin,
+    isReadOnly,
+    isSupportMode,
     profile?.role,
     refreshData,
     refreshProfile,

@@ -6,6 +6,7 @@ import AppErrorBoundary from './components/system/AppErrorBoundary';
 import { AppProvider } from './context/AppContext';
 import { AuthProvider } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
+import { SupportModeProvider } from './context/SupportModeContext';
 import './styles/index.css';
 
 const bootWatchdog = window.setTimeout(() => {
@@ -29,11 +30,13 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <AppProvider>
         <AuthProvider>
-          <DataProvider>
-            <AppErrorBoundary>
-              <App />
-            </AppErrorBoundary>
-          </DataProvider>
+          <SupportModeProvider>
+            <DataProvider>
+              <AppErrorBoundary>
+                <App />
+              </AppErrorBoundary>
+            </DataProvider>
+          </SupportModeProvider>
         </AuthProvider>
       </AppProvider>
     </BrowserRouter>

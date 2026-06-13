@@ -9,6 +9,7 @@ import PageHeader from '../components/ui/PageHeader';
 import { SUPPORT_EMAIL, SUPPORT_PHONE } from '../config/app';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { useSupportMode } from '../context/SupportModeContext';
 import { normalizeText, sanitizeText, validateEmail, validateFileUpload, validatePhone } from '../lib/security';
 import { getNotificationPreferences, type NotificationPreferenceKey, type NotificationPreferences } from '../lib/notificationPreferences';
 import { uploadAgencyLogo, uploadAgencyStamp } from '../lib/storage';
@@ -180,7 +181,9 @@ function sessionLocationLabel(sessionItem: AccountSession) {
 
 export default function SettingsPage() {
   const { notify, theme, setTheme } = useApp();
-  const { agencyId, isSupabaseEnabled, profile, signOut, deleteAccountWithPassword, refreshProfile } = useAuth();
+  const { agencyId: authAgencyId, isSupabaseEnabled, profile, signOut, deleteAccountWithPassword, refreshProfile } = useAuth();
+  const { supportAgencyId, isReadOnly } = useSupportMode();
+  const agencyId = supportAgencyId || authAgencyId;
   const navigate = useNavigate();
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const stampInputRef = useRef<HTMLInputElement | null>(null);
@@ -929,6 +932,10 @@ startxref
   }
 
   async function handleSaveSettings() {
+    if (isReadOnly) {
+      notify({ title: 'Lecture seule', message: 'Les paramètres ne peuvent pas être modifiés dans ce mode assistance.', type: 'warning' });
+      return;
+    }
     if (!isSupabaseEnabled || !agencyId || !profile?.id) {
       notify({ title: 'Paramètres enregistrés', message: 'Mode démonstration actif.', type: 'success' });
       return;

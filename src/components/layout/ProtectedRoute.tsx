@@ -5,6 +5,7 @@ import { canAccess, type AppPermission } from '../../lib/permissions';
 import { isSubscriptionAllowed } from '../../lib/subscription';
 import Card from '../ui/Card';
 import Skeleton from '../ui/Skeleton';
+import { useSupportMode } from '../../context/SupportModeContext';
 
 function RouteLoadingState() {
   return (
@@ -39,6 +40,7 @@ export default function ProtectedRoute({
     getAccessRequestStatusByEmail,
     isInitialized,
   } = useAuth();
+  const { isSupportMode, supportAgencyId } = useSupportMode();
   const location = useLocation();
   const [accessStatus, setAccessStatus] = useState<string | null>(null);
   const [accessStatusLoading, setAccessStatusLoading] = useState(false);
@@ -134,11 +136,11 @@ export default function ProtectedRoute({
     return profile?.isSuperAdmin ? <Outlet /> : <Navigate to="/dashboard" replace />;
   }
 
-  if (profile?.isSuperAdmin) {
+  if (profile?.isSuperAdmin && !isSupportMode) {
     return <Navigate to="/super-admin" replace />;
   }
 
-  if (requireAgency && !agencyId) {
+  if (requireAgency && !(supportAgencyId || agencyId)) {
     if (!profile && user?.email && (accessStatusLoading || !accessStatusChecked)) {
       return <RouteLoadingState />;
     }
@@ -202,15 +204,15 @@ export default function ProtectedRoute({
     return <Navigate to={`/demande-acces?from=login${user?.email ? `&email=${encodeURIComponent(user.email)}` : ''}`} replace />;
   }
 
-  if (requireAgency && profile?.accountStatus && profile.accountStatus !== 'active') {
+  if (requireAgency && !isSupportMode && profile?.accountStatus && profile.accountStatus !== 'active') {
     return <Navigate to="/account-status" replace />;
   }
 
-  if (requireAgency && !isSubscriptionAllowed(profile?.agency)) {
+  if (requireAgency && !isSupportMode && !isSubscriptionAllowed(profile?.agency)) {
     return <Navigate to="/payment-required" replace />;
   }
 
-  if (requiredPermission && !canAccess(profile?.role, requiredPermission)) {
+  if (requiredPermission && !profile?.isSuperAdmin && !canAccess(profile?.role, requiredPermission)) {
     return <Navigate to="/dashboard" replace />;
   }
 
