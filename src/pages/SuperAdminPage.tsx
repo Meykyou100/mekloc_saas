@@ -237,19 +237,44 @@ function SuperAdminSidebar({
   mode?: 'desktop' | 'mobile';
   onClose?: () => void;
 }) {
-  const nav = [
-    ['Tableau de bord', Users, 'overview'],
-    ['Agences', BuildingIcon, 'agencies'],
-    ['Abonnements', Crown, 'subscriptions'],
-    ['Paiements', Banknote, 'payments'],
-    ['Utilisateurs', UserPlus, 'users'],
-    ['Sessions', Laptop2, 'sessions'],
-    ['Demandes d’accès', Mail, 'access'],
-    ['Comptes en suppression', Trash2, 'deletions'],
-    ['Alertes', AlertTriangle, 'alerts'],
-    ['Rapports', Activity, 'reports'],
-    ['Paramètres', ShieldAlert, 'settings'],
-    ['Support', HelpIcon, 'support'],
+  const navGroups = [
+    {
+      label: 'Vue générale',
+      items: [
+        ['Tableau de bord', Users, 'overview'],
+        ['Alertes', AlertTriangle, 'alerts'],
+        ['Rapports', Activity, 'reports'],
+      ],
+    },
+    {
+      label: 'Gestion agences',
+      items: [
+        ['Agences', BuildingIcon, 'agencies'],
+        ['Demandes d’accès', Mail, 'access'],
+        ['Comptes en suppression', Trash2, 'deletions'],
+      ],
+    },
+    {
+      label: 'Revenus',
+      items: [
+        ['Abonnements', Crown, 'subscriptions'],
+        ['Paiements', Banknote, 'payments'],
+      ],
+    },
+    {
+      label: 'Sécurité',
+      items: [
+        ['Utilisateurs', UserPlus, 'users'],
+        ['Sessions', Laptop2, 'sessions'],
+      ],
+    },
+    {
+      label: 'Système',
+      items: [
+        ['Paramètres', ShieldAlert, 'settings'],
+        ['Support', HelpIcon, 'support'],
+      ],
+    },
   ] as const;
 
   return (
@@ -267,29 +292,35 @@ function SuperAdminSidebar({
           ) : null}
         </div>
 
-        <p className="mt-5 px-2 text-[11px] font-black uppercase tracking-[0.28em] text-carbon-500">Navigation</p>
-        <nav className="mt-3 grid gap-1.5 overflow-y-auto pr-1">
-          {nav.map(([label, Icon, target]) => (
-            <button
-              key={label}
-              type="button"
-              onClick={() => {
-                onSelectView(target);
-                onClose?.();
-              }}
-              className={`flex h-10 items-center gap-3 rounded-xl px-3 text-left text-sm font-semibold transition-all duration-200 ${
-                activeView === target
-                  ? 'scale-[1.01] border border-[#E3B117]/35 bg-[#E3B117]/16 text-[#F5C542] shadow-[0_0_24px_rgba(227,177,23,.10)]'
-                  : 'text-carbon-300 hover:bg-white/[0.045] hover:text-white motion-safe:hover:translate-x-1'
-              }`}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="truncate">{label}</span>
-            </button>
+        <nav className="mt-4 min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+          {navGroups.map((group) => (
+            <div key={group.label}>
+              <p className="mb-1.5 px-2 text-[10px] font-black uppercase tracking-[0.2em] text-carbon-600">{group.label}</p>
+              <div className="grid gap-1">
+                {group.items.map(([label, Icon, target]) => (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() => {
+                      onSelectView(target);
+                      onClose?.();
+                    }}
+                    className={`flex h-9 items-center gap-3 rounded-xl px-3 text-left text-[13px] font-semibold transition ${
+                      activeView === target
+                        ? 'bg-[#E3B117]/15 text-[#F5C542] shadow-[inset_3px_0_0_#E3B117]'
+                        : 'text-carbon-300 hover:bg-white/[0.045] hover:text-white'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 
-        <div className="mt-auto space-y-3 pt-4">
+        <div className="space-y-3 pt-4">
           <div className="rounded-2xl border border-[#E3B117]/18 bg-[#E3B117]/8 p-4">
             <p className="text-[11px] font-bold text-carbon-400">Revenu mensuel estimé</p>
             <p className="mt-2 text-xl font-black text-white">{formatMAD(revenue)}</p>
@@ -364,6 +395,7 @@ export default function SuperAdminPage() {
   const [supportReason, setSupportReason] = useState('');
   const [supportAccessMode, setSupportAccessMode] = useState<SupportAccessMode>('read_only');
   const [startingSupport, setStartingSupport] = useState(false);
+  const [sessionFilter, setSessionFilter] = useState<'all' | 'today' | 'ios' | 'desktop' | 'old'>('all');
 
   async function confirmSupportMode() {
     if (!supportAgency) return;
@@ -401,6 +433,15 @@ export default function SuperAdminPage() {
   const allAdminUsers = useMemo(() => Object.values(agencyUsers).flat(), [agencyUsers]);
 
   const allAdminSessions = useMemo(() => Object.values(agencySessions).flat(), [agencySessions]);
+  const filteredAdminSessions = useMemo(() => allAdminSessions.filter((session) => {
+    if (sessionFilter === 'all') return true;
+    const seenAt = session.last_seen_at || session.last_activity_at;
+    const deviceText = `${session.device_type || ''} ${session.device_name || ''} ${session.os || ''}`.toLowerCase();
+    if (sessionFilter === 'today') return Boolean(seenAt && Date.now() - new Date(seenAt).getTime() <= 86_400_000);
+    if (sessionFilter === 'ios') return /ios|iphone|ipad/.test(deviceText);
+    if (sessionFilter === 'desktop') return !/ios|iphone|ipad|android|mobile/.test(deviceText);
+    return Boolean(seenAt && Date.now() - new Date(seenAt).getTime() > 30 * 86_400_000);
+  }), [allAdminSessions, sessionFilter]);
 
   const planStats = useMemo(() => {
     return (['starter', 'pro', 'business', 'lifetime'] as AgencyPlan[]).map((plan) => ({
@@ -1173,12 +1214,11 @@ export default function SuperAdminPage() {
         />
 
         <div key={activeView} data-super-admin-view className="motion-safe:animate-[superAdminViewIn_.28s_ease-out]">
-        {(activeView === 'overview' || activeView === 'agencies') ? (
-        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-7">
+        {activeView === 'overview' ? (
+        <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
           <MiniMetric label="Agences actives" value={String(agencySummary.active)} icon={Users} tone="green" />
           <MiniMetric label="En essai" value={String(agencySummary.trial)} icon={CalendarClock} tone="blue" />
           <MiniMetric label="Payés" value={String(agencySummary.paid)} icon={CheckCircle2} tone="green" />
-          <MiniMetric label="Non payés" value={String(agencySummary.unpaid)} icon={ShieldAlert} tone="red" />
           <MiniMetric label="Revenu estimé" value={formatMAD(agencySummary.revenue)} icon={Banknote} tone="gold" />
           <MiniMetric label="Échéances proches" value={String(agencySummary.closeDue)} icon={AlertTriangle} tone="gold" />
           <MiniMetric label="À surveiller" value={String(agencySummary.suspendedOrWatch)} icon={Activity} tone="red" />
@@ -1210,12 +1250,73 @@ export default function SuperAdminPage() {
                       : 'border-[#E3B117]/20 bg-[#E3B117]/10 hover:border-[#E3B117]/35'
                 }`}
               >
+                <span className={`mb-3 inline-flex rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${
+                  alert.tone === 'danger' ? 'bg-rose-300/15 text-rose-200' : alert.tone === 'warning' ? 'bg-amber-300/15 text-amber-200' : 'bg-sky-300/15 text-sky-200'
+                }`}>
+                  {alert.tone === 'danger' ? 'Critical' : alert.tone === 'warning' ? 'Warning' : 'Info'}
+                </span>
                 <p className="text-sm font-black text-white">{alert.title}</p>
                 <p className="mt-2 text-xs leading-5 text-carbon-300">{alert.description}</p>
+                {alert.agency ? <span className="mt-3 inline-flex text-xs font-black text-white">Voir agence →</span> : null}
               </button>
             ))}
           </div>
         </Card>
+        ) : null}
+
+        {activeView === 'overview' ? (
+          <>
+            <Card className="mt-5 p-5">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-[#F5C542]">Actions rapides</p>
+                <h2 className="mt-1 text-lg font-black text-white">Accès direct aux tâches prioritaires</h2>
+              </div>
+              <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                <Button variant="secondary" icon={<Mail className="h-4 w-4" />} onClick={() => setActiveView('access')}>Voir demandes d’accès</Button>
+                <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} onClick={() => setActiveView('payments')}>Voir paiements</Button>
+                <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} onClick={() => { setAgencySubscriptionFilter('trial_active'); setActiveView('agencies'); }}>Voir essais proches</Button>
+                <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} onClick={() => { setAgencyDueFilter('overdue'); setActiveView('agencies'); }}>Comptes à surveiller</Button>
+              </div>
+            </Card>
+
+            <Card className="mt-5 overflow-hidden">
+              <div className="flex items-center justify-between gap-3 border-b border-white/10 p-5">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-[#F5C542]">Agences à traiter</p>
+                  <h2 className="mt-1 text-lg font-black text-white">Priorités opérationnelles</h2>
+                </div>
+                <Button variant="ghost" className="h-9" onClick={() => setActiveView('agencies')}>Toutes les agences</Button>
+              </div>
+              <div className="divide-y divide-white/10">
+                {agencies.filter((agency) => {
+                  const status = effectiveAdminStatus(agency);
+                  const due = dueState(agency.nextPaymentDueDate);
+                  return status === 'trial_expired' || status === 'payment_pending' || status === 'suspended' || due.tone === 'danger' || due.tone === 'warning';
+                }).slice(0, 6).map((agency) => (
+                  <div key={`urgent-${agency.id}`} className="grid gap-3 px-5 py-3.5 transition hover:bg-white/[0.025] sm:grid-cols-[minmax(0,1.5fr)_auto_auto_auto] sm:items-center">
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-white">{agency.agencyName}</p>
+                      <p className="truncate text-xs text-carbon-400">{agency.email}</p>
+                    </div>
+                    <StatusPill className={subscriptionTone(effectiveAdminStatus(agency))}>{subscriptionLabel(effectiveAdminStatus(agency))}</StatusPill>
+                    <p className="text-sm font-semibold text-carbon-300">{dueState(agency.nextPaymentDueDate).label}</p>
+                    <Button variant="secondary" className="h-9 px-3 text-xs" onClick={() => setSelectedAgencyDetails(agency)}>Voir agence</Button>
+                  </div>
+                ))}
+                {agencies.filter((agency) => {
+                  const status = effectiveAdminStatus(agency);
+                  const due = dueState(agency.nextPaymentDueDate);
+                  return status === 'trial_expired' || status === 'payment_pending' || status === 'suspended' || due.tone === 'danger' || due.tone === 'warning';
+                }).length === 0 ? (
+                  <div className="p-8 text-center">
+                    <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-300" />
+                    <p className="mt-3 font-bold text-white">Aucune agence urgente</p>
+                    <p className="mt-1 text-sm text-carbon-400">Les comptes prioritaires apparaîtront ici.</p>
+                  </div>
+                ) : null}
+              </div>
+            </Card>
+          </>
         ) : null}
 
         {activationLinkToCopy ? (
@@ -1258,7 +1359,14 @@ export default function SuperAdminPage() {
             <MiniMetric label="Cette semaine" value={String(allAccessRequests.filter((r) => Date.now() - new Date(r.created_at).getTime() <= 7 * 86400000).length)} icon={CalendarClock} tone="blue" />
           </div>
           <div className="grid gap-4 p-5">
-            {accessRequests.length === 0 ? <p className="text-sm text-carbon-400">Aucune demande d’accès.</p> : accessRequests.map((req) => (
+            {accessRequests.length === 0 ? (
+              <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.02] p-10 text-center">
+                <Mail className="mx-auto h-9 w-9 text-[#F5C542]" />
+                <p className="mt-4 text-lg font-black text-white">Aucune demande en attente</p>
+                <p className="mx-auto mt-2 max-w-md text-sm text-carbon-400">Les nouvelles demandes d’accès apparaîtront ici dès leur réception.</p>
+                <Button variant="secondary" className="mt-5" icon={<RefreshCw className="h-4 w-4" />} loading={loading} onClick={loadAll}>Actualiser</Button>
+              </div>
+            ) : accessRequests.map((req) => (
               <div key={req.id} className="premium-surface rounded-2xl p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-semibold text-white">{req.agency_name}</p><Badge>{req.status}</Badge></div>
                 <div className="mt-2 grid gap-2 text-sm text-carbon-300 md:grid-cols-3">
@@ -1326,7 +1434,11 @@ export default function SuperAdminPage() {
           </div>
           <div className="grid gap-3 p-5">
             {pendingDeletionAccounts.length === 0 ? (
-              <p className="text-sm text-carbon-400">Aucun compte en cours de suppression.</p>
+              <div className="rounded-3xl border border-dashed border-white/10 bg-white/[0.02] p-10 text-center">
+                <CheckCircle2 className="mx-auto h-9 w-9 text-emerald-300" />
+                <p className="mt-4 text-lg font-black text-white">Aucun compte en suppression</p>
+                <p className="mt-2 text-sm text-carbon-400">Aucune suppression définitive n’est actuellement planifiée.</p>
+              </div>
             ) : pendingDeletionAccounts.map(({ user, agency }) => (
               <div key={user.id} className="rounded-2xl border border-rose-300/20 bg-rose-400/10 p-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -1367,7 +1479,7 @@ export default function SuperAdminPage() {
         </Card>
         ) : null}
 
-        {(activeView === 'overview' || activeView === 'agencies') ? (
+        {activeView === 'agencies' ? (
         <Card className="mt-6 overflow-hidden">
           <div className="border-b border-white/10 p-5">
             <h2 className="text-xl font-bold">Comptes agences approuvés</h2>
@@ -1429,66 +1541,46 @@ export default function SuperAdminPage() {
               Réinitialiser
             </Button>
           </div>
-          <div className="grid gap-4 p-5">
+          <div className="divide-y divide-white/10">
             {filteredAgencies.length === 0 ? <p className="text-sm text-carbon-400">Aucun compte agence ne correspond aux filtres.</p> : filteredAgencies.map((agency) => (
-              <div key={agency.id} className="premium-surface rounded-3xl border border-white/10 p-4 shadow-[0_18px_55px_rgba(0,0,0,.22)]">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+              <div key={agency.id} className="px-4 py-4 transition hover:bg-white/[0.025] sm:px-5">
+                <div className="grid gap-4 xl:grid-cols-[minmax(220px,1.4fr)_minmax(300px,1.5fr)_minmax(360px,2fr)_auto] xl:items-center">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-lg font-black text-white">{agency.agencyName}</p>
-                      <span className={`rounded-full border px-2.5 py-1 text-[11px] font-black ${dueState(agency.nextPaymentDueDate).tone === 'danger' ? 'border-rose-300/25 bg-rose-400/10 text-rose-200' : dueState(agency.nextPaymentDueDate).tone === 'warning' ? 'border-amber-300/25 bg-amber-400/10 text-amber-200' : 'border-white/10 bg-white/[0.04] text-carbon-300'}`}>
-                        {dueState(agency.nextPaymentDueDate).label}
-                      </span>
+                      <p className="truncate text-base font-black text-white">{agency.agencyName}</p>
                     </div>
-                    <p className="mt-1 text-sm text-carbon-300">{agency.ownerName} · <span className="break-all">{agency.email}</span></p>
+                    <p className="mt-1 truncate text-sm text-carbon-400">{agency.email}</p>
+                    <p className="mt-1 truncate text-xs text-carbon-500">{agency.ownerName}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <StatusPill className={statusPillClass('plan', agency.plan)}>{planLabel(agency.plan)}</StatusPill>
-                    <StatusPill className={statusPillClass('billing', agency.billingStatus)}>{billingLabel(agency.billingStatus)}</StatusPill>
                     <StatusPill className={subscriptionTone(effectiveAdminStatus(agency))}>{subscriptionLabel(effectiveAdminStatus(agency))}</StatusPill>
-                    <StatusPill className={statusPillClass('account', agency.accountStatus)}>{accountLabel(agency.accountStatus)}</StatusPill>
                   </div>
-                </div>
-                <div className="mt-4 grid gap-2 text-sm text-carbon-300 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6">
-                  <p className="rounded-2xl border border-white/10 bg-carbon-950/45 p-3"><strong className="block text-xs uppercase tracking-[0.14em] text-carbon-500">Échéance</strong><span className="mt-1 block font-semibold text-white">{agency.nextPaymentDueDate || '-'}</span></p>
-                  <p className="rounded-2xl border border-white/10 bg-carbon-950/45 p-3"><strong className="block text-xs uppercase tracking-[0.14em] text-carbon-500">Véhicules</strong><span className="mt-1 block font-semibold text-white">{agency.vehiclesCount}</span></p>
-                  <p className="rounded-2xl border border-white/10 bg-carbon-950/45 p-3"><strong className="block text-xs uppercase tracking-[0.14em] text-carbon-500">Utilisateurs</strong><span className="mt-1 block font-semibold text-white">{agency.usersCount}</span></p>
-                  <p className="rounded-2xl border border-white/10 bg-carbon-950/45 p-3"><strong className="block text-xs uppercase tracking-[0.14em] text-carbon-500">Prix</strong><span className="mt-1 block font-semibold text-white">{formatMAD(agency.monthlyPrice)}</span></p>
-                  <p className="rounded-2xl border border-white/10 bg-carbon-950/45 p-3"><strong className="block text-xs uppercase tracking-[0.14em] text-carbon-500">Créée</strong><span className="mt-1 block font-semibold text-white">{formatActivityTime(agency.createdAt)}</span></p>
-                  <p className="rounded-2xl border border-white/10 bg-carbon-950/45 p-3"><strong className="block text-xs uppercase tracking-[0.14em] text-carbon-500">Activité</strong><span className="mt-1 block font-semibold text-white">{formatActivityTime(agency.latestActivityAt)}</span></p>
-                </div>
-                {agency.trialEndsAt ? (
-                  <div className="mt-3 flex items-center gap-2 rounded-xl border border-sky-300/15 bg-sky-400/[0.07] px-3 py-2 text-xs text-sky-100">
-                    <Clock3 className="h-4 w-4" />
-                    Essai: {dueState(agency.trialEndsAt).label} · fin le {new Date(agency.trialEndsAt).toLocaleDateString('fr-FR')}
+                  <div className="grid grid-cols-2 gap-x-5 gap-y-2 text-xs sm:grid-cols-3">
+                    <p><span className="block text-carbon-500">Échéance / essai</span><strong className="text-carbon-200">{agency.trialEndsAt && effectiveAdminStatus(agency) === 'trial_active' ? dueState(agency.trialEndsAt).label : dueState(agency.nextPaymentDueDate).label}</strong></p>
+                    <p><span className="block text-carbon-500">Flotte</span><strong className="text-white">{agency.vehiclesCount} véhicules</strong></p>
+                    <p><span className="block text-carbon-500">Équipe</span><strong className="text-white">{agency.usersCount} utilisateurs</strong></p>
+                    <p><span className="block text-carbon-500">Prix</span><strong className="text-white">{formatMAD(agency.monthlyPrice)}</strong></p>
+                    <p className="sm:col-span-2"><span className="block text-carbon-500">Dernière activité</span><strong className="text-carbon-200">{formatActivityTime(agency.latestActivityAt)}</strong></p>
                   </div>
-                ) : null}
-                <div className="mt-4 grid gap-3 xl:grid-cols-[1fr_1fr_1fr_auto]">
-                  <div className="rounded-2xl border border-white/10 bg-carbon-950/35 p-3">
-                    <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#F5C542]">Gestion</p>
-                    <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center gap-2 xl:justify-end">
+                    <Button className="h-10 whitespace-nowrap px-3 text-xs" icon={<Eye className="h-4 w-4" />} onClick={() => setSelectedAgencyDetails(agency)}>Voir détails</Button>
+                    <details className="group relative">
+                      <summary className="focus-ring flex h-10 cursor-pointer list-none items-center gap-2 rounded-xl border border-white/10 bg-white/[0.035] px-3 text-xs font-bold text-carbon-200 transition hover:bg-white/[0.07]">
+                        Actions <ChevronDown className="h-4 w-4 transition group-open:rotate-180" />
+                      </summary>
+                      <div className="absolute right-0 z-30 mt-2 grid w-[min(82vw,280px)] gap-1 rounded-2xl border border-white/10 bg-carbon-950 p-2 shadow-[0_24px_70px_rgba(0,0,0,.55)]">
                       <Button variant="secondary" icon={<Crown className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-plan-${agency.id}`])} onClick={() => runAction(`agency-plan-${agency.id}`, async () => changeAgencyPlan(agency, agency.plan === 'starter' ? 'pro' : agency.plan === 'pro' ? 'business' : agency.plan === 'business' ? 'lifetime' : 'starter'))}>Changer plan</Button>
                       <Button variant="secondary" icon={<Play className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-trial-${agency.id}`])} onClick={() => runAction(`agency-trial-${agency.id}`, async () => activateTrial(agency))}>Activer essai 7 j</Button>
                       <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} onClick={() => { setTrialExtensionDays(7); setTrialExtensionAgency(agency); }}>Prolonger essai</Button>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-carbon-950/35 p-3">
-                    <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-emerald-200">Paiement</p>
-                    <div className="flex flex-wrap gap-2">
                       <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} onClick={() => { setPaymentDuration(1); setPaymentMethod(agency.paymentMethod || 'bank_transfer'); setPaymentNote(agency.paymentNotes); setPaymentAgency(agency); }}>Marquer comme payé</Button>
                       <Button variant="secondary" icon={<ShieldAlert className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-unpaid-${agency.id}`])} onClick={() => runAction(`agency-unpaid-${agency.id}`, async () => markBilling(agency, 'unpaid'))}>Non payé</Button>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-carbon-950/35 p-3">
-                    <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-sky-200">Communication</p>
-                    <div className="flex flex-wrap gap-2">
                       <Button variant="secondary" icon={<Mail className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-resend-${agency.id}`])} onClick={() => runAction(`agency-resend-${agency.id}`, async () => resendAgencyActivationEmail(agency))}>Renvoyer email</Button>
                       <Button variant="secondary" icon={<Clock3 className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-reminder-${agency.id}`])} onClick={() => runAction(`agency-reminder-${agency.id}`, async () => sendTrialEmail(agency, effectiveAdminStatus(agency) === 'trial_expired' ? 'trial_expired' : (dueState(agency.trialEndsAt).days ?? 3) <= 1 ? 'trial_reminder_1d' : 'trial_reminder_3d'))}>Rappel essai</Button>
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap items-start gap-2 xl:justify-end">
-                    <Button variant="secondary" icon={<Eye className="h-4 w-4" />} onClick={() => setSelectedAgencyDetails(agency)}>Voir détails</Button>
-                    <Button variant="ghost" icon={<ChevronDown className={`h-4 w-4 transition ${expandedAdvancedAgencyId === agency.id ? 'rotate-180' : ''}`} />} onClick={() => setExpandedAdvancedAgencyId((current) => (current === agency.id ? null : agency.id))}>Avancé</Button>
+                      <Button variant="secondary" icon={<Headphones className="h-4 w-4" />} onClick={() => { setSupportAgency(agency); setSupportReason(''); setSupportAccessMode('read_only'); }}>Mode assistance</Button>
+                      <Button variant="ghost" icon={<ChevronDown className={`h-4 w-4 transition ${expandedAdvancedAgencyId === agency.id ? 'rotate-180' : ''}`} />} onClick={() => setExpandedAdvancedAgencyId((current) => (current === agency.id ? null : agency.id))}>Actions avancées</Button>
+                      </div>
+                    </details>
                   </div>
                 </div>
 
@@ -1507,7 +1599,7 @@ export default function SuperAdminPage() {
                   </div>
                 ) : null}
 
-                <div className="mt-4 rounded-xl border border-white/10 bg-carbon-900/60 p-3">
+                <div className="mt-3 rounded-xl border border-white/10 bg-carbon-900/40 p-3">
                   <button
                     type="button"
                     className="flex w-full items-center justify-between gap-3 text-left"
@@ -1672,6 +1764,23 @@ export default function SuperAdminPage() {
               </div>
             ))}
           </div>
+          <div className="border-t border-white/10">
+            <div className="hidden grid-cols-[1.1fr_1fr_1fr_1fr_1.2fr_auto] gap-4 px-5 py-3 text-[10px] font-black uppercase tracking-[0.16em] text-carbon-500 md:grid">
+              <span>Plan</span><span>Prix</span><span>Agences</span><span>Revenu estimé</span><span>Limite véhicules</span><span>Statut</span>
+            </div>
+            <div className="divide-y divide-white/10">
+              {planStats.map(({ plan, agencies: planAgencies, revenue }) => (
+                <div key={`plan-row-${plan}`} className="grid gap-3 px-5 py-3.5 md:grid-cols-[1.1fr_1fr_1fr_1fr_1.2fr_auto] md:items-center">
+                  <p className="font-black text-white">{planLabel(plan)}</p>
+                  <p className="text-sm text-carbon-300">{formatMAD(monthlyPriceByPlan[plan])}{plan === 'lifetime' ? '' : '/mois'}</p>
+                  <p className="text-sm font-bold text-white">{planAgencies.length}</p>
+                  <p className="text-sm font-bold text-white">{formatMAD(revenue)}</p>
+                  <p className="text-sm text-carbon-300">{plan === 'starter' ? '15 véhicules' : plan === 'pro' ? '50 véhicules' : 'Illimité / avancé'}</p>
+                  <StatusPill className={statusPillClass('plan', plan)}>Actif</StatusPill>
+                </div>
+              ))}
+            </div>
+          </div>
         </Card>
         ) : null}
 
@@ -1690,27 +1799,28 @@ export default function SuperAdminPage() {
             <MiniMetric label="Non payés" value={String(agencySummary.unpaid)} icon={ShieldAlert} tone="red" />
             <MiniMetric label="Essais" value={String(agencySummary.trial)} icon={CalendarClock} tone="blue" />
           </div>
-          <div className="grid gap-3 p-5">
+          <div className="divide-y divide-white/10">
             {filteredAgencies.map((agency) => (
-              <div key={`pay-${agency.id}`} className="rounded-2xl border border-white/10 bg-carbon-950/45 p-4">
-                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div key={`pay-${agency.id}`} className="grid gap-3 px-5 py-4 transition hover:bg-white/[0.025] lg:grid-cols-[minmax(180px,1.4fr)_repeat(5,minmax(90px,1fr))_auto] lg:items-center">
                   <div className="min-w-0">
                     <p className="font-black text-white">{agency.agencyName}</p>
-                    <p className="mt-1 break-all text-sm text-carbon-400">{agency.email}</p>
+                    <p className="mt-1 truncate text-xs text-carbon-400">{agency.email}</p>
                   </div>
-                  <div className="grid gap-2 text-sm text-carbon-300 sm:grid-cols-4 lg:min-w-[560px]">
-                    <p><span className="block text-xs text-carbon-500">Montant</span><strong className="text-white">{formatMAD(agency.monthlyPrice)}</strong></p>
-                    <p><span className="block text-xs text-carbon-500">Plan</span><strong className="text-white">{planLabel(agency.plan)}</strong></p>
-                    <p><span className="block text-xs text-carbon-500">Échéance</span><strong className="text-white">{agency.nextPaymentDueDate || '—'}</strong></p>
-                    <p><span className="block text-xs text-carbon-500">Statut</span><StatusPill className={statusPillClass('billing', agency.billingStatus)}>{billingLabel(agency.billingStatus)}</StatusPill></p>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button variant="secondary" onClick={() => { setPaymentDuration(1); setPaymentMethod(agency.paymentMethod || 'bank_transfer'); setPaymentNote(agency.paymentNotes); setPaymentAgency(agency); }}>Marquer payé</Button>
-                    <Button variant="secondary" loading={Boolean(actionLoading[`pay-unpaid-${agency.id}`])} onClick={() => runAction(`pay-unpaid-${agency.id}`, async () => markBilling(agency, 'unpaid'))}>Non payé</Button>
-                    <Button variant="ghost" onClick={() => setSelectedAgencyDetails(agency)}>Voir agence</Button>
-                  </div>
+                  <p className="text-sm text-carbon-300"><span className="block text-[10px] uppercase text-carbon-500 lg:hidden">Plan</span>{planLabel(agency.plan)}</p>
+                  <p className="font-bold text-white"><span className="block text-[10px] font-normal uppercase text-carbon-500 lg:hidden">Montant</span>{formatMAD(agency.monthlyPrice)}</p>
+                  <p className="text-sm text-carbon-300"><span className="block text-[10px] uppercase text-carbon-500 lg:hidden">Échéance</span>{agency.nextPaymentDueDate || '—'}</p>
+                  <StatusPill className={statusPillClass('billing', agency.billingStatus)}>{billingLabel(agency.billingStatus)}</StatusPill>
+                  <p className="text-sm text-carbon-300"><span className="block text-[10px] uppercase text-carbon-500 lg:hidden">Méthode</span>{agency.paymentMethod || '—'}</p>
+                  <Button variant="secondary" className="h-9 px-3 text-xs" onClick={() => setSelectedAgencyDetails(agency)}>Voir agence</Button>
+                  <details className="group relative">
+                    <summary className="focus-ring flex h-9 cursor-pointer list-none items-center justify-center gap-1 rounded-xl border border-white/10 px-3 text-xs font-bold text-carbon-200">Actions <ChevronDown className="h-3.5 w-3.5 group-open:rotate-180" /></summary>
+                    <div className="absolute right-0 z-20 mt-2 grid w-56 gap-1 rounded-2xl border border-white/10 bg-carbon-950 p-2 shadow-2xl">
+                      <Button variant="secondary" onClick={() => { setPaymentDuration(1); setPaymentMethod(agency.paymentMethod || 'bank_transfer'); setPaymentNote(agency.paymentNotes); setPaymentAgency(agency); }}>Marquer payé</Button>
+                      <Button variant="secondary" loading={Boolean(actionLoading[`pay-unpaid-${agency.id}`])} onClick={() => runAction(`pay-unpaid-${agency.id}`, async () => markBilling(agency, 'unpaid'))}>Non payé</Button>
+                      <Button variant="secondary" icon={<Mail className="h-4 w-4" />} loading={Boolean(actionLoading[`agency-resend-${agency.id}`])} onClick={() => runAction(`agency-resend-${agency.id}`, async () => resendAgencyActivationEmail(agency))}>Renvoyer rappel</Button>
+                    </div>
+                  </details>
                 </div>
-              </div>
             ))}
           </div>
         </Card>
@@ -1730,23 +1840,23 @@ export default function SuperAdminPage() {
             <MiniMetric label="Inactifs" value={String(allAdminUsers.filter((u) => u.account_status !== 'active').length)} icon={ShieldAlert} tone="red" />
             <MiniMetric label="Total" value={String(allAdminUsers.length)} icon={Activity} tone="gold" />
           </div>
-          <div className="grid gap-3 p-5 lg:grid-cols-2">
+          <div className="divide-y divide-white/10">
             {allAdminUsers.length === 0 ? <p className="text-sm text-carbon-400">Aucun utilisateur disponible.</p> : allAdminUsers.map((user) => {
               const agency = agencies.find((item) => item.id === user.agency_id);
               return (
-                <div key={user.id} className="rounded-2xl border border-white/10 bg-carbon-950/45 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
+                <div key={user.id} className="grid gap-3 px-5 py-4 transition hover:bg-white/[0.025] md:grid-cols-[minmax(180px,1.3fr)_minmax(180px,1.4fr)_1fr_.7fr_.8fr_auto] md:items-center">
                     <div className="min-w-0">
                       <p className="font-black text-white">{user.full_name || 'Utilisateur'}</p>
-                      <p className="mt-1 break-all text-sm text-carbon-400">{user.email || '—'}</p>
-                      <p className="mt-1 text-xs text-carbon-500">{agency?.agencyName || 'Agence inconnue'} · {user.role || 'Rôle non renseigné'}</p>
+                      <p className="mt-1 truncate text-xs text-carbon-400">{user.email || '—'}</p>
                     </div>
+                    <p className="truncate text-sm text-carbon-300">{agency?.agencyName || 'Agence inconnue'}</p>
+                    <p className="text-sm text-carbon-300">{user.role || 'Rôle non renseigné'}</p>
                     <Badge>{accountLabel(user.account_status)}</Badge>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {agency ? <Button variant="ghost" onClick={() => setSelectedAgencyDetails(agency)}>Voir agence</Button> : null}
-                    {agency ? <Button variant="secondary" loading={Boolean(actionLoading[`admin-user-revoke-${user.id}`])} onClick={() => runAction(`admin-user-revoke-${user.id}`, async () => revokeUserSessions(agency.id, user.id))}>Forcer déconnexion</Button> : null}
-                  </div>
+                    <p className="text-xs text-carbon-400">{formatActivityTime(user.last_login_at)}</p>
+                    <div className="flex gap-2 md:justify-end">
+                      {agency ? <Button variant="ghost" className="h-9 px-3 text-xs" onClick={() => setSelectedAgencyDetails(agency)}>Voir agence</Button> : null}
+                      {agency ? <Button variant="secondary" className="h-9 px-3 text-xs" loading={Boolean(actionLoading[`admin-user-revoke-${user.id}`])} onClick={() => runAction(`admin-user-revoke-${user.id}`, async () => revokeUserSessions(agency.id, user.id))}>Déconnecter</Button> : null}
+                    </div>
                 </div>
               );
             })}
@@ -1770,23 +1880,35 @@ export default function SuperAdminPage() {
             }).length)} icon={CalendarClock} tone="gold" />
             <MiniMetric label="Révoquées" value={String(allAdminSessions.filter((s) => s.revoked_at).length)} icon={XCircle} tone="red" />
           </div>
-          <div className="grid gap-3 p-5">
-            {allAdminSessions.length === 0 ? <p className="text-sm text-carbon-400">Aucune session enregistrée.</p> : allAdminSessions.slice(0, 30).map((session) => {
+          <div className="flex gap-2 overflow-x-auto border-b border-white/10 px-5 py-3">
+            {([
+              ['all', 'Toutes'],
+              ['today', 'Actives aujourd’hui'],
+              ['ios', 'iOS'],
+              ['desktop', 'Desktop'],
+              ['old', 'Anciennes'],
+            ] as const).map(([value, label]) => (
+              <button key={value} type="button" onClick={() => setSessionFilter(value)} className={`h-9 shrink-0 rounded-xl px-3 text-xs font-bold transition ${sessionFilter === value ? 'bg-[#E3B117] text-carbon-950' : 'border border-white/10 bg-white/[0.03] text-carbon-300 hover:text-white'}`}>{label}</button>
+            ))}
+          </div>
+          <div className="divide-y divide-white/10">
+            {filteredAdminSessions.length === 0 ? <p className="p-8 text-center text-sm text-carbon-400">Aucune session pour ce filtre.</p> : filteredAdminSessions.slice(0, 30).map((session) => {
               const user = allAdminUsers.find((item) => item.id === session.user_id);
               const agency = agencies.find((item) => item.id === session.agency_id);
               return (
-                <div key={session.id} className="rounded-2xl border border-white/10 bg-carbon-950/45 p-4">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div key={session.id} className="grid gap-3 px-5 py-4 transition hover:bg-white/[0.025] lg:grid-cols-[1.2fr_1.2fr_1.2fr_.8fr_.8fr_1fr_auto_auto] lg:items-center">
                     <div className="min-w-0">
                       <p className="font-black text-white">{user?.full_name || user?.email || 'Utilisateur'}</p>
-                      <p className="mt-1 text-sm text-carbon-400">{agency?.agencyName || 'Agence inconnue'} · {sessionDisplayLabel(session)}</p>
+                      <p className="mt-1 truncate text-xs text-carbon-400">{user?.email || '—'}</p>
                     </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge>{activityLabel(session.last_seen_at, session.revoked_at)}</Badge>
-                      {!session.revoked_at ? <Button variant="secondary" loading={Boolean(actionLoading[`admin-session-revoke-${session.id}`])} onClick={() => runAction(`admin-session-revoke-${session.id}`, async () => revokeSingleSession(session.id))}>Déconnecter</Button> : null}
-                    </div>
+                    <p className="truncate text-sm text-carbon-300">{agency?.agencyName || 'Agence inconnue'}</p>
+                    <p className="truncate text-sm text-carbon-300">{session.device_label || session.device_name || 'Appareil inconnu'}</p>
+                    <p className="text-sm text-carbon-400">{session.browser || '—'}</p>
+                    <p className="text-sm text-carbon-400">{session.os || '—'}</p>
+                    <p className="text-xs text-carbon-400">{formatActivityTime(session.last_seen_at || session.last_activity_at)}</p>
+                    <Badge>{activityLabel(session.last_seen_at, session.revoked_at)}</Badge>
+                    {!session.revoked_at ? <Button variant="secondary" className="h-9 px-3 text-xs" loading={Boolean(actionLoading[`admin-session-revoke-${session.id}`])} onClick={() => runAction(`admin-session-revoke-${session.id}`, async () => revokeSingleSession(session.id))}>Déconnecter</Button> : <span />}
                   </div>
-                </div>
               );
             })}
           </div>
