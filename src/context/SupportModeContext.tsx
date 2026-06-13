@@ -28,6 +28,7 @@ type SupportModeContextValue = {
 const SupportModeContext = createContext<SupportModeContextValue | null>(null);
 const storageKey = 'mekloc_support_session_id';
 export const SUPPORT_SESSION_MINUTES = 30;
+export const SUPPORT_REASON_MIN_LENGTH = 10;
 
 type SupportSessionRow = {
   id: string;
@@ -65,12 +66,28 @@ export function SupportModeProvider({ children }: { children: React.ReactNode })
     setSupportSession(null);
   }, []);
 
+  const expireSupportMode = useCallback(async (sessionId?: string) => {
+    const activeSessionId = sessionId || supportSession?.id || sessionStorage.getItem(storageKey);
+    if (activeSessionId && supabase && profile?.isSuperAdmin) {
+      await supabase
+        .from('support_sessions')
+        .update({ status: 'expired' })
+        .eq('id', activeSessionId)
+        .is('ended_at', null);
+    }
+    clearLocalSession();
+    navigate('/super-admin', { replace: true });
+  }, [clearLocalSession, navigate, profile?.isSuperAdmin, supportSession?.id]);
+
   const endSupportMode = useCallback(async () => {
     const sessionId = supportSession?.id || sessionStorage.getItem(storageKey);
     if (sessionId && supabase && profile?.isSuperAdmin) {
       await supabase
         .from('support_sessions')
-        .update({ ended_at: new Date().toISOString() })
+        .update({
+          ended_at: new Date().toISOString(),
+          status: 'ended',
+        })
         .eq('id', sessionId)
         .eq('super_admin_user_id', user?.id || profile.id);
     }
@@ -98,8 +115,12 @@ export function SupportModeProvider({ children }: { children: React.ReactNode })
       .then(({ data, error }) => {
         if (cancelled) return;
         const row = data as SupportSessionRow | null;
-        if (error || !row || row.ended_at || new Date(row.expires_at).getTime() <= Date.now()) {
+        if (error || !row || row.ended_at) {
           clearLocalSession();
+          return;
+        }
+        if (new Date(row.expires_at).getTime() <= Date.now()) {
+          void expireSupportMode(row.id);
           return;
         }
         setSupportSession(mapSession(row));
@@ -108,27 +129,40 @@ export function SupportModeProvider({ children }: { children: React.ReactNode })
     return () => {
       cancelled = true;
     };
-  }, [authLoading, clearLocalSession, isSupabaseEnabled, profile?.id, profile?.isSuperAdmin, user?.id]);
+  }, [authLoading, clearLocalSession, expireSupportMode, isSupabaseEnabled, profile?.id, profile?.isSuperAdmin, user?.id]);
 
   useEffect(() => {
     if (!supportSession) return;
     const remaining = new Date(supportSession.expiresAt).getTime() - Date.now();
     if (remaining <= 0) {
-      void endSupportMode();
+      void expireSupportMode(supportSession.id);
       return;
     }
-    const timeout = window.setTimeout(() => void endSupportMode(), remaining);
+    const timeout = window.setTimeout(() => void expireSupportMode(supportSession.id), remaining);
     return () => window.clearTimeout(timeout);
-  }, [endSupportMode, supportSession]);
+  }, [expireSupportMode, supportSession]);
 
   const startSupportMode = useCallback(async (input: { agencyId: string; agencyName: string; mode: SupportAccessMode; reason: string }) => {
     if (!supabase || !profile?.isSuperAdmin || !user?.id) {
       throw new Error('Accès réservé au Super Admin.');
     }
     const reason = input.reason.trim();
-    if (reason.length < 5) {
-      throw new Error('Veuillez indiquer une raison précise.');
+    if (reason.length < SUPPORT_REASON_MIN_LENGTH) {
+      throw new Error(`Le motif doit contenir au moins ${SUPPORT_REASON_MIN_LENGTH} caractères.`);
     }
+
+    const { data: existingSession, error: existingSessionError } = await supabase
+      .from('support_sessions')
+      .select('id')
+      .eq('super_admin_user_id', user.id)
+      .is('ended_at', null)
+      .gt('expires_at', new Date().toISOString())
+      .maybeSingle();
+    if (existingSessionError) throw existingSessionError;
+    if (existingSession) {
+      throw new Error('Une session d’assistance est déjà active.');
+    }
+
     const expiresAt = new Date(Date.now() + SUPPORT_SESSION_MINUTES * 60_000).toISOString();
     const { data, error } = await supabase
       .from('support_sessions')
@@ -138,6 +172,7 @@ export function SupportModeProvider({ children }: { children: React.ReactNode })
         expires_at: expiresAt,
         mode: input.mode,
         reason,
+        status: 'active',
       })
       .select('id,super_admin_user_id,agency_id,started_at,ended_at,expires_at,mode,reason')
       .single();

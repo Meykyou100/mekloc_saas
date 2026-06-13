@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import { CalendarDays, Car, LayoutDashboard, MoreHorizontal, Users } from 'lucide-react';
@@ -28,8 +28,22 @@ export default function AppLayout() {
   const { theme } = useApp();
   const { profile } = useAuth();
   const { supportSession, isSupportMode, isReadOnly, endSupportMode } = useSupportMode();
+  const [supportMinutesRemaining, setSupportMinutesRemaining] = useState(0);
   const inTrialGrace = isTrialInGracePeriod(profile?.agency);
   const graceHours = trialGraceHoursRemaining(profile?.agency);
+
+  useEffect(() => {
+    if (!supportSession) {
+      setSupportMinutesRemaining(0);
+      return;
+    }
+    const updateRemaining = () => {
+      setSupportMinutesRemaining(Math.max(0, Math.ceil((new Date(supportSession.expiresAt).getTime() - Date.now()) / 60_000)));
+    };
+    updateRemaining();
+    const interval = window.setInterval(updateRemaining, 15_000);
+    return () => window.clearInterval(interval);
+  }, [supportSession]);
 
   return (
     <div
@@ -45,21 +59,21 @@ export default function AppLayout() {
       <div className="min-h-screen lg:pl-72">
         <Topbar onMenu={() => setSidebarOpen(true)} />
         {isSupportMode && supportSession ? (
-          <div className="mx-4 mt-4 flex flex-col gap-3 rounded-2xl border border-[#E3B117]/40 bg-[#E3B117]/12 px-4 py-3 text-sm text-[var(--app-text)] shadow-[0_10px_30px_rgba(212,160,23,.12)] sm:mx-6 sm:flex-row sm:items-center sm:justify-between lg:mx-8">
+          <div className="mx-4 mt-4 flex flex-col gap-3 rounded-2xl border border-[#E3B117]/50 bg-gradient-to-r from-rose-950/80 via-carbon-950 to-[#E3B117]/15 px-4 py-3 text-sm text-white shadow-[0_12px_34px_rgba(80,0,0,.18)] sm:mx-6 sm:flex-row sm:items-center sm:justify-between lg:mx-8">
             <div>
               <p className="font-black">
-                Mode assistance actif — Vous consultez le compte de {supportSession.agencyName}
+                Mode assistance actif — {supportSession.agencyName} — expire dans {supportMinutesRemaining} min
               </p>
-              <p className="mt-0.5 text-xs text-[var(--app-text-muted)]">
-                {isReadOnly ? 'Lecture seule' : 'Accès complet audité'} · expiration automatique dans 30 minutes
+              <p className="mt-0.5 text-xs text-carbon-300">
+                {isReadOnly ? 'Lecture seule' : 'Accès complet audité'} · session temporaire et journalisée
               </p>
             </div>
             <button
               type="button"
-              className="focus-ring inline-flex min-h-10 shrink-0 items-center justify-center rounded-xl border border-[var(--app-border)] bg-[var(--app-card)] px-4 font-bold text-[var(--app-text)] transition hover:border-[#E3B117]/50"
+              className="focus-ring inline-flex min-h-10 shrink-0 items-center justify-center rounded-xl border border-[#F5C542]/60 bg-[#E3B117] px-4 font-black text-carbon-950 transition hover:scale-[1.02] hover:bg-[#F5C542]"
               onClick={() => void endSupportMode()}
             >
-              Quitter le mode assistance
+              Quitter assistance
             </button>
           </div>
         ) : null}

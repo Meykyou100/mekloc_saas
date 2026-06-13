@@ -10,7 +10,7 @@ import { useApp } from '../context/AppContext';
 import { useAuth, type AccountStatus, type AgencyPlan, type BillingStatus, type PaymentMethod, type SubscriptionStatus } from '../context/AuthContext';
 import { formatMAD } from '../data/mockData';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
-import { useSupportMode, type SupportAccessMode } from '../context/SupportModeContext';
+import { SUPPORT_REASON_MIN_LENGTH, useSupportMode, type SupportAccessMode } from '../context/SupportModeContext';
 
 type AccessRequestStatus = 'pending' | 'pending_verification' | 'contacted' | 'payment_pending' | 'approved' | 'rejected' | 'verified';
 type AccessRequestRow = {
@@ -87,6 +87,20 @@ type UserSessionRow = {
   last_seen_at: string | null;
   first_seen_at: string | null;
   revoked_at: string | null;
+};
+
+type SupportLogRow = {
+  id: string;
+  agency_id: string;
+  super_admin_user_id: string;
+  reason: string;
+  mode: SupportAccessMode;
+  started_at: string;
+  ended_at: string | null;
+  expires_at: string;
+  status?: 'active' | 'ended' | 'expired';
+  adminName: string;
+  adminEmail: string;
 };
 
 type SuperAdminView =
@@ -198,6 +212,20 @@ function dueState(date: string | null | undefined) {
   if (days < 0) return { label: `En retard ${Math.abs(days)} j`, tone: 'danger' as const, days };
   if (days <= 7) return { label: `Dans ${days} j`, tone: 'warning' as const, days };
   return { label: `Dans ${days} j`, tone: 'ok' as const, days };
+}
+
+function supportLogStatus(log: SupportLogRow) {
+  if (log.ended_at || log.status === 'ended') return 'ended' as const;
+  if (log.status === 'expired' || new Date(log.expires_at).getTime() <= Date.now()) return 'expired' as const;
+  return 'active' as const;
+}
+
+function supportLogDuration(log: SupportLogRow) {
+  const started = new Date(log.started_at).getTime();
+  const end = log.ended_at
+    ? new Date(log.ended_at).getTime()
+    : Math.min(Date.now(), new Date(log.expires_at).getTime());
+  return `${Math.max(1, Math.round((end - started) / 60_000))} min`;
 }
 
 function MiniMetric({ label, value, icon: Icon, tone = 'gold' }: { label: string; value: string; icon: ElementType; tone?: 'gold' | 'green' | 'red' | 'blue' }) {
@@ -358,7 +386,7 @@ function HelpIcon({ className }: { className?: string }) {
 export default function SuperAdminPage() {
   const { profile, isSupabaseEnabled, signOut } = useAuth();
   const { notify } = useApp();
-  const { startSupportMode } = useSupportMode();
+  const { startSupportMode, isSupportMode } = useSupportMode();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [accessRequests, setAccessRequests] = useState<AccessRequestRow[]>([]);
@@ -373,6 +401,7 @@ export default function SuperAdminPage() {
   const [activationLinkToCopy, setActivationLinkToCopy] = useState<{ email: string; link: string } | null>(null);
   const [agencyUsers, setAgencyUsers] = useState<Record<string, AdminUserRow[]>>({});
   const [agencySessions, setAgencySessions] = useState<Record<string, UserSessionRow[]>>({});
+  const [supportLogsByAgency, setSupportLogsByAgency] = useState<Record<string, SupportLogRow[]>>({});
   const [expandedSessionAgencyId, setExpandedSessionAgencyId] = useState<string | null>(null);
   const [expandedAdvancedAgencyId, setExpandedAdvancedAgencyId] = useState<string | null>(null);
   const [agencySearch, setAgencySearch] = useState('');
@@ -395,6 +424,8 @@ export default function SuperAdminPage() {
   const [supportReason, setSupportReason] = useState('');
   const [supportAccessMode, setSupportAccessMode] = useState<SupportAccessMode>('read_only');
   const [startingSupport, setStartingSupport] = useState(false);
+  const [showSupportHistory, setShowSupportHistory] = useState(false);
+  const [showAllSupportLogs, setShowAllSupportLogs] = useState(false);
   const [sessionFilter, setSessionFilter] = useState<'all' | 'today' | 'ios' | 'desktop' | 'old'>('all');
 
   async function confirmSupportMode() {
@@ -433,6 +464,10 @@ export default function SuperAdminPage() {
   const allAdminUsers = useMemo(() => Object.values(agencyUsers).flat(), [agencyUsers]);
 
   const allAdminSessions = useMemo(() => Object.values(agencySessions).flat(), [agencySessions]);
+  const selectedAgencySupportLogs = useMemo(
+    () => selectedAgencyDetails ? supportLogsByAgency[selectedAgencyDetails.id] || [] : [],
+    [selectedAgencyDetails, supportLogsByAgency],
+  );
   const filteredAdminSessions = useMemo(() => allAdminSessions.filter((session) => {
     if (sessionFilter === 'all') return true;
     const seenAt = session.last_seen_at || session.last_activity_at;
@@ -605,7 +640,7 @@ export default function SuperAdminPage() {
       setAccessRequests(reqs);
       setRequestNotes(Object.fromEntries(reqs.map((r) => [r.id, r.admin_notes || ''])));
 
-      const profiles = (usersRes.data || []) as Array<{ agency_id: string | null; account_status: AccountStatus; email: string | null; full_name?: string | null; role: string | null; last_login_at?: string | null; last_seen_at?: string | null }>;
+      const profiles = (usersRes.data || []) as Array<{ id: string; agency_id: string | null; account_status: AccountStatus; email: string | null; full_name?: string | null; role: string | null; last_login_at?: string | null; last_seen_at?: string | null }>;
       const vehicles = (vehicleRes.data || []) as Array<{ agency_id: string | null }>;
       const mapped = ((agencyRes.data || []) as Array<{ id: string; name: string; plan: AgencyPlan; billing_status: BillingStatus; subscription_status?: SubscriptionStatus | null; trial_started_at?: string | null; trial_ends_at?: string | null; paid_until?: string | null; last_payment_date?: string | null; payment_method?: PaymentMethod | null; payment_notes?: string | null; trial_reminder_3d_sent_at?: string | null; trial_reminder_1d_sent_at?: string | null; trial_expired_email_sent_at?: string | null; last_trial_extended_at?: string | null; next_payment_due_date: string | null; monthly_price: number | null; created_at?: string | null }>)
         .map((a) => {
@@ -676,6 +711,30 @@ export default function SuperAdminPage() {
         }
       } catch {
         setAgencySessions({});
+      }
+
+      try {
+        const supportRes = await supabase
+          .from('support_sessions')
+          .select('id,agency_id,super_admin_user_id,reason,mode,started_at,ended_at,expires_at,status')
+          .order('started_at', { ascending: false });
+        if (supportRes.error) throw supportRes.error;
+
+        const profileById = new Map(profiles.map((item) => [item.id, item]));
+        const byAgencySupport: Record<string, SupportLogRow[]> = {};
+        ((supportRes.data || []) as Omit<SupportLogRow, 'adminName' | 'adminEmail'>[]).forEach((log) => {
+          const admin = profileById.get(log.super_admin_user_id);
+          const mappedLog: SupportLogRow = {
+            ...log,
+            adminName: admin?.full_name || 'Super Admin',
+            adminEmail: admin?.email || 'Email indisponible',
+          };
+          if (!byAgencySupport[log.agency_id]) byAgencySupport[log.agency_id] = [];
+          byAgencySupport[log.agency_id].push(mappedLog);
+        });
+        setSupportLogsByAgency(byAgencySupport);
+      } catch {
+        setSupportLogsByAgency({});
       }
     } catch (error) {
       notify({ title: 'Erreur chargement', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
@@ -1991,7 +2050,7 @@ export default function SuperAdminPage() {
       {selectedAgencyDetails ? (
         <div className="fixed inset-0 z-50">
           <button type="button" aria-label="Fermer les détails" className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setSelectedAgencyDetails(null)} />
-          <aside className="absolute inset-y-0 right-0 flex w-full max-w-[620px] flex-col overflow-hidden border-l border-white/10 bg-gradient-to-b from-carbon-950 via-carbon-950 to-black shadow-[0_30px_90px_rgba(0,0,0,.45)] sm:rounded-l-[30px]">
+          <aside className="absolute inset-y-0 right-0 flex w-full max-w-[760px] flex-col overflow-hidden border-l border-white/10 bg-gradient-to-b from-carbon-950 via-carbon-950 to-black shadow-[0_30px_90px_rgba(0,0,0,.45)] sm:rounded-l-[30px]">
             <div className="sticky top-0 z-10 border-b border-white/10 bg-carbon-950/95 p-5 backdrop-blur">
               <div className="flex items-start justify-between gap-4">
                 <div>
@@ -2086,23 +2145,103 @@ export default function SuperAdminPage() {
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-carbon-950/55 p-4">
-                <p className="text-sm font-black text-white">Actions rapides</p>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    icon={<Headphones className="h-4 w-4" />}
-                    onClick={() => {
-                      setSupportAgency(selectedAgencyDetails);
-                      setSupportReason('');
-                      setSupportAccessMode('read_only');
-                    }}
-                  >
-                    Ouvrir en mode assistance
-                  </Button>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-black text-white">Actions rapides</p>
+                    <p className="mt-1 text-xs text-carbon-400">Accès temporaire et journalisé</p>
+                  </div>
+                  <div title={isSupportMode ? 'Une session d’assistance est déjà active' : undefined}>
+                    <Button
+                      icon={<Headphones className="h-4 w-4" />}
+                      disabled={isSupportMode}
+                      className="border border-[#F5C542]/70 bg-[#E3B117] text-carbon-950 shadow-[0_10px_28px_rgba(227,177,23,.18)] hover:bg-[#F5C542] hover:shadow-[0_14px_34px_rgba(227,177,23,.28)] disabled:border-white/10 disabled:bg-white/5 disabled:text-carbon-500 disabled:shadow-none"
+                      onClick={() => {
+                        setSupportAgency(selectedAgencyDetails);
+                        setSupportReason('');
+                        setSupportAccessMode('read_only');
+                      }}
+                    >
+                      Ouvrir en assistance
+                    </Button>
+                  </div>
+                </div>
+                {isSupportMode ? <p className="mt-2 text-xs font-semibold text-amber-200">Mode assistance indisponible: une session est déjà active.</p> : null}
+                <div className="mt-3 flex flex-wrap gap-2">
                   <Button variant="secondary" icon={<Crown className="h-4 w-4" />} loading={Boolean(actionLoading[`drawer-plan-${selectedAgencyDetails.id}`])} onClick={() => runAction(`drawer-plan-${selectedAgencyDetails.id}`, async () => changeAgencyPlan(selectedAgencyDetails, selectedAgencyDetails.plan === 'starter' ? 'pro' : selectedAgencyDetails.plan === 'pro' ? 'business' : selectedAgencyDetails.plan === 'business' ? 'lifetime' : 'starter'))}>Changer plan</Button>
                   <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} onClick={() => { setTrialExtensionDays(7); setTrialExtensionAgency(selectedAgencyDetails); }}>Prolonger essai</Button>
                   <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} onClick={() => { setPaymentDuration(1); setPaymentMethod(selectedAgencyDetails.paymentMethod || 'bank_transfer'); setPaymentNote(selectedAgencyDetails.paymentNotes); setPaymentAgency(selectedAgencyDetails); }}>Marquer comme payé</Button>
                   <Button variant="secondary" icon={<Mail className="h-4 w-4" />} loading={Boolean(actionLoading[`drawer-resend-${selectedAgencyDetails.id}`])} onClick={() => runAction(`drawer-resend-${selectedAgencyDetails.id}`, async () => resendAgencyActivationEmail(selectedAgencyDetails))}>Renvoyer email</Button>
                 </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#E3B117]/20 bg-carbon-950/55 p-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-black text-white">Support & journal</p>
+                    <p className="mt-1 text-xs text-carbon-400">{selectedAgencySupportLogs.length} session{selectedAgencySupportLogs.length > 1 ? 's' : ''} enregistrée{selectedAgencySupportLogs.length > 1 ? 's' : ''}</p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    icon={<Eye className="h-4 w-4" />}
+                    onClick={() => {
+                      setShowSupportHistory((current) => !current);
+                      setShowAllSupportLogs(false);
+                    }}
+                  >
+                    Voir journal support
+                  </Button>
+                </div>
+
+                {selectedAgencySupportLogs[0] ? (
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {[
+                      ['Dernier accès', formatActivityTime(selectedAgencySupportLogs[0].started_at)],
+                      ['Mode', selectedAgencySupportLogs[0].mode === 'read_only' ? 'Lecture seule' : 'Accès complet'],
+                      ['Dernier admin', selectedAgencySupportLogs[0].adminName],
+                      ['Motif', selectedAgencySupportLogs[0].reason],
+                    ].map(([label, value]) => (
+                      <div key={label} className="min-w-0 rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                        <p className="text-[10px] font-black uppercase tracking-[0.14em] text-carbon-500">{label}</p>
+                        <p className="mt-1 break-words text-sm font-semibold text-white">{value}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-4 rounded-xl border border-dashed border-white/10 px-3 py-4 text-sm text-carbon-400">Aucun accès support enregistré pour cette agence.</p>
+                )}
+
+                {showSupportHistory && selectedAgencySupportLogs.length ? (
+                  <div className="mt-4 space-y-2 border-t border-white/10 pt-4">
+                    {selectedAgencySupportLogs.slice(0, showAllSupportLogs ? undefined : 5).map((log) => {
+                      const status = supportLogStatus(log);
+                      return (
+                        <div key={log.id} className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+                          <div className="flex flex-wrap items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-sm font-black text-white">{log.adminName}</p>
+                              <p className="break-all text-xs text-carbon-400">{log.adminEmail}</p>
+                            </div>
+                            <StatusPill className={status === 'active' ? 'border-emerald-300/30 bg-emerald-400/15 text-emerald-200' : status === 'expired' ? 'border-rose-300/30 bg-rose-400/15 text-rose-200' : 'border-white/15 bg-white/[0.05] text-carbon-200'}>
+                              {status === 'active' ? 'Actif' : status === 'expired' ? 'Expiré' : 'Terminé'}
+                            </StatusPill>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-carbon-300">
+                            <span>{formatActivityTime(log.started_at)}</span>
+                            <span>{log.mode === 'read_only' ? 'Lecture seule' : 'Accès complet'}</span>
+                            <span>{supportLogDuration(log)}</span>
+                            {log.ended_at ? <span>Fin: {formatActivityTime(log.ended_at)}</span> : null}
+                          </div>
+                          <p className="mt-2 break-words text-sm leading-5 text-carbon-200">{log.reason}</p>
+                        </div>
+                      );
+                    })}
+                    {selectedAgencySupportLogs.length > 5 ? (
+                      <button type="button" className="w-full rounded-xl border border-white/10 px-3 py-2 text-sm font-bold text-[#F5C542] transition hover:border-[#E3B117]/40 hover:bg-[#E3B117]/10" onClick={() => setShowAllSupportLogs((current) => !current)}>
+                        {showAllSupportLogs ? 'Afficher les 5 dernières' : 'Voir tout l’historique'}
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
               </div>
 
               <div className="rounded-2xl border border-white/10 bg-carbon-950/55 p-4">
@@ -2238,7 +2377,7 @@ export default function SuperAdminPage() {
           setSupportAgency(null);
           setSupportReason('');
         }}
-        title="Ouvrir en mode assistance"
+        title="Ouvrir en assistance"
         subtitle="Accès temporaire, limité à 30 minutes et entièrement audité."
         panelClassName="sm:max-w-xl"
       >
@@ -2256,10 +2395,13 @@ export default function SuperAdminPage() {
                 className="form-control min-h-24 resize-y"
                 value={supportReason}
                 onChange={(event) => setSupportReason(event.target.value)}
-                placeholder="Ex. Vérification d’un problème de contrat signalé par l’agence"
+                placeholder={'Ex: Aider l’agence à corriger une réservation\nEx: Vérifier un problème de contrat PDF'}
                 maxLength={500}
               />
-              <span className="text-xs text-carbon-400">Obligatoire. Cette note sera conservée dans le journal d’audit.</span>
+              <span className={`flex flex-wrap justify-between gap-2 text-xs ${supportReason.trim().length >= SUPPORT_REASON_MIN_LENGTH ? 'text-emerald-300' : 'text-carbon-400'}`}>
+                <span>Minimum {SUPPORT_REASON_MIN_LENGTH} caractères</span>
+                <span>{supportReason.trim().length}/500</span>
+              </span>
             </label>
 
             <fieldset className="grid gap-2">
@@ -2285,12 +2427,17 @@ export default function SuperAdminPage() {
               ))}
             </fieldset>
 
+            <div className="flex gap-3 rounded-2xl border border-amber-300/20 bg-amber-400/10 p-3 text-sm text-amber-100">
+              <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>Toutes les actions seront enregistrées dans le journal d’audit.</p>
+            </div>
+
             <div className="grid grid-cols-2 gap-2 border-t border-white/10 pt-4">
               <Button variant="secondary" disabled={startingSupport} onClick={() => setSupportAgency(null)}>Annuler</Button>
               <Button
                 icon={<Headphones className="h-4 w-4" />}
                 loading={startingSupport}
-                disabled={supportReason.trim().length < 5}
+                disabled={supportReason.trim().length < SUPPORT_REASON_MIN_LENGTH}
                 onClick={() => void confirmSupportMode()}
               >
                 Confirmer

@@ -12,10 +12,24 @@ create table if not exists public.support_sessions (
   expires_at timestamptz not null,
   mode text not null check (mode in ('read_only', 'full_access')),
   reason text not null check (char_length(trim(reason)) >= 5),
+  status text not null default 'active' check (status in ('active', 'ended', 'expired')),
   created_at timestamptz not null default now(),
   check (expires_at > started_at),
   check (expires_at <= started_at + interval '30 minutes')
 );
+
+alter table public.support_sessions
+  add column if not exists status text not null default 'active';
+
+alter table public.support_sessions
+  drop constraint if exists support_sessions_reason_check;
+alter table public.support_sessions
+  add constraint support_sessions_reason_check check (char_length(trim(reason)) >= 10);
+
+alter table public.support_sessions
+  drop constraint if exists support_sessions_status_check;
+alter table public.support_sessions
+  add constraint support_sessions_status_check check (status in ('active', 'ended', 'expired'));
 
 create index if not exists support_sessions_admin_active_idx
   on public.support_sessions(super_admin_user_id, expires_at)
@@ -46,7 +60,7 @@ alter table public.audit_logs enable row level security;
 drop policy if exists support_sessions_super_admin_select on public.support_sessions;
 create policy support_sessions_super_admin_select
   on public.support_sessions for select to authenticated
-  using (public.is_super_admin() and super_admin_user_id = auth.uid());
+  using (public.is_super_admin());
 
 drop policy if exists support_sessions_super_admin_insert on public.support_sessions;
 create policy support_sessions_super_admin_insert
@@ -62,6 +76,41 @@ create policy support_sessions_super_admin_update
   on public.support_sessions for update to authenticated
   using (public.is_super_admin() and super_admin_user_id = auth.uid())
   with check (public.is_super_admin() and super_admin_user_id = auth.uid());
+
+create or replace function public.prevent_parallel_support_sessions()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  update public.support_sessions
+  set status = 'expired'
+  where super_admin_user_id = new.super_admin_user_id
+    and ended_at is null
+    and expires_at <= now()
+    and status = 'active';
+
+  if exists (
+    select 1
+    from public.support_sessions
+    where super_admin_user_id = new.super_admin_user_id
+      and ended_at is null
+      and expires_at > now()
+      and status = 'active'
+  ) then
+    raise exception 'support_session_already_active';
+  end if;
+
+  new.status := 'active';
+  return new;
+end;
+$$;
+
+drop trigger if exists prevent_parallel_support_sessions_trigger on public.support_sessions;
+create trigger prevent_parallel_support_sessions_trigger
+before insert on public.support_sessions
+for each row execute function public.prevent_parallel_support_sessions();
 
 drop policy if exists audit_logs_super_admin_select on public.audit_logs;
 create policy audit_logs_super_admin_select
