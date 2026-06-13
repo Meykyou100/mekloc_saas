@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, Banknote, CalendarClock, CheckCircle2, ChevronDown, Clock3, Crown, Eye, FileText, Headphones, Laptop2, Mail, Menu, Play, RefreshCw, Search, ShieldAlert, Smartphone, Trash2, UserPlus, Users, X, XCircle } from 'lucide-react';
+import { Activity, AlertTriangle, Banknote, CalendarClock, CheckCircle2, ChevronDown, Clock3, Crown, Eye, FileText, Headphones, Laptop2, Mail, Menu, MoreHorizontal, Play, RefreshCw, Search, ShieldAlert, Smartphone, Trash2, UserPlus, Users, X, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type ElementType } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
@@ -29,6 +29,17 @@ type AccessRequestRow = {
   admin_notes: string | null;
   created_at: string;
   activation_link?: string | null;
+  crm_metadata?: CrmMetadata | null;
+};
+
+type PipelineStatus = 'new' | 'contacted' | 'interested' | 'demo_sent' | 'trial_active' | 'follow_up' | 'ready_to_pay' | 'paid' | 'lost';
+type HealthScore = 'active' | 'follow_up' | 'risk' | 'ready_to_pay';
+type CrmMetadata = {
+  pipeline_status?: PipelineStatus;
+  follow_up_date?: string | null;
+  internal_notes?: string;
+  health_score?: HealthScore;
+  last_contact_at?: string | null;
 };
 
 type AdminAgency = {
@@ -56,6 +67,7 @@ type AdminAgency = {
   monthlyPrice: number;
   createdAt: string | null;
   latestActivityAt: string | null;
+  settings: Record<string, unknown>;
 };
 
 type AdminUserRow = {
@@ -105,6 +117,7 @@ type SupportLogRow = {
 
 type SuperAdminView =
   | 'overview'
+  | 'crm'
   | 'agencies'
   | 'subscriptions'
   | 'payments'
@@ -116,6 +129,78 @@ type SuperAdminView =
   | 'reports'
   | 'settings'
   | 'support';
+
+type CrmActivity = {
+  vehicles: number;
+  reservations: number;
+  contracts: number;
+  payments: number;
+  activeSessions: number;
+};
+
+type CrmLead = {
+  key: string;
+  source: 'agency' | 'request';
+  id: string;
+  agencyName: string;
+  ownerName: string;
+  email: string;
+  phone: string;
+  subscriptionLabel: string;
+  lastLoginAt: string | null;
+  crm: CrmMetadata;
+  activity: CrmActivity;
+  agency?: AdminAgency;
+  request?: AccessRequestRow;
+};
+
+const pipelineStages: Array<{ value: PipelineStatus; label: string }> = [
+  { value: 'new', label: 'Nouveau lead' },
+  { value: 'contacted', label: 'Contacté' },
+  { value: 'interested', label: 'Intéressé' },
+  { value: 'demo_sent', label: 'Démo envoyée' },
+  { value: 'trial_active', label: 'Essai actif' },
+  { value: 'follow_up', label: 'À relancer' },
+  { value: 'ready_to_pay', label: 'Prêt à payer' },
+  { value: 'paid', label: 'Payé' },
+  { value: 'lost', label: 'Perdu' },
+];
+
+const healthLabels: Record<HealthScore, string> = {
+  active: 'Actif',
+  follow_up: 'À relancer',
+  risk: 'Risque de perte',
+  ready_to_pay: 'Prêt à payer',
+};
+
+function readCrmMetadata(value: unknown): CrmMetadata {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return value as CrmMetadata;
+}
+
+function agencyCrm(agency: AdminAgency) {
+  return readCrmMetadata(agency.settings.crm);
+}
+
+function inferAgencyPipeline(agency: AdminAgency): PipelineStatus {
+  const saved = agencyCrm(agency).pipeline_status;
+  if (saved) return saved;
+  const status = effectiveAdminStatus(agency);
+  if (status === 'active_paid') return 'paid';
+  if (status === 'trial_active') return 'trial_active';
+  if (status === 'payment_pending') return 'ready_to_pay';
+  if (status === 'trial_expired' || status === 'suspended') return 'follow_up';
+  return 'contacted';
+}
+
+function inferRequestPipeline(request: AccessRequestRow): PipelineStatus {
+  if (request.crm_metadata?.pipeline_status) return request.crm_metadata.pipeline_status;
+  if (request.status === 'rejected') return 'lost';
+  if (request.status === 'payment_pending') return 'ready_to_pay';
+  if (request.status === 'contacted') return 'contacted';
+  if (request.status === 'approved' || request.status === 'verified') return 'interested';
+  return 'new';
+}
 
 const monthlyPriceByPlan: Record<AgencyPlan, number> = { starter: 199, pro: 599, business: 399, lifetime: 5999 };
 
@@ -278,6 +363,7 @@ function SuperAdminSidebar({
       label: 'Gestion agences',
       items: [
         ['Agences', BuildingIcon, 'agencies'],
+        ['Pipeline CRM', Activity, 'crm'],
         ['Demandes d’accès', Mail, 'access'],
         ['Comptes en suppression', Trash2, 'deletions'],
       ],
@@ -402,6 +488,7 @@ export default function SuperAdminPage() {
   const [agencyUsers, setAgencyUsers] = useState<Record<string, AdminUserRow[]>>({});
   const [agencySessions, setAgencySessions] = useState<Record<string, UserSessionRow[]>>({});
   const [supportLogsByAgency, setSupportLogsByAgency] = useState<Record<string, SupportLogRow[]>>({});
+  const [crmActivityByAgency, setCrmActivityByAgency] = useState<Record<string, CrmActivity>>({});
   const [expandedSessionAgencyId, setExpandedSessionAgencyId] = useState<string | null>(null);
   const [expandedAdvancedAgencyId, setExpandedAdvancedAgencyId] = useState<string | null>(null);
   const [agencySearch, setAgencySearch] = useState('');
@@ -426,6 +513,8 @@ export default function SuperAdminPage() {
   const [startingSupport, setStartingSupport] = useState(false);
   const [showSupportHistory, setShowSupportHistory] = useState(false);
   const [showAllSupportLogs, setShowAllSupportLogs] = useState(false);
+  const [crmLeadToEdit, setCrmLeadToEdit] = useState<CrmLead | null>(null);
+  const [crmDraft, setCrmDraft] = useState<CrmMetadata>({});
   const [sessionFilter, setSessionFilter] = useState<'all' | 'today' | 'ios' | 'desktop' | 'old'>('all');
 
   async function confirmSupportMode() {
@@ -477,6 +566,70 @@ export default function SuperAdminPage() {
     if (sessionFilter === 'desktop') return !/ios|iphone|ipad|android|mobile/.test(deviceText);
     return Boolean(seenAt && Date.now() - new Date(seenAt).getTime() > 30 * 86_400_000);
   }), [allAdminSessions, sessionFilter]);
+
+  const crmLeads = useMemo<CrmLead[]>(() => {
+    const agencyLeads = agencies.map((agency) => {
+      const crm = agencyCrm(agency);
+      const users = agencyUsers[agency.id] || [];
+      const latestLogin = users
+        .map((item) => item.last_login_at || item.last_seen_at)
+        .filter(Boolean)
+        .sort((left, right) => new Date(String(right)).getTime() - new Date(String(left)).getTime())[0] || agency.latestActivityAt;
+      return {
+        key: `agency-${agency.id}`,
+        source: 'agency' as const,
+        id: agency.id,
+        agencyName: agency.agencyName,
+        ownerName: agency.ownerName,
+        email: agency.email,
+        phone: '',
+        subscriptionLabel: subscriptionLabel(effectiveAdminStatus(agency)),
+        lastLoginAt: latestLogin || null,
+        crm: {
+          ...crm,
+          pipeline_status: inferAgencyPipeline(agency),
+          health_score: crm.health_score || (effectiveAdminStatus(agency) === 'active_paid' ? 'active' : effectiveAdminStatus(agency) === 'payment_pending' ? 'ready_to_pay' : 'follow_up'),
+        },
+        activity: crmActivityByAgency[agency.id] || {
+          vehicles: agency.vehiclesCount,
+          reservations: 0,
+          contracts: 0,
+          payments: 0,
+          activeSessions: (agencySessions[agency.id] || []).filter((session) => !session.revoked_at).length,
+        },
+        agency,
+      };
+    });
+    const requestLeads = allAccessRequests
+      .filter((request) => request.status !== 'approved')
+      .map((request) => ({
+        key: `request-${request.id}`,
+        source: 'request' as const,
+        id: request.id,
+        agencyName: request.agency_name,
+        ownerName: request.owner_name,
+        email: request.email,
+        phone: `${request.phone_country_code || ''} ${request.phone_number || ''}`.trim(),
+        subscriptionLabel: planLabel(request.selected_plan),
+        lastLoginAt: null,
+        crm: {
+          ...readCrmMetadata(request.crm_metadata),
+          pipeline_status: inferRequestPipeline(request),
+          health_score: request.crm_metadata?.health_score || 'follow_up',
+        },
+        activity: { vehicles: request.vehicle_count || 0, reservations: 0, contracts: 0, payments: 0, activeSessions: 0 },
+        request,
+      }));
+    return [...requestLeads, ...agencyLeads];
+  }, [agencies, agencySessions, agencyUsers, allAccessRequests, crmActivityByAgency]);
+
+  const crmDueToday = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return crmLeads.filter((lead) => {
+      const status = lead.crm.pipeline_status;
+      return Boolean(lead.crm.follow_up_date && lead.crm.follow_up_date <= today && status !== 'paid' && status !== 'lost');
+    });
+  }, [crmLeads]);
 
   const planStats = useMemo(() => {
     return (['starter', 'pro', 'business', 'lifetime'] as AgencyPlan[]).map((plan) => ({
@@ -642,7 +795,7 @@ export default function SuperAdminPage() {
 
       const profiles = (usersRes.data || []) as Array<{ id: string; agency_id: string | null; account_status: AccountStatus; email: string | null; full_name?: string | null; role: string | null; last_login_at?: string | null; last_seen_at?: string | null }>;
       const vehicles = (vehicleRes.data || []) as Array<{ agency_id: string | null }>;
-      const mapped = ((agencyRes.data || []) as Array<{ id: string; name: string; plan: AgencyPlan; billing_status: BillingStatus; subscription_status?: SubscriptionStatus | null; trial_started_at?: string | null; trial_ends_at?: string | null; paid_until?: string | null; last_payment_date?: string | null; payment_method?: PaymentMethod | null; payment_notes?: string | null; trial_reminder_3d_sent_at?: string | null; trial_reminder_1d_sent_at?: string | null; trial_expired_email_sent_at?: string | null; last_trial_extended_at?: string | null; next_payment_due_date: string | null; monthly_price: number | null; created_at?: string | null }>)
+      const mapped = ((agencyRes.data || []) as Array<{ id: string; name: string; plan: AgencyPlan; billing_status: BillingStatus; subscription_status?: SubscriptionStatus | null; trial_started_at?: string | null; trial_ends_at?: string | null; paid_until?: string | null; last_payment_date?: string | null; payment_method?: PaymentMethod | null; payment_notes?: string | null; trial_reminder_3d_sent_at?: string | null; trial_reminder_1d_sent_at?: string | null; trial_expired_email_sent_at?: string | null; last_trial_extended_at?: string | null; next_payment_due_date: string | null; monthly_price: number | null; created_at?: string | null; settings?: Record<string, unknown> | null }>)
         .map((a) => {
           const ownerProfile = pickAgencyOwnerProfile(profiles, a.id);
           const agencyProfiles = profiles.filter((p) => p.agency_id === a.id);
@@ -675,6 +828,7 @@ export default function SuperAdminPage() {
             monthlyPrice: Number(a.monthly_price || monthlyPriceByPlan[a.plan || 'starter']),
             createdAt: a.created_at || null,
             latestActivityAt,
+            settings: a.settings || {},
           };
         });
       setAgencies(mapped);
@@ -694,6 +848,7 @@ export default function SuperAdminPage() {
       });
       setAgencyUsers(byAgencyUsers);
 
+      let loadedSessionsByAgency: Record<string, UserSessionRow[]> = {};
       try {
         const sessionRes = await supabase
           .from('user_sessions')
@@ -705,6 +860,7 @@ export default function SuperAdminPage() {
             if (!byAgencySessions[s.agency_id]) byAgencySessions[s.agency_id] = [];
             byAgencySessions[s.agency_id].push(s);
           });
+          loadedSessionsByAgency = byAgencySessions;
           setAgencySessions(byAgencySessions);
         } else {
           setAgencySessions({});
@@ -736,6 +892,37 @@ export default function SuperAdminPage() {
       } catch {
         setSupportLogsByAgency({});
       }
+
+      try {
+        const [reservationsRes, contractsRes, paymentsRes] = await Promise.all([
+          supabase.from('reservations').select('agency_id'),
+          supabase.from('contracts').select('agency_id'),
+          supabase.from('payments').select('agency_id'),
+        ]);
+        if (reservationsRes.error || contractsRes.error || paymentsRes.error) {
+          throw reservationsRes.error || contractsRes.error || paymentsRes.error;
+        }
+        const countByAgency = (rows: Array<{ agency_id: string | null }>) => rows.reduce<Record<string, number>>((result, row) => {
+          if (row.agency_id) result[row.agency_id] = (result[row.agency_id] || 0) + 1;
+          return result;
+        }, {});
+        const reservationsByAgency = countByAgency((reservationsRes.data || []) as Array<{ agency_id: string | null }>);
+        const contractsByAgency = countByAgency((contractsRes.data || []) as Array<{ agency_id: string | null }>);
+        const paymentsByAgency = countByAgency((paymentsRes.data || []) as Array<{ agency_id: string | null }>);
+        const activity: Record<string, CrmActivity> = {};
+        mapped.forEach((agency) => {
+          activity[agency.id] = {
+            vehicles: agency.vehiclesCount,
+            reservations: reservationsByAgency[agency.id] || 0,
+            contracts: contractsByAgency[agency.id] || 0,
+            payments: paymentsByAgency[agency.id] || 0,
+            activeSessions: (loadedSessionsByAgency[agency.id] || []).filter((session) => !session.revoked_at).length,
+          };
+        });
+        setCrmActivityByAgency(activity);
+      } catch {
+        setCrmActivityByAgency({});
+      }
     } catch (error) {
       notify({ title: 'Erreur chargement', message: error instanceof Error ? error.message : 'Réessayez.', type: 'warning' });
     } finally {
@@ -758,6 +945,52 @@ export default function SuperAdminPage() {
     } finally {
       setActionLoading((curr) => ({ ...curr, [key]: false }));
     }
+  }
+
+  function openCrmEditor(lead: CrmLead) {
+    setCrmLeadToEdit(lead);
+    setCrmDraft({
+      pipeline_status: lead.crm.pipeline_status,
+      follow_up_date: lead.crm.follow_up_date || '',
+      internal_notes: lead.crm.internal_notes || '',
+      health_score: lead.crm.health_score || 'follow_up',
+      last_contact_at: lead.crm.last_contact_at || null,
+    });
+  }
+
+  async function saveCrmMetadata() {
+    if (!crmLeadToEdit || !supabase) return;
+    const metadata: CrmMetadata = {
+      pipeline_status: crmDraft.pipeline_status || 'new',
+      follow_up_date: crmDraft.follow_up_date || null,
+      internal_notes: String(crmDraft.internal_notes || '').trim(),
+      health_score: crmDraft.health_score || 'follow_up',
+      last_contact_at: new Date().toISOString(),
+    };
+
+    if (crmLeadToEdit.source === 'agency' && crmLeadToEdit.agency) {
+      const currentSettings = crmLeadToEdit.agency.settings || {};
+      const { error } = await supabase
+        .from('agencies')
+        .update({ settings: { ...currentSettings, crm: metadata } })
+        .eq('id', crmLeadToEdit.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('access_requests')
+        .update({ crm_metadata: metadata })
+        .eq('id', crmLeadToEdit.id);
+      if (error) {
+        if (/crm_metadata|schema cache/i.test(error.message)) {
+          throw new Error('Appliquez la migration super_admin_crm_metadata_safe.sql dans Supabase.');
+        }
+        throw error;
+      }
+    }
+
+    notify({ title: 'Suivi CRM enregistré', message: crmLeadToEdit.agencyName, type: 'success' });
+    setCrmLeadToEdit(null);
+    await loadAll();
   }
 
   async function getFreshAccessToken() {
@@ -1229,6 +1462,7 @@ export default function SuperAdminPage() {
 
   const viewMeta: Record<SuperAdminView, { eyebrow: string; title: string; description: string }> = {
     overview: { eyebrow: 'Super Admin', title: 'Gestion des agences', description: 'Gérez toutes les agences, abonnements, paiements et accès.' },
+    crm: { eyebrow: 'CRM', title: 'Pipeline commercial', description: 'Suivez les leads, essais et relances sans modifier le fonctionnement des agences.' },
     agencies: { eyebrow: 'Agences', title: 'Comptes agences', description: 'Suivez les agences approuvées, leurs accès et leurs actions.' },
     subscriptions: { eyebrow: 'Abonnements', title: 'Plans et abonnements', description: 'Gérez les plans, limites, tarifs et abonnements des agences.' },
     payments: { eyebrow: 'Paiements', title: 'Paiements agences', description: 'Suivez les paiements des agences et abonnements.' },
@@ -1402,6 +1636,107 @@ export default function SuperAdminPage() {
               </Button>
             </div>
           </Card>
+        ) : null}
+
+        {activeView === 'crm' ? (
+          <div className="mt-5 space-y-5">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-6">
+              <MiniMetric label="Nouveaux leads" value={String(crmLeads.filter((lead) => lead.crm.pipeline_status === 'new').length)} icon={UserPlus} tone="gold" />
+              <MiniMetric label="À relancer aujourd’hui" value={String(crmDueToday.length)} icon={CalendarClock} tone="red" />
+              <MiniMetric label="Essais actifs" value={String(crmLeads.filter((lead) => lead.crm.pipeline_status === 'trial_active').length)} icon={Play} tone="blue" />
+              <MiniMetric label="Prêts à payer" value={String(crmLeads.filter((lead) => lead.crm.pipeline_status === 'ready_to_pay').length)} icon={Banknote} tone="gold" />
+              <MiniMetric label="Payés" value={String(crmLeads.filter((lead) => lead.crm.pipeline_status === 'paid').length)} icon={CheckCircle2} tone="green" />
+              <MiniMetric label="Risque de perte" value={String(crmLeads.filter((lead) => lead.crm.health_score === 'risk').length)} icon={AlertTriangle} tone="red" />
+            </div>
+
+            <Card className="overflow-hidden border-amber-300/15">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 p-5">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.2em] text-[#F5C542]">Relances prioritaires</p>
+                  <h2 className="mt-1 text-lg font-black text-white">Agences à relancer aujourd’hui</h2>
+                </div>
+                <Badge>{crmDueToday.length}</Badge>
+              </div>
+              <div className="divide-y divide-white/10">
+                {crmDueToday.length === 0 ? (
+                  <p className="p-5 text-sm text-carbon-400">Aucune relance arrivée à échéance aujourd’hui.</p>
+                ) : crmDueToday.slice(0, 8).map((lead) => (
+                  <div key={`due-${lead.key}`} className="flex flex-col gap-3 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <button type="button" className="min-w-0 text-left" onClick={() => lead.agency ? setSelectedAgencyDetails(lead.agency) : openCrmEditor(lead)}>
+                      <p className="truncate font-black text-white">{lead.agencyName}</p>
+                      <p className="truncate text-xs text-carbon-400">{lead.ownerName} · {lead.email}</p>
+                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusPill className="border-amber-300/30 bg-amber-400/15 text-amber-200">{lead.crm.follow_up_date || 'Aujourd’hui'}</StatusPill>
+                      <Button variant="secondary" className="h-9 px-3 text-xs" onClick={() => openCrmEditor(lead)}>Mettre à jour</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card className="overflow-hidden">
+              <div className="border-b border-white/10 p-5">
+                <p className="text-xs font-black uppercase tracking-[0.2em] text-[#F5C542]">Pipeline</p>
+                <h2 className="mt-1 text-lg font-black text-white">Suivi commercial MekLoc</h2>
+                <p className="mt-1 text-sm text-carbon-400">Faites défiler horizontalement pour consulter toutes les étapes.</p>
+              </div>
+              <div className="overflow-x-auto p-4">
+                <div className="grid min-w-[2700px] grid-cols-9 gap-3">
+                  {pipelineStages.map((stage) => {
+                    const stageLeads = crmLeads.filter((lead) => lead.crm.pipeline_status === stage.value);
+                    return (
+                      <section key={stage.value} className="min-w-0 rounded-2xl border border-white/10 bg-carbon-950/50">
+                        <div className="flex items-center justify-between gap-2 border-b border-white/10 px-3 py-3">
+                          <p className="text-sm font-black text-white">{stage.label}</p>
+                          <span className="grid h-7 min-w-7 place-items-center rounded-full bg-[#E3B117]/15 px-2 text-xs font-black text-[#F5C542]">{stageLeads.length}</span>
+                        </div>
+                        <div className="max-h-[680px] space-y-2 overflow-y-auto p-2">
+                          {stageLeads.length === 0 ? (
+                            <p className="rounded-xl border border-dashed border-white/10 px-3 py-5 text-center text-xs text-carbon-500">Aucun lead</p>
+                          ) : stageLeads.map((lead) => (
+                            <article key={lead.key} className="rounded-xl border border-white/10 bg-white/[0.04] p-3 transition hover:border-[#E3B117]/30 hover:bg-white/[0.06]">
+                              <div className="flex items-start justify-between gap-2">
+                                <button type="button" className="min-w-0 text-left" onClick={() => lead.agency ? setSelectedAgencyDetails(lead.agency) : openCrmEditor(lead)}>
+                                  <p className="truncate text-sm font-black text-white">{lead.agencyName}</p>
+                                  <p className="mt-0.5 truncate text-xs text-carbon-400">{lead.ownerName}</p>
+                                </button>
+                                <details className="group relative shrink-0">
+                                  <summary aria-label="Actions CRM" className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-lg border border-white/10 text-carbon-300 hover:bg-white/10 hover:text-white">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </summary>
+                                  <div className="absolute right-0 z-30 mt-1 grid w-44 gap-1 rounded-xl border border-white/10 bg-carbon-950 p-2 shadow-xl">
+                                    <Button variant="secondary" className="h-8 px-2 text-xs" onClick={() => openCrmEditor(lead)}>Modifier CRM</Button>
+                                    {lead.agency ? <Button variant="ghost" className="h-8 px-2 text-xs" onClick={() => setSelectedAgencyDetails(lead.agency!)}>Voir agence</Button> : null}
+                                  </div>
+                                </details>
+                              </div>
+                              <p className="mt-2 truncate text-xs text-carbon-300">{lead.email}</p>
+                              {lead.phone ? <p className="mt-1 truncate text-xs text-carbon-400">{lead.phone}</p> : null}
+                              <div className="mt-3 flex flex-wrap gap-1.5">
+                                <StatusPill className="border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542]">{healthLabels[lead.crm.health_score || 'follow_up']}</StatusPill>
+                                <StatusPill className="border-white/10 bg-white/[0.04] text-carbon-200">{lead.subscriptionLabel}</StatusPill>
+                              </div>
+                              <div className="mt-3 grid grid-cols-2 gap-1 text-[10px] text-carbon-400">
+                                <span>Relance: <strong className="text-carbon-200">{lead.crm.follow_up_date || '—'}</strong></span>
+                                <span>Connexion: <strong className="text-carbon-200">{formatActivityTime(lead.lastLoginAt)}</strong></span>
+                                <span>Sessions: <strong className="text-white">{lead.activity.activeSessions}</strong></span>
+                                <span>Véhicules: <strong className="text-white">{lead.activity.vehicles}</strong></span>
+                                <span>Réserv.: <strong className="text-white">{lead.activity.reservations}</strong></span>
+                                <span>Contrats: <strong className="text-white">{lead.activity.contracts}</strong></span>
+                                <span>Paiements: <strong className="text-white">{lead.activity.payments}</strong></span>
+                              </div>
+                              {lead.crm.internal_notes ? <p className="mt-3 line-clamp-2 rounded-lg bg-black/20 px-2 py-1.5 text-xs leading-5 text-carbon-300">{lead.crm.internal_notes}</p> : null}
+                            </article>
+                          ))}
+                        </div>
+                      </section>
+                    );
+                  })}
+                </div>
+              </div>
+            </Card>
+          </div>
         ) : null}
 
         {activeView === 'access' ? (
@@ -2322,6 +2657,51 @@ export default function SuperAdminPage() {
             </Button>
           </div>
         </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(crmLeadToEdit)}
+        onClose={() => setCrmLeadToEdit(null)}
+        title="Mettre à jour le suivi CRM"
+        subtitle={crmLeadToEdit ? `${crmLeadToEdit.agencyName} · ${crmLeadToEdit.source === 'agency' ? 'Agence active' : 'Demande d’accès'}` : undefined}
+        panelClassName="sm:max-w-xl"
+      >
+        {crmLeadToEdit ? (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-[#E3B117]/20 bg-[#E3B117]/10 p-4">
+              <p className="font-black text-white">{crmLeadToEdit.ownerName}</p>
+              <p className="mt-1 break-all text-sm text-carbon-300">{crmLeadToEdit.email}</p>
+              {crmLeadToEdit.phone ? <p className="mt-1 text-sm text-carbon-300">{crmLeadToEdit.phone}</p> : null}
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-2">
+                <span className="text-sm font-bold text-white">Étape du pipeline</span>
+                <select className="form-control" value={crmDraft.pipeline_status || 'new'} onChange={(event) => setCrmDraft((current) => ({ ...current, pipeline_status: event.target.value as PipelineStatus }))}>
+                  {pipelineStages.map((stage) => <option key={stage.value} value={stage.value}>{stage.label}</option>)}
+                </select>
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-bold text-white">État commercial</span>
+                <select className="form-control" value={crmDraft.health_score || 'follow_up'} onChange={(event) => setCrmDraft((current) => ({ ...current, health_score: event.target.value as HealthScore }))}>
+                  {(Object.entries(healthLabels) as Array<[HealthScore, string]>).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </label>
+            </div>
+            <label className="grid gap-2">
+              <span className="text-sm font-bold text-white">Date de relance</span>
+              <input className="form-control" type="date" value={crmDraft.follow_up_date || ''} onChange={(event) => setCrmDraft((current) => ({ ...current, follow_up_date: event.target.value }))} />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-bold text-white">Notes internes</span>
+              <textarea className="form-control min-h-28 resize-y" maxLength={2000} value={crmDraft.internal_notes || ''} onChange={(event) => setCrmDraft((current) => ({ ...current, internal_notes: event.target.value }))} placeholder="Résumé du contact, objections, prochaine action..." />
+              <span className="text-right text-xs text-carbon-500">{String(crmDraft.internal_notes || '').length}/2000</span>
+            </label>
+            <div className="grid grid-cols-2 gap-2 border-t border-white/10 pt-4">
+              <Button variant="secondary" disabled={Boolean(actionLoading['save-crm'])} onClick={() => setCrmLeadToEdit(null)}>Annuler</Button>
+              <Button loading={Boolean(actionLoading['save-crm'])} onClick={() => runAction('save-crm', saveCrmMetadata)}>Enregistrer</Button>
+            </div>
+          </div>
+        ) : null}
       </Modal>
 
       <Modal
