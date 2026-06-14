@@ -2,7 +2,8 @@ import { ArrowLeft, CheckCircle2, Crown, Infinity, ShieldCheck } from 'lucide-re
 import { Link } from 'react-router-dom';
 import Card from '../components/ui/Card';
 import SEO, { baseStructuredData } from '../components/system/SEO';
-import { MEKLOC_PLAN_LIST } from '../config/pricing';
+import { WHATSAPP_URL } from '../config/app';
+import { getPlanRequestBilling, MEKLOC_PLAN_LIST } from '../config/pricing';
 
 export default function PricingPage() {
   return (
@@ -29,7 +30,7 @@ export default function PricingPage() {
         </div>
         <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           {MEKLOC_PLAN_LIST.map((plan) => {
-            const featured = plan.id === 'business' || plan.id === 'lifetime';
+            const featured = plan.id === 'pro' || plan.id === 'lifetime';
             const price = plan.id === 'lifetime' ? `${plan.lifetimePrice.toLocaleString('fr-FR')} MAD` : `${plan.monthlyPrice.toLocaleString('fr-FR')} MAD`;
             return (
             <Card
@@ -40,14 +41,17 @@ export default function PricingPage() {
                 <div className="rounded-2xl border border-gold-300/20 bg-gold-400/10 p-3 text-gold-200">
                   {plan.name === 'Lifetime' ? <Infinity className="h-6 w-6" /> : plan.name === 'Business' || plan.name === 'Pro' ? <Crown className="h-6 w-6" /> : <ShieldCheck className="h-6 w-6" />}
                 </div>
-                {featured ? <span className="rounded-full bg-gold-400 px-3 py-1 text-xs font-black text-carbon-950">{plan.id === 'lifetime' ? 'À vie' : 'Recommandé'}</span> : null}
+                {plan.badge ? <span className="rounded-full bg-gold-400 px-3 py-1 text-xs font-black text-carbon-950">{plan.badge}</span> : null}
               </div>
               <h2 className="text-2xl font-black text-white light:text-carbon-950">{plan.name}</h2>
               <p className="mt-2 min-h-12 text-sm text-carbon-400 light:text-carbon-600">{plan.note}</p>
               <p className="mt-6 text-4xl font-black text-white light:text-carbon-950">
                 {price}
-                <span className="text-base font-semibold text-carbon-400">{plan.id === 'lifetime' ? ' à vie' : ' /mois'}</span>
+                <span className="text-base font-semibold text-carbon-400">{plan.id === 'lifetime' ? '' : ' /mois'}</span>
               </p>
+              <p className="mt-2 text-sm font-bold text-gold-300">{plan.billingLabel}</p>
+              <p className="mt-4 text-sm font-bold text-carbon-200 light:text-carbon-800">{plan.usersLabel} · {plan.vehiclesLabel}</p>
+              <p className="mt-1 text-xs font-bold uppercase tracking-[0.08em] text-carbon-500">{plan.commitment}</p>
               <div className="mt-6 grid gap-3">
                 {plan.features.map((feature) => (
                   <p key={feature} className="flex items-center gap-2 text-sm text-carbon-300 light:text-carbon-700">
@@ -56,19 +60,25 @@ export default function PricingPage() {
                   </p>
                 ))}
               </div>
-              <Link
-                to={`/demande-acces?plan=${plan.id}&billing=${plan.id === 'lifetime' ? 'lifetime' : 'monthly'}`}
+              <a
+                href={plan.id === 'lifetime' ? WHATSAPP_URL : `/demande-acces?plan=${plan.id}&billing=${getPlanRequestBilling(plan.id)}`}
+                target={plan.id === 'lifetime' ? '_blank' : undefined}
+                rel={plan.id === 'lifetime' ? 'noreferrer' : undefined}
                 className={`mt-8 flex h-12 w-full items-center justify-center rounded-2xl border text-sm font-black transition duration-300 hover:-translate-y-0.5 active:translate-y-0 ${
                   featured
                     ? 'border-gold-300/60 bg-gold-400 text-carbon-950 shadow-gold hover:bg-gold-300'
                     : 'border-white/15 bg-white/[0.06] text-white hover:border-gold-300/40 hover:bg-gold-400/10 hover:text-gold-200 light:border-carbon-200 light:bg-white light:text-carbon-950 light:hover:border-gold-300/60 light:hover:bg-gold-50'
                 }`}
               >
-                Choisir {plan.name}
-              </Link>
+                {plan.id === 'lifetime' ? 'Nous contacter' : 'Demander votre accès'}
+              </a>
               {plan.id !== 'lifetime' ? <p className="mt-3 text-center text-xs font-bold text-gold-300">7 jours gratuits · Sans carte bancaire</p> : null}
             </Card>
           )})}
+        </div>
+        <div className="mt-8 text-center text-sm font-semibold text-carbon-300 light:text-carbon-600">
+          <p>Tous les plans incluent 7 jours d’essai gratuit.</p>
+          <p className="mt-1 font-bold text-gold-300">Engagement minimum: 6 mois.</p>
         </div>
       </div>
     </div>

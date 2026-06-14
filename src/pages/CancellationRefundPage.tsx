@@ -54,10 +54,10 @@ export default function CancellationRefundPage() {
             </p>
 
             <p>
-              Exemple — Plan mensuel à 199 MAD/mois (mois de 30 jours) :<br />
-              Tarif journalier : 199 ÷ 30 = 6,63 MAD/jour<br />
-              Demande le jour 5 : facturation 5 × 6,63 = 33,17 MAD<br />
-              Remboursement : 199 − 33,17 = 165,83 MAD<br />
+              Exemple — Plan Starter facturé 2 394 MAD pour 6 mois (180 jours) :<br />
+              Tarif journalier : 2 394 ÷ 180 = 13,30 MAD/jour<br />
+              Demande le jour 5 : facturation 5 × 13,30 = 66,50 MAD<br />
+              Remboursement : 2 394 − 66,50 = 2 327,50 MAD<br />
               Les demandes soumises après 7 jours ne sont pas éligibles.
             </p>
 

@@ -1766,7 +1766,7 @@ export default function SuperAdminPage() {
                 <div className="mt-2 grid gap-2 text-sm text-carbon-300 md:grid-cols-3">
                   <p><strong>Agence:</strong> {req.agency_name}</p><p><strong>Responsable:</strong> {req.owner_name}</p><p><strong>Email:</strong> {req.email}</p>
                   <p><strong>Téléphone:</strong> {req.phone_country_code} {req.phone_number}</p><p><strong>Pays:</strong> {req.country}</p><p><strong>Ville:</strong> {req.city}</p>
-                  <p><strong>Plan demandé:</strong> {planLabel(req.selected_plan)}</p><p><strong>Facturation:</strong> {req.billing_type === 'lifetime' ? 'Lifetime' : req.billing_type === 'annual' ? 'Annuel' : 'Mensuel'}</p><p><strong>Nombre de véhicules:</strong> {req.vehicle_count}</p>
+                  <p><strong>Plan demandé:</strong> {planLabel(req.selected_plan)}</p><p><strong>Facturation:</strong> {req.billing_type === 'lifetime' ? 'Lifetime' : req.billing_type === 'annual' ? '12 mois' : '6 mois'}</p><p><strong>Nombre de véhicules:</strong> {req.vehicle_count}</p>
                   <p>
                     <strong>Date de demande:</strong>{' '}
                     {new Date(req.created_at).toLocaleString('fr-MA', {

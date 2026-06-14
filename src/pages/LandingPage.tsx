@@ -30,7 +30,7 @@ import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import SEO, { baseStructuredData, faqStructuredData } from '../components/system/SEO';
 import { SUPPORT_EMAIL, SUPPORT_PHONE, WHATSAPP_URL } from '../config/app';
-import { MEKLOC_PLAN_LIST } from '../config/pricing';
+import { getPlanRequestBilling, MEKLOC_PLAN_LIST, type MekLocBillingChoice } from '../config/pricing';
 import { DEFAULT_DESCRIPTION, DEFAULT_KEYWORDS, DEFAULT_TITLE } from '../config/seo';
 
 const whatsappNumber = SUPPORT_PHONE.replace(/^\+/, '');
@@ -92,7 +92,7 @@ const interfaceBenefits = [
 
 const plans = MEKLOC_PLAN_LIST.map((plan) => ({
   ...plan,
-  recommended: plan.id === 'business',
+  recommended: plan.id === 'pro',
   lifetime: plan.id === 'lifetime',
 }));
 
@@ -688,7 +688,7 @@ function LandingHeader() {
                   Connexion
                 </Button>
               </Link>
-              <Link to="/demande-acces?plan=business&billing=monthly&trial=7" onClick={() => setOpen(false)}>
+              <Link to="/demande-acces?plan=pro&billing=12-months&trial=7" onClick={() => setOpen(false)}>
                 <Button
                   variant="secondary"
                   className="landing-trial-pulse h-14 w-full rounded-2xl border-[#E3B117]/30 bg-[#E3B117]/10 font-black text-[#F5C542] hover:border-[#E3B117]/50"
@@ -723,7 +723,7 @@ function TrialAnnouncement() {
           Testez toutes les fonctionnalités MekLoc gratuitement pendant 7 jours
         </span>
         <Link
-          to="/demande-acces?plan=business&billing=monthly&trial=7"
+          to="/demande-acces?plan=pro&billing=12-months&trial=7"
           className="landing-trial-pulse group inline-flex h-9 cursor-pointer items-center justify-center gap-2 rounded-full border border-black/25 bg-[#070807] px-5 text-xs font-black uppercase tracking-[0.08em] text-[#F5C542] transition duration-200 hover:scale-[1.04] hover:border-black hover:bg-black hover:text-[#FFD95A]"
         >
           Essai gratuit 7 jours
@@ -1050,7 +1050,7 @@ function InterfaceDashboardMockup({ activeTab }: { activeTab: number }) {
 
 export default function LandingPage() {
   const demoUrl = useMemo(() => whatsappUrl('Bonjour MekLoc, je souhaite réserver une démo.'), []);
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
+  const [billingCycle, setBillingCycle] = useState<MekLocBillingChoice>('annual');
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1192,7 +1192,7 @@ export default function LandingPage() {
                 <p className="font-black text-white">Tout MekLoc, gratuitement pendant 7 jours</p>
                 <p className="mt-1 text-sm text-zinc-400">Explorez réservations, contrats, paiements, rapports et entretien sans carte bancaire.</p>
               </div>
-              <Link to="/demande-acces?plan=business&billing=monthly&trial=7" className="landing-trial-pulse inline-flex h-12 shrink-0 items-center justify-center rounded-2xl bg-[#E3B117] px-6 text-sm font-black text-[#070807] hover:bg-[#F5C542]">
+              <Link to="/demande-acces?plan=pro&billing=12-months&trial=7" className="landing-trial-pulse inline-flex h-12 shrink-0 items-center justify-center rounded-2xl bg-[#E3B117] px-6 text-sm font-black text-[#070807] hover:bg-[#F5C542]">
                 Commencer gratuitement
               </Link>
             </div>
@@ -1252,39 +1252,49 @@ export default function LandingPage() {
         <section id="tarifs" className="landing-reveal border-b border-white/10 pb-12 pt-10 sm:pb-16 sm:pt-14">
           <div className="mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8 xl:px-10">
             <SectionTitle eyebrow="Tarifs simples et transparents" title="Tarifs MekLoc" />
-            <p className="mt-4 text-center text-sm font-semibold text-white/55">Sans engagement • Support inclus</p>
-            <div className="mx-auto mt-6 flex w-max rounded-full border border-white/10 bg-white/[0.04] p-1 text-sm font-bold">
+            <p className="mt-4 text-center text-sm font-semibold text-white/55">Tous les plans incluent 7 jours d’essai gratuit.</p>
+            <p className="mt-1 text-center text-sm font-semibold text-[#F5C542]">Engagement minimum: 6 mois.</p>
+            <div className="mx-auto mt-6 grid w-full max-w-[390px] grid-cols-3 rounded-2xl border border-white/10 bg-white/[0.04] p-1 text-xs font-bold sm:text-sm">
               <button
                 type="button"
-                onClick={() => setBillingCycle('monthly')}
-                className={`rounded-full px-6 py-2.5 transition ${
-                  billingCycle === 'monthly' ? 'bg-[#E3B117] text-[#070807]' : 'text-white/48 hover:text-white'
+                onClick={() => setBillingCycle('six_months')}
+                className={`rounded-xl px-3 py-2.5 transition ${
+                  billingCycle === 'six_months' ? 'bg-[#E3B117] text-[#070807]' : 'text-white/48 hover:text-white'
                 }`}
               >
-                Mensuel
+                6 mois
               </button>
               <button
                 type="button"
                 onClick={() => setBillingCycle('annual')}
-                className={`rounded-full px-6 py-2.5 transition ${
+                className={`rounded-xl px-3 py-2.5 transition ${
                   billingCycle === 'annual' ? 'bg-[#E3B117] text-[#070807]' : 'text-white/48 hover:text-white'
                 }`}
               >
-                Annuel (-20%)
+                12 mois
+              </button>
+              <button
+                type="button"
+                onClick={() => setBillingCycle('lifetime')}
+                className={`rounded-xl px-3 py-2.5 transition ${
+                  billingCycle === 'lifetime' ? 'bg-[#E3B117] text-[#070807]' : 'text-white/48 hover:text-white'
+                }`}
+              >
+                Lifetime
               </button>
             </div>
             <div className="landing-stagger mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4 xl:gap-5">
               {plans.map((plan) => {
                 const isLifetime = 'lifetime' in plan && plan.lifetime;
-                const displayPrice = isLifetime ? plan.annualPrice : billingCycle === 'annual' ? plan.annualPrice : plan.monthlyPrice;
-                const cadence = isLifetime ? 'paiement unique' : billingCycle === 'annual' ? '/ an' : '/ mois';
-                const planUrl = `/demande-acces?plan=${plan.id}&billing=${isLifetime ? 'lifetime' : billingCycle}`;
+                const isCycleMatch = plan.billingChoice === billingCycle;
+                const displayPrice = isLifetime ? plan.lifetimePrice : plan.monthlyPrice;
+                const cadence = isLifetime ? '' : '/ mois';
+                const planUrl = `/demande-acces?plan=${plan.id}&billing=${getPlanRequestBilling(plan.id)}`;
 
                 return (
-                  <Card key={plan.id} className={`landing-reveal relative flex min-h-full flex-col overflow-hidden p-6 hover:border-[#E3B117]/30 sm:p-7 ${plan.recommended ? 'border-[#E3B117]/65 bg-gradient-to-br from-[#E3B117]/12 via-zinc-950/90 to-black shadow-[0_0_70px_rgba(227,177,23,.16)]' : ''} ${isLifetime ? 'border-[#F5C542]/70 bg-gradient-to-br from-[#E3B117]/18 via-zinc-950/92 to-black shadow-[0_0_90px_rgba(227,177,23,.22)]' : ''}`}>
-                    {plan.recommended || isLifetime ? <span className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[#F5C542]/80 to-transparent" /> : null}
-                    {plan.recommended ? <span className="absolute right-5 top-5 rounded-full bg-[#E3B117] px-3 py-1 text-xs font-black text-[#070807] sm:right-6 sm:top-6">Recommandé</span> : null}
-                    {isLifetime ? <span className="absolute right-5 top-5 rounded-full bg-white px-3 py-1 text-xs font-black text-[#070807] sm:right-6 sm:top-6">Meilleure valeur</span> : null}
+                  <Card key={plan.id} className={`landing-reveal relative flex min-h-full flex-col overflow-hidden p-6 transition hover:border-[#E3B117]/30 sm:p-7 ${isCycleMatch ? 'border-[#E3B117]/65 bg-gradient-to-br from-[#E3B117]/12 via-zinc-950/90 to-black shadow-[0_0_70px_rgba(227,177,23,.16)]' : 'opacity-80 hover:opacity-100'} ${isLifetime && isCycleMatch ? 'border-[#F5C542]/70 bg-gradient-to-br from-[#E3B117]/18 via-zinc-950/92 to-black shadow-[0_0_90px_rgba(227,177,23,.22)]' : ''}`}>
+                    {isCycleMatch ? <span className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[#F5C542]/80 to-transparent" /> : null}
+                    {plan.badge ? <span className="absolute right-5 top-5 rounded-full bg-[#E3B117] px-3 py-1 text-xs font-black text-[#070807] sm:right-6 sm:top-6">{plan.badge}</span> : null}
                     <span className="grid h-14 w-14 place-items-center rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542]"><Sparkles className="h-6 w-6" /></span>
                     <h3 className="mt-5 text-2xl font-black">{plan.name}</h3>
                     <p className="mt-1 text-sm text-white/50">{plan.note}</p>
@@ -1293,34 +1303,24 @@ export default function LandingPage() {
                       <span className="text-lg font-black text-white">MAD</span>
                       <span className="text-sm font-semibold text-white/55 sm:text-base">{cadence}</span>
                     </div>
-                    {isLifetime ? (
-                      <p className="mt-2 text-sm font-semibold text-[#F5C542]">Accès à vie, un seul paiement</p>
-                    ) : billingCycle === 'annual' ? (
-                      <p className="mt-2 text-sm font-semibold text-[#F5C542]">Facturation annuelle</p>
-                    ) : (
-                      <p className="mt-2 text-sm font-semibold text-white/38">Facturation mensuelle</p>
-                    )}
+                    <p className="mt-2 text-sm font-semibold text-[#F5C542]">{plan.billingLabel}</p>
+                    <p className="mt-3 text-sm font-bold text-white/78">{plan.usersLabel} · {plan.vehiclesLabel}</p>
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-[0.1em] text-white/42">{plan.commitment}</p>
                     <div className="mt-7 grow space-y-3 sm:mt-8 sm:space-y-3.5">
                       {plan.features.map((feature) => <p key={feature} className="flex gap-3 text-base text-white/75"><Check className="h-5 w-5 shrink-0 text-[#F5C542]" />{feature}</p>)}
                     </div>
-                    <Link
-                      to={planUrl}
+                    <a
+                      href={isLifetime ? WHATSAPP_URL : planUrl}
+                      target={isLifetime ? '_blank' : undefined}
+                      rel={isLifetime ? 'noreferrer' : undefined}
                       className={`mt-7 flex h-14 w-full items-center justify-center rounded-2xl border text-sm font-black transition duration-300 hover:-translate-y-0.5 active:translate-y-0 ${
                         plan.recommended || isLifetime
                           ? 'landing-cta-shine border-[#F5C542]/50 bg-[#E3B117] text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.18)] hover:bg-[#F5C542]'
                           : 'border-white/15 bg-white/[0.06] text-white hover:border-[#E3B117]/35 hover:bg-[#E3B117]/10 hover:text-[#F5C542]'
                       }`}
                     >
-                      Choisir {plan.name}
-                    </Link>
-                    {!isLifetime ? (
-                      <Link
-                        to={`${planUrl}&trial=7`}
-                        className="mt-3 flex h-12 w-full items-center justify-center rounded-2xl border border-[#E3B117]/30 bg-[#E3B117]/8 text-sm font-black text-[#F5C542] transition hover:border-[#E3B117]/55 hover:bg-[#E3B117]/14"
-                      >
-                        Essai gratuit 7 jours
-                      </Link>
-                    ) : null}
+                      {isLifetime ? 'Nous contacter' : 'Demander votre accès'}
+                    </a>
                   </Card>
                 );
               })}

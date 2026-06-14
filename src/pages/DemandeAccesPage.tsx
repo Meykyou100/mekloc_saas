@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import { Field, SelectField } from '../components/ui/Form';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { MEKLOC_PLANS, type MekLocPlanId } from '../config/pricing';
+import { MEKLOC_PLAN_LIST, MEKLOC_PLANS, type MekLocBillingChoice, type MekLocPlanId } from '../config/pricing';
 import { sendAccessRequestAdminNotification } from '../lib/accessRequestEmail';
 import { normalizeText, sanitizeText, validateEmail, validatePhone, validatePositiveNumber } from '../lib/security';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
@@ -24,50 +24,9 @@ const countryDialCode: Record<string, string> = {
   Autre: '+000',
 };
 const moroccoCities = ['Casablanca', 'Rabat', 'Marrakech', 'Tanger', 'Fès', 'Meknès', 'Agadir', 'Oujda', 'Tétouan', 'Nador', 'Kénitra', 'El Jadida', 'Safi', 'Essaouira', 'Beni Mellal', 'Khouribga', 'Settat', 'Mohammedia', 'Salé', 'Laâyoune', 'Dakhla', 'Errachidia', 'Ouarzazate', 'Taza', 'Larache', 'Ksar El Kebir', 'Al Hoceima', 'Ifrane', 'Autre'];
-const plans = [
-  {
-    id: 'starter',
-    name: 'Starter',
-    monthly: MEKLOC_PLANS.starter.monthlyPrice,
-    annual: MEKLOC_PLANS.starter.annualPrice,
-    annualBillingLabel: MEKLOC_PLANS.starter.annualBillingLabel,
-    note: MEKLOC_PLANS.starter.note,
-    features: MEKLOC_PLANS.starter.features,
-    cta: 'Choisir Starter',
-  },
-  {
-    id: 'business',
-    name: 'Business',
-    monthly: MEKLOC_PLANS.business.monthlyPrice,
-    annual: MEKLOC_PLANS.business.annualPrice,
-    annualBillingLabel: MEKLOC_PLANS.business.annualBillingLabel,
-    note: MEKLOC_PLANS.business.note,
-    features: MEKLOC_PLANS.business.features,
-    cta: 'Choisir Business',
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    monthly: MEKLOC_PLANS.pro.monthlyPrice,
-    annual: MEKLOC_PLANS.pro.annualPrice,
-    annualBillingLabel: MEKLOC_PLANS.pro.annualBillingLabel,
-    note: MEKLOC_PLANS.pro.note,
-    features: MEKLOC_PLANS.pro.features,
-    cta: 'Choisir Pro',
-  },
-  {
-    id: 'lifetime',
-    name: 'Lifetime',
-    monthly: MEKLOC_PLANS.lifetime.lifetimePrice,
-    annual: MEKLOC_PLANS.lifetime.lifetimePrice,
-    annualBillingLabel: MEKLOC_PLANS.lifetime.annualBillingLabel,
-    note: MEKLOC_PLANS.lifetime.note,
-    features: MEKLOC_PLANS.lifetime.features,
-    cta: 'Choisir Lifetime',
-  },
-] as const;
+const plans = MEKLOC_PLAN_LIST;
 type PlanId = MekLocPlanId;
-type BillingType = 'monthly' | 'annual' | 'lifetime';
+type BillingType = MekLocBillingChoice;
 
 function isProductionHost() {
   if (typeof window === 'undefined') return false;
@@ -105,10 +64,12 @@ export default function DemandeAccesPage() {
   const isEmailTestMode = canShowEmailTestCode();
   const requestedPlan = searchParams.get('plan') === 'starter' || searchParams.get('plan') === 'business' || searchParams.get('plan') === 'pro' || searchParams.get('plan') === 'lifetime'
     ? (searchParams.get('plan') as PlanId)
-    : 'business';
+    : 'pro';
   const requestedBilling: BillingType = requestedPlan === 'lifetime' || searchParams.get('billing') === 'lifetime'
     ? 'lifetime'
-    : searchParams.get('billing') === 'annual' ? 'annual' : 'monthly';
+    : searchParams.get('billing') === '6-months' || searchParams.get('billing') === 'six_months'
+      ? 'six_months'
+      : 'annual';
   const [email, setEmail] = useState(normalizeEmail(prefilledEmail));
   const [emailVerificationCode, setEmailVerificationCode] = useState('');
   const [emailVerificationStatus, setEmailVerificationStatus] = useState<'idle' | 'sent' | 'verified'>('idle');
@@ -127,7 +88,7 @@ export default function DemandeAccesPage() {
     if (selectedPlan === 'lifetime') {
       setBillingType('lifetime');
     } else if (billingType === 'lifetime') {
-      setBillingType('monthly');
+      setBillingType(selectedPlan === 'starter' ? 'six_months' : 'annual');
     }
   }, [billingType, selectedPlan]);
 
@@ -256,9 +217,9 @@ export default function DemandeAccesPage() {
       phone_number: normalizeText(String(form.get('phone_number') || ''), 16).replace(/\D/g, ''),
       vehicle_count: Number(form.get('vehicle_count') || 0),
       selected_plan: selectedPlan,
-      billing_type: billingType,
-      monthly_price: plans.find((p) => p.id === selectedPlan)?.monthly || 0,
-      annual_price: plans.find((p) => p.id === selectedPlan)?.annual || 0,
+      billing_type: billingType === 'six_months' ? 'monthly' : billingType,
+      monthly_price: MEKLOC_PLANS[selectedPlan].monthlyPrice,
+      annual_price: MEKLOC_PLANS[selectedPlan].billingTotal,
       promo_code: sanitizeText(String(form.get('promo_code') || ''), 60),
       status: 'pending',
     };
@@ -338,7 +299,7 @@ export default function DemandeAccesPage() {
         websiteUrl: payload.website_url,
         selectedPlan: selectedPlanDb,
         planName: selectedPlanInfo?.name || selectedPlanDb,
-        billingType,
+        billingType: billingType === 'six_months' ? 'monthly' : billingType,
         vehicleCount: payload.vehicle_count,
         promoCode: payload.promo_code,
         emailVerifiedAt: verifiedAt || new Date().toISOString(),
@@ -401,8 +362,8 @@ export default function DemandeAccesPage() {
             <div className="rounded-3xl border border-white/10 bg-zinc-950/80 p-5 shadow-[0_24px_80px_rgba(0,0,0,.42)] backdrop-blur-xl sm:p-6">
               <h2 className="text-lg font-black">1. Choisissez votre plan</h2>
               <div className="mt-5 grid grid-cols-3 rounded-2xl border border-white/10 bg-black/40 p-1">
-                <button type="button" onClick={() => setBillingType('monthly')} disabled={selectedPlan === 'lifetime'} className={`rounded-xl px-3 py-2.5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-35 ${billingType === 'monthly' ? 'bg-[#E3B117] text-[#070807]' : 'text-zinc-400 hover:text-white'}`}>Mensuel</button>
-                <button type="button" onClick={() => setBillingType('annual')} disabled={selectedPlan === 'lifetime'} className={`rounded-xl px-3 py-2.5 text-sm font-black transition disabled:cursor-not-allowed disabled:opacity-35 ${billingType === 'annual' ? 'bg-[#E3B117] text-[#070807]' : 'text-zinc-400 hover:text-white'}`}>Annuel</button>
+                <button type="button" onClick={() => { setBillingType('six_months'); setSelectedPlan('starter'); }} className={`rounded-xl px-3 py-2.5 text-sm font-black transition ${billingType === 'six_months' ? 'bg-[#E3B117] text-[#070807]' : 'text-zinc-400 hover:text-white'}`}>6 mois</button>
+                <button type="button" onClick={() => { setBillingType('annual'); if (selectedPlan === 'starter' || selectedPlan === 'lifetime') setSelectedPlan('pro'); }} className={`rounded-xl px-3 py-2.5 text-sm font-black transition ${billingType === 'annual' ? 'bg-[#E3B117] text-[#070807]' : 'text-zinc-400 hover:text-white'}`}>12 mois</button>
                 <button type="button" onClick={() => setSelectedPlan('lifetime')} className={`rounded-xl px-3 py-2.5 text-sm font-black transition ${billingType === 'lifetime' ? 'bg-[#E3B117] text-[#070807]' : 'text-zinc-400 hover:text-white'}`}>Lifetime</button>
               </div>
 
@@ -410,7 +371,7 @@ export default function DemandeAccesPage() {
                 {plans.map((plan) => {
                   const active = selectedPlan === plan.id;
                   const isLifetime = plan.id === 'lifetime';
-                  const price = isLifetime ? plan.annual : billingType === 'annual' ? plan.annual : plan.monthly;
+                  const price = isLifetime ? plan.lifetimePrice : plan.monthlyPrice;
                   return (
                     <button
                       key={plan.id}
@@ -418,7 +379,8 @@ export default function DemandeAccesPage() {
                       onClick={() => {
                         setSelectedPlan(plan.id);
                         if (plan.id === 'lifetime') setBillingType('lifetime');
-                        if (plan.id !== 'lifetime' && billingType === 'lifetime') setBillingType('monthly');
+                        if (plan.id === 'starter') setBillingType('six_months');
+                        if (plan.id === 'pro' || plan.id === 'business') setBillingType('annual');
                       }}
                       className={`relative rounded-2xl border p-5 text-left transition ${
                         active
@@ -429,16 +391,16 @@ export default function DemandeAccesPage() {
                       <span className={`absolute right-4 top-4 grid h-5 w-5 place-items-center rounded-full border ${active ? 'border-[#E3B117] bg-[#E3B117] text-[#070807]' : 'border-white/20 text-transparent'}`}>
                         <CheckCircle2 className="h-3.5 w-3.5" />
                       </span>
-                      {plan.id === 'business' ? <span className="absolute right-12 top-4 rounded-full bg-[#E3B117] px-2.5 py-1 text-[10px] font-black text-[#070807]">Populaire</span> : null}
-                      {plan.id === 'pro' ? <span className="absolute right-12 top-4 rounded-full border border-[#F5C542]/40 bg-[#E3B117]/15 px-2.5 py-1 text-[10px] font-black text-[#F5C542]">Illimité</span> : null}
-                      {isLifetime ? <span className="absolute right-12 top-4 rounded-full bg-white px-2.5 py-1 text-[10px] font-black text-[#070807]">À vie</span> : null}
+                      {plan.badge ? <span className="absolute right-12 top-4 rounded-full bg-[#E3B117] px-2.5 py-1 text-[10px] font-black text-[#070807]">{plan.badge}</span> : null}
                       <h3 className="text-xl font-black">{plan.name}</h3>
                       <p className="mt-1 text-sm text-zinc-400">{plan.note}</p>
                       <p className="mt-5 text-4xl font-black">
                         {price.toLocaleString('fr-FR')} MAD
-                        <span className="ml-1 text-base font-semibold text-zinc-500">{isLifetime ? 'à vie' : billingType === 'annual' ? '/an' : '/mois'}</span>
+                        <span className="ml-1 text-base font-semibold text-zinc-500">{isLifetime ? '' : '/mois'}</span>
                       </p>
-                      {isLifetime ? <p className="mt-2 text-sm font-semibold text-[#F5C542]">Paiement unique 5 999 MAD</p> : billingType === 'annual' ? <p className="mt-2 text-sm font-semibold text-[#F5C542]">{plan.annualBillingLabel}</p> : null}
+                      <p className="mt-2 text-sm font-semibold text-[#F5C542]">{plan.billingLabel}</p>
+                      <p className="mt-3 text-sm font-bold text-zinc-200">{plan.usersLabel} · {plan.vehiclesLabel}</p>
+                      <p className="mt-1 text-xs font-bold uppercase tracking-[0.08em] text-zinc-500">{plan.commitment}</p>
                       <div className="mt-5 space-y-2.5">
                         {plan.features.map((feature) => (
                           <p key={feature} className="flex items-center gap-2 text-sm text-zinc-300">
@@ -448,7 +410,7 @@ export default function DemandeAccesPage() {
                         ))}
                       </div>
                       <span className={`mt-5 block rounded-xl px-4 py-3 text-center text-sm font-black ${active ? 'bg-[#E3B117] text-[#070807]' : 'border border-white/10 bg-white/[0.04] text-white'}`}>
-                        {plan.cta}
+                        {isLifetime ? 'Nous contacter' : `Choisir ${plan.name}`}
                       </span>
                       {!isLifetime ? <span className="mt-2 block text-center text-xs font-bold text-[#F5C542]">Inclut 7 jours d’essai gratuit</span> : null}
                     </button>
@@ -464,7 +426,7 @@ export default function DemandeAccesPage() {
               <h3 className="mt-5 text-lg font-black">Validation rapide</h3>
               <p className="mt-3 text-sm leading-6 text-zinc-400">Après l’envoi, nous vérifions votre demande et activons votre espace.</p>
               <div className="mt-5 grid gap-3 text-sm font-semibold text-zinc-300">
-                <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#F5C542]" />Sans engagement</span>
+                <span className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-[#F5C542]" />Engagement minimum 6 mois</span>
                 <span className="flex items-center gap-2"><MessageCircle className="h-4 w-4 text-[#F5C542]" />Support WhatsApp</span>
                 <span className="flex items-center gap-2"><LockKeyhole className="h-4 w-4 text-[#F5C542]" />Données sécurisées</span>
               </div>

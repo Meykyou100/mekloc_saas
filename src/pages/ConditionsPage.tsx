@@ -19,7 +19,7 @@ export default function ConditionsPage() {
             <p><strong>1. Société</strong><br />MekLoc est une solution SaaS de gestion pour agences de location automobile.</p>
             <p><strong>2. Éligibilité</strong><br />Vous confirmez avoir au moins 18 ans et utiliser la plateforme à des fins professionnelles légales.</p>
             <p><strong>3. Compte et activation</strong><br />L’accès est activé après validation de votre demande et activation de votre compte.</p>
-            <p><strong>4. Abonnements et facturation</strong><br />Plans mensuels ou annuels, prix affichés en MAD, facturation selon le plan actif.</p>
+            <p><strong>4. Abonnements et facturation</strong><br />Plans avec engagement de 6 ou 12 mois, ou paiement unique Lifetime. Les prix sont affichés en MAD et facturés selon le plan actif.</p>
             <p><strong>5. Annulation</strong><br />Annulation possible avant renouvellement. Aucun remboursement partiel de période en cours sauf accord écrit.</p>
             <p><strong>6. Changement de plan</strong><br />Upgrade immédiat (prorata possible). Downgrade au prochain cycle.</p>
             <p><strong>7. Utilisation acceptable</strong><br />Interdiction d’usage frauduleux, illégal, rétro-ingénierie, ou injection de code malveillant.</p>
