@@ -212,6 +212,16 @@ function LandingMotionStyles() {
         100% { transform: translate3d(0, 0, 0); filter: blur(0); }
       }
 
+      @keyframes mekloc-premium-visual-float {
+        0%, 100% { transform: translate3d(0, 0, 0); }
+        50% { transform: translate3d(0, -8px, 0); }
+      }
+
+      @keyframes mekloc-premium-visual-glow {
+        0%, 100% { opacity: .42; transform: translate3d(-50%, -50%, 0) scale(.96); }
+        50% { opacity: .7; transform: translate3d(-50%, -50%, 0) scale(1.04); }
+      }
+
       @keyframes mekloc-gold-word {
         0%, 100% { text-shadow: 0 0 0 rgba(227, 177, 23, 0); }
         50% { text-shadow: 0 0 34px rgba(227, 177, 23, .48); }
@@ -349,6 +359,15 @@ function LandingMotionStyles() {
       .landing-hero-proof { animation-delay: .74s; }
       .landing-hero-visual { animation-delay: .44s; }
 
+      .landing-premium-visual-frame {
+        animation: mekloc-premium-visual-float 7.5s ease-in-out infinite;
+        will-change: transform;
+      }
+
+      .landing-premium-visual-glow {
+        animation: mekloc-premium-visual-glow 6.5s ease-in-out infinite;
+      }
+
       .landing-hero-ray {
         position: absolute;
         inset: auto 8% 10% 8%;
@@ -465,6 +484,8 @@ function LandingMotionStyles() {
         .landing-hero-actions,
         .landing-hero-proof,
         .landing-hero-visual,
+        .landing-premium-visual-frame,
+        .landing-premium-visual-glow,
         .landing-gold-word,
         .landing-hero-ray,
         .landing-desktop-mockup::before,
@@ -950,26 +971,23 @@ function RealDashboardShowcase({ mobile = false }: { mobile?: boolean }) {
 
 function PremiumHeroShowcase() {
   return (
-    <div className="landing-hero-visual relative mx-auto w-full max-w-[720px] lg:mx-0">
-      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[70%] w-[76%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#E3B117]/12 blur-[70px]" />
-      <div className="relative rounded-[24px] border border-white/12 bg-[#090a0a] p-2 shadow-[0_34px_90px_rgba(0,0,0,.56),0_0_0_1px_rgba(227,177,23,.08)] sm:rounded-[28px] sm:p-3">
-        <div className="flex h-9 items-center gap-1.5 border-b border-white/8 px-3 sm:h-10">
-          <span className="h-2.5 w-2.5 rounded-full bg-white/18" />
-          <span className="h-2.5 w-2.5 rounded-full bg-white/12" />
-          <span className="h-2.5 w-2.5 rounded-full bg-[#E3B117]/55" />
-          <span className="ml-auto text-[10px] font-bold uppercase tracking-[0.16em] text-white/35">MekLoc Dashboard</span>
-        </div>
-        <div className="overflow-hidden rounded-b-[18px] bg-black sm:rounded-b-[21px]">
+    <div className="landing-hero-visual relative mx-auto w-full max-w-[690px] lg:mx-0 lg:justify-self-end">
+      <div className="landing-premium-visual-glow pointer-events-none absolute left-1/2 top-1/2 h-[74%] w-[82%] rounded-full bg-[radial-gradient(circle,rgba(245,197,66,.24),rgba(227,177,23,.09)_42%,transparent_72%)] blur-[54px]" />
+      <div className="landing-premium-visual-frame relative overflow-hidden rounded-[22px] border border-[#F5C542]/20 bg-white/[0.025] p-1.5 shadow-[0_34px_90px_rgba(0,0,0,.62),0_0_42px_rgba(227,177,23,.12),inset_0_1px_0_rgba(255,255,255,.08)] backdrop-blur-sm sm:rounded-[28px] sm:p-2">
+        <div className="overflow-hidden rounded-[17px] border border-white/[0.07] bg-black sm:rounded-[22px]">
           <img
-            src="/landing/app-dashboard.png"
-            alt="Tableau de bord MekLoc"
+            src="/landing/mekloc-dashboard-premium.png"
+            alt="Aperçu premium du tableau de bord MekLoc pour agences de location"
+            width={1491}
+            height={1055}
             className="block h-auto w-full object-contain"
             loading="eager"
             decoding="async"
+            fetchPriority="high"
           />
         </div>
       </div>
-      <div className="mx-auto h-3 w-[72%] rounded-b-[50%] bg-gradient-to-b from-zinc-600/45 to-zinc-950 shadow-[0_12px_28px_rgba(0,0,0,.55)]" />
+      <div className="pointer-events-none mx-auto mt-2 h-px w-[64%] bg-gradient-to-r from-transparent via-[#F5C542]/45 to-transparent shadow-[0_0_18px_rgba(245,197,66,.28)]" />
     </div>
   );
 }
@@ -1075,7 +1093,7 @@ export default function LandingPage() {
 
       <main className="landing-gradient-motion bg-[radial-gradient(circle_at_18%_6%,rgba(245,197,66,.16),transparent_30%),radial-gradient(circle_at_82%_24%,rgba(227,177,23,.12),transparent_32%),linear-gradient(rgba(255,255,255,.026)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:auto,auto,72px_72px,72px_72px]">
         <section className="relative overflow-hidden border-b border-white/10 bg-[linear-gradient(180deg,#080908_0%,#050606_100%)]">
-          <div className="mx-auto grid w-full max-w-[1360px] items-center gap-12 px-4 py-14 sm:px-6 sm:py-20 lg:min-h-[690px] lg:grid-cols-[0.88fr_1.12fr] lg:gap-14 lg:px-8 lg:py-20 xl:gap-20 xl:px-10">
+          <div className="mx-auto grid w-full max-w-[1360px] items-center gap-10 px-4 py-14 sm:px-6 sm:py-20 lg:min-h-[660px] lg:grid-cols-[0.92fr_1.08fr] lg:gap-12 lg:px-8 lg:py-16 xl:gap-16 xl:px-10">
             <div className="landing-reveal is-visible mx-auto max-w-[610px] text-center lg:mx-0 lg:text-left">
               <div className="landing-hero-kicker inline-flex max-w-full items-center gap-2 rounded-full border border-[#E3B117]/25 bg-[#E3B117]/[0.07] px-3.5 py-2 text-xs font-bold leading-5 text-[#F5C542] sm:px-4 sm:text-sm">
                 <Zap className="h-4 w-4" />
