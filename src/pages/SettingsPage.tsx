@@ -1,4 +1,4 @@
-import { BellRing, Building2, Camera, Copy, ExternalLink, FileSignature, Globe2, Link2, Loader2, Mail, MessageCircle, Percent, RefreshCw, Save, Settings, ShieldAlert, ShieldCheck, Smartphone, Trash2, UserPlus, UsersRound } from 'lucide-react';
+import { BadgeDollarSign, BellRing, Building2, CalendarClock, Camera, Copy, CreditCard, ExternalLink, FileSignature, FileText, Globe2, Landmark, Link2, Loader2, Mail, MessageCircle, Percent, ReceiptText, RefreshCw, Save, Settings, ShieldAlert, ShieldCheck, Smartphone, Trash2, UserPlus, UsersRound, WalletCards } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from '../components/ui/Button';
@@ -1594,51 +1594,161 @@ startxref
       ) : null}
 
       {tab === 'Facturation' ? (
-        <div className="grid gap-3 md:gap-6 lg:grid-cols-2">
-          <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
-            <div className="mb-4 flex items-start gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gold-400/12 text-[var(--app-gold-text)]">
-                <Percent className="h-5 w-5" />
+        <div className="min-w-0 space-y-4 md:space-y-6">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--app-gold-text)]">Gestion financière</p>
+            <h2 className="mt-2 text-2xl font-black text-[var(--app-text)] md:text-3xl">Facturation & abonnement</h2>
+            <p className="mt-2 text-sm leading-6 text-[var(--app-text-muted)]">Gérez votre plan, vos paiements et vos paramètres fiscaux.</p>
+          </div>
+
+          <div className="grid min-w-0 gap-4 lg:grid-cols-2 lg:gap-6">
+            <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-0">
+              <div className="border-b border-[var(--app-border)] bg-gradient-to-br from-gold-400/15 via-white/40 to-transparent p-5 dark:via-white/[0.025] md:p-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gold-400/15 text-[var(--app-gold-text)]">
+                      <BadgeDollarSign className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--app-gold-text)]">Abonnement actuel</p>
+                      <h3 className="mt-2 truncate text-2xl font-black capitalize text-[var(--app-text)]">{agency?.plan || '—'}</h3>
+                    </div>
+                  </div>
+                  <span className={`inline-flex w-fit rounded-full px-3 py-1.5 text-xs font-black ${agency?.billingStatus === 'paid' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-200' : agency?.billingStatus === 'trial' ? 'bg-sky-100 text-sky-700 dark:bg-sky-400/15 dark:text-sky-200' : agency?.billingStatus === 'overdue' ? 'bg-orange-100 text-orange-700 dark:bg-orange-400/15 dark:text-orange-200' : agency?.billingStatus === 'unpaid' ? 'bg-rose-100 text-rose-700 dark:bg-rose-400/15 dark:text-rose-200' : 'bg-slate-100 text-slate-700 dark:bg-slate-400/15 dark:text-slate-200'}`}>
+                    {billingStatusFr || '—'}
+                  </span>
+                </div>
+              </div>
+              <div className="p-5 md:p-6">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
+                    <WalletCards className="h-4 w-4 text-[var(--app-gold-text)]" />
+                    <p className="mt-3 text-xs font-semibold text-[var(--app-text-muted)]">Cycle</p>
+                    <p className="mt-1 font-bold text-[var(--app-text)]">{agency?.billingType ? billingTypeFr : '—'}</p>
+                  </div>
+                  <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
+                    <CalendarClock className="h-4 w-4 text-[var(--app-gold-text)]" />
+                    <p className="mt-3 text-xs font-semibold text-[var(--app-text-muted)]">Prochaine échéance</p>
+                    <p className="mt-1 text-sm font-bold text-[var(--app-text)]">{formatBillingDate(agency?.nextPaymentDueDate || null)}</p>
+                  </div>
+                  <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
+                    <ReceiptText className="h-4 w-4 text-[var(--app-gold-text)]" />
+                    <p className="mt-3 text-xs font-semibold text-[var(--app-text-muted)]">Montant actuel</p>
+                    <p className="mt-1 text-sm font-bold text-[var(--app-text)]">{agency?.monthlyPrice || agency?.annualPrice ? displayedPlanPrice : '—'}</p>
+                  </div>
+                </div>
+                <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                  <Button type="button" onClick={() => selectSettingsTab('Abonnement')}>Changer de plan</Button>
+                  <Button type="button" variant="secondary" onClick={() => navigate('/pricing')}>Voir les offres</Button>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-5 md:p-6">
+              <div className="flex items-start gap-3">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-400/12 dark:text-emerald-200">
+                  <CreditCard className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-[var(--app-text)]">Méthode de paiement</h3>
+                  <p className="mt-1 text-sm text-[var(--app-text-muted)]">Choisissez la méthode utilisée pour le suivi de votre abonnement.</p>
+                </div>
+              </div>
+              <div className="mt-5 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
+                <SelectField
+                  label="Méthode actuelle"
+                  defaultValue={agency?.paymentMethod === 'cash' ? 'Espèces' : agency?.paymentMethod === 'card' ? 'Carte' : 'Virement bancaire'}
+                  className="h-12 bg-[var(--app-card)] font-semibold text-[var(--app-text)]"
+                >
+                  <option>Espèces</option>
+                  <option>Virement bancaire</option>
+                  <option>Carte</option>
+                </SelectField>
+                <p className="mt-3 flex items-start gap-2 text-xs leading-5 text-[var(--app-text-muted)]">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-300" />
+                  Cette méthode sera utilisée pour le suivi de votre abonnement.
+                </p>
+              </div>
+            </Card>
+
+            <Card className="rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-5 md:p-6">
+              <div className="flex items-start gap-3">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gold-400/12 text-[var(--app-gold-text)]">
+                  <Percent className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-[var(--app-text)]">Paramètres fiscaux</h3>
+                  <p className="mt-1 text-sm text-[var(--app-text-muted)]">Configurez la TVA et son affichage sur vos documents.</p>
+                </div>
+              </div>
+              <div className="mt-5 grid gap-4 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 sm:grid-cols-2">
+                <div>
+                  <Field label="Taux TVA (%)" defaultValue="20" type="number" min="0" max="100" step="0.01" className="h-12 bg-[var(--app-card)]" />
+                  <p className="mt-2 text-xs leading-5 text-[var(--app-text-muted)]">Valeur autorisée entre 0 et 100.</p>
+                </div>
+                <div>
+                  <SelectField label="Affichage taxe facture" defaultValue="Incluse" className="h-12 bg-[var(--app-card)]">
+                    <option>Incluse</option>
+                    <option>Exclue</option>
+                  </SelectField>
+                  <p className="mt-2 text-xs leading-5 text-[var(--app-text-muted)]">Détermine comment la taxe apparaît sur la facture.</p>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-5 md:p-6">
+              <div className="flex items-start gap-3">
+                <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-sky-100 text-sky-700 dark:bg-sky-400/12 dark:text-sky-200">
+                  <Landmark className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-[var(--app-text)]">Informations de facturation</h3>
+                  <p className="mt-1 text-sm text-[var(--app-text-muted)]">Coordonnées légales actuellement disponibles pour l’agence.</p>
+                </div>
+              </div>
+              {agencyIce || agencyIfNumber || agencyRc || agencyAddress || agencyEmail ? (
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  {[
+                    ['ICE', agencyIce],
+                    ['IF', agencyIfNumber],
+                    ['RC', agencyRc],
+                    ['Adresse fiscale', agencyAddress],
+                    ['Email de facturation', agencyEmail],
+                  ].map(([label, value]) => (
+                    <div key={label} className={`min-w-0 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 ${label === 'Adresse fiscale' || label === 'Email de facturation' ? 'sm:col-span-2' : ''}`}>
+                      <p className="text-xs font-semibold text-[var(--app-text-muted)]">{label}</p>
+                      <p className="mt-1 break-words text-sm font-bold text-[var(--app-text)]">{value || '—'}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-5 rounded-2xl border border-dashed border-[var(--app-border)] bg-[var(--app-surface-soft)] p-5 text-sm leading-6 text-[var(--app-text-muted)]">
+                  Les informations légales de facturation peuvent être complétées dans les paramètres généraux de l’agence.
+                </div>
+              )}
+            </Card>
+          </div>
+
+          <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-0">
+            <div className="flex items-start gap-3 border-b border-[var(--app-border)] p-5 md:p-6">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-slate-100 text-slate-700 dark:bg-white/[0.06] dark:text-slate-200">
+                <FileText className="h-5 w-5" />
               </div>
               <div>
-                <h2 className="font-semibold text-[var(--app-text)] ">Paramètres fiscaux</h2>
-                <p className="mt-1 text-sm text-[var(--app-text-muted)]">TVA et affichage des taxes sur les factures.</p>
+                <h3 className="font-bold text-[var(--app-text)]">Historique de facturation</h3>
+                <p className="mt-1 text-sm text-[var(--app-text-muted)]">Factures, reçus et règlements liés à votre abonnement.</p>
               </div>
             </div>
-            <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
-              <div className="grid gap-4">
-              <Field label="Taux TVA" defaultValue="20" type="number" />
-              <SelectField label="Affichage taxe facture" defaultValue="Incluse">
-                <option>Incluse</option>
-                <option>Exclue</option>
-              </SelectField>
-              </div>
+            <div className="hidden grid-cols-[1fr_1fr_1fr_1fr_auto] gap-4 border-b border-[var(--app-border)] bg-[var(--app-surface-soft)] px-6 py-3 text-xs font-black uppercase tracking-[0.08em] text-[var(--app-text-muted)] md:grid">
+              <span>Date</span><span>Type</span><span>Montant</span><span>Statut</span><span>Action</span>
             </div>
-          </Card>
-          <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-4 md:rounded-3xl md:p-5">
-            <div className="mb-4 flex items-start gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-400/12 text-emerald-700 dark:text-emerald-200">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
+            <div className="grid min-h-40 place-items-center px-5 py-10 text-center">
               <div>
-                <h2 className="font-semibold text-[var(--app-text)] ">Facturation abonnement</h2>
-                <p className="mt-1 text-sm text-[var(--app-text-muted)]">Plan actuel et méthode de règlement préférée.</p>
-              </div>
-            </div>
-            <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
-              <div className="grid gap-4">
-              <SelectField label="Plan actuel" defaultValue="Pro">
-                <option>Gratuit</option>
-                <option>Starter</option>
-                <option>Pro</option>
-                <option>Business</option>
-                <option>Lifetime</option>
-              </SelectField>
-              <SelectField label="Méthode de paiement" defaultValue="Virement bancaire">
-                <option>Espèces</option>
-                <option>Virement bancaire</option>
-                <option>Carte</option>
-              </SelectField>
+                <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-gold-text)]">
+                  <ReceiptText className="h-5 w-5" />
+                </span>
+                <p className="mt-4 font-bold text-[var(--app-text)]">Aucun document de facturation disponible pour le moment.</p>
+                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--app-text-muted)]">Les prochains reçus ou documents disponibles apparaîtront dans cette section.</p>
               </div>
             </div>
           </Card>
