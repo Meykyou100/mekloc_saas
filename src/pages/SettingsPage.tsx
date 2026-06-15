@@ -42,6 +42,18 @@ type AccountSession = {
 type TeamRole = 'owner' | 'manager' | 'agent' | 'accountant';
 type SettingsTab = 'Général' | 'Contrats' | 'Facturation' | 'Abonnement' | 'Équipe' | 'Notifications' | 'Sécurité';
 type ActivationLinkMember = Pick<TeamMember, 'full_name' | 'email' | 'role' | 'account_status'> & { id?: string };
+type AgencyInvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+type AgencyInvoiceRow = {
+  id: string;
+  invoice_number: string;
+  plan_name: string;
+  billing_period: string;
+  amount: number;
+  currency: string;
+  status: AgencyInvoiceStatus;
+  invoice_date: string;
+  due_date: string | null;
+};
 const settingsTabs: SettingsTab[] = ['Général', 'Contrats', 'Facturation', 'Abonnement', 'Équipe', 'Notifications', 'Sécurité'];
 const settingsTabStorageKey = 'mekloc-settings-active-tab';
 const sessionStorageKey = 'mekloc_session_id';
@@ -170,6 +182,23 @@ function formatBillingDate(value: string | null | undefined) {
   }).format(new Date(year, month - 1, day));
 }
 
+function invoiceStatusLabel(status: AgencyInvoiceStatus) {
+  if (status === 'draft') return 'Brouillon';
+  if (status === 'sent') return 'Envoyée';
+  if (status === 'paid') return 'Payée';
+  if (status === 'overdue') return 'En retard';
+  if (status === 'cancelled') return 'Annulée';
+  return status;
+}
+
+function invoiceStatusClass(status: AgencyInvoiceStatus) {
+  if (status === 'paid') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-200';
+  if (status === 'sent') return 'bg-sky-100 text-sky-700 dark:bg-sky-400/15 dark:text-sky-200';
+  if (status === 'overdue') return 'bg-orange-100 text-orange-700 dark:bg-orange-400/15 dark:text-orange-200';
+  if (status === 'cancelled') return 'bg-rose-100 text-rose-700 dark:bg-rose-400/15 dark:text-rose-200';
+  return 'bg-slate-100 text-slate-700 dark:bg-white/[0.06] dark:text-slate-200';
+}
+
 function sessionDeviceLabel(sessionItem: AccountSession) {
   return sessionItem.device_label || sessionItem.device_name || sessionItem.browser || 'Appareil';
 }
@@ -199,8 +228,10 @@ export default function SettingsPage() {
     agency?.billingStatus === 'overdue' ? 'En retard' : 'Annulé';
   const billingTypeFr = agency?.billingType === 'lifetime' ? 'Lifetime' : agency?.billingType === 'annual' ? 'Annuel' : 'Mensuel';
   const displayedPlanPrice = agency?.billingType === 'lifetime'
-    ? `${agency.annualPrice || agency.monthlyPrice || 5999} MAD à vie`
-    : `${agency?.monthlyPrice || 199} MAD / mois`;
+    ? `${agency.annualPrice || agency.monthlyPrice || 9999} MAD · paiement unique`
+    : agency?.billingType === 'annual'
+      ? `${agency?.annualPrice || 0} MAD / an`
+      : `${agency?.annualPrice || agency?.monthlyPrice || 0} MAD / 6 mois`;
   const nextPaymentDate = agency?.nextPaymentDueDate || null;
   const effectiveLastPaymentDate =
     agency?.lastPaymentDate ||
@@ -279,6 +310,7 @@ export default function SettingsPage() {
   const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(() =>
     getNotificationPreferences(agency?.settings),
   );
+  const [agencyInvoices, setAgencyInvoices] = useState<AgencyInvoiceRow[]>([]);
   const logoBadgeClass = 'grid h-[52px] w-[52px] shrink-0 place-items-center overflow-hidden rounded-2xl border border-gold-200/25 bg-gradient-to-br from-carbon-900 via-carbon-950 to-[#3f2b07] p-2 shadow-[0_12px_26px_rgba(212,160,23,.18)] light:border-gold-500/30 light:from-white light:via-gold-50 light:to-gold-100';
   const canManageTeam = profile?.role === 'owner' || profile?.role === 'manager' || Boolean(profile?.isSuperAdmin);
   const hasChanges = useMemo(() => {
@@ -372,6 +404,31 @@ export default function SettingsPage() {
   useEffect(() => {
     setStampPreviewBroken(false);
   }, [stampPreviewUrl]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAgencyInvoices() {
+      if (!isSupabaseEnabled || !supabase || !agencyId) {
+        setAgencyInvoices([]);
+        return;
+      }
+      const { data, error } = await supabase
+        .from('agency_invoices')
+        .select('id,invoice_number,plan_name,billing_period,amount,currency,status,invoice_date,due_date')
+        .eq('agency_id', agencyId)
+        .order('invoice_date', { ascending: false });
+      if (cancelled) return;
+      if (error) {
+        setAgencyInvoices([]);
+        return;
+      }
+      setAgencyInvoices((data || []) as AgencyInvoiceRow[]);
+    }
+    void loadAgencyInvoices();
+    return () => {
+      cancelled = true;
+    };
+  }, [agencyId, isSupabaseEnabled]);
 
   useEffect(() => {
     if (!hasChanges) {
@@ -1748,15 +1805,32 @@ startxref
             <div className="hidden grid-cols-[1fr_1fr_1fr_1fr_auto] gap-4 border-b border-[var(--app-border)] bg-[var(--app-surface-soft)] px-6 py-3 text-xs font-black uppercase tracking-[0.08em] text-[var(--app-text-muted)] md:grid">
               <span>Date</span><span>Type</span><span>Montant</span><span>Statut</span><span>Action</span>
             </div>
-            <div className="grid min-h-40 place-items-center px-5 py-10 text-center">
-              <div>
-                <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-gold-text)]">
-                  <ReceiptText className="h-5 w-5" />
-                </span>
-                <p className="mt-4 font-bold text-[var(--app-text)]">Aucun document de facturation disponible pour le moment.</p>
-                <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--app-text-muted)]">Les prochains reçus ou documents disponibles apparaîtront dans cette section.</p>
+            {agencyInvoices.length ? (
+              <div className="divide-y divide-[var(--app-border)]">
+                {agencyInvoices.map((invoice) => (
+                  <div key={invoice.id} className="grid gap-3 px-5 py-4 md:grid-cols-[1fr_1fr_1fr_1fr_auto] md:items-center md:px-6">
+                    <div>
+                      <p className="text-sm font-black text-[var(--app-text)]">{formatBillingDate(invoice.invoice_date)}</p>
+                      <p className="mt-1 text-xs text-[var(--app-text-muted)] md:hidden">{invoice.invoice_number}</p>
+                    </div>
+                    <p className="text-sm font-semibold text-[var(--app-text)]">{invoice.plan_name} · {invoice.billing_period}</p>
+                    <p className="text-sm font-black text-[var(--app-text)]">{Number(invoice.amount || 0).toLocaleString('fr-FR')} {invoice.currency || 'MAD'}</p>
+                    <span className={`w-fit rounded-full px-3 py-1 text-xs font-black ${invoiceStatusClass(invoice.status)}`}>{invoiceStatusLabel(invoice.status)}</span>
+                    <Button type="button" variant="secondary" className="h-9 px-3 text-xs" disabled title="PDF à configurer">Télécharger</Button>
+                  </div>
+                ))}
               </div>
-            </div>
+            ) : (
+              <div className="grid min-h-40 place-items-center px-5 py-10 text-center">
+                <div>
+                  <span className="mx-auto grid h-12 w-12 place-items-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-gold-text)]">
+                    <ReceiptText className="h-5 w-5" />
+                  </span>
+                  <p className="mt-4 font-bold text-[var(--app-text)]">Aucun document de facturation disponible pour le moment.</p>
+                  <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-[var(--app-text-muted)]">Les prochains reçus ou documents disponibles apparaîtront dans cette section.</p>
+                </div>
+              </div>
+            )}
           </Card>
         </div>
       ) : null}

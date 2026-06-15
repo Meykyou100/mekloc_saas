@@ -1,4 +1,4 @@
-import { Activity, AlertTriangle, Banknote, CalendarClock, CheckCircle2, ChevronDown, Clock3, Crown, Eye, FileText, Headphones, Laptop2, Mail, Menu, MoreHorizontal, Play, RefreshCw, Search, ShieldAlert, Smartphone, Trash2, UserPlus, Users, X, XCircle } from 'lucide-react';
+import { Activity, AlertTriangle, Banknote, CalendarClock, CheckCircle2, ChevronDown, Clock3, Crown, Eye, FileText, Headphones, Laptop2, Mail, Menu, MoreHorizontal, Play, ReceiptText, RefreshCw, Search, Send, ShieldAlert, Smartphone, Trash2, UserPlus, Users, X, XCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, type ElementType } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
@@ -11,6 +11,7 @@ import { useAuth, type AccountStatus, type AgencyPlan, type BillingStatus, type 
 import { formatMAD } from '../data/mockData';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import { SUPPORT_REASON_MIN_LENGTH, useSupportMode, type SupportAccessMode } from '../context/SupportModeContext';
+import { MEKLOC_PLANS, type MekLocPlanId } from '../config/pricing';
 
 type AccessRequestStatus = 'pending' | 'pending_verification' | 'contacted' | 'payment_pending' | 'approved' | 'rejected' | 'verified';
 type AccessRequestRow = {
@@ -115,6 +116,25 @@ type SupportLogRow = {
   adminEmail: string;
 };
 
+type AgencyInvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+type AgencyInvoiceRow = {
+  id: string;
+  agency_id: string;
+  invoice_number: string;
+  plan_id: MekLocPlanId;
+  plan_name: string;
+  billing_period: string;
+  amount: number;
+  currency: string;
+  status: AgencyInvoiceStatus;
+  invoice_date: string;
+  due_date: string | null;
+  sent_at: string | null;
+  paid_at: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
 type SuperAdminView =
   | 'overview'
   | 'crm'
@@ -202,7 +222,18 @@ function inferRequestPipeline(request: AccessRequestRow): PipelineStatus {
   return 'new';
 }
 
-const monthlyPriceByPlan: Record<AgencyPlan, number> = { starter: 199, pro: 599, business: 399, lifetime: 5999 };
+const monthlyPriceByPlan: Record<AgencyPlan, number> = {
+  starter: MEKLOC_PLANS.starter.monthlyPrice,
+  pro: MEKLOC_PLANS.pro.monthlyPrice,
+  business: MEKLOC_PLANS.business.monthlyPrice,
+  lifetime: MEKLOC_PLANS.lifetime.packagePrice,
+};
+const packagePriceByPlan: Record<AgencyPlan, number> = {
+  starter: MEKLOC_PLANS.starter.packagePrice,
+  pro: MEKLOC_PLANS.pro.packagePrice,
+  business: MEKLOC_PLANS.business.packagePrice,
+  lifetime: MEKLOC_PLANS.lifetime.packagePrice,
+};
 
 function addDays(baseDate: string | null, days: number) {
   const d = baseDate ? new Date(baseDate) : new Date();
@@ -242,6 +273,29 @@ function billingLabel(status: BillingStatus) {
   if (status === 'overdue') return 'En retard';
   if (status === 'cancelled') return 'Annulé';
   return status;
+}
+
+function invoiceStatusLabel(status: AgencyInvoiceStatus) {
+  if (status === 'draft') return 'Brouillon';
+  if (status === 'sent') return 'Envoyée';
+  if (status === 'paid') return 'Payée';
+  if (status === 'overdue') return 'En retard';
+  if (status === 'cancelled') return 'Annulée';
+  return status;
+}
+
+function invoiceStatusClass(status: AgencyInvoiceStatus) {
+  if (status === 'paid') return 'bg-emerald-400/15 text-emerald-200';
+  if (status === 'sent') return 'bg-sky-400/15 text-sky-200';
+  if (status === 'overdue') return 'bg-orange-400/15 text-orange-200';
+  if (status === 'cancelled') return 'bg-rose-400/15 text-rose-200';
+  return 'bg-white/[0.06] text-carbon-200';
+}
+
+function defaultInvoiceDueDate() {
+  const date = new Date();
+  date.setDate(date.getDate() + 7);
+  return date.toISOString().slice(0, 10);
 }
 
 function subscriptionLabel(status: SubscriptionStatus) {
@@ -488,6 +542,7 @@ export default function SuperAdminPage() {
   const [agencyUsers, setAgencyUsers] = useState<Record<string, AdminUserRow[]>>({});
   const [agencySessions, setAgencySessions] = useState<Record<string, UserSessionRow[]>>({});
   const [supportLogsByAgency, setSupportLogsByAgency] = useState<Record<string, SupportLogRow[]>>({});
+  const [invoicesByAgency, setInvoicesByAgency] = useState<Record<string, AgencyInvoiceRow[]>>({});
   const [crmActivityByAgency, setCrmActivityByAgency] = useState<Record<string, CrmActivity>>({});
   const [expandedSessionAgencyId, setExpandedSessionAgencyId] = useState<string | null>(null);
   const [expandedAdvancedAgencyId, setExpandedAdvancedAgencyId] = useState<string | null>(null);
@@ -507,6 +562,13 @@ export default function SuperAdminPage() {
   const [paymentDuration, setPaymentDuration] = useState<1 | 3 | 6 | 12>(1);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('bank_transfer');
   const [paymentNote, setPaymentNote] = useState('');
+  const [invoiceAgency, setInvoiceAgency] = useState<AdminAgency | null>(null);
+  const [invoicePlan, setInvoicePlan] = useState<AgencyPlan>('pro');
+  const [invoiceAmount, setInvoiceAmount] = useState(packagePriceByPlan.pro);
+  const [invoiceDate, setInvoiceDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [invoiceDueDate, setInvoiceDueDate] = useState(defaultInvoiceDueDate);
+  const [invoiceStatus, setInvoiceStatus] = useState<AgencyInvoiceStatus>('draft');
+  const [invoiceNotes, setInvoiceNotes] = useState('');
   const [supportAgency, setSupportAgency] = useState<AdminAgency | null>(null);
   const [supportReason, setSupportReason] = useState('');
   const [supportAccessMode, setSupportAccessMode] = useState<SupportAccessMode>('read_only');
@@ -556,6 +618,10 @@ export default function SuperAdminPage() {
   const selectedAgencySupportLogs = useMemo(
     () => selectedAgencyDetails ? supportLogsByAgency[selectedAgencyDetails.id] || [] : [],
     [selectedAgencyDetails, supportLogsByAgency],
+  );
+  const selectedAgencyInvoices = useMemo(
+    () => selectedAgencyDetails ? invoicesByAgency[selectedAgencyDetails.id] || [] : [],
+    [invoicesByAgency, selectedAgencyDetails],
   );
   const filteredAdminSessions = useMemo(() => allAdminSessions.filter((session) => {
     if (sessionFilter === 'all') return true;
@@ -894,6 +960,22 @@ export default function SuperAdminPage() {
       }
 
       try {
+        const invoiceRes = await supabase
+          .from('agency_invoices')
+          .select('id,agency_id,invoice_number,plan_id,plan_name,billing_period,amount,currency,status,invoice_date,due_date,sent_at,paid_at,notes,created_at')
+          .order('invoice_date', { ascending: false });
+        if (invoiceRes.error) throw invoiceRes.error;
+        const byAgencyInvoices: Record<string, AgencyInvoiceRow[]> = {};
+        ((invoiceRes.data || []) as AgencyInvoiceRow[]).forEach((invoice) => {
+          if (!byAgencyInvoices[invoice.agency_id]) byAgencyInvoices[invoice.agency_id] = [];
+          byAgencyInvoices[invoice.agency_id].push(invoice);
+        });
+        setInvoicesByAgency(byAgencyInvoices);
+      } catch {
+        setInvoicesByAgency({});
+      }
+
+      try {
         const [reservationsRes, contractsRes, paymentsRes] = await Promise.all([
           supabase.from('reservations').select('agency_id'),
           supabase.from('contracts').select('agency_id'),
@@ -1137,6 +1219,58 @@ export default function SuperAdminPage() {
     if (!supabase) return;
     const { error } = await supabase.from('agencies').update({ plan, monthly_price: monthlyPriceByPlan[plan] }).eq('id', agency.id);
     if (error) throw error;
+    await loadAll();
+  }
+
+  function openInvoiceModal(agency: AdminAgency) {
+    const plan = agency.plan || 'pro';
+    setInvoiceAgency(agency);
+    setInvoicePlan(plan);
+    setInvoiceAmount(packagePriceByPlan[plan]);
+    setInvoiceDate(new Date().toISOString().slice(0, 10));
+    setInvoiceDueDate(defaultInvoiceDueDate());
+    setInvoiceStatus('draft');
+    setInvoiceNotes('');
+  }
+
+  async function createAgencyInvoice() {
+    if (!supabase || !invoiceAgency) return;
+    const plan = MEKLOC_PLANS[invoicePlan as MekLocPlanId];
+    const count = (invoicesByAgency[invoiceAgency.id] || []).length + 1;
+    const invoiceNumber = `ML-${new Date().getFullYear()}-${String(count).padStart(4, '0')}`;
+    const { error } = await supabase.from('agency_invoices').insert({
+      agency_id: invoiceAgency.id,
+      invoice_number: invoiceNumber,
+      plan_id: invoicePlan,
+      plan_name: plan.name,
+      billing_period: plan.billingChoice === 'six_months' ? '6 mois' : plan.billingChoice === 'annual' ? '12 mois' : 'Lifetime',
+      amount: invoiceAmount,
+      status: invoiceStatus,
+      invoice_date: invoiceDate,
+      due_date: invoiceDueDate || null,
+      notes: invoiceNotes.trim() || null,
+      sent_at: invoiceStatus === 'sent' ? new Date().toISOString() : null,
+      paid_at: invoiceStatus === 'paid' ? new Date().toISOString() : null,
+    });
+    if (error) {
+      if (/agency_invoices|schema cache|does not exist/i.test(error.message || '')) {
+        throw new Error('Table agency_invoices manquante. Appliquez la migration supabase/agency_invoices_safe.sql.');
+      }
+      throw error;
+    }
+    setInvoiceAgency(null);
+    notify({ title: 'Facture créée', message: 'La facture a été ajoutée à l’historique agence.', type: 'success' });
+    await loadAll();
+  }
+
+  async function updateAgencyInvoiceStatus(invoice: AgencyInvoiceRow, status: AgencyInvoiceStatus) {
+    if (!supabase) return;
+    const payload: Record<string, unknown> = { status };
+    if (status === 'sent' && !invoice.sent_at) payload.sent_at = new Date().toISOString();
+    if (status === 'paid' && !invoice.paid_at) payload.paid_at = new Date().toISOString();
+    const { error } = await supabase.from('agency_invoices').update(payload).eq('id', invoice.id);
+    if (error) throw error;
+    notify({ title: 'Facture mise à jour', message: `Statut: ${invoiceStatusLabel(status)}.`, type: 'success' });
     await loadAll();
   }
 
@@ -2510,6 +2644,53 @@ export default function SuperAdminPage() {
               </div>
 
               <div className="rounded-2xl border border-[#E3B117]/20 bg-carbon-950/55 p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-black text-white">Factures abonnement</p>
+                    <p className="mt-1 text-xs text-carbon-400">Historique réel des factures liées à cette agence.</p>
+                  </div>
+                  <Button icon={<ReceiptText className="h-4 w-4" />} onClick={() => openInvoiceModal(selectedAgencyDetails)}>Créer facture</Button>
+                </div>
+                <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
+                  {selectedAgencyInvoices.length ? (
+                    <div className="divide-y divide-white/10">
+                      {selectedAgencyInvoices.slice(0, 6).map((invoice) => (
+                        <div key={invoice.id} className="grid gap-3 bg-white/[0.025] p-3 text-sm md:grid-cols-[1.1fr_0.9fr_0.8fr_auto] md:items-center">
+                          <div className="min-w-0">
+                            <p className="font-black text-white">{invoice.invoice_number}</p>
+                            <p className="mt-1 text-xs text-carbon-400">{invoice.plan_name} · {invoice.billing_period} · {invoice.invoice_date}</p>
+                          </div>
+                          <p className="font-black text-white">{formatMAD(Number(invoice.amount || 0))}</p>
+                          <span className={`w-fit rounded-full px-2.5 py-1 text-xs font-black ${invoiceStatusClass(invoice.status)}`}>
+                            {invoiceStatusLabel(invoice.status)}
+                          </span>
+                          <div className="flex flex-wrap justify-start gap-2 md:justify-end">
+                            <Button variant="secondary" className="h-8 px-2.5 text-xs" disabled title="PDF à configurer">Télécharger</Button>
+                            {invoice.status === 'draft' ? (
+                              <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<Send className="h-3.5 w-3.5" />} onClick={() => runAction(`invoice-sent-${invoice.id}`, async () => updateAgencyInvoiceStatus(invoice, 'sent'))}>Envoyée</Button>
+                            ) : null}
+                            {invoice.status !== 'paid' ? (
+                              <Button className="h-8 px-2.5 text-xs" icon={<CheckCircle2 className="h-3.5 w-3.5" />} onClick={() => runAction(`invoice-paid-${invoice.id}`, async () => updateAgencyInvoiceStatus(invoice, 'paid'))}>Payée</Button>
+                            ) : null}
+                          </div>
+                          {invoice.notes ? <p className="text-xs text-carbon-400 md:col-span-4">Note: {invoice.notes}</p> : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid min-h-28 place-items-center bg-white/[0.025] p-5 text-center">
+                      <div>
+                        <ReceiptText className="mx-auto h-7 w-7 text-[#F5C542]" />
+                        <p className="mt-2 text-sm font-bold text-white">Aucune facture pour cette agence.</p>
+                        <p className="mt-1 text-xs text-carbon-400">Créez une facture Starter, Pro, Business ou Lifetime.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <p className="mt-3 text-xs text-amber-200">Envoi email/PDF: à configurer avec un provider email et un générateur PDF facture.</p>
+              </div>
+
+              <div className="rounded-2xl border border-[#E3B117]/20 bg-carbon-950/55 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-black text-white">Support & journal</p>
@@ -2702,6 +2883,70 @@ export default function SuperAdminPage() {
             </div>
           </div>
         ) : null}
+      </Modal>
+
+      <Modal
+        open={Boolean(invoiceAgency)}
+        onClose={() => setInvoiceAgency(null)}
+        title="Créer une facture"
+        subtitle={invoiceAgency?.agencyName}
+      >
+        <div className="space-y-4">
+          <label className="block">
+            <span className="mb-2 block text-sm font-bold text-[var(--app-text)]">Plan / package</span>
+            <select
+              className="form-control"
+              value={invoicePlan}
+              onChange={(event) => {
+                const plan = event.target.value as AgencyPlan;
+                setInvoicePlan(plan);
+                setInvoiceAmount(packagePriceByPlan[plan]);
+              }}
+            >
+              <option value="starter">Starter 6 mois — 2 394 MAD</option>
+              <option value="pro">Pro 12 mois — 3 588 MAD</option>
+              <option value="business">Business 12 mois — 5 988 MAD</option>
+              <option value="lifetime">Lifetime — 9 999 MAD</option>
+            </select>
+          </label>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-2 block text-sm font-bold text-[var(--app-text)]">Montant</span>
+              <input className="form-control" type="number" min="0" step="1" value={invoiceAmount} onChange={(event) => setInvoiceAmount(Number(event.target.value || 0))} />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-sm font-bold text-[var(--app-text)]">Statut</span>
+              <select className="form-control" value={invoiceStatus} onChange={(event) => setInvoiceStatus(event.target.value as AgencyInvoiceStatus)}>
+                <option value="draft">Brouillon</option>
+                <option value="sent">Envoyée</option>
+                <option value="paid">Payée</option>
+                <option value="overdue">En retard</option>
+                <option value="cancelled">Annulée</option>
+              </select>
+            </label>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-2 block text-sm font-bold text-[var(--app-text)]">Date facture</span>
+              <input className="form-control" type="date" value={invoiceDate} onChange={(event) => setInvoiceDate(event.target.value)} />
+            </label>
+            <label className="block">
+              <span className="mb-2 block text-sm font-bold text-[var(--app-text)]">Date limite</span>
+              <input className="form-control" type="date" value={invoiceDueDate} onChange={(event) => setInvoiceDueDate(event.target.value)} />
+            </label>
+          </div>
+          <label className="block">
+            <span className="mb-2 block text-sm font-bold text-[var(--app-text)]">Note admin</span>
+            <textarea className="form-control min-h-24 resize-y" value={invoiceNotes} onChange={(event) => setInvoiceNotes(event.target.value)} placeholder="Référence, condition de paiement ou remarque interne..." />
+          </label>
+          <div className="rounded-2xl border border-amber-400/20 bg-amber-400/10 p-3 text-xs font-semibold text-amber-100">
+            Envoyer facture par email et télécharger PDF nécessitent une intégration email/PDF dédiée. L’historique facture est bien enregistré.
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setInvoiceAgency(null)}>Annuler</Button>
+            <Button loading={Boolean(actionLoading['invoice-modal'])} onClick={() => runAction('invoice-modal', createAgencyInvoice)}>Créer facture</Button>
+          </div>
+        </div>
       </Modal>
 
       <Modal

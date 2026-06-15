@@ -371,7 +371,7 @@ export default function DemandeAccesPage() {
                 {plans.map((plan) => {
                   const active = selectedPlan === plan.id;
                   const isLifetime = plan.id === 'lifetime';
-                  const price = isLifetime ? plan.lifetimePrice : plan.monthlyPrice;
+                  const price = plan.packagePrice;
                   return (
                     <button
                       key={plan.id}
@@ -396,9 +396,10 @@ export default function DemandeAccesPage() {
                       <p className="mt-1 text-sm text-zinc-400">{plan.note}</p>
                       <p className="mt-5 text-4xl font-black">
                         {price.toLocaleString('fr-FR')} MAD
-                        <span className="ml-1 text-base font-semibold text-zinc-500">{isLifetime ? '' : '/mois'}</span>
+                        <span className="ml-1 text-base font-semibold text-zinc-500">{plan.packageLabel}</span>
                       </p>
-                      <p className="mt-2 text-sm font-semibold text-[#F5C542]">{plan.billingLabel}</p>
+                      <p className="mt-2 text-sm font-semibold text-[#F5C542]">{plan.equivalentLabel}</p>
+                      <p className="mt-1 text-xs font-bold text-zinc-500">{plan.billingLabel}</p>
                       <p className="mt-3 text-sm font-bold text-zinc-200">{plan.usersLabel} · {plan.vehiclesLabel}</p>
                       <p className="mt-1 text-xs font-bold uppercase tracking-[0.08em] text-zinc-500">{plan.commitment}</p>
                       <div className="mt-5 space-y-2.5">

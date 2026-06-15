@@ -31,7 +31,7 @@ export default function PricingPage() {
         <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           {MEKLOC_PLAN_LIST.map((plan) => {
             const featured = plan.id === 'pro' || plan.id === 'lifetime';
-            const price = plan.id === 'lifetime' ? `${plan.lifetimePrice.toLocaleString('fr-FR')} MAD` : `${plan.monthlyPrice.toLocaleString('fr-FR')} MAD`;
+            const price = `${plan.packagePrice.toLocaleString('fr-FR')} MAD`;
             return (
             <Card
               key={plan.name}
@@ -47,9 +47,10 @@ export default function PricingPage() {
               <p className="mt-2 min-h-12 text-sm text-carbon-400 light:text-carbon-600">{plan.note}</p>
               <p className="mt-6 text-4xl font-black text-white light:text-carbon-950">
                 {price}
-                <span className="text-base font-semibold text-carbon-400">{plan.id === 'lifetime' ? '' : ' /mois'}</span>
+                <span className="text-base font-semibold text-carbon-400"> {plan.packageLabel}</span>
               </p>
-              <p className="mt-2 text-sm font-bold text-gold-300">{plan.billingLabel}</p>
+              <p className="mt-2 text-sm font-bold text-gold-300">{plan.equivalentLabel}</p>
+              <p className="mt-1 text-xs font-bold text-carbon-500">{plan.billingLabel}</p>
               <p className="mt-4 text-sm font-bold text-carbon-200 light:text-carbon-800">{plan.usersLabel} · {plan.vehiclesLabel}</p>
               <p className="mt-1 text-xs font-bold uppercase tracking-[0.08em] text-carbon-500">{plan.commitment}</p>
               <div className="mt-6 grid gap-3">

@@ -1287,23 +1287,41 @@ export default function LandingPage() {
               {plans.map((plan) => {
                 const isLifetime = 'lifetime' in plan && plan.lifetime;
                 const isCycleMatch = plan.billingChoice === billingCycle;
-                const displayPrice = isLifetime ? plan.lifetimePrice : plan.monthlyPrice;
-                const cadence = isLifetime ? '' : '/ mois';
+                const isPrimary =
+                  (billingCycle === 'six_months' && plan.id === 'starter') ||
+                  (billingCycle === 'annual' && plan.id === 'pro') ||
+                  (billingCycle === 'lifetime' && plan.id === 'lifetime');
+                const mutedByCycle =
+                  (billingCycle === 'six_months' && (plan.id === 'pro' || plan.id === 'business')) ||
+                  (billingCycle === 'annual' && plan.id === 'starter') ||
+                  (billingCycle === 'lifetime' && plan.id !== 'lifetime');
+                const cycleHint =
+                  billingCycle === 'six_months' && (plan.id === 'pro' || plan.id === 'business')
+                    ? 'Disponible en 12 mois'
+                    : billingCycle === 'annual' && plan.id === 'starter'
+                      ? 'Formule 6 mois'
+                      : billingCycle === 'annual' && (plan.id === 'pro' || plan.id === 'business')
+                        ? 'Meilleur tarif annuel'
+                        : billingCycle === 'lifetime' && plan.id === 'lifetime'
+                          ? 'Paiement unique'
+                          : plan.persona;
                 const planUrl = `/demande-acces?plan=${plan.id}&billing=${getPlanRequestBilling(plan.id)}`;
 
                 return (
-                  <Card key={plan.id} className={`landing-reveal relative flex min-h-full flex-col overflow-hidden p-6 transition hover:border-[#E3B117]/30 sm:p-7 ${isCycleMatch ? 'border-[#E3B117]/65 bg-gradient-to-br from-[#E3B117]/12 via-zinc-950/90 to-black shadow-[0_0_70px_rgba(227,177,23,.16)]' : 'opacity-80 hover:opacity-100'} ${isLifetime && isCycleMatch ? 'border-[#F5C542]/70 bg-gradient-to-br from-[#E3B117]/18 via-zinc-950/92 to-black shadow-[0_0_90px_rgba(227,177,23,.22)]' : ''}`}>
-                    {isCycleMatch ? <span className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[#F5C542]/80 to-transparent" /> : null}
-                    {plan.badge ? <span className="absolute right-5 top-5 rounded-full bg-[#E3B117] px-3 py-1 text-xs font-black text-[#070807] sm:right-6 sm:top-6">{plan.badge}</span> : null}
+                  <Card key={plan.id} className={`landing-reveal relative flex min-h-full flex-col overflow-hidden p-6 transition hover:border-[#E3B117]/30 sm:p-7 ${isPrimary ? 'scale-[1.01] border-[#E3B117]/70 bg-gradient-to-br from-[#E3B117]/14 via-zinc-950/90 to-black shadow-[0_0_80px_rgba(227,177,23,.18)]' : mutedByCycle ? 'opacity-70 hover:opacity-95' : 'opacity-90 hover:opacity-100'} ${isLifetime && isPrimary ? 'border-[#F5C542]/75 bg-gradient-to-br from-[#E3B117]/20 via-zinc-950/92 to-black shadow-[0_0_100px_rgba(227,177,23,.24)]' : ''}`}>
+                    {isPrimary ? <span className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[#F5C542]/80 to-transparent" /> : null}
+                    {(plan.badge || isPrimary) ? <span className="absolute right-5 top-5 rounded-full bg-[#E3B117] px-3 py-1 text-xs font-black text-[#070807] sm:right-6 sm:top-6">{plan.badge || 'Recommandé'}</span> : null}
                     <span className="grid h-14 w-14 place-items-center rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542]"><Sparkles className="h-6 w-6" /></span>
                     <h3 className="mt-5 text-2xl font-black">{plan.name}</h3>
+                    <p className="mt-1 text-sm font-bold text-[#F5C542]">{cycleHint}</p>
                     <p className="mt-1 text-sm text-white/50">{plan.note}</p>
                     <div className="mt-6 flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 sm:mt-7">
-                      <span className="text-4xl font-black tracking-[-0.025em] sm:text-5xl">{displayPrice.toLocaleString('fr-FR')}</span>
+                      <span className="text-4xl font-black tracking-[-0.025em] sm:text-5xl">{plan.packagePrice.toLocaleString('fr-FR')}</span>
                       <span className="text-lg font-black text-white">MAD</span>
-                      <span className="text-sm font-semibold text-white/55 sm:text-base">{cadence}</span>
+                      <span className="text-sm font-semibold text-white/55 sm:text-base">{plan.packageLabel}</span>
                     </div>
-                    <p className="mt-2 text-sm font-semibold text-[#F5C542]">{plan.billingLabel}</p>
+                    <p className="mt-2 text-sm font-semibold text-[#F5C542]">{plan.equivalentLabel}</p>
+                    <p className="mt-1 text-xs font-semibold text-white/45">{plan.billingLabel}</p>
                     <p className="mt-3 text-sm font-bold text-white/78">{plan.usersLabel} · {plan.vehiclesLabel}</p>
                     <p className="mt-1 text-xs font-semibold uppercase tracking-[0.1em] text-white/42">{plan.commitment}</p>
                     <div className="mt-7 grow space-y-3 sm:mt-8 sm:space-y-3.5">
@@ -1314,7 +1332,7 @@ export default function LandingPage() {
                       target={isLifetime ? '_blank' : undefined}
                       rel={isLifetime ? 'noreferrer' : undefined}
                       className={`mt-7 flex h-14 w-full items-center justify-center rounded-2xl border text-sm font-black transition duration-300 hover:-translate-y-0.5 active:translate-y-0 ${
-                        plan.recommended || isLifetime
+                        isPrimary || isLifetime
                           ? 'landing-cta-shine border-[#F5C542]/50 bg-[#E3B117] text-[#070807] shadow-[0_16px_45px_rgba(227,177,23,.18)] hover:bg-[#F5C542]'
                           : 'border-white/15 bg-white/[0.06] text-white hover:border-[#E3B117]/35 hover:bg-[#E3B117]/10 hover:text-[#F5C542]'
                       }`}
