@@ -30,6 +30,7 @@ import PageHeader from '../components/ui/PageHeader';
 import PlateNumber from '../components/ui/PlateNumber';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { useSupportMode } from '../context/SupportModeContext';
 import { useData } from '../context/DataContext';
 import {
   formatMAD,
@@ -196,6 +197,7 @@ export default function ReservationsPage() {
   } = useData();
   const { notify } = useApp();
   const { profile } = useAuth();
+  const { supportAgency, isSupportMode } = useSupportMode();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -236,7 +238,7 @@ export default function ReservationsPage() {
   const [draftStatus, setDraftStatus] = useState<ReservationStatus>('Confirmed');
 
   const todayIso = new Date().toISOString().slice(0, 10);
-  const notificationPreferences = getNotificationPreferences(profile?.agency?.settings);
+  const notificationPreferences = getNotificationPreferences((isSupportMode ? supportAgency : profile?.agency)?.settings);
 
   const selectedClient = clients.find((client) => client.id === draftClientId) || null;
   const selectedVehicle = vehicles.find((vehicle) => vehicle.id === draftVehicleId) || null;

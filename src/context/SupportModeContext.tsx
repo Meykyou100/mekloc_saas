@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from './AuthContext';
+import { useAuth, type AgencySubscription } from './AuthContext';
 import { supabase } from '../lib/supabase';
 
 export type SupportAccessMode = 'read_only' | 'full_access';
@@ -18,6 +18,7 @@ export type SupportSession = {
 
 type SupportModeContextValue = {
   supportSession: SupportSession | null;
+  supportAgency: AgencySubscription | null;
   supportAgencyId: string | null;
   isSupportMode: boolean;
   isReadOnly: boolean;
@@ -39,11 +40,44 @@ type SupportSessionRow = {
   expires_at: string;
   mode: SupportAccessMode;
   reason: string;
-  agencies?: { name?: string | null } | Array<{ name?: string | null }> | null;
+  agencies?: SupportAgencyRow | SupportAgencyRow[] | null;
 };
 
+type SupportAgencyRow = {
+  id: string;
+  name: string;
+  logo_path?: string | null;
+  logo_url?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  ice?: string | null;
+  rc?: string | null;
+  plan?: AgencySubscription['plan'] | null;
+  billing_status?: AgencySubscription['billingStatus'] | null;
+  subscription_status?: AgencySubscription['subscriptionStatus'] | null;
+  trial_started_at?: string | null;
+  trial_ends_at?: string | null;
+  paid_until?: string | null;
+  subscription_start_date?: string | null;
+  subscription_end_date?: string | null;
+  last_payment_date?: string | null;
+  next_payment_due_date?: string | null;
+  billing_type?: AgencySubscription['billingType'] | null;
+  monthly_price?: number | null;
+  annual_price?: number | null;
+  payment_method?: AgencySubscription['paymentMethod'] | null;
+  payment_notes?: string | null;
+  created_at?: string | null;
+  settings?: Record<string, unknown> | null;
+};
+
+function sessionAgency(row: SupportSessionRow) {
+  return Array.isArray(row.agencies) ? row.agencies[0] : row.agencies;
+}
+
 function mapSession(row: SupportSessionRow, fallbackAgencyName = ''): SupportSession {
-  const agency = Array.isArray(row.agencies) ? row.agencies[0] : row.agencies;
+  const agency = sessionAgency(row);
   return {
     id: row.id,
     superAdminUserId: row.super_admin_user_id,
@@ -56,14 +90,54 @@ function mapSession(row: SupportSessionRow, fallbackAgencyName = ''): SupportSes
   };
 }
 
+function mapSupportAgency(row: SupportAgencyRow | null | undefined): AgencySubscription | null {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    logoPath: row.logo_path || null,
+    logoUrl: row.logo_url || null,
+    address: row.address || null,
+    phone: row.phone || null,
+    email: row.email || null,
+    ice: row.ice || null,
+    rc: row.rc || null,
+    plan: row.plan || 'starter',
+    billingStatus: row.billing_status || 'trial',
+    subscriptionStatus: row.subscription_status || 'trial_active',
+    trialStartedAt: row.trial_started_at || null,
+    trialEndsAt: row.trial_ends_at || null,
+    paidUntil: row.paid_until || null,
+    lastTrialEmailSentAt: null,
+    trialExpiredNotifiedAt: null,
+    trialReminder3dSentAt: null,
+    trialReminder1dSentAt: null,
+    trialExpiredEmailSentAt: null,
+    lastTrialExtendedAt: null,
+    subscriptionStartDate: row.subscription_start_date || null,
+    subscriptionEndDate: row.subscription_end_date || null,
+    lastPaymentDate: row.last_payment_date || null,
+    nextPaymentDueDate: row.next_payment_due_date || null,
+    billingType: row.billing_type || 'monthly',
+    monthlyPrice: Number(row.monthly_price || 0),
+    annualPrice: Number(row.annual_price || 0),
+    paymentMethod: row.payment_method || 'other',
+    paymentNotes: row.payment_notes || '',
+    createdAt: row.created_at || '',
+    settings: row.settings || {},
+  };
+}
+
 export function SupportModeProvider({ children }: { children: React.ReactNode }) {
   const { profile, user, isSupabaseEnabled, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [supportSession, setSupportSession] = useState<SupportSession | null>(null);
+  const [supportAgency, setSupportAgency] = useState<AgencySubscription | null>(null);
 
   const clearLocalSession = useCallback(() => {
     sessionStorage.removeItem(storageKey);
     setSupportSession(null);
+    setSupportAgency(null);
   }, []);
 
   const expireSupportMode = useCallback(async (sessionId?: string) => {
@@ -108,7 +182,7 @@ export function SupportModeProvider({ children }: { children: React.ReactNode })
     let cancelled = false;
     supabase
       .from('support_sessions')
-      .select('id,super_admin_user_id,agency_id,started_at,ended_at,expires_at,mode,reason,agencies(name)')
+      .select('id,super_admin_user_id,agency_id,started_at,ended_at,expires_at,mode,reason,agencies(*)')
       .eq('id', sessionId)
       .eq('super_admin_user_id', user?.id || profile.id)
       .maybeSingle()
@@ -124,6 +198,7 @@ export function SupportModeProvider({ children }: { children: React.ReactNode })
           return;
         }
         setSupportSession(mapSession(row));
+        setSupportAgency(mapSupportAgency(sessionAgency(row)));
       });
 
     return () => {
@@ -178,20 +253,27 @@ export function SupportModeProvider({ children }: { children: React.ReactNode })
       .single();
     if (error) throw error;
 
-    const nextSession = mapSession(data as SupportSessionRow, input.agencyName);
+    const agencyResult = await supabase.from('agencies').select('*').eq('id', input.agencyId).maybeSingle();
+    if (agencyResult.error || !agencyResult.data) {
+      await supabase.from('support_sessions').delete().eq('id', (data as SupportSessionRow).id);
+      throw agencyResult.error || new Error('Agence sélectionnée introuvable.');
+    }
+    const nextSession = mapSession({ ...(data as SupportSessionRow), agencies: agencyResult.data as SupportAgencyRow }, input.agencyName);
     sessionStorage.setItem(storageKey, nextSession.id);
     setSupportSession(nextSession);
+    setSupportAgency(mapSupportAgency(agencyResult.data as SupportAgencyRow));
     navigate('/dashboard');
   }, [navigate, profile?.isSuperAdmin, user?.id]);
 
   const value = useMemo<SupportModeContextValue>(() => ({
     supportSession,
+    supportAgency,
     supportAgencyId: supportSession?.agencyId || null,
     isSupportMode: Boolean(supportSession),
     isReadOnly: supportSession?.mode === 'read_only',
     startSupportMode,
     endSupportMode,
-  }), [endSupportMode, startSupportMode, supportSession]);
+  }), [endSupportMode, startSupportMode, supportAgency, supportSession]);
 
   return <SupportModeContext.Provider value={value}>{children}</SupportModeContext.Provider>;
 }

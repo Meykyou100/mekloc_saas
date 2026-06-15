@@ -29,8 +29,8 @@ export default function AppLayout() {
   const { profile } = useAuth();
   const { supportSession, isSupportMode, isReadOnly, endSupportMode } = useSupportMode();
   const [supportMinutesRemaining, setSupportMinutesRemaining] = useState(0);
-  const inTrialGrace = isTrialInGracePeriod(profile?.agency);
-  const graceHours = trialGraceHoursRemaining(profile?.agency);
+  const inTrialGrace = !isSupportMode && isTrialInGracePeriod(profile?.agency);
+  const graceHours = !isSupportMode ? trialGraceHoursRemaining(profile?.agency) : 0;
 
   useEffect(() => {
     if (!supportSession) {

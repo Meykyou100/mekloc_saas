@@ -33,6 +33,7 @@ import {
 } from '../lib/assistantDuJour';
 import { getNotificationPreferences } from '../lib/notificationPreferences';
 import { daysUntil, isSubscriptionExpiringSoon } from '../lib/subscription';
+import { useSupportMode } from '../context/SupportModeContext';
 
 const actionItems = [
   { label: 'Ajouter réservation', to: '/reservations', icon: CalendarClock },
@@ -188,8 +189,9 @@ export default function DashboardPage() {
     updateReservation,
   } = useData();
   const { profile } = useAuth();
+  const { supportAgency, isSupportMode } = useSupportMode();
   const { notify } = useApp();
-  const notificationPreferences = getNotificationPreferences(profile?.agency?.settings);
+  const notificationPreferences = getNotificationPreferences((isSupportMode ? supportAgency : profile?.agency)?.settings);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const availableVehicles = vehicles.filter((vehicle) => vehicle.status === 'Available').length;
   const activeReservations = reservations.filter((reservation) => reservation.status === 'Active').length;
@@ -266,7 +268,7 @@ export default function DashboardPage() {
         </div>
       </header>
 
-      {isSubscriptionExpiringSoon(profile?.agency) ? (
+      {!isSupportMode && isSubscriptionExpiringSoon(profile?.agency) ? (
         <div className="rounded-2xl border border-white/[0.07] bg-[var(--app-surface-soft)] px-4 py-3 text-sm font-semibold text-[var(--app-gold-text)]">
           L’abonnement expire dans {daysUntil(profile?.agency?.subscriptionEndDate)} jour(s). Renouvelez pour éviter une interruption.
         </div>

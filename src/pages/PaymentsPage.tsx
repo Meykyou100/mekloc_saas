@@ -11,6 +11,7 @@ import { formatMAD, type Payment, type PaymentStatus, type Reservation } from '.
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useData } from '../context/DataContext';
+import { useSupportMode } from '../context/SupportModeContext';
 import { buildWhatsAppReminderUrl } from '../lib/assistantDuJour';
 import { getNotificationPreferences } from '../lib/notificationPreferences';
 import { getPaidAmount, getReservationPaymentId, getReservationPaymentSummary, paymentMatchesReservation } from '../lib/paymentBalance';
@@ -110,7 +111,8 @@ export default function PaymentsPage() {
   const { payments, reservations, vehicles, clients, createPayment, updatePayment, deletePayment } = useData();
   const { notify } = useApp();
   const { profile } = useAuth();
-  const notificationPreferences = getNotificationPreferences(profile?.agency?.settings);
+  const { supportAgency, isSupportMode } = useSupportMode();
+  const notificationPreferences = getNotificationPreferences((isSupportMode ? supportAgency : profile?.agency)?.settings);
   const [filter, setFilter] = useState<FilterKey>('tous');
   const [query, setQuery] = useState('');
   const [methodFilter, setMethodFilter] = useState<MethodFilter>('toutes');

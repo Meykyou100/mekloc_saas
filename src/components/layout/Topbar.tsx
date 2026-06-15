@@ -24,6 +24,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { useData } from '../../context/DataContext';
+import { useSupportMode } from '../../context/SupportModeContext';
 import { formatMAD, type Client, type MaintenanceItem, type Reservation, type Vehicle } from '../../data/mockData';
 import { getReservationPaymentSummary } from '../../lib/paymentBalance';
 
@@ -95,13 +96,15 @@ function isMaintenanceDue(item: MaintenanceItem) {
 export default function Topbar({ onMenu }: { onMenu: () => void }) {
   const { notify, theme, toggleTheme } = useApp();
   const { signOut, profile, isSupabaseEnabled } = useAuth();
+  const { supportAgency, isSupportMode } = useSupportMode();
   const { reservations, payments, vehicles, maintenance, clients } = useData();
   const navigate = useNavigate();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const notificationsMenuRef = useRef<HTMLDivElement | null>(null);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
-  const initials = (profile?.fullName || profile?.agency?.name || 'AG')
+  const visibleName = isSupportMode ? supportAgency?.name || 'Agence assistée' : profile?.fullName || profile?.agency?.name || 'Agence MekLoc';
+  const initials = visibleName
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
@@ -403,8 +406,8 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
               {initials}
             </span>
             <span className="hidden min-w-0 text-left md:block">
-              <span className="block max-w-36 truncate leading-4 text-white">{profile?.fullName || 'Agence MekLoc'}</span>
-              <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-gold-100/70">{roleLabel}</span>
+              <span className="block max-w-36 truncate leading-4 text-white">{visibleName}</span>
+              <span className="block text-[10px] font-medium uppercase tracking-[0.12em] text-gold-100/70">{isSupportMode ? 'Mode assistance' : roleLabel}</span>
             </span>
             <ChevronDown className={`hidden h-4 w-4 text-gold-100/70 transition-transform duration-200 md:block ${profileOpen ? 'rotate-180' : ''}`} />
           </button>
@@ -417,10 +420,10 @@ export default function Topbar({ onMenu }: { onMenu: () => void }) {
                     {initials}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-black text-[var(--app-text)]">{profile?.fullName || profile?.agency?.name || 'Agence MekLoc'}</p>
-                    <p className="mt-0.5 truncate text-xs text-[var(--app-text-muted)]">{profile?.email || 'Email non renseigné'}</p>
+                    <p className="truncate text-sm font-black text-[var(--app-text)]">{visibleName}</p>
+                    <p className="mt-0.5 truncate text-xs text-[var(--app-text-muted)]">{isSupportMode ? `Assistance par ${profile?.email || 'Super Admin'}` : profile?.email || 'Email non renseigné'}</p>
                     <span className="mt-2 inline-flex rounded-full border border-gold-300/25 bg-gold-400/12 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-[var(--app-gold-text)]">
-                      {roleLabel}
+                      {isSupportMode ? 'Agence assistée' : roleLabel}
                     </span>
                   </div>
                 </div>

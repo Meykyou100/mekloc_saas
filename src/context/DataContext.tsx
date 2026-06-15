@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from './AuthContext';
 import { useSupportMode } from './SupportModeContext';
 import {
@@ -658,6 +658,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [maintenance, setMaintenance] = useState<MaintenanceItem[]>([]);
+  const agencyScopeRef = useRef<string | null>(agencyId);
+
+  useEffect(() => {
+    agencyScopeRef.current = agencyId;
+    setEmptyDataState({ setVehicles, setClients, setReservations, setContracts, setPayments, setMaintenance });
+  }, [agencyId]);
 
   const refreshData = useCallback(async () => {
     if (!isSupabaseEnabled || !supabase || !isSupabaseConfigured || !agencyId) {
@@ -670,6 +676,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    const requestedAgencyId = agencyId;
     setLoading(true);
     try {
       const canReadAll = Boolean(profile?.isSuperAdmin);
@@ -720,6 +727,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
       const nextVehicles = ((vehiclesResult.data || []) as VehicleRow[]).map(mapVehicle);
       const nextClients = ((clientsResult.data || []) as ClientRow[]).map(mapClient);
+      if (agencyScopeRef.current !== requestedAgencyId) return;
       const vehicleMap = byId(nextVehicles);
       const clientMap = byId(nextClients);
 
