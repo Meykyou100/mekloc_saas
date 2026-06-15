@@ -182,14 +182,16 @@ function sessionLocationLabel(sessionItem: AccountSession) {
 export default function SettingsPage() {
   const { notify, theme, setTheme } = useApp();
   const { agencyId: authAgencyId, isSupabaseEnabled, profile, signOut, deleteAccountWithPassword, refreshProfile } = useAuth();
-  const { supportAgencyId, isReadOnly } = useSupportMode();
+  const { supportAgency, supportAgencyId, isSupportMode, isReadOnly, refreshSupportAgency } = useSupportMode();
   const agencyId = supportAgencyId || authAgencyId;
   const navigate = useNavigate();
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const stampInputRef = useRef<HTMLInputElement | null>(null);
   const [tab, setTab] = useState<SettingsTab>(readInitialSettingsTab);
   const tabs = settingsTabs;
-  const agency = profile?.agency;
+  const agency = isSupportMode ? supportAgency : profile?.agency;
+  const profileEmailFallback = isSupportMode ? '' : profile?.email || '';
+  const profilePhoneFallback = isSupportMode ? '' : profile?.phone || '';
   const billingStatusFr =
     agency?.billingStatus === 'trial' ? 'Essai' :
     agency?.billingStatus === 'paid' ? 'Payé' :
@@ -225,9 +227,9 @@ export default function SettingsPage() {
   const [disconnectingSessionId, setDisconnectingSessionId] = useState<string | null>(null);
   const [accountSessions, setAccountSessions] = useState<AccountSession[]>([]);
   const [lastLoginAt, setLastLoginAt] = useState<string | null>(null);
-  const [agencyName, setAgencyName] = useState(profile?.agency?.name || '');
-  const [agencyEmail, setAgencyEmail] = useState(profile?.agency?.email || '');
-  const [agencyPhone, setAgencyPhone] = useState(profile?.agency?.phone || '');
+  const [agencyName, setAgencyName] = useState(agency?.name || '');
+  const [agencyEmail, setAgencyEmail] = useState(agency?.email || '');
+  const [agencyPhone, setAgencyPhone] = useState(agency?.phone || '');
   const [agencyAddress, setAgencyAddress] = useState('');
   const [agencyActivityLabel, setAgencyActivityLabel] = useState('');
   const [agencyCity, setAgencyCity] = useState('');
@@ -275,28 +277,28 @@ export default function SettingsPage() {
   const [isActivationModalOpen, setIsActivationModalOpen] = useState(false);
   const [inviteSending, setInviteSending] = useState(false);
   const [notificationPreferences, setNotificationPreferences] = useState<NotificationPreferences>(() =>
-    getNotificationPreferences(profile?.agency?.settings),
+    getNotificationPreferences(agency?.settings),
   );
   const logoBadgeClass = 'grid h-[52px] w-[52px] shrink-0 place-items-center overflow-hidden rounded-2xl border border-gold-200/25 bg-gradient-to-br from-carbon-900 via-carbon-950 to-[#3f2b07] p-2 shadow-[0_12px_26px_rgba(212,160,23,.18)] light:border-gold-500/30 light:from-white light:via-gold-50 light:to-gold-100';
   const canManageTeam = profile?.role === 'owner' || profile?.role === 'manager' || Boolean(profile?.isSuperAdmin);
   const hasChanges = useMemo(() => {
-    const baseName = profile?.agency?.name || '';
-    const basePhone = profile?.agency?.phone || '';
-    const baseAddress = profile?.agency?.address || '';
-    const baseLogo = profile?.agency?.logoUrl || '';
-    const baseSettings = profile?.agency?.settings;
-    const baseNotifications = getNotificationPreferences(profile?.agency?.settings);
+    const baseName = agency?.name || '';
+    const basePhone = agency?.phone || '';
+    const baseAddress = agency?.address || '';
+    const baseLogo = agency?.logoUrl || '';
+    const baseSettings = agency?.settings;
+    const baseNotifications = getNotificationPreferences(agency?.settings);
     return (
       agencyName !== baseName ||
-      agencyPhone !== (settingValue(baseSettings, 'contract_phone') || basePhone || profile?.phone || '') ||
+      agencyPhone !== (settingValue(baseSettings, 'contract_phone') || basePhone || profilePhoneFallback) ||
       agencyAddress !== baseAddress ||
-      agencyEmail !== (settingValue(baseSettings, 'contract_email') || profile?.agency?.email || profile?.email || '') ||
+      agencyEmail !== (settingValue(baseSettings, 'contract_email') || agency?.email || profileEmailFallback) ||
       agencyActivityLabel !== settingValue(baseSettings, 'activity_label') ||
       agencyCity !== settingValue(baseSettings, 'city') ||
       agencyWhatsapp !== settingValue(baseSettings, 'whatsapp') ||
       agencyWebsite !== settingValue(baseSettings, 'website') ||
-      agencyIce !== (settingValue(baseSettings, 'contract_ice') || profile?.agency?.ice || '') ||
-      agencyRc !== (settingValue(baseSettings, 'contract_rc') || profile?.agency?.rc || '') ||
+      agencyIce !== (settingValue(baseSettings, 'contract_ice') || agency?.ice || '') ||
+      agencyRc !== (settingValue(baseSettings, 'contract_rc') || agency?.rc || '') ||
       agencyIfNumber !== settingValue(baseSettings, 'if_number') ||
       agencyCnss !== settingValue(baseSettings, 'cnss') ||
       agencyFooterNote !== settingValue(baseSettings, 'contract_footer_note') ||
@@ -308,34 +310,34 @@ export default function SettingsPage() {
       stampRemoved ||
       notificationPreferenceItems.some((item) => notificationPreferences[item.key] !== baseNotifications[item.key])
     );
-  }, [agencyActivityLabel, agencyAddress, agencyCity, agencyCnss, agencyEmail, agencyFooterNote, agencyIce, agencyIfNumber, agencyName, agencyPhone, agencyRc, agencyWebsite, agencyWhatsapp, contractLogoHeight, contractLogoWidth, logoPreviewUrl, notificationPreferences, pendingLogoFile, pendingStampFile, profile?.agency?.address, profile?.agency?.email, profile?.agency?.ice, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.rc, profile?.agency?.settings, profile?.email, profile?.phone, stampRemoved]);
+  }, [agency, agencyActivityLabel, agencyAddress, agencyCity, agencyCnss, agencyEmail, agencyFooterNote, agencyIce, agencyIfNumber, agencyName, agencyPhone, agencyRc, agencyWebsite, agencyWhatsapp, contractLogoHeight, contractLogoWidth, logoPreviewUrl, notificationPreferences, pendingLogoFile, pendingStampFile, profileEmailFallback, profilePhoneFallback, stampRemoved]);
   useEffect(() => {
-    setAgencyName(profile?.agency?.name || '');
-    const settings = profile?.agency?.settings;
-    setAgencyEmail(settingValue(settings, 'contract_email') || profile?.agency?.email || profile?.email || '');
-    setAgencyPhone(settingValue(settings, 'contract_phone') || profile?.agency?.phone || profile?.phone || '');
-    setAgencyAddress(profile?.agency?.address || '');
+    setAgencyName(agency?.name || '');
+    const settings = agency?.settings;
+    setAgencyEmail(settingValue(settings, 'contract_email') || agency?.email || profileEmailFallback);
+    setAgencyPhone(settingValue(settings, 'contract_phone') || agency?.phone || profilePhoneFallback);
+    setAgencyAddress(agency?.address || '');
     setAgencyActivityLabel(settingValue(settings, 'activity_label'));
     setAgencyCity(settingValue(settings, 'city'));
     setAgencyWhatsapp(settingValue(settings, 'whatsapp'));
     setAgencyWebsite(settingValue(settings, 'website'));
-    setAgencyIce(settingValue(settings, 'contract_ice') || profile?.agency?.ice || '');
-    setAgencyRc(settingValue(settings, 'contract_rc') || profile?.agency?.rc || '');
+    setAgencyIce(settingValue(settings, 'contract_ice') || agency?.ice || '');
+    setAgencyRc(settingValue(settings, 'contract_rc') || agency?.rc || '');
     setAgencyIfNumber(settingValue(settings, 'if_number'));
     setAgencyCnss(settingValue(settings, 'cnss'));
     setAgencyFooterNote(settingValue(settings, 'contract_footer_note'));
     setContractLogoWidth(settingNumber(settings, 'contract_logo_width', 315));
     setContractLogoHeight(settingNumber(settings, 'contract_logo_height', 120));
-    setLogoPreviewUrl(profile?.agency?.logoUrl || '');
+    setLogoPreviewUrl(agency?.logoUrl || '');
     setPendingLogoFile(null);
     setLogoFileName('');
     setPendingStampFile(null);
     setStampFileName('');
     setStampRemoved(false);
-    setNotificationPreferences(getNotificationPreferences(profile?.agency?.settings));
+    setNotificationPreferences(getNotificationPreferences(agency?.settings));
     setSaveState('idle');
     setLogoPreviewBroken(false);
-  }, [profile?.agency?.address, profile?.agency?.email, profile?.agency?.ice, profile?.agency?.logoUrl, profile?.agency?.name, profile?.agency?.phone, profile?.agency?.rc, profile?.agency?.settings, profile?.email, profile?.phone]);
+  }, [agency, profileEmailFallback, profilePhoneFallback]);
 
   useEffect(() => {
     setLogoPreviewBroken(false);
@@ -344,7 +346,7 @@ export default function SettingsPage() {
   useEffect(() => {
     let cancelled = false;
     async function loadStampPreview() {
-      const settings = profile?.agency?.settings;
+      const settings = agency?.settings;
       const stampPath = settingValue(settings, 'contract_stamp_path');
       if (!stampPath || !supabase) {
         if (!cancelled) setStampPreviewUrl('');
@@ -365,7 +367,7 @@ export default function SettingsPage() {
     return () => {
       cancelled = true;
     };
-  }, [profile?.agency?.settings]);
+  }, [agency?.settings]);
 
   useEffect(() => {
     setStampPreviewBroken(false);
@@ -827,9 +829,9 @@ startxref
     }
     try {
       setLogoUploading(true);
-      const previousPath = profile?.agency?.logoPath;
+      const previousPath = agency?.logoPath;
       if (previousPath) {
-        const savedBucket = settingValue(profile?.agency?.settings, 'logo_storage_bucket');
+        const savedBucket = settingValue(agency?.settings, 'logo_storage_bucket');
         const candidateBuckets = Array.from(new Set([savedBucket, 'logos', 'agency-assets'].filter(Boolean)));
         for (const bucket of candidateBuckets) {
           const removal = await supabase.storage.from(bucket).remove([previousPath]);
@@ -842,7 +844,8 @@ startxref
         error = fallback.error;
       }
       if (error) throw error;
-      await refreshProfile();
+      if (isSupportMode) await refreshSupportAgency();
+      else await refreshProfile();
       notify({ title: 'Logo supprimé', message: 'Le logo agence a été retiré.', type: 'success' });
       setSaveState('saved');
     } catch (error) {
@@ -962,13 +965,13 @@ startxref
       setSettingsSaving(true);
       setSaveState('saving');
       if (!supabase) throw new Error('Supabase non configuré');
-      let uploadedLogoBucket = settingValue(profile?.agency?.settings, 'logo_storage_bucket');
+      let uploadedLogoBucket = settingValue(agency?.settings, 'logo_storage_bucket');
       if (pendingLogoFile && agencyId) {
         const uploadedLogo = await uploadAgencyLogo(agencyId, pendingLogoFile);
         uploadedLogoBucket = uploadedLogo?.bucket || uploadedLogoBucket;
       }
-      let stampPath = settingValue(profile?.agency?.settings, 'contract_stamp_path');
-      let stampBucket = settingValue(profile?.agency?.settings, 'contract_stamp_bucket');
+      let stampPath = settingValue(agency?.settings, 'contract_stamp_path');
+      let stampBucket = settingValue(agency?.settings, 'contract_stamp_bucket');
       if (pendingStampFile) {
         const uploadedStamp = await uploadAgencyStamp(agencyId, pendingStampFile);
         stampPath = uploadedStamp?.path || stampPath;
@@ -978,7 +981,7 @@ startxref
         stampBucket = '';
       }
       const nextAgencySettings = {
-        ...(profile?.agency?.settings || {}),
+        ...(agency?.settings || {}),
         notifications: notificationPreferences,
         activity_label: sanitizeText(agencyActivityLabel, 120),
         city: sanitizeText(agencyCity, 100),
@@ -1057,22 +1060,25 @@ startxref
         throw new Error(`Le paramètre contrat « ${unsavedSetting[0]} » n’a pas été enregistré.`);
       }
 
-      let profileErr: { message?: string } | null = null;
-      const profilePayload: Record<string, unknown> = {
-        phone: safeAgencyPhone,
-        full_name: profile.fullName,
-      };
-      for (let attempt = 0; attempt < 6; attempt += 1) {
-        const profileUpdate = await supabase.from('users_profiles').update(profilePayload).eq('id', profile.id);
-        profileErr = profileUpdate.error;
-        if (!profileErr) break;
-        const missingColumn = extractMissingColumnName(profileErr.message || '');
-        if (!missingColumn || !(missingColumn in profilePayload)) break;
-        delete profilePayload[missingColumn];
-        if (Object.keys(profilePayload).length === 0) break;
+      if (!isSupportMode) {
+        let profileErr: { message?: string } | null = null;
+        const profilePayload: Record<string, unknown> = {
+          phone: safeAgencyPhone,
+          full_name: profile.fullName,
+        };
+        for (let attempt = 0; attempt < 6; attempt += 1) {
+          const profileUpdate = await supabase.from('users_profiles').update(profilePayload).eq('id', profile.id);
+          profileErr = profileUpdate.error;
+          if (!profileErr) break;
+          const missingColumn = extractMissingColumnName(profileErr.message || '');
+          if (!missingColumn || !(missingColumn in profilePayload)) break;
+          delete profilePayload[missingColumn];
+          if (Object.keys(profilePayload).length === 0) break;
+        }
+        if (profileErr && !/permission denied|row-level security/i.test(profileErr.message || '')) throw profileErr;
       }
-      if (profileErr && !/permission denied|row-level security/i.test(profileErr.message || '')) throw profileErr;
-      await refreshProfile();
+      if (isSupportMode) await refreshSupportAgency();
+      else await refreshProfile();
       setPendingLogoFile(null);
       setLogoFileName('');
       setPendingStampFile(null);

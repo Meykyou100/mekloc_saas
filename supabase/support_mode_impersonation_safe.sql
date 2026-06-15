@@ -134,6 +134,55 @@ as $$
   limit 1;
 $$;
 
+-- The trial lifecycle migration scopes normal users to their own agency.
+-- A Super Admin may access another agency only while a matching support
+-- session is active, keeping operational data isolated between agencies.
+create or replace function public.can_access_agency_data(target_agency_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select
+    exists (
+      select 1
+      from public.users_profiles profiles
+      join public.agencies agencies on agencies.id = profiles.agency_id
+      where profiles.id = auth.uid()
+        and profiles.agency_id = target_agency_id
+        and profiles.account_status = 'active'
+        and (
+          (
+            coalesce(agencies.subscription_status,
+              case agencies.billing_status
+                when 'paid' then 'active_paid'
+                when 'trial' then 'trial_active'
+                when 'cancelled' then 'suspended'
+                else 'payment_pending'
+              end
+            ) = 'active_paid'
+            and (agencies.paid_until is null or agencies.paid_until >= now())
+          )
+          or (
+            coalesce(agencies.subscription_status,
+              case agencies.billing_status when 'trial' then 'trial_active' else 'payment_pending' end
+            ) in ('trial_active', 'trial_expired')
+            and (
+              agencies.trial_ends_at is null
+              or agencies.trial_ends_at + interval '24 hours' >= now()
+            )
+          )
+        )
+    )
+    or (
+      public.is_super_admin()
+      and (public.active_support_session(target_agency_id)).id is not null
+    );
+$$;
+
+grant execute on function public.can_access_agency_data(uuid) to authenticated;
+
 create or replace function public.enforce_and_audit_support_write()
 returns trigger
 language plpgsql

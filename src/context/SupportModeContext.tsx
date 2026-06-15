@@ -24,6 +24,7 @@ type SupportModeContextValue = {
   isReadOnly: boolean;
   startSupportMode: (input: { agencyId: string; agencyName: string; mode: SupportAccessMode; reason: string }) => Promise<void>;
   endSupportMode: () => Promise<void>;
+  refreshSupportAgency: () => Promise<AgencySubscription | null>;
 };
 
 const SupportModeContext = createContext<SupportModeContextValue | null>(null);
@@ -133,6 +134,16 @@ export function SupportModeProvider({ children }: { children: React.ReactNode })
   const navigate = useNavigate();
   const [supportSession, setSupportSession] = useState<SupportSession | null>(null);
   const [supportAgency, setSupportAgency] = useState<AgencySubscription | null>(null);
+
+  const refreshSupportAgency = useCallback(async () => {
+    const agencyId = supportSession?.agencyId;
+    if (!agencyId || !supabase || !profile?.isSuperAdmin) return null;
+    const { data, error } = await supabase.from('agencies').select('*').eq('id', agencyId).maybeSingle();
+    if (error) throw error;
+    const nextAgency = mapSupportAgency(data as SupportAgencyRow | null);
+    setSupportAgency(nextAgency);
+    return nextAgency;
+  }, [profile?.isSuperAdmin, supportSession?.agencyId]);
 
   const clearLocalSession = useCallback(() => {
     sessionStorage.removeItem(storageKey);
@@ -273,7 +284,8 @@ export function SupportModeProvider({ children }: { children: React.ReactNode })
     isReadOnly: supportSession?.mode === 'read_only',
     startSupportMode,
     endSupportMode,
-  }), [endSupportMode, startSupportMode, supportAgency, supportSession]);
+    refreshSupportAgency,
+  }), [endSupportMode, refreshSupportAgency, startSupportMode, supportAgency, supportSession]);
 
   return <SupportModeContext.Provider value={value}>{children}</SupportModeContext.Provider>;
 }
