@@ -32,6 +32,8 @@ import SEO, { baseStructuredData, faqStructuredData } from '../components/system
 import { SUPPORT_EMAIL, SUPPORT_PHONE, WHATSAPP_URL } from '../config/app';
 import { getPlanRequestBilling, MEKLOC_PLAN_LIST, type MekLocBillingChoice } from '../config/pricing';
 import { DEFAULT_DESCRIPTION, DEFAULT_KEYWORDS, DEFAULT_TITLE } from '../config/seo';
+import { formatBlogDate, type BlogPost } from '../lib/blog';
+import { isSupabaseConfigured, supabase } from '../lib/supabase';
 
 const whatsappNumber = SUPPORT_PHONE.replace(/^\+/, '');
 const contactEmail = SUPPORT_EMAIL;
@@ -39,6 +41,7 @@ const contactEmail = SUPPORT_EMAIL;
 const navItems = [
   ['Fonctionnalités', '#fonctionnalites'],
   ['Tarifs', '#tarifs'],
+  ['Blog', '/blog'],
   ['FAQ', '#faq'],
   ['Contact', '#contact'],
 ];
@@ -569,6 +572,7 @@ function LandingHeader() {
   const mobileNavItems = [
     { label: 'Fonctionnalités', href: '#fonctionnalites', icon: Sparkles },
     { label: 'Tarifs', href: '#tarifs', icon: CircleDollarSign },
+    { label: 'Blog', href: '/blog', icon: FileText },
     { label: 'FAQ', href: '#faq', icon: HelpCircle },
     { label: 'Contact', href: '#contact', icon: MessageCircle },
   ];
@@ -1051,6 +1055,23 @@ function InterfaceDashboardMockup({ activeTab }: { activeTab: number }) {
 export default function LandingPage() {
   const demoUrl = useMemo(() => whatsappUrl('Bonjour MekLoc, je souhaite réserver une démo.'), []);
   const [billingCycle, setBillingCycle] = useState<MekLocBillingChoice>('annual');
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadLatestBlogPosts() {
+      if (!supabase || !isSupabaseConfigured) return;
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .select('*')
+        .eq('status', 'published')
+        .order('published_at', { ascending: false })
+        .limit(3);
+      if (mounted && !error) setBlogPosts((data || []) as BlogPost[]);
+    }
+    void loadLatestBlogPosts();
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1347,6 +1368,39 @@ export default function LandingPage() {
         </section>
 
         <section id="faq" className="landing-reveal border-b border-white/10 py-12 sm:py-20">
+          {blogPosts.length > 0 ? (
+            <div className="mx-auto mb-12 w-full max-w-[1240px] px-4 sm:mb-16 sm:px-6 lg:px-8 xl:px-10">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-[0.24em] text-[#F5C542]">Guides MekLoc</p>
+                  <h2 className="mt-3 text-3xl font-black tracking-[-0.03em] text-white sm:text-4xl">Conseils pour mieux piloter votre agence</h2>
+                </div>
+                <Link to="/blog" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl border border-white/12 bg-white/[0.055] px-5 text-sm font-black text-white transition hover:border-[#E3B117]/35 hover:bg-[#E3B117]/10 hover:text-[#F5C542]">
+                  Voir le blog <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
+              <div className="mt-7 grid gap-5 md:grid-cols-3">
+                {blogPosts.map((post) => (
+                  <Link key={post.id} to={`/blog/${post.slug}`} className="group block overflow-hidden rounded-[1.5rem] border border-white/10 bg-zinc-950/75 transition duration-300 hover:-translate-y-1 hover:border-[#E3B117]/35">
+                    <div className="aspect-[16/10] overflow-hidden bg-white/[0.04]">
+                      {post.cover_image_url ? (
+                        <img src={post.cover_image_url} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" loading="lazy" decoding="async" />
+                      ) : (
+                        <div className="grid h-full place-items-center bg-[radial-gradient(circle_at_50%_20%,rgba(227,177,23,.18),transparent_48%),linear-gradient(135deg,#121212,#050505)]">
+                          <span className="text-xs font-black uppercase tracking-[0.24em] text-[#F5C542]">MekLoc</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-5">
+                      <p className="text-xs font-bold text-white/40">{formatBlogDate(post.published_at)} · {post.reading_time_minutes || 3} min</p>
+                      <h3 className="mt-3 text-lg font-black leading-tight text-white group-hover:text-[#F5C542]">{post.title}</h3>
+                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-white/50">{post.excerpt || 'Guide pratique pour agences de location.'}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className="mx-auto w-full max-w-[1180px] px-4 sm:px-6 lg:px-8 xl:px-10">
             <SectionTitle eyebrow="Questions fréquentes" title="Questions fréquentes" />
             <div className="mt-8 grid gap-3 sm:gap-4 lg:grid-cols-2">
@@ -1433,6 +1487,7 @@ export default function LandingPage() {
                 <div className="mt-5 space-y-3 text-sm text-zinc-400">
                   <a href="#fonctionnalites" className="block hover:text-[#F5C542]">Fonctionnalités</a>
                   <a href="#tarifs" className="block hover:text-[#F5C542]">Tarifs</a>
+                  <Link to="/blog" className="block hover:text-[#F5C542]">Blog</Link>
                   <a href={accessRequestUrl} className="block hover:text-[#F5C542]">Demande d’accès</a>
                   <a href="#faq" className="block hover:text-[#F5C542]">Foire aux questions</a>
                   <Link to="/login" className="block hover:text-[#F5C542] lg:hidden">Connexion</Link>

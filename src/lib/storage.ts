@@ -104,6 +104,35 @@ export async function uploadAgencyStamp(agencyId: string, file: File) {
   return { path: data.path, bucket: storageBuckets.agencyAssets };
 }
 
+export async function uploadBlogCover(file: File) {
+  if (!supabase) return null;
+  const validation = validateFileUpload(file, {
+    maxSizeMb: 5,
+    allowedMimeTypes: ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'],
+  });
+  if (validation) throw new Error(validation);
+
+  const path = safeStoragePath('blog', 'covers', file.name || 'cover.png');
+  const { data, error } = await supabase.storage.from(storageBuckets.blogCovers).upload(path, file, {
+    cacheControl: '31536000',
+    upsert: true,
+  });
+
+  if (error || !data) {
+    const message = error ? toErrorMessage(error) : 'Erreur inconnue';
+    if (/bucket not found|not found/i.test(message)) {
+      throw new Error('Bucket "blog-covers" introuvable. Appliquez la migration blog_posts_safe.sql.');
+    }
+    if (/row-level security|policy|permission denied|not authorized/i.test(message)) {
+      throw new Error('Permission refusée pour envoyer une couverture blog. Vérifiez les policies Storage.');
+    }
+    throw new Error(`Upload couverture impossible: ${message}`);
+  }
+
+  const publicUrl = supabase.storage.from(storageBuckets.blogCovers).getPublicUrl(data.path).data.publicUrl;
+  return publicUrl || null;
+}
+
 export async function uploadContractPdf(agencyId: string, contractId: string, file: File) {
   if (!supabase) return null;
 

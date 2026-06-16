@@ -12,6 +12,8 @@ import { formatMAD } from '../data/mockData';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
 import { SUPPORT_REASON_MIN_LENGTH, useSupportMode, type SupportAccessMode } from '../context/SupportModeContext';
 import { MEKLOC_PLANS, type MekLocPlanId } from '../config/pricing';
+import { blogCategories, estimateReadingTime, formatBlogDate, parseTags, slugifyBlogTitle, type BlogPost, type BlogPostDraft, type BlogPostStatus } from '../lib/blog';
+import { uploadBlogCover } from '../lib/storage';
 
 type AccessRequestStatus = 'pending' | 'pending_verification' | 'contacted' | 'payment_pending' | 'approved' | 'rejected' | 'verified';
 type AccessRequestRow = {
@@ -147,6 +149,7 @@ type SuperAdminView =
   | 'deletions'
   | 'alerts'
   | 'reports'
+  | 'blog'
   | 'settings'
   | 'support';
 
@@ -191,6 +194,19 @@ const healthLabels: Record<HealthScore, string> = {
   follow_up: 'À relancer',
   risk: 'Risque de perte',
   ready_to_pay: 'Prêt à payer',
+};
+
+const emptyBlogDraft: BlogPostDraft = {
+  title: '',
+  slug: '',
+  excerpt: '',
+  content: '',
+  cover_image_url: '',
+  category: 'Gestion agence',
+  tagsText: '',
+  author_name: 'MekLoc',
+  status: 'draft',
+  published_at: '',
 };
 
 function readCrmMetadata(value: unknown): CrmMetadata {
@@ -418,6 +434,7 @@ function SuperAdminSidebar({
       items: [
         ['Agences', BuildingIcon, 'agencies'],
         ['Pipeline CRM', Activity, 'crm'],
+        ['Blog', FileText, 'blog'],
         ['Demandes d’accès', Mail, 'access'],
         ['Comptes en suppression', Trash2, 'deletions'],
       ],
@@ -578,6 +595,12 @@ export default function SuperAdminPage() {
   const [crmLeadToEdit, setCrmLeadToEdit] = useState<CrmLead | null>(null);
   const [crmDraft, setCrmDraft] = useState<CrmMetadata>({});
   const [sessionFilter, setSessionFilter] = useState<'all' | 'today' | 'ios' | 'desktop' | 'old'>('all');
+  const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
+  const [blogSearch, setBlogSearch] = useState('');
+  const [blogStatusFilter, setBlogStatusFilter] = useState<'all' | BlogPostStatus>('all');
+  const [blogPostToEdit, setBlogPostToEdit] = useState<BlogPost | null>(null);
+  const [blogDraft, setBlogDraft] = useState<BlogPostDraft>(emptyBlogDraft);
+  const [blogPostToDelete, setBlogPostToDelete] = useState<BlogPost | null>(null);
 
   async function confirmSupportMode() {
     if (!supportAgency) return;
@@ -632,6 +655,15 @@ export default function SuperAdminPage() {
     if (sessionFilter === 'desktop') return !/ios|iphone|ipad|android|mobile/.test(deviceText);
     return Boolean(seenAt && Date.now() - new Date(seenAt).getTime() > 30 * 86_400_000);
   }), [allAdminSessions, sessionFilter]);
+
+  const filteredBlogPosts = useMemo(() => {
+    const q = blogSearch.trim().toLowerCase();
+    return blogPosts.filter((post) => {
+      const matchesStatus = blogStatusFilter === 'all' || post.status === blogStatusFilter;
+      const matchesSearch = !q || `${post.title} ${post.slug} ${post.excerpt || ''} ${post.category || ''} ${post.tags.join(' ')}`.toLowerCase().includes(q);
+      return matchesStatus && matchesSearch;
+    });
+  }, [blogPosts, blogSearch, blogStatusFilter]);
 
   const crmLeads = useMemo<CrmLead[]>(() => {
     const agencyLeads = agencies.map((agency) => {
@@ -976,6 +1008,17 @@ export default function SuperAdminPage() {
       }
 
       try {
+        const blogRes = await supabase
+          .from('blog_posts')
+          .select('*')
+          .order('updated_at', { ascending: false });
+        if (blogRes.error) throw blogRes.error;
+        setBlogPosts((blogRes.data || []) as BlogPost[]);
+      } catch {
+        setBlogPosts([]);
+      }
+
+      try {
         const [reservationsRes, contractsRes, paymentsRes] = await Promise.all([
           supabase.from('reservations').select('agency_id'),
           supabase.from('contracts').select('agency_id'),
@@ -1038,6 +1081,94 @@ export default function SuperAdminPage() {
       health_score: lead.crm.health_score || 'follow_up',
       last_contact_at: lead.crm.last_contact_at || null,
     });
+  }
+
+  function openBlogEditor(post?: BlogPost) {
+    if (post) {
+      setBlogPostToEdit(post);
+      setBlogDraft({
+        title: post.title,
+        slug: post.slug,
+        excerpt: post.excerpt || '',
+        content: post.content,
+        cover_image_url: post.cover_image_url || '',
+        category: post.category || 'Gestion agence',
+        tagsText: post.tags.join(', '),
+        author_name: post.author_name || 'MekLoc',
+        status: post.status,
+        published_at: post.published_at ? post.published_at.slice(0, 16) : '',
+      });
+      return;
+    }
+    setBlogPostToEdit(null);
+    setBlogDraft({ ...emptyBlogDraft });
+  }
+
+  async function uploadBlogCoverFromInput(file: File) {
+    const publicUrl = await uploadBlogCover(file);
+    if (!publicUrl) throw new Error('Upload couverture impossible.');
+    setBlogDraft((current) => ({ ...current, cover_image_url: publicUrl }));
+    notify({ title: 'Image ajoutée', message: 'La couverture blog est prête.', type: 'success' });
+  }
+
+  async function saveBlogPost() {
+    if (!supabase) return;
+    const title = blogDraft.title.trim();
+    const slug = (blogDraft.slug.trim() || slugifyBlogTitle(title));
+    const content = blogDraft.content.trim();
+    if (!title || !slug || !content) throw new Error('Titre, slug et contenu sont obligatoires.');
+    const now = new Date().toISOString();
+    const payload = {
+      title,
+      slug,
+      excerpt: blogDraft.excerpt.trim() || null,
+      content,
+      cover_image_url: blogDraft.cover_image_url.trim() || null,
+      category: blogDraft.category.trim() || null,
+      tags: parseTags(blogDraft.tagsText),
+      author_name: blogDraft.author_name.trim() || 'MekLoc',
+      status: blogDraft.status,
+      published_at: blogDraft.status === 'published' ? (blogDraft.published_at ? new Date(blogDraft.published_at).toISOString() : (blogPostToEdit?.published_at || now)) : null,
+      reading_time_minutes: estimateReadingTime(content),
+    };
+
+    const request = blogPostToEdit
+      ? supabase.from('blog_posts').update(payload).eq('id', blogPostToEdit.id)
+      : supabase.from('blog_posts').insert(payload);
+    const { error } = await request;
+    if (error) {
+      if (/blog_posts|schema cache|does not exist/i.test(error.message)) {
+        throw new Error('Appliquez la migration blog_posts_safe.sql dans Supabase avant de publier.');
+      }
+      throw error;
+    }
+    notify({ title: blogPostToEdit ? 'Article mis à jour' : 'Article créé', message: title, type: 'success' });
+    setBlogPostToEdit(null);
+    setBlogDraft(emptyBlogDraft);
+    await loadAll();
+  }
+
+  async function updateBlogStatus(post: BlogPost, status: BlogPostStatus) {
+    if (!supabase) return;
+    const { error } = await supabase
+      .from('blog_posts')
+      .update({
+        status,
+        published_at: status === 'published' ? (post.published_at || new Date().toISOString()) : null,
+      })
+      .eq('id', post.id);
+    if (error) throw error;
+    notify({ title: status === 'published' ? 'Article publié' : 'Article masqué', message: post.title, type: 'success' });
+    await loadAll();
+  }
+
+  async function deleteBlogPost() {
+    if (!supabase || !blogPostToDelete) return;
+    const { error } = await supabase.from('blog_posts').delete().eq('id', blogPostToDelete.id);
+    if (error) throw error;
+    notify({ title: 'Article supprimé', message: blogPostToDelete.title, type: 'success' });
+    setBlogPostToDelete(null);
+    await loadAll();
   }
 
   async function saveCrmMetadata() {
@@ -1606,6 +1737,7 @@ export default function SuperAdminPage() {
     deletions: { eyebrow: 'Comptes en suppression', title: 'Période de grâce', description: 'Suivez les comptes avant suppression définitive.' },
     alerts: { eyebrow: 'Alertes', title: 'Alertes importantes', description: 'Suivez les anomalies importantes de la plateforme.' },
     reports: { eyebrow: 'Rapports', title: 'Performance plateforme', description: 'Analysez les performances de la plateforme.' },
+    blog: { eyebrow: 'Blog', title: 'Articles & guides', description: 'Publiez des contenus utiles pour attirer et convertir les agences de location.' },
     settings: { eyebrow: 'Paramètres', title: 'Paramètres Super Admin', description: 'Configuration disponible pour l’espace Super Admin.' },
     support: { eyebrow: 'Support', title: 'Support plateforme', description: 'Outils de support disponibles pour l’administration.' },
   };
@@ -2485,6 +2617,99 @@ export default function SuperAdminPage() {
         </Card>
         ) : null}
 
+        {activeView === 'blog' ? (
+        <div className="mt-6 space-y-5">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+            <MiniMetric label="Articles" value={String(blogPosts.length)} icon={FileText} tone="gold" />
+            <MiniMetric label="Publiés" value={String(blogPosts.filter((post) => post.status === 'published').length)} icon={CheckCircle2} tone="green" />
+            <MiniMetric label="Brouillons" value={String(blogPosts.filter((post) => post.status === 'draft').length)} icon={ReceiptText} tone="blue" />
+            <MiniMetric label="Cette semaine" value={String(blogPosts.filter((post) => Date.now() - new Date(post.created_at).getTime() <= 7 * 86_400_000).length)} icon={CalendarClock} tone="gold" />
+            <MiniMetric label="Catégories" value={String(new Set(blogPosts.map((post) => post.category).filter(Boolean)).size)} icon={Activity} tone="blue" />
+          </div>
+
+          <Card className="overflow-hidden">
+            <div className="flex flex-col gap-4 border-b border-white/10 p-5 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.22em] text-[#F5C542]">Blog public</p>
+                <h2 className="mt-1 text-xl font-black text-white">Articles MekLoc</h2>
+                <p className="mt-1 text-sm text-carbon-400">Les articles publiés sont visibles sur /blog. Les brouillons restent privés au Super Admin.</p>
+              </div>
+              <Button icon={<FileText className="h-4 w-4" />} onClick={() => openBlogEditor()}>Nouvel article</Button>
+            </div>
+            <div className="grid gap-3 border-b border-white/10 p-5 lg:grid-cols-[minmax(0,1fr)_auto]">
+              <label className="flex h-12 items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-4">
+                <Search className="h-4 w-4 text-carbon-500" />
+                <input
+                  className="min-w-0 flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder:text-carbon-500"
+                  value={blogSearch}
+                  onChange={(event) => setBlogSearch(event.target.value)}
+                  placeholder="Rechercher par titre, slug, catégorie..."
+                />
+              </label>
+              <div className="flex gap-2 overflow-x-auto">
+                {(['all', 'published', 'draft'] as const).map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    onClick={() => setBlogStatusFilter(status)}
+                    className={`h-12 shrink-0 rounded-2xl px-4 text-sm font-black transition ${blogStatusFilter === status ? 'bg-[#E3B117] text-carbon-950' : 'border border-white/10 bg-white/[0.04] text-carbon-300 hover:text-white'}`}
+                  >
+                    {status === 'all' ? 'Tous' : status === 'published' ? 'Publiés' : 'Brouillons'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="divide-y divide-white/10">
+              {filteredBlogPosts.length === 0 ? (
+                <div className="p-10 text-center">
+                  <FileText className="mx-auto h-9 w-9 text-[#F5C542]" />
+                  <p className="mt-3 font-black text-white">Aucun article trouvé</p>
+                  <p className="mt-1 text-sm text-carbon-400">Créez votre premier guide MekLoc ou ajustez les filtres.</p>
+                </div>
+              ) : filteredBlogPosts.map((post) => (
+                <article key={post.id} className="grid gap-4 px-5 py-4 transition hover:bg-white/[0.025] lg:grid-cols-[140px_minmax(0,1fr)_auto] lg:items-center">
+                  <div className="h-24 overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+                    {post.cover_image_url ? (
+                      <img src={post.cover_image_url} alt="" className="h-full w-full object-cover" loading="lazy" />
+                    ) : (
+                      <div className="grid h-full place-items-center bg-[#E3B117]/10 text-xs font-black uppercase tracking-[0.2em] text-[#F5C542]">MekLoc</div>
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusPill className={post.status === 'published' ? 'border-emerald-300/25 bg-emerald-400/10 text-emerald-200' : 'border-sky-300/25 bg-sky-400/10 text-sky-200'}>
+                        {post.status === 'published' ? 'Publié' : 'Brouillon'}
+                      </StatusPill>
+                      <span className="text-xs font-bold text-carbon-500">{post.category || 'Sans catégorie'} · {formatBlogDate(post.published_at)} · {post.reading_time_minutes || estimateReadingTime(post.content)} min</span>
+                    </div>
+                    <h3 className="mt-2 truncate text-lg font-black text-white">{post.title}</h3>
+                    <p className="mt-1 truncate text-sm text-carbon-400">/{post.slug}</p>
+                    <p className="mt-2 line-clamp-2 text-sm leading-6 text-carbon-300">{post.excerpt || 'Aucun résumé renseigné.'}</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2 lg:justify-end">
+                    {post.status === 'published' ? (
+                      <a href={`/blog/${post.slug}`} target="_blank" rel="noreferrer">
+                        <Button variant="ghost" className="h-9 px-3 text-xs" icon={<Eye className="h-3.5 w-3.5" />}>Voir</Button>
+                      </a>
+                    ) : null}
+                    <Button variant="secondary" className="h-9 px-3 text-xs" onClick={() => openBlogEditor(post)}>Modifier</Button>
+                    <Button
+                      variant="secondary"
+                      className="h-9 px-3 text-xs"
+                      loading={Boolean(actionLoading[`blog-status-${post.id}`])}
+                      onClick={() => runAction(`blog-status-${post.id}`, async () => updateBlogStatus(post, post.status === 'published' ? 'draft' : 'published'))}
+                    >
+                      {post.status === 'published' ? 'Masquer' : 'Publier'}
+                    </Button>
+                    <Button variant="danger" className="h-9 px-3 text-xs" onClick={() => setBlogPostToDelete(post)}>Supprimer</Button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </Card>
+        </div>
+        ) : null}
+
         {(activeView === 'settings' || activeView === 'support') ? (
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           {activeView === 'settings' ? (
@@ -2883,6 +3108,135 @@ export default function SuperAdminPage() {
             </div>
           </div>
         ) : null}
+      </Modal>
+
+      <Modal
+        open={Boolean(blogPostToEdit) || blogDraft !== emptyBlogDraft}
+        onClose={() => {
+          setBlogPostToEdit(null);
+          setBlogDraft(emptyBlogDraft);
+        }}
+        title={blogPostToEdit ? 'Modifier l’article' : 'Nouvel article blog'}
+        subtitle="Contenu public MekLoc"
+        panelClassName="sm:max-w-4xl"
+      >
+        <div className="grid gap-4 lg:grid-cols-[1.1fr_.9fr]">
+          <div className="space-y-4">
+            <label className="grid gap-2">
+              <span className="text-sm font-bold text-white">Titre</span>
+              <input
+                className="form-control"
+                value={blogDraft.title}
+                onChange={(event) => {
+                  const title = event.target.value;
+                  setBlogDraft((current) => ({ ...current, title, slug: current.slug || slugifyBlogTitle(title) }));
+                }}
+                placeholder="Ex: Calculer la rentabilité réelle de chaque véhicule"
+              />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-bold text-white">Slug URL</span>
+              <input
+                className="form-control"
+                value={blogDraft.slug}
+                onChange={(event) => setBlogDraft((current) => ({ ...current, slug: slugifyBlogTitle(event.target.value) }))}
+                placeholder="rentabilite-vehicule-location"
+              />
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-bold text-white">Résumé</span>
+              <textarea
+                className="form-control min-h-24 resize-y"
+                value={blogDraft.excerpt}
+                maxLength={260}
+                onChange={(event) => setBlogDraft((current) => ({ ...current, excerpt: event.target.value }))}
+                placeholder="Résumé court affiché dans la liste du blog..."
+              />
+              <span className="text-right text-xs text-carbon-500">{blogDraft.excerpt.length}/260</span>
+            </label>
+            <label className="grid gap-2">
+              <span className="text-sm font-bold text-white">Contenu Markdown</span>
+              <textarea
+                className="form-control min-h-[360px] resize-y font-mono text-sm leading-6"
+                value={blogDraft.content}
+                onChange={(event) => setBlogDraft((current) => ({ ...current, content: event.target.value }))}
+                placeholder={'## Titre de section\n\nVotre contenu...\n\n- Point important\n- Autre point'}
+              />
+              <span className="text-right text-xs text-carbon-500">{estimateReadingTime(blogDraft.content)} min de lecture estimée</span>
+            </label>
+          </div>
+          <aside className="space-y-4">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+              <p className="text-sm font-black text-white">Couverture</p>
+              <div className="mt-3 aspect-[16/10] overflow-hidden rounded-2xl border border-white/10 bg-white/[0.04]">
+                {blogDraft.cover_image_url ? (
+                  <img src={blogDraft.cover_image_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <div className="grid h-full place-items-center text-xs font-black uppercase tracking-[0.2em] text-carbon-500">Aucune image</div>
+                )}
+              </div>
+              <input
+                className="form-control mt-3"
+                value={blogDraft.cover_image_url}
+                onChange={(event) => setBlogDraft((current) => ({ ...current, cover_image_url: event.target.value }))}
+                placeholder="https://..."
+              />
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                className="mt-3 block w-full text-xs text-carbon-300 file:mr-3 file:rounded-xl file:border-0 file:bg-[#E3B117] file:px-3 file:py-2 file:text-xs file:font-black file:text-carbon-950"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (!file) return;
+                  void runAction('blog-cover-upload', async () => uploadBlogCoverFromInput(file));
+                  event.currentTarget.value = '';
+                }}
+              />
+              <p className="mt-2 text-xs leading-5 text-carbon-500">Formats: JPG, PNG, WEBP. Max 5 MB.</p>
+            </div>
+            <div className="grid gap-4 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+              <label className="grid gap-2">
+                <span className="text-sm font-bold text-white">Catégorie</span>
+                <select className="form-control" value={blogDraft.category} onChange={(event) => setBlogDraft((current) => ({ ...current, category: event.target.value }))}>
+                  {blogCategories.map((category) => <option key={category} value={category}>{category}</option>)}
+                </select>
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-bold text-white">Tags</span>
+                <input className="form-control" value={blogDraft.tagsText} onChange={(event) => setBlogDraft((current) => ({ ...current, tagsText: event.target.value }))} placeholder="rentabilité, flotte, location" />
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-bold text-white">Auteur</span>
+                <input className="form-control" value={blogDraft.author_name} onChange={(event) => setBlogDraft((current) => ({ ...current, author_name: event.target.value }))} />
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-bold text-white">Statut</span>
+                <select className="form-control" value={blogDraft.status} onChange={(event) => setBlogDraft((current) => ({ ...current, status: event.target.value as BlogPostStatus }))}>
+                  <option value="draft">Brouillon</option>
+                  <option value="published">Publié</option>
+                </select>
+              </label>
+              <label className="grid gap-2">
+                <span className="text-sm font-bold text-white">Date publication</span>
+                <input className="form-control" type="datetime-local" value={blogDraft.published_at} onChange={(event) => setBlogDraft((current) => ({ ...current, published_at: event.target.value }))} />
+              </label>
+            </div>
+          </aside>
+        </div>
+        <div className="mt-5 grid grid-cols-2 gap-2 border-t border-white/10 pt-4">
+          <Button variant="secondary" disabled={Boolean(actionLoading['save-blog'])} onClick={() => { setBlogPostToEdit(null); setBlogDraft(emptyBlogDraft); }}>Annuler</Button>
+          <Button loading={Boolean(actionLoading['save-blog'])} onClick={() => runAction('save-blog', saveBlogPost)}>Enregistrer</Button>
+        </div>
+      </Modal>
+
+      <Modal open={Boolean(blogPostToDelete)} onClose={() => setBlogPostToDelete(null)} title="Supprimer l’article">
+        <p className="text-sm leading-6 text-carbon-300">
+          Cette action supprime définitivement l’article <strong className="text-white">{blogPostToDelete?.title}</strong>.
+        </p>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button variant="secondary" onClick={() => setBlogPostToDelete(null)}>Annuler</Button>
+          <Button variant="danger" loading={Boolean(actionLoading['delete-blog'])} onClick={() => runAction('delete-blog', deleteBlogPost)}>Supprimer</Button>
+        </div>
       </Modal>
 
       <Modal

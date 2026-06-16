@@ -9,6 +9,8 @@ import SEO from './components/system/SEO';
 import AccountStatusPage from './pages/AccountStatusPage';
 import ActivationPage from './pages/ActivationPage';
 import AuthPage from './pages/AuthPage';
+import BlogArticlePage from './pages/BlogArticlePage';
+import BlogPage from './pages/BlogPage';
 const ClientProfilePage = lazyWithRetry(() => import('./pages/ClientProfilePage'));
 const CalendarPage = lazyWithRetry(() => import('./pages/CalendarPage'));
 const ClientsPage = lazyWithRetry(() => import('./pages/ClientsPage'));
@@ -150,6 +152,8 @@ export default function App() {
             }
           />
           <Route path="/tarifs" element={<AnimatedPage><PricingPage /></AnimatedPage>} />
+          <Route path="/blog" element={<AnimatedPage><BlogPage /></AnimatedPage>} />
+          <Route path="/blog/:slug" element={<AnimatedPage><BlogArticlePage /></AnimatedPage>} />
           <Route path="/contact" element={<AnimatedPage><SeoLandingPage path="/contact" /></AnimatedPage>} />
           <Route path="/logiciel-location-voiture-maroc" element={<AnimatedPage><SeoLandingPage path="/logiciel-location-voiture-maroc" /></AnimatedPage>} />
           <Route path="/contrats-location-voiture-pdf" element={<AnimatedPage><SeoLandingPage path="/contrats-location-voiture-pdf" /></AnimatedPage>} />
