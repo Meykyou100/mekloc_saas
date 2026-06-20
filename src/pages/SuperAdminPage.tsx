@@ -2848,7 +2848,7 @@ export default function SuperAdminPage() {
                     <Button
                       icon={<Headphones className="h-4 w-4" />}
                       disabled={isSupportMode}
-                      className="border border-[#F5C542]/70 bg-[#E3B117] text-carbon-950 shadow-[0_10px_28px_rgba(227,177,23,.18)] hover:bg-[#F5C542] hover:shadow-[0_14px_34px_rgba(227,177,23,.28)] disabled:border-white/10 disabled:bg-white/5 disabled:text-carbon-500 disabled:shadow-none"
+                      className="border border-[#F5C542]/70 bg-[#E3B117] text-zinc-950 shadow-[0_10px_28px_rgba(227,177,23,.18)] hover:bg-[#F5C542] hover:text-zinc-950 hover:shadow-[0_14px_34px_rgba(227,177,23,.28)] disabled:border-white/10 disabled:bg-white/5 disabled:text-zinc-400 disabled:shadow-none"
                       onClick={() => {
                         setSupportAgency(selectedAgencyDetails);
                         setSupportReason('');
@@ -2861,10 +2861,10 @@ export default function SuperAdminPage() {
                 </div>
                 {isSupportMode ? <p className="mt-2 text-xs font-semibold text-amber-200">Mode assistance indisponible: une session est déjà active.</p> : null}
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <Button variant="secondary" icon={<Crown className="h-4 w-4" />} loading={Boolean(actionLoading[`drawer-plan-${selectedAgencyDetails.id}`])} onClick={() => runAction(`drawer-plan-${selectedAgencyDetails.id}`, async () => changeAgencyPlan(selectedAgencyDetails, selectedAgencyDetails.plan === 'starter' ? 'pro' : selectedAgencyDetails.plan === 'pro' ? 'business' : selectedAgencyDetails.plan === 'business' ? 'lifetime' : 'starter'))}>Changer plan</Button>
-                  <Button variant="secondary" icon={<CalendarClock className="h-4 w-4" />} onClick={() => { setTrialExtensionDays(7); setTrialExtensionAgency(selectedAgencyDetails); }}>Prolonger essai</Button>
-                  <Button variant="secondary" icon={<Banknote className="h-4 w-4" />} onClick={() => { setPaymentDuration(1); setPaymentMethod(selectedAgencyDetails.paymentMethod || 'bank_transfer'); setPaymentNote(selectedAgencyDetails.paymentNotes); setPaymentAgency(selectedAgencyDetails); }}>Marquer comme payé</Button>
-                  <Button variant="secondary" icon={<Mail className="h-4 w-4" />} loading={Boolean(actionLoading[`drawer-resend-${selectedAgencyDetails.id}`])} onClick={() => runAction(`drawer-resend-${selectedAgencyDetails.id}`, async () => resendAgencyActivationEmail(selectedAgencyDetails))}>Renvoyer email</Button>
+                  <Button variant="secondary" className="text-white hover:text-white disabled:text-zinc-400" icon={<Crown className="h-4 w-4" />} loading={Boolean(actionLoading[`drawer-plan-${selectedAgencyDetails.id}`])} onClick={() => runAction(`drawer-plan-${selectedAgencyDetails.id}`, async () => changeAgencyPlan(selectedAgencyDetails, selectedAgencyDetails.plan === 'starter' ? 'pro' : selectedAgencyDetails.plan === 'pro' ? 'business' : selectedAgencyDetails.plan === 'business' ? 'lifetime' : 'starter'))}>Changer plan</Button>
+                  <Button variant="secondary" className="text-white hover:text-white disabled:text-zinc-400" icon={<CalendarClock className="h-4 w-4" />} onClick={() => { setTrialExtensionDays(7); setTrialExtensionAgency(selectedAgencyDetails); }}>Prolonger essai</Button>
+                  <Button variant="secondary" className="text-white hover:text-white disabled:text-zinc-400" icon={<Banknote className="h-4 w-4" />} onClick={() => { setPaymentDuration(1); setPaymentMethod(selectedAgencyDetails.paymentMethod || 'bank_transfer'); setPaymentNote(selectedAgencyDetails.paymentNotes); setPaymentAgency(selectedAgencyDetails); }}>Marquer comme payé</Button>
+                  <Button variant="secondary" className="text-white hover:text-white disabled:text-zinc-400" icon={<Mail className="h-4 w-4" />} loading={Boolean(actionLoading[`drawer-resend-${selectedAgencyDetails.id}`])} onClick={() => runAction(`drawer-resend-${selectedAgencyDetails.id}`, async () => resendAgencyActivationEmail(selectedAgencyDetails))}>Renvoyer email</Button>
                 </div>
               </div>
 
@@ -2874,7 +2874,7 @@ export default function SuperAdminPage() {
                     <p className="text-sm font-black text-white">Factures abonnement</p>
                     <p className="mt-1 text-xs text-carbon-400">Historique réel des factures liées à cette agence.</p>
                   </div>
-                  <Button icon={<ReceiptText className="h-4 w-4" />} onClick={() => openInvoiceModal(selectedAgencyDetails)}>Créer facture</Button>
+                  <Button className="border border-[#F5C542]/70 bg-[#E3B117] text-zinc-950 hover:bg-[#F5C542] hover:text-zinc-950 disabled:border-white/10 disabled:bg-white/5 disabled:text-zinc-400" icon={<ReceiptText className="h-4 w-4" />} onClick={() => openInvoiceModal(selectedAgencyDetails)}>Créer facture</Button>
                 </div>
                 <div className="mt-4 overflow-hidden rounded-2xl border border-white/10">
                   {selectedAgencyInvoices.length ? (
@@ -2890,12 +2890,12 @@ export default function SuperAdminPage() {
                             {invoiceStatusLabel(invoice.status)}
                           </span>
                           <div className="flex flex-wrap justify-start gap-2 md:justify-end">
-                            <Button variant="secondary" className="h-8 px-2.5 text-xs" disabled title="PDF à configurer">Télécharger</Button>
+                            <Button variant="secondary" className="h-8 px-2.5 text-xs text-white hover:text-white disabled:text-zinc-400" disabled title="PDF à configurer">Télécharger</Button>
                             {invoice.status === 'draft' ? (
-                              <Button variant="secondary" className="h-8 px-2.5 text-xs" icon={<Send className="h-3.5 w-3.5" />} onClick={() => runAction(`invoice-sent-${invoice.id}`, async () => updateAgencyInvoiceStatus(invoice, 'sent'))}>Envoyée</Button>
+                              <Button variant="secondary" className="h-8 px-2.5 text-xs text-white hover:text-white disabled:text-zinc-400" icon={<Send className="h-3.5 w-3.5" />} onClick={() => runAction(`invoice-sent-${invoice.id}`, async () => updateAgencyInvoiceStatus(invoice, 'sent'))}>Envoyée</Button>
                             ) : null}
                             {invoice.status !== 'paid' ? (
-                              <Button className="h-8 px-2.5 text-xs" icon={<CheckCircle2 className="h-3.5 w-3.5" />} onClick={() => runAction(`invoice-paid-${invoice.id}`, async () => updateAgencyInvoiceStatus(invoice, 'paid'))}>Payée</Button>
+                              <Button className="h-8 px-2.5 text-xs text-zinc-950 hover:text-zinc-950 disabled:text-zinc-400" icon={<CheckCircle2 className="h-3.5 w-3.5" />} onClick={() => runAction(`invoice-paid-${invoice.id}`, async () => updateAgencyInvoiceStatus(invoice, 'paid'))}>Payée</Button>
                             ) : null}
                           </div>
                           {invoice.notes ? <p className="text-xs text-carbon-400 md:col-span-4">Note: {invoice.notes}</p> : null}
@@ -2924,6 +2924,7 @@ export default function SuperAdminPage() {
                   <Button
                     variant="secondary"
                     icon={<Eye className="h-4 w-4" />}
+                    className="border border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white disabled:text-zinc-400"
                     onClick={() => {
                       setShowSupportHistory((current) => !current);
                       setShowAllSupportLogs(false);
