@@ -4,7 +4,6 @@ import {
   CalendarDays,
   Car,
   UsersRound,
-  CheckCircle2,
   CreditCard,
   FileSignature,
   HelpCircle,
@@ -20,23 +19,22 @@ import {
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import Modal from '../ui/Modal';
-import { useApp } from '../../context/AppContext';
 import { useAuth } from '../../context/AuthContext';
 import { SUPPORT_EMAIL, SUPPORT_PHONE_DISPLAY, WHATSAPP_URL } from '../../config/app';
 import { canAccess, type AppPermission } from '../../lib/permissions';
 
 const navItems = [
-  { label: 'dashboard', to: '/dashboard', icon: LayoutDashboard, permission: 'dashboard' as AppPermission },
-  { label: 'calendar', to: '/calendar', icon: CalendarDays, permission: 'reservations' as AppPermission },
-  { label: 'reservations', to: '/reservations', icon: CalendarDays, permission: 'reservations' as AppPermission },
-  { label: 'vehicles', to: '/vehicles', icon: Car, permission: 'vehicles' as AppPermission },
-  { label: 'clients', to: '/clients', icon: Users, permission: 'clients' as AppPermission },
-  { label: 'contracts', to: '/contracts', icon: FileSignature, permission: 'contracts' as AppPermission },
-  { label: 'payments', to: '/payments', icon: CreditCard, permission: 'payments' as AppPermission },
-  { label: 'maintenance', to: '/maintenance', icon: Wrench, permission: 'maintenance' as AppPermission },
-  { label: 'reports', to: '/reports', icon: BarChart3, permission: 'reports' as AppPermission },
+  { label: 'Tableau', to: '/dashboard', icon: LayoutDashboard, permission: 'dashboard' as AppPermission },
+  { label: 'Calendrier', to: '/calendar', icon: CalendarDays, permission: 'reservations' as AppPermission },
+  { label: 'Réservations', to: '/reservations', icon: CalendarDays, permission: 'reservations' as AppPermission },
+  { label: 'Véhicules', to: '/vehicles', icon: Car, permission: 'vehicles' as AppPermission },
+  { label: 'Clients', to: '/clients', icon: Users, permission: 'clients' as AppPermission },
+  { label: 'Contrats', to: '/contracts', icon: FileSignature, permission: 'contracts' as AppPermission },
+  { label: 'Paiements', to: '/payments', icon: CreditCard, permission: 'payments' as AppPermission },
+  { label: 'Entretien', to: '/maintenance', icon: Wrench, permission: 'maintenance' as AppPermission },
+  { label: 'Rapports', to: '/reports', icon: BarChart3, permission: 'reports' as AppPermission },
   { label: 'Responsables', to: '/responsables', icon: UsersRound, permission: 'reports' as AppPermission },
-  { label: 'settings', to: '/settings', icon: Settings, permission: 'settings' as AppPermission },
+  { label: 'Paramètres', to: '/settings', icon: Settings, permission: 'settings' as AppPermission },
 ];
 
 const faqItems = [
@@ -62,25 +60,38 @@ const faqItems = [
   },
 ];
 
-const proBenefits = [
-  'Centralisation des réservations',
-  'Contrats professionnels',
-  'Suivi paiements & cautions',
-  'Rapports financiers',
-  'Support prioritaire',
-];
+function subscriptionStatusLabel(status: string | null | undefined) {
+  if (status === 'active_paid') return 'Actif';
+  if (status === 'trial_active') return 'Essai actif';
+  if (status === 'payment_pending') return 'En attente';
+  if (status === 'trial_expired') return 'Expiré';
+  if (status === 'suspended') return 'Suspendu';
+  return '—';
+}
 
-function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHelp: () => void; onPro: () => void }) {
-  const { t } = useApp();
+function planLabel(plan: string | null | undefined) {
+  if (!plan) return '—';
+  return plan === 'lifetime' ? 'Lifetime' : `${plan.slice(0, 1).toUpperCase()}${plan.slice(1)}`;
+}
+
+function daysRemaining(value: string | null | undefined) {
+  if (!value) return '—';
+  const time = new Date(value).getTime();
+  if (Number.isNaN(time)) return '—';
+  return `${Math.max(0, Math.ceil((time - Date.now()) / 86_400_000))} jours`;
+}
+
+function SidebarContent({ onClose, onHelp }: { onClose?: () => void; onHelp: () => void }) {
   const { profile } = useAuth();
+  const agency = profile?.agency;
+  const subscriptionEnd = agency?.subscriptionStatus === 'trial_active' ? agency.trialEndsAt : agency?.paidUntil || agency?.subscriptionEndDate || agency?.nextPaymentDueDate;
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain bg-[radial-gradient(circle_at_18%_0%,rgba(227,177,23,.16),transparent_30%),radial-gradient(circle_at_100%_82%,rgba(227,177,23,.08),transparent_24%),linear-gradient(180deg,var(--app-sidebar),var(--app-bg))] pb-3 text-[var(--app-text)]">
-      <div className="shrink-0 px-4 pb-2.5 pt-3.5 lg:px-4 lg:pt-4">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto overscroll-contain rounded-[28px] border border-[var(--app-border)] bg-[linear-gradient(180deg,#fffdf7,#f8f3e9)] pb-[max(0.75rem,env(safe-area-inset-bottom))] text-[#171717] shadow-[0_18px_48px_rgba(44,35,18,.12)]">
+      <div className="shrink-0 px-4 pb-3 pt-4 lg:px-4 lg:pt-4">
         <div className="flex items-center justify-between gap-3">
-        <NavLink to="/" className="group flex min-w-0 items-center gap-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] transition hover:border-gold-300/25" onClick={onClose}>
-          <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-gold-300/25 bg-carbon-950 shadow-[0_10px_26px_rgba(16,24,32,.16)]">
-            <span className="absolute inset-0 rounded-2xl bg-gold-400/10" />
+        <NavLink to="/dashboard" className="group flex min-w-0 items-center gap-3 rounded-2xl border border-[#e9e2d6] bg-white px-3 py-2.5 shadow-[0_8px_22px_rgba(44,35,18,.05)] transition hover:border-gold-300/45" onClick={onClose}>
+          <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-[#2a261d] bg-[#171717] shadow-[0_8px_18px_rgba(16,24,32,.16)]">
             <img
               src="/mekloc-logo-mark.png"
               alt="MekLoc"
@@ -88,17 +99,17 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
             />
           </span>
           <span className="min-w-0">
-            <span className="block text-[18px] font-black leading-5 tracking-tight text-[var(--app-text)]">
+            <span className="block text-[18px] font-black leading-5 tracking-tight text-[#151515]">
               MekLoc
             </span>
-            <span className="mt-0.5 block max-w-[164px] truncate text-[10px] font-semibold leading-3 text-[var(--app-text-muted)]">
+            <span className="mt-0.5 block max-w-[164px] truncate text-[10px] font-semibold leading-3 text-[#7a746a]">
               Gestion location automobile
             </span>
           </span>
         </NavLink>
         <button
           aria-label="Close sidebar"
-          className="rounded-xl p-1.5 text-[var(--app-text-muted)] hover:bg-[var(--app-surface-soft)] lg:hidden"
+          className="rounded-xl p-1.5 text-[#746d63] hover:bg-[#f4eee3] lg:hidden"
           onClick={onClose}
         >
           <X className="h-5 w-5" />
@@ -106,8 +117,8 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
         </div>
       </div>
       <nav className="grid shrink-0 gap-1 px-3 py-1">
-        <p className="px-2 pb-1 pt-1.5 text-[10px] font-black uppercase tracking-[0.26em] text-[var(--app-gold-text)]/80 [@media(max-height:700px)]:hidden">
-          Navigation
+        <p className="px-2 pb-1 pt-1.5 text-[10px] font-black uppercase tracking-[0.24em] text-[#927333] [@media(max-height:700px)]:hidden">
+          NAVIGATION
         </p>
         {navItems
           .filter((item) => canAccess(profile?.role, item.permission))
@@ -117,48 +128,35 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
             to={to}
             onClick={onClose}
             className={({ isActive }) =>
-              `group relative flex min-h-10 items-center gap-2.5 overflow-hidden rounded-[1rem] border px-2.5 py-1.5 text-[13px] font-bold transition [@media(max-height:700px)]:min-h-9 [@media(max-height:700px)]:py-1 ${
+              `group relative flex min-h-10 items-center gap-2.5 overflow-hidden rounded-2xl border px-2.5 py-1.5 text-[13px] font-bold transition [@media(max-height:700px)]:min-h-9 [@media(max-height:700px)]:py-1 ${
                 isActive
-                  ? 'active border-gold-300/45 bg-[linear-gradient(135deg,rgba(212,160,23,.24),rgba(212,160,23,.10))] text-[var(--app-gold-text)] shadow-[0_14px_30px_rgba(212,160,23,.16),inset_0_1px_0_rgba(255,255,255,.10)] before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-r-full before:bg-gold-400'
-                  : 'border-transparent text-[var(--app-text-soft)] hover:border-[var(--app-border)] hover:bg-[var(--app-surface-soft)] hover:text-[var(--app-text)]'
+                  ? 'active border-[#edcf83] bg-[linear-gradient(135deg,#fff5d8,#fffaf0)] text-[#9a6800] shadow-[0_8px_20px_rgba(185,134,11,.10)] before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-r-full before:bg-gold-400'
+                  : 'border-transparent text-[#302d28] hover:border-[#e9e2d6] hover:bg-white hover:text-[#151515]'
               }`
             }
           >
-            <span className="relative grid h-7 w-7 shrink-0 place-items-center rounded-[0.8rem] border border-[var(--app-border-soft)] bg-[var(--app-surface-soft)] text-[var(--app-text-muted)] transition group-[.active]:border-gold-300/35 group-[.active]:bg-gold-400/15 group-[.active]:text-[var(--app-gold-text)] group-hover:border-gold-300/25 group-hover:bg-gold-400/10 group-hover:text-[var(--app-gold-text)] [@media(max-height:700px)]:h-6 [@media(max-height:700px)]:w-6">
+            <span className="relative grid h-7 w-7 shrink-0 place-items-center rounded-xl border border-[#e8e2d8] bg-[#fbfaf7] text-[#4b4841] transition group-[.active]:border-[#edcf83] group-[.active]:bg-[#fff0bd] group-[.active]:text-[#a66b00] group-hover:border-gold-300/35 group-hover:bg-[#fff8e4] group-hover:text-[#9a6800] [@media(max-height:700px)]:h-6 [@media(max-height:700px)]:w-6">
               <Icon className="h-3.5 w-3.5" />
             </span>
-            <span className="relative">{t(label)}</span>
+            <span className="relative">{label}</span>
           </NavLink>
         ))}
       </nav>
-      <div className="mt-auto shrink-0 space-y-2 px-3 pb-3 pt-2">
-        <div className="relative overflow-hidden rounded-2xl border border-gold-300/30 bg-[linear-gradient(145deg,#101820,#050505)] p-3 text-white shadow-[0_18px_38px_rgba(16,24,32,.22),inset_0_1px_0_rgba(255,255,255,.10)] [@media(max-height:700px)]:p-2.5">
-          <div className="pointer-events-none absolute -right-8 -top-10 h-24 w-24 rounded-full bg-gold-400/18 blur-2xl" />
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gold-300/35 to-transparent" />
-          <div className="relative flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <p className="text-[13px] font-black leading-4 text-white">MekLoc Pro</p>
-              <p className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-gold-100/75">Espace agence activé</p>
-            </div>
-            <span className="rounded-full border border-gold-300/25 bg-gold-400/15 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-gold-100">Pro</span>
+      <div className="mt-auto shrink-0 space-y-3 px-3 pb-1 pt-3">
+        <div className="rounded-3xl border border-[#e6dfd3] bg-white p-3.5 shadow-[0_10px_28px_rgba(44,35,18,.06)] [@media(max-height:700px)]:p-3">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0"><p className="text-[15px] font-black leading-4 text-[#171717]">MekLoc {planLabel(agency?.plan)}</p><p className="mt-1 text-[11px] font-semibold text-[#8a8378]">Espace agence activé</p></div>
+            <span className="rounded-full border border-[#34302a] bg-[#1d1b18] px-2 py-1 text-[9px] font-black uppercase tracking-[.16em] text-[#f4c541]">{planLabel(agency?.plan).toUpperCase()}</span>
           </div>
-          <div className="relative mt-2 grid grid-cols-2 gap-1 text-[10px] font-semibold text-white/82 [@media(max-height:760px)]:hidden">
-            {['Gestion flotte', 'Contrats PDF', 'Paiements suivis', 'Rapports financiers'].map((feature) => (
-              <span key={feature} className="truncate rounded-lg border border-white/10 bg-white/[0.075] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,.05)]">
-                {feature}
-              </span>
-            ))}
+          <div className="mt-3 space-y-1.5 border-y border-[#eee8df] py-2.5 text-[11px]">
+            <div className="flex items-center justify-between gap-2"><span className="text-[#736c62]">• &nbsp;Plan actuel</span><strong className="text-[#202020]">{planLabel(agency?.plan)}</strong></div>
+            <div className="flex items-center justify-between gap-2"><span className="text-[#736c62]">• &nbsp;Statut</span><strong className={agency?.subscriptionStatus === 'active_paid' ? 'text-emerald-700' : 'text-[#202020]'}>{subscriptionStatusLabel(agency?.subscriptionStatus)}</strong></div>
+            <div className="flex items-center justify-between gap-2"><span className="text-[#736c62]">• &nbsp;Jours restants</span><strong className="text-[#202020]">{daysRemaining(subscriptionEnd)}</strong></div>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              onPro();
-              onClose?.();
-            }}
-            className="relative mt-2 flex h-9 w-full items-center justify-center rounded-xl border border-gold-300/30 bg-gold-400 text-[11px] font-black text-carbon-950 shadow-[0_10px_24px_rgba(212,160,23,.22)] transition hover:bg-gold-300 [@media(max-height:700px)]:h-8"
-          >
-            Voir les avantages
-          </button>
+          <div className="mt-3 grid grid-cols-2 gap-1.5 text-[10px] font-bold text-[#3f3a34] [@media(max-height:760px)]:hidden">
+            {['Gestion flotte', 'Contrats PDF', 'Paiements suivis', 'Rapports'].map((feature) => <span key={feature} className="rounded-xl border border-[#ece6dc] bg-[#fcfbf8] px-2 py-1.5 text-center">{feature}</span>)}
+          </div>
+          <NavLink to="/pricing" onClick={onClose} className="mt-3 flex h-9 w-full items-center justify-center rounded-xl border border-[#e7b813] bg-[#f5bd12] text-[11px] font-black text-[#17120a] shadow-[0_8px_18px_rgba(212,160,23,.18)] transition hover:bg-[#edb000] [@media(max-height:700px)]:h-8">Voir abonnement <ArrowRight className="ml-2 h-3.5 w-3.5" /></NavLink>
         </div>
         <button
           type="button"
@@ -166,15 +164,15 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
             onHelp();
             onClose?.();
           }}
-          className="group flex cursor-pointer items-center gap-2.5 rounded-2xl border border-[var(--app-border)] bg-[linear-gradient(135deg,var(--app-card),var(--app-surface-soft))] p-2.5 shadow-[0_12px_26px_rgba(16,24,32,.10),inset_0_1px_0_rgba(255,255,255,.06)] transition hover:border-gold-300/35 hover:bg-[var(--app-gold-soft)] [@media(max-height:640px)]:hidden"
+          className="group flex cursor-pointer items-center gap-2.5 rounded-2xl border border-[#e6dfd3] bg-white p-2.5 shadow-[0_10px_24px_rgba(44,35,18,.05)] transition hover:border-gold-300/45 hover:bg-[#fffaf0] [@media(max-height:640px)]:hidden"
         >
-          <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-gold-300/25 bg-carbon-950 text-gold-100 shadow-[0_8px_18px_rgba(16,24,32,.14)] transition group-hover:border-gold-300/45">
+          <span className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-[#2a261d] bg-[#171717] text-[#f4c541] shadow-[0_8px_18px_rgba(16,24,32,.14)] transition group-hover:border-gold-300/45">
             <Headphones className="h-4 w-4" />
             <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-emerald-400 ring-2 ring-carbon-950" />
           </span>
           <span className="min-w-0">
-            <span className="block text-[13px] font-bold text-[var(--app-text)]">Besoin d’aide ?</span>
-            <span className="mt-0.5 block text-[11px] font-semibold text-[var(--app-text-muted)]">Centre d’assistance</span>
+            <span className="block text-[13px] font-bold text-[#1d1c19]">Besoin d’aide ?</span>
+            <span className="mt-0.5 block text-[11px] font-semibold text-[#7a746a]">Centre d’assistance</span>
           </span>
         </button>
       </div>
@@ -184,22 +182,21 @@ function SidebarContent({ onClose, onHelp, onPro }: { onClose?: () => void; onHe
 
 export default function Sidebar({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [helpOpen, setHelpOpen] = useState(false);
-  const [proOpen, setProOpen] = useState(false);
   const [activeFaq, setActiveFaq] = useState(faqItems[0].question);
 
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-72 border-r border-[var(--app-border)] bg-[var(--app-sidebar)] backdrop-blur-2xl lg:block">
-        <SidebarContent onHelp={() => setHelpOpen(true)} onPro={() => setProOpen(true)} />
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[296px] p-3 lg:block">
+        <SidebarContent onHelp={() => setHelpOpen(true)} />
       </aside>
       <div
         className={`fixed inset-0 z-40 bg-carbon-950/70 backdrop-blur-sm transition lg:hidden ${open ? 'opacity-100' : 'pointer-events-none opacity-0'}`}
         onClick={onClose}
       />
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-80 max-w-[86vw] border-r border-[var(--app-border)] bg-[var(--app-sidebar)] backdrop-blur-2xl transition-transform ${open ? 'translate-x-0' : '-translate-x-full'} lg:hidden`}
+        className={`fixed inset-y-0 left-0 z-50 w-80 max-w-[86vw] p-2 transition-transform ${open ? 'translate-x-0' : '-translate-x-full'} lg:hidden`}
       >
-        <SidebarContent onClose={onClose} onHelp={() => setHelpOpen(true)} onPro={() => setProOpen(true)} />
+        <SidebarContent onClose={onClose} onHelp={() => setHelpOpen(true)} />
       </aside>
       <Modal
         open={helpOpen}
@@ -302,32 +299,6 @@ export default function Sidebar({ open, onClose }: { open: boolean; onClose: () 
               })}
             </div>
           </section>
-        </div>
-      </Modal>
-      <Modal
-        open={proOpen}
-        title="MekLoc Pro"
-        subtitle="Un espace agence conçu pour centraliser vos opérations de location."
-        onClose={() => setProOpen(false)}
-        panelClassName="sm:max-w-2xl"
-        bodyClassName="bg-[var(--app-modal)]"
-      >
-        <div className="space-y-4 pb-[calc(env(safe-area-inset-bottom)+8px)]">
-          <div className="rounded-3xl border border-gold-300/15 bg-[var(--app-card)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
-            <p className="text-sm font-black uppercase tracking-[0.18em] text-[var(--app-gold-text)]">Espace agence activé</p>
-            <h3 className="mt-2 text-2xl font-black text-[var(--app-text)]">Pilotez votre agence depuis un seul endroit.</h3>
-            <p className="mt-2 text-sm leading-6 text-[var(--app-text-soft)]">MekLoc Pro rassemble les modules essentiels pour suivre les réservations, véhicules, clients, contrats, paiements et rapports sans multiplier les fichiers.</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {proBenefits.map((benefit) => (
-              <div key={benefit} className="flex min-h-14 items-center gap-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 py-3">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-gold-300/20 bg-gold-400/10 text-gold-200">
-                  <CheckCircle2 className="h-4 w-4" />
-                </span>
-                <span className="text-sm font-bold text-[var(--app-text)]">{benefit}</span>
-              </div>
-            ))}
-          </div>
         </div>
       </Modal>
     </>

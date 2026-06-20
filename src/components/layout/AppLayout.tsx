@@ -56,7 +56,7 @@ export default function AppLayout() {
     >
       <SEO title="MekLoc – Espace agence" description="Espace privé MekLoc pour la gestion de votre agence." canonical="/dashboard" noindex />
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <div className="min-h-screen lg:pl-72">
+      <div className="min-h-screen lg:pl-[296px]">
         <Topbar onMenu={() => setSidebarOpen(true)} />
         {isSupportMode && supportSession ? (
           <div className="mx-4 mt-4 flex flex-col gap-3 rounded-2xl border border-[#E3B117]/50 bg-gradient-to-r from-rose-950/80 via-carbon-950 to-[#E3B117]/15 px-4 py-3 text-sm text-white shadow-[0_12px_34px_rgba(80,0,0,.18)] sm:mx-6 sm:flex-row sm:items-center sm:justify-between lg:mx-8">
