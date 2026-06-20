@@ -33,6 +33,7 @@ const translations: Record<Language, Record<string, string>> = {
     payments: 'Paiements',
     maintenance: 'Entretien',
     reports: 'Rapports',
+    Responsables: 'Responsables',
     settings: 'Paramètres',
     search: 'Rechercher une réservation, un client, un véhicule...',
     startFree: 'Essai gratuit',

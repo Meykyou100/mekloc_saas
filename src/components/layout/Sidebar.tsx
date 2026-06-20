@@ -3,6 +3,7 @@ import {
   BarChart3,
   CalendarDays,
   Car,
+  UsersRound,
   CheckCircle2,
   CreditCard,
   FileSignature,
@@ -34,6 +35,7 @@ const navItems = [
   { label: 'payments', to: '/payments', icon: CreditCard, permission: 'payments' as AppPermission },
   { label: 'maintenance', to: '/maintenance', icon: Wrench, permission: 'maintenance' as AppPermission },
   { label: 'reports', to: '/reports', icon: BarChart3, permission: 'reports' as AppPermission },
+  { label: 'Responsables', to: '/responsables', icon: UsersRound, permission: 'reports' as AppPermission },
   { label: 'settings', to: '/settings', icon: Settings, permission: 'settings' as AppPermission },
 ];
 

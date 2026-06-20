@@ -16,6 +16,7 @@ const CalendarPage = lazyWithRetry(() => import('./pages/CalendarPage'));
 const ClientsPage = lazyWithRetry(() => import('./pages/ClientsPage'));
 const ContractsPage = lazyWithRetry(() => import('./pages/ContractsPage'));
 const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage'));
+const FleetResponsiblesPage = lazyWithRetry(() => import('./pages/FleetResponsiblesPage'));
 import DemandeAccesPage from './pages/DemandeAccesPage';
 import LandingPage from './pages/LandingPage';
 const MaintenancePage = lazyWithRetry(() => import('./pages/MaintenancePage'));
@@ -210,6 +211,7 @@ export default function App() {
               </Route>
               <Route element={<ProtectedRoute requiredPermission="reports" />}>
                 <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/responsables" element={<FleetResponsiblesPage />} />
               </Route>
               <Route element={<ProtectedRoute requiredPermission="settings" />}>
                 <Route path="/settings" element={<SettingsPage />} />

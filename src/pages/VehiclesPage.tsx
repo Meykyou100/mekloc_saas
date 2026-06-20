@@ -1,4 +1,4 @@
-import { AlertTriangle, Car, CheckCircle2, Edit3, Eye, Grid3X3, ImagePlus, List, Plus, Search, Trash2, Wrench } from 'lucide-react';
+import { AlertTriangle, Car, CheckCircle2, Edit3, Eye, Grid3X3, ImagePlus, List, Plus, Search, Trash2, UserRound, Wrench } from 'lucide-react';
 import { FormEvent, type KeyboardEvent, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
@@ -16,6 +16,7 @@ import { useData } from '../context/DataContext';
 import { formatMAD, type DamageType, type Vehicle, type VehicleAccessories, type VehicleDamageMark, type VehicleStatus } from '../data/mockData';
 import { safeStoragePath, validateFileUpload } from '../lib/security';
 import { storageBuckets, supabase } from '../lib/supabase';
+import { roleLabelFr, type FleetResponsible } from '../lib/fleetResponsibles';
 
 type VehicleFilterStatus = 'All' | VehicleStatus | 'Archived';
 const vehicleStatuses: VehicleFilterStatus[] = ['All', 'Available', 'Rented', 'Maintenance', 'Unavailable', 'Archived'];
@@ -127,6 +128,7 @@ function normalizeVehicleForm(form: FormData, base?: Vehicle): Vehicle {
   }
   return {
     id: base?.id || `veh-${Date.now()}`,
+    responsibleUserId: String(form.get('responsibleUserId') || '').trim() || null,
     brand: String(form.get('brand') || '').trim(),
     model: String(form.get('model') || '').trim(),
     plate: String(form.get('plate') || '').trim(),
@@ -170,8 +172,8 @@ function validateVehicle(vehicle: Vehicle): FormErrors {
 
 export default function VehiclesPage() {
   const { vehicles, reservations, contracts, payments, maintenance, createVehicle, updateVehicle, deleteVehicle: removeVehicle } = useData();
-  const { agencyId: authAgencyId } = useAuth();
-  const { supportAgencyId } = useSupportMode();
+  const { agencyId: authAgencyId, profile } = useAuth();
+  const { supportAgencyId, isReadOnly } = useSupportMode();
   const agencyId = supportAgencyId || authAgencyId;
   const { notify } = useApp();
 
@@ -204,6 +206,9 @@ export default function VehiclesPage() {
   const [vehicleDailyPriceDraft, setVehicleDailyPriceDraft] = useState('0');
   const [vehicleInsuranceDraft, setVehicleInsuranceDraft] = useState('');
   const [vehicleInspectionDraft, setVehicleInspectionDraft] = useState('');
+  const [responsibleUserIdDraft, setResponsibleUserIdDraft] = useState('');
+  const [fleetResponsibles, setFleetResponsibles] = useState<FleetResponsible[]>([]);
+  const [fleetResponsiblesLoading, setFleetResponsiblesLoading] = useState(false);
   const [vehicleWizardStep, setVehicleWizardStep] = useState(0);
   const [brandSelectorOpen, setBrandSelectorOpen] = useState(false);
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
@@ -211,6 +216,8 @@ export default function VehiclesPage() {
   const [modelSelectorSearch, setModelSelectorSearch] = useState('');
   const [colorSuggestionsOpen, setColorSuggestionsOpen] = useState(false);
   const [highlightedColorIndex, setHighlightedColorIndex] = useState(0);
+  const canAssignFleetResponsible = Boolean(profile?.isSuperAdmin || profile?.role === 'owner') && !isReadOnly;
+  const responsibleById = useMemo(() => new Map(fleetResponsibles.map((member) => [member.id, member])), [fleetResponsibles]);
   const selectedBrandModels = vehicleBrandModels[vehicleBrandDraft] || [];
   const filteredBrandOptions = useMemo(() => {
     const q = brandSelectorSearch.trim().toLowerCase();
@@ -242,6 +249,38 @@ export default function VehiclesPage() {
       }),
     [normalizedQuery, status, vehicles],
   );
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadFleetResponsibles() {
+      if (!supabase || !agencyId) {
+        if (mounted) setFleetResponsibles([]);
+        return;
+      }
+      setFleetResponsiblesLoading(true);
+      const { data, error } = await supabase
+        .from('users_profiles')
+        .select('id,full_name,email,role,account_status')
+        .eq('agency_id', agencyId)
+        .eq('account_status', 'active')
+        .order('full_name', { ascending: true });
+      if (!mounted) return;
+      if (error) {
+        setFleetResponsibles([]);
+      } else {
+        setFleetResponsibles(((data || []) as Array<{ id: string; full_name: string | null; email: string | null; role: string | null; account_status: string | null }>).map((member) => ({
+          id: member.id,
+          fullName: member.full_name || member.email || 'Utilisateur',
+          email: member.email || '',
+          role: member.role || 'agent',
+          accountStatus: member.account_status,
+        })));
+      }
+      setFleetResponsiblesLoading(false);
+    }
+    void loadFleetResponsibles();
+    return () => { mounted = false; };
+  }, [agencyId]);
 
   const stats = useMemo(() => {
     const activeVehicles = vehicles.filter((vehicle) => !vehicle.archivedAt);
@@ -304,6 +343,7 @@ export default function VehiclesPage() {
     setVehicleDailyPriceDraft('0');
     setVehicleInsuranceDraft('');
     setVehicleInspectionDraft('');
+    setResponsibleUserIdDraft('');
     setVehicleWizardStep(0);
     setBrandSelectorOpen(false);
     setModelSelectorOpen(false);
@@ -337,6 +377,7 @@ export default function VehiclesPage() {
     setVehicleDailyPriceDraft(String(vehicle.dailyPrice || 0));
     setVehicleInsuranceDraft(vehicle.insuranceExpiry || '');
     setVehicleInspectionDraft(vehicle.inspectionDate || '');
+    setResponsibleUserIdDraft(vehicle.responsibleUserId || '');
     setVehicleWizardStep(0);
     setBrandSelectorOpen(false);
     setModelSelectorOpen(false);
@@ -428,6 +469,11 @@ export default function VehiclesPage() {
     const form = new FormData(event.currentTarget);
     form.set('damageMarks', JSON.stringify(damageMarks));
     const vehicle = normalizeVehicleForm(form, editingVehicle || undefined);
+    // A disabled select is omitted from FormData. Preserve the current assignment
+    // when a non-owner edits another field on an existing vehicle.
+    if (!canAssignFleetResponsible) {
+      vehicle.responsibleUserId = editingVehicle?.responsibleUserId || null;
+    }
     const nextErrors = validateVehicle(vehicle);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) {
@@ -664,6 +710,10 @@ export default function VehiclesPage() {
                     </h3>
                   </Link>
                   <p className="mt-1 truncate text-xs text-[var(--app-text-muted)] md:text-sm">{vehicle.city || '—'} · {vehicle.year || '—'} · {vehicle.mileage.toLocaleString()} km</p>
+                  <div className="mt-2 flex min-w-0 items-center gap-2 text-xs">
+                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-lg border border-gold-300/20 bg-[var(--app-gold-soft)] text-[var(--app-gold-text)]"><UserRound className="h-3.5 w-3.5" /></span>
+                    <span className="truncate font-semibold text-[var(--app-text-soft)]">Responsable: {vehicle.responsibleUserId ? responsibleById.get(vehicle.responsibleUserId)?.fullName || 'Utilisateur indisponible' : 'Non assigné'}</span>
+                  </div>
 
                   <div className="mt-3 grid grid-cols-2 gap-2 md:mt-4 md:gap-2.5">
                     <div className="min-w-0 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-2.5 md:p-3">
@@ -706,7 +756,7 @@ export default function VehiclesPage() {
       ) : (
         <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)]">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1040px] text-left text-sm">
+            <table className="w-full min-w-[1140px] text-left text-sm">
               <thead className="border-b border-[var(--app-border)] text-xs uppercase tracking-wide text-[var(--app-text-muted)]">
                 <tr>
                   <th className="px-5 py-4">Véhicule</th>
@@ -715,6 +765,7 @@ export default function VehiclesPage() {
                   <th className="px-5 py-4">Année</th>
                   <th className="px-5 py-4">Km</th>
                   <th className="px-5 py-4">Prix / jour</th>
+                  <th className="px-5 py-4">Responsable</th>
                   <th className="px-5 py-4">Documents</th>
                   <th className="px-5 py-4">Statut</th>
                   <th className="px-5 py-4">Actions</th>
@@ -740,6 +791,7 @@ export default function VehiclesPage() {
                     <td className="px-5 py-4 text-[var(--app-text-soft)]">{vehicle.year}</td>
                     <td className="px-5 py-4 text-[var(--app-text-soft)]">{vehicle.mileage.toLocaleString()} km</td>
                     <td className="px-5 py-4 font-semibold text-[var(--app-gold-text)]">{formatMAD(vehicle.dailyPrice)}</td>
+                    <td className="px-5 py-4 text-[var(--app-text-soft)]">{vehicle.responsibleUserId ? responsibleById.get(vehicle.responsibleUserId)?.fullName || 'Utilisateur indisponible' : 'Non assigné'}</td>
                     <td className="px-5 py-4 text-[var(--app-text-muted)]">Ass. {vehicle.insuranceExpiry || '—'} · V.T. {vehicle.inspectionDate || '—'}</td>
                     <td className="px-5 py-4"><Badge>{vehicle.archivedAt ? 'Archivé' : vehicle.status}</Badge></td>
                     <td className="px-5 py-4">
@@ -918,6 +970,28 @@ export default function VehiclesPage() {
                   required
                 />
                 {errors.city ? <p className="mt-1 text-xs text-red-300">{errors.city}</p> : null}
+              </label>
+              <label className="grid gap-2 text-sm font-medium text-[var(--app-text-soft)]">
+                <span>Responsable de flotte</span>
+                <select
+                  name="responsibleUserId"
+                  className="form-control h-11 w-full"
+                  value={responsibleUserIdDraft}
+                  disabled={!canAssignFleetResponsible || fleetResponsiblesLoading}
+                  onChange={(event) => setResponsibleUserIdDraft(event.target.value)}
+                >
+                  <option value="">Aucun responsable</option>
+                  {fleetResponsibles.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.fullName} · {roleLabelFr(member.role)} · {member.email || 'Sans email'}
+                    </option>
+                  ))}
+                </select>
+                {!canAssignFleetResponsible ? (
+                  <span className="text-xs leading-5 text-[var(--app-text-muted)]">Seul le propriétaire de l’agence peut modifier cette assignation.</span>
+                ) : fleetResponsibles.length === 0 && !fleetResponsiblesLoading ? (
+                  <span className="text-xs leading-5 text-[var(--app-text-muted)]">Aucun responsable disponible. Ajoutez des membres dans Paramètres &gt; Équipe.</span>
+                ) : null}
               </label>
               <div className="relative">
                 <label className="block">

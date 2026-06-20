@@ -57,6 +57,7 @@ export type VehicleAccessories = {
 export type Vehicle = {
   id: string;
   agencyId?: string | null;
+  responsibleUserId?: string | null;
   brand: string;
   model: string;
   plate: string;

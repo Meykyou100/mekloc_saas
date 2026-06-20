@@ -1,5 +1,6 @@
-import { CalendarDays, Download, FileSpreadsheet, Gauge, TrendingUp, WalletCards } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { CalendarDays, Download, FileSpreadsheet, Gauge, TrendingUp, UsersRound, WalletCards } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { MobileEmptyBlock } from '../components/ui/MobilePrimitives';
@@ -8,6 +9,10 @@ import PlateNumber from '../components/ui/PlateNumber';
 import { formatMAD } from '../data/mockData';
 import { useApp } from '../context/AppContext';
 import { useData } from '../context/DataContext';
+import { useAuth } from '../context/AuthContext';
+import { useSupportMode } from '../context/SupportModeContext';
+import { getFleetResponsiblePerformance, roleLabelFr, type FleetResponsible } from '../lib/fleetResponsibles';
+import { supabase } from '../lib/supabase';
 
 type PeriodKey = 'month' | 'quarter' | 'year' | 'custom';
 
@@ -110,11 +115,38 @@ function CountBarRow({ label, count, max }: { label: string; count: number; max:
 export default function ReportsPage() {
   const { notify } = useApp();
   const { vehicles, clients, payments, reservations, maintenance } = useData();
+  const { agencyId: authAgencyId } = useAuth();
+  const { supportAgencyId } = useSupportMode();
+  const agencyId = supportAgencyId || authAgencyId;
   const [period, setPeriod] = useState<PeriodKey>('month');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
+  const [fleetResponsibles, setFleetResponsibles] = useState<FleetResponsible[]>([]);
 
   const range = useMemo(() => getPeriodRange(period, customStart, customEnd), [customEnd, customStart, period]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadResponsibles() {
+      if (!supabase || !agencyId) return;
+      const { data, error } = await supabase
+        .from('users_profiles')
+        .select('id,full_name,email,role,account_status')
+        .eq('agency_id', agencyId)
+        .eq('account_status', 'active')
+        .order('full_name', { ascending: true });
+      if (!mounted || error) return;
+      setFleetResponsibles(((data || []) as Array<{ id: string; full_name: string | null; email: string | null; role: string | null; account_status: string | null }>).map((member) => ({
+        id: member.id,
+        fullName: member.full_name || member.email || 'Utilisateur',
+        email: member.email || '',
+        role: member.role || 'agent',
+        accountStatus: member.account_status,
+      })));
+    }
+    void loadResponsibles();
+    return () => { mounted = false; };
+  }, [agencyId]);
 
   const report = useMemo(() => {
     const filteredReservations = reservations.filter((item) => inRange(item.pickupDate, range.start, range.end));
@@ -190,6 +222,13 @@ export default function ReportsPage() {
   const hasReportData = report.filteredPayments.length > 0 || report.filteredReservations.length > 0 || report.filteredMaintenance.length > 0;
   const maxVehicleRevenue = Math.max(...report.revenueByVehicle.map((item) => item.revenue), 1);
   const maxMonthlyReservations = Math.max(...report.reservationsByMonth.map(([, count]) => count), 1);
+  const responsiblePerformance = useMemo(
+    () => getFleetResponsiblePerformance({ members: fleetResponsibles, vehicles, reservations, payments, start: range.start, end: range.end }),
+    [fleetResponsibles, payments, range.end, range.start, reservations, vehicles],
+  );
+  const assignedPerformance = responsiblePerformance.filter((item) => !item.isUnassigned && item.assignedVehicles > 0).sort((a, b) => b.revenue - a.revenue);
+  const unassignedPerformance = responsiblePerformance.find((item) => item.isUnassigned);
+  const maxResponsibleRevenue = Math.max(...assignedPerformance.map((item) => item.revenue), 1);
 
   function exportCsv() {
     const rows = [
@@ -387,6 +426,43 @@ startxref
           </div>
         </Card>
       </section>
+
+      <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-4 shadow-[0_18px_50px_rgba(0,0,0,.24)] sm:p-6">
+        <div className="flex flex-col gap-3 border-b border-[var(--app-border)] pb-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-gold-300/20 bg-[var(--app-gold-soft)] text-[var(--app-gold-text)]"><UsersRound className="h-5 w-5" /></span>
+            <div className="min-w-0">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--app-gold-text)]">Flotte</p>
+              <h2 className="mt-1 text-lg font-black tracking-tight text-[var(--app-text)] sm:text-xl">Performance par responsable</h2>
+              <p className="mt-1 text-sm text-[var(--app-text-muted)]">Revenus et paiements calculés depuis les réservations liées aux véhicules assignés.</p>
+            </div>
+          </div>
+          <Link to="/responsables" className="inline-flex h-10 shrink-0 items-center justify-center rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-4 text-sm font-bold text-[var(--app-text)] transition hover:border-gold-300/30 hover:bg-[var(--app-gold-soft)]">Voir responsables</Link>
+        </div>
+        {assignedPerformance.length === 0 ? (
+          <div className="mt-4 rounded-2xl border border-dashed border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-sm text-[var(--app-text-muted)]">Aucun véhicule assigné à un responsable sur cette période.</div>
+        ) : (
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            <div className="space-y-3">
+              {assignedPerformance.slice(0, 6).map((item) => {
+                const width = Math.max(4, Math.round((item.revenue / maxResponsibleRevenue) * 100));
+                return (
+                  <div key={item.responsible?.id} className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
+                    <div className="flex min-w-0 items-center justify-between gap-3"><div className="min-w-0"><p className="truncate font-black text-[var(--app-text)]">{item.responsible?.fullName}</p><p className="mt-0.5 text-xs text-[var(--app-text-muted)]">{roleLabelFr(item.responsible?.role)} · {item.reservationsCount} réservation(s)</p></div><p className="shrink-0 font-black text-[var(--app-gold-text)]">{formatMAD(item.revenue)}</p></div>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--app-card)]"><div className="h-full rounded-full bg-gradient-to-r from-[#D4A017] to-[#f1c232]" style={{ width: `${width}%` }} /></div>
+                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--app-text-muted)]"><span>Payé: <strong className="text-emerald-700 dark:text-emerald-200">{formatMAD(item.paid)}</strong></span><span>Reste: <strong className="text-amber-700 dark:text-amber-200">{formatMAD(item.remaining)}</strong></span></div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              <div className="rounded-2xl border border-gold-300/20 bg-[var(--app-gold-soft)] p-4"><p className="text-xs font-bold text-[var(--app-text-muted)]">Top responsable</p><p className="mt-2 truncate text-lg font-black text-[var(--app-text)]">{assignedPerformance[0]?.responsible?.fullName || '—'}</p><p className="mt-1 text-sm font-black text-[var(--app-gold-text)]">{formatMAD(assignedPerformance[0]?.revenue || 0)}</p></div>
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4"><p className="text-xs font-bold text-[var(--app-text-muted)]">Plus grand reste</p><p className="mt-2 truncate text-lg font-black text-[var(--app-text)]">{[...assignedPerformance].sort((a, b) => b.remaining - a.remaining)[0]?.responsible?.fullName || '—'}</p><p className="mt-1 text-sm font-black text-amber-700 dark:text-amber-200">{formatMAD([...assignedPerformance].sort((a, b) => b.remaining - a.remaining)[0]?.remaining || 0)}</p></div>
+              <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4"><p className="text-xs font-bold text-[var(--app-text-muted)]">Véhicules non assignés</p><p className="mt-2 text-lg font-black text-[var(--app-text)]">{unassignedPerformance?.assignedVehicles || 0}</p><p className="mt-1 text-xs text-[var(--app-text-muted)]">À attribuer depuis Véhicules</p></div>
+            </div>
+          </div>
+        )}
+      </Card>
 
       <section className="grid gap-4 xl:grid-cols-2">
         <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-0 shadow-[0_18px_50px_rgba(0,0,0,.24)]">

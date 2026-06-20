@@ -8,10 +8,11 @@ import {
   MessageCircle,
   Plus,
   UserPlus,
+  UsersRound,
   WalletCards,
   Wrench,
 } from 'lucide-react';
-import { type ReactNode, useMemo } from 'react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Badge from '../components/ui/Badge';
 import Card from '../components/ui/Card';
@@ -34,6 +35,9 @@ import {
 import { getNotificationPreferences } from '../lib/notificationPreferences';
 import { daysUntil, isSubscriptionExpiringSoon } from '../lib/subscription';
 import { useSupportMode } from '../context/SupportModeContext';
+import { fleetPeriodRange, getFleetResponsiblePerformance, type FleetResponsible } from '../lib/fleetResponsibles';
+import { canAccess } from '../lib/permissions';
+import { supabase } from '../lib/supabase';
 
 const actionItems = [
   { label: 'Ajouter réservation', to: '/reservations', icon: CalendarClock },
@@ -188,11 +192,62 @@ export default function DashboardPage() {
     contracts,
     updateReservation,
   } = useData();
-  const { profile } = useAuth();
-  const { supportAgency, isSupportMode } = useSupportMode();
+  const { profile, agencyId: authAgencyId } = useAuth();
+  const { supportAgency, supportAgencyId, isSupportMode } = useSupportMode();
+  const agencyId = supportAgencyId || authAgencyId;
   const { notify } = useApp();
+  const [fleetMembers, setFleetMembers] = useState<FleetResponsible[]>([]);
   const notificationPreferences = getNotificationPreferences((isSupportMode ? supportAgency : profile?.agency)?.settings);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const responsibleRange = useMemo(() => fleetPeriodRange('month'), []);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadFleetMembers() {
+      if (!supabase || !agencyId) {
+        if (mounted) setFleetMembers([]);
+        return;
+      }
+      const { data, error } = await supabase
+        .from('users_profiles')
+        .select('id,full_name,email,role,account_status')
+        .eq('agency_id', agencyId)
+        .eq('account_status', 'active')
+        .order('full_name', { ascending: true });
+      if (!mounted) return;
+      if (error) {
+        setFleetMembers([]);
+        return;
+      }
+      setFleetMembers(((data || []) as Array<{ id: string; full_name: string | null; email: string | null; role: string | null; account_status: string | null }>).map((member) => ({
+        id: member.id,
+        fullName: member.full_name || member.email || 'Utilisateur',
+        email: member.email || '',
+        role: member.role || 'agent',
+        accountStatus: member.account_status,
+      })));
+    }
+    void loadFleetMembers();
+    return () => { mounted = false; };
+  }, [agencyId]);
+
+  const fleetResponsiblePerformance = useMemo(
+    () => getFleetResponsiblePerformance({
+      members: fleetMembers,
+      vehicles,
+      reservations,
+      payments,
+      start: responsibleRange.start,
+      end: responsibleRange.end,
+    }),
+    [fleetMembers, payments, reservations, responsibleRange.end, responsibleRange.start, vehicles],
+  );
+  const topFleetResponsible = fleetResponsiblePerformance
+    .filter((item) => !item.isUnassigned && item.assignedVehicles > 0)
+    .sort((a, b) => b.revenue - a.revenue)[0];
+  const unassignedFleetVehicles = fleetResponsiblePerformance.find((item) => item.isUnassigned)?.assignedVehicles || 0;
+  const fleetRemainingBalance = fleetResponsiblePerformance.reduce((total, item) => total + item.remaining, 0);
+  const canOpenFleetResponsibles = Boolean(profile?.isSuperAdmin) || canAccess(profile?.role, 'reports');
   const availableVehicles = vehicles.filter((vehicle) => vehicle.status === 'Available').length;
   const activeReservations = reservations.filter((reservation) => reservation.status === 'Active').length;
   const monthlyRevenue = payments
@@ -492,6 +547,45 @@ export default function DashboardPage() {
         <KpiCard label="Réservations actives" value={String(activeReservations)} helper="Locations en cours" icon={CalendarClock} tone="blue" />
         <KpiCard label="Revenus du mois" value={formatMAD(monthlyRevenue)} helper="Paiements encaissés et partiels" icon={WalletCards} tone="gold" />
         <KpiCard label="Paiements en attente" value={String(pendingPayments)} helper="Factures en attente ou en retard" icon={Banknote} tone="violet" />
+      </section>
+
+      <section>
+        <Card className="rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-3.5 sm:rounded-3xl sm:p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="flex min-w-0 items-start gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-gold-300/25 bg-[var(--app-gold-soft)] text-[var(--app-gold-text)]">
+                <UsersRound className="h-5 w-5" />
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--app-gold-text)]">Pilotage flotte</p>
+                <h2 className="mt-1 text-lg font-black text-[var(--app-text)]">Responsables de flotte</h2>
+                <p className="mt-1 text-sm text-[var(--app-text-muted)]">Suivi du mois par responsable et véhicules non assignés.</p>
+              </div>
+            </div>
+            {canOpenFleetResponsibles ? (
+              <Link to="/responsables" className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-gold-300/30 bg-[var(--app-gold-soft)] px-3 text-sm font-bold text-[var(--app-gold-text)] transition hover:bg-gold-400/20">
+                Voir responsables <ArrowRight className="h-4 w-4" />
+              </Link>
+            ) : null}
+          </div>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
+              <p className="text-xs font-semibold text-[var(--app-text-muted)]">Top responsable</p>
+              <p className="mt-1 truncate text-base font-black text-[var(--app-text)]">{topFleetResponsible?.responsible?.fullName || '—'}</p>
+              <p className="mt-1 text-xs font-semibold text-[var(--app-gold-text)]">{topFleetResponsible ? `${formatMAD(topFleetResponsible.revenue)} ce mois` : 'Aucune donnée ce mois'}</p>
+            </div>
+            <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
+              <p className="text-xs font-semibold text-[var(--app-text-muted)]">Véhicules non assignés</p>
+              <p className="mt-1 text-2xl font-black text-[var(--app-text)]">{unassignedFleetVehicles}</p>
+              <p className="mt-1 text-xs text-[var(--app-text-muted)]">À attribuer à un responsable</p>
+            </div>
+            <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
+              <p className="text-xs font-semibold text-[var(--app-text-muted)]">Reste à encaisser</p>
+              <p className="mt-1 truncate text-2xl font-black text-[var(--app-gold-text)]">{formatMAD(fleetRemainingBalance)}</p>
+              <p className="mt-1 text-xs text-[var(--app-text-muted)]">Réservations du mois</p>
+            </div>
+          </div>
+        </Card>
       </section>
 
       <section>

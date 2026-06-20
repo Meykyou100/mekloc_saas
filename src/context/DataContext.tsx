@@ -167,6 +167,7 @@ function setMockDataState(
 type VehicleRow = {
   id: string;
   agency_id?: string | null;
+  responsible_user_id?: string | null;
   brand: string;
   model: string;
   plate_number: string;
@@ -290,6 +291,7 @@ function mapVehicle(row: VehicleRow): Vehicle {
   return {
     id: row.id,
     agencyId: row.agency_id || null,
+    responsibleUserId: row.responsible_user_id || null,
     brand: row.brand,
     model: row.model,
     plate: row.plate_number,
@@ -325,6 +327,7 @@ function toVehicleRow(vehicle: Vehicle, agencyId: string, withImage = true) {
   };
   const base = {
     agency_id: agencyId,
+    responsible_user_id: vehicle.responsibleUserId || null,
     brand: sanitizeText(vehicle.brand, 80),
     model: sanitizeText(vehicle.model, 80),
     plate_number: sanitizeText(vehicle.plate, 24),
