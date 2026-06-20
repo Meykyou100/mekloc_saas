@@ -1744,7 +1744,7 @@ export default function SuperAdminPage() {
   const currentView = viewMeta[activeView];
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_20%_0%,rgba(227,177,23,.08),transparent_28%),linear-gradient(135deg,#050606,#090a0b_45%,#030303)] px-3 py-4 text-white sm:px-4 lg:px-5">
+    <div className="super-admin-theme min-h-screen bg-[radial-gradient(circle_at_20%_0%,rgba(227,177,23,.08),transparent_28%),linear-gradient(135deg,#050606,#090a0b_45%,#030303)] px-3 py-4 text-white sm:px-4 lg:px-5">
       <style>{`
         @keyframes superAdminViewIn {
           from { opacity: 0; transform: translate3d(0, 14px, 0) scale(.992); filter: blur(4px); }

@@ -86,6 +86,90 @@ body {
   --app-shadow: 0 18px 55px rgba(16, 21, 20, 0.12);
 }
 
+/* Super Admin is intentionally dark regardless of the agency workspace theme. */
+.super-admin-theme {
+  color-scheme: dark;
+  --app-bg: #070909;
+  --app-surface: rgba(7, 9, 9, 0.94);
+  --app-surface-soft: rgba(255, 255, 255, 0.055);
+  --app-card: #0b0d10;
+  --app-card-soft: #111419;
+  --app-border: rgba(255, 255, 255, 0.13);
+  --app-border-soft: rgba(255, 255, 255, 0.08);
+  --app-text: #f8fafc;
+  --app-text-muted: #a8afb9;
+  --app-text-soft: #e2e8f0;
+  --app-gold: #e3b117;
+  --app-gold-hover: #f5c542;
+  --app-gold-soft: rgba(227, 177, 23, 0.14);
+  --app-gold-text: #fde68a;
+  --app-danger: #fecdd3;
+  --app-success: #a7f3d0;
+  --app-input: #12161c;
+  --app-input-hover: #171c23;
+  --app-modal: #0b0e13;
+  --app-topbar: rgba(7, 9, 9, 0.94);
+  --app-sidebar: rgba(7, 9, 9, 0.96);
+  --app-bottom-nav: rgba(7, 9, 9, 0.94);
+  --app-shadow: 0 18px 60px rgba(0, 0, 0, 0.45);
+}
+
+.super-admin-theme .app-button--primary {
+  background-color: var(--app-gold);
+  color: #101820;
+  border-color: color-mix(in srgb, var(--app-gold) 72%, white 28%);
+}
+
+.super-admin-theme .app-button--secondary,
+.super-admin-theme .app-button--ghost {
+  color: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+.super-admin-theme .app-button--secondary {
+  background-color: rgba(255, 255, 255, 0.065);
+}
+
+.super-admin-theme .app-button--secondary:hover,
+.super-admin-theme .app-button--ghost:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+.super-admin-theme .app-button--danger {
+  background-color: rgba(225, 29, 72, 0.3);
+  color: #fff1f2;
+  border-color: rgba(251, 113, 133, 0.5);
+}
+
+.super-admin-theme .app-button--danger:hover {
+  background-color: rgba(225, 29, 72, 0.44);
+  color: #ffffff;
+}
+
+.super-admin-theme .app-button:disabled {
+  color: rgba(248, 250, 252, 0.7);
+  opacity: 0.68;
+}
+
+.super-admin-theme .app-button--primary:disabled {
+  color: rgba(16, 24, 32, 0.82);
+}
+
+.super-admin-theme .form-control {
+  color: #f8fafc;
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.super-admin-theme select.form-control option {
+  background: #12161c;
+  color: #f8fafc;
+}
+
+.super-admin-theme summary {
+  color: #e2e8f0;
+}
+
 button,
 input,
 textarea,
