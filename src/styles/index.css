@@ -392,7 +392,7 @@ option {
 
 @media (max-width: 767px) {
   .glass-card {
-    backdrop-filter: blur(14px);
+    backdrop-filter: blur(8px);
   }
 
   .backdrop-blur,
@@ -401,6 +401,6 @@ option {
   .backdrop-blur-lg,
   .backdrop-blur-xl,
   .backdrop-blur-2xl {
-    --tw-backdrop-blur: blur(10px);
+    --tw-backdrop-blur: blur(6px);
   }
 }

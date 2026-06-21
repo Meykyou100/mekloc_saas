@@ -210,13 +210,13 @@ function LandingMotionStyles() {
       }
 
       @keyframes mekloc-hero-rise {
-        0% { opacity: 0; transform: translate3d(0, 28px, 0); filter: blur(10px); }
-        100% { opacity: 1; transform: translate3d(0, 0, 0); filter: blur(0); }
+        0% { opacity: 0; transform: translate3d(0, 20px, 0); }
+        100% { opacity: 1; transform: translate3d(0, 0, 0); }
       }
 
       @keyframes mekloc-hero-reveal-safe {
-        0% { transform: translate3d(0, 22px, 0); filter: blur(8px); }
-        100% { transform: translate3d(0, 0, 0); filter: blur(0); }
+        0% { opacity: 0; transform: translate3d(0, 18px, 0); }
+        100% { opacity: 1; transform: translate3d(0, 0, 0); }
       }
 
       @keyframes mekloc-premium-visual-float {
@@ -251,7 +251,7 @@ function LandingMotionStyles() {
         50% { box-shadow: 0 0 0 8px rgba(245,197,66,0), 0 18px 52px rgba(227,177,23,.34); }
       }
 
-      .landing-trial-pulse { animation: mekloc-trial-glow 2.6s ease-in-out infinite; }
+      .landing-trial-pulse { box-shadow: 0 12px 34px rgba(227,177,23,.18); }
 
       .landing-ambient::before,
       .landing-ambient::after {
@@ -269,7 +269,7 @@ function LandingMotionStyles() {
         left: -110px;
         top: 120px;
         background: rgba(227, 177, 23, .16);
-        animation: mekloc-orb-drift 14s ease-in-out infinite;
+        animation: none;
       }
 
       .landing-ambient::after {
@@ -278,12 +278,12 @@ function LandingMotionStyles() {
         right: -160px;
         top: 210px;
         background: radial-gradient(circle, rgba(245, 197, 66, .18), rgba(227, 177, 23, .05) 42%, transparent 72%);
-        animation: mekloc-gradient-shift 18s ease-in-out infinite;
+        animation: none;
       }
 
       .landing-gradient-motion {
         background-size: 140% 140%, auto, auto, auto;
-        animation: mekloc-gradient-shift 22s ease-in-out infinite;
+        animation: none;
       }
 
       .landing-mockup-float {
@@ -299,7 +299,7 @@ function LandingMotionStyles() {
         border-radius: 9999px;
         background: radial-gradient(circle, rgba(245, 197, 66, .28), rgba(227, 177, 23, .08) 42%, transparent 70%);
         filter: blur(48px);
-        animation: mekloc-desktop-glow-pulse 5.8s ease-in-out infinite;
+        animation: none;
       }
 
       .landing-desktop-mockup::after {
@@ -311,11 +311,11 @@ function LandingMotionStyles() {
         border-radius: 1.75rem;
         background: linear-gradient(105deg, transparent 8%, rgba(245, 197, 66, .15) 38%, rgba(255, 255, 255, .16) 48%, transparent 64%);
         mix-blend-mode: screen;
-        animation: mekloc-light-sweep 6.5s ease-in-out infinite;
+        animation: none;
       }
 
       .landing-video-halo {
-        animation: mekloc-video-ring-pulse 6.8s ease-in-out infinite;
+        animation: none;
       }
 
       .landing-video-pedestal::before {
@@ -328,11 +328,11 @@ function LandingMotionStyles() {
         border-radius: 9999px;
         background: linear-gradient(90deg, transparent, rgba(245, 197, 66, .88), transparent);
         filter: blur(7px);
-        animation: mekloc-pedestal-glow 4.8s ease-in-out infinite;
+        animation: none;
       }
 
       .landing-play-pulse {
-        animation: mekloc-play-pulse 2.6s ease-in-out infinite;
+        animation: none;
       }
 
       .landing-floating-badge {
@@ -344,7 +344,7 @@ function LandingMotionStyles() {
       }
 
       .landing-gold-word {
-        animation: mekloc-gold-word 3.8s ease-in-out infinite;
+        animation: none;
       }
 
       .landing-hero-kicker,

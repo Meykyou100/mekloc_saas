@@ -2,42 +2,42 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Suspense, lazy, useEffect } from 'react';
 import type { ComponentType } from 'react';
-import AppLayout from './components/layout/AppLayout';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import ToastViewport from './components/ui/ToastViewport';
 import SEO from './components/system/SEO';
-import AccountStatusPage from './pages/AccountStatusPage';
 import ActivationPage from './pages/ActivationPage';
-import AuthPage from './pages/AuthPage';
-import BlogArticlePage from './pages/BlogArticlePage';
-import BlogPage from './pages/BlogPage';
+import LandingPage from './pages/LandingPage';
+import SeoLandingPage from './pages/SeoLandingPage';
+const AppLayout = lazyWithRetry(() => import('./components/layout/AppLayout'));
+const AccountStatusPage = lazyWithRetry(() => import('./pages/AccountStatusPage'));
+const AuthPage = lazyWithRetry(() => import('./pages/AuthPage'));
+const BlogArticlePage = lazyWithRetry(() => import('./pages/BlogArticlePage'));
+const BlogPage = lazyWithRetry(() => import('./pages/BlogPage'));
 const ClientProfilePage = lazyWithRetry(() => import('./pages/ClientProfilePage'));
 const CalendarPage = lazyWithRetry(() => import('./pages/CalendarPage'));
 const ClientsPage = lazyWithRetry(() => import('./pages/ClientsPage'));
 const ContractsPage = lazyWithRetry(() => import('./pages/ContractsPage'));
 const DashboardPage = lazyWithRetry(() => import('./pages/DashboardPage'));
 const FleetResponsiblesPage = lazyWithRetry(() => import('./pages/FleetResponsiblesPage'));
-import DemandeAccesPage from './pages/DemandeAccesPage';
-import LandingPage from './pages/LandingPage';
 const MaintenancePage = lazyWithRetry(() => import('./pages/MaintenancePage'));
-import NotFoundPage from './pages/NotFoundPage';
-import OnboardingPage from './pages/OnboardingPage';
-import PaymentRequiredPage from './pages/PaymentRequiredPage';
+const NotFoundPage = lazyWithRetry(() => import('./pages/NotFoundPage'));
+const OnboardingPage = lazyWithRetry(() => import('./pages/OnboardingPage'));
+const PaymentRequiredPage = lazyWithRetry(() => import('./pages/PaymentRequiredPage'));
 const PaymentsPage = lazyWithRetry(() => import('./pages/PaymentsPage'));
-import PricingPage from './pages/PricingPage';
-import PrivacyPage from './pages/PrivacyPage';
-import PublicBookingPreviewPage from './pages/PublicBookingPreviewPage';
+const PricingPage = lazyWithRetry(() => import('./pages/PricingPage'));
+const PrivacyPage = lazyWithRetry(() => import('./pages/PrivacyPage'));
+const PublicBookingPreviewPage = lazyWithRetry(() => import('./pages/PublicBookingPreviewPage'));
 const ReportsPage = lazyWithRetry(() => import('./pages/ReportsPage'));
 const ReservationsPage = lazyWithRetry(() => import('./pages/ReservationsPage'));
 const SettingsPage = lazyWithRetry(() => import('./pages/SettingsPage'));
-import SetPasswordPage from './pages/SetPasswordPage';
+const SetPasswordPage = lazyWithRetry(() => import('./pages/SetPasswordPage'));
 const SuperAdminPage = lazyWithRetry(() => import('./pages/SuperAdminPage'));
 const VehicleDetailsPage = lazyWithRetry(() => import('./pages/VehicleDetailsPage'));
 const VehiclesPage = lazyWithRetry(() => import('./pages/VehiclesPage'));
-import VerificationEnCoursPage from './pages/VerificationEnCoursPage';
-import ConditionsPage from './pages/ConditionsPage';
-import CancellationRefundPage from './pages/CancellationRefundPage';
-import SeoLandingPage from './pages/SeoLandingPage';
+const VerificationEnCoursPage = lazyWithRetry(() => import('./pages/VerificationEnCoursPage'));
+const ConditionsPage = lazyWithRetry(() => import('./pages/ConditionsPage'));
+const CancellationRefundPage = lazyWithRetry(() => import('./pages/CancellationRefundPage'));
+const DemandeAccesPage = lazyWithRetry(() => import('./pages/DemandeAccesPage'));
 
 const CHUNK_RELOAD_KEY = 'mekloc-chunk-reload-attempted';
 
@@ -97,15 +97,6 @@ function AppLoadingFallback() {
 export default function App() {
   useEffect(() => {
     (window as Window & { __MEKLOC_APP_READY__?: boolean }).__MEKLOC_APP_READY__ = true;
-    // Warm frequently used private pages to make route switching feel instant.
-    void Promise.all([
-      import('./pages/ClientsPage'),
-      import('./pages/CalendarPage'),
-      import('./pages/ContractsPage'),
-      import('./pages/ReservationsPage'),
-      import('./pages/VehiclesPage'),
-      import('./pages/SettingsPage'),
-    ]);
   }, []);
 
   return (
