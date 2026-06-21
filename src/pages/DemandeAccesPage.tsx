@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import { Field, SelectField } from '../components/ui/Form';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { MEKLOC_PLAN_LIST, MEKLOC_PLANS, getPlanConfig, type MekLocBillingChoice, type MekLocPlanId } from '../config/pricing';
+import { MEKLOC_PLAN_LIST, MEKLOC_PLANS, getPlanConfig, getPlanOffer, type MekLocBillingChoice, type MekLocPlanId } from '../config/pricing';
 import { sendAccessRequestAdminNotification } from '../lib/accessRequestEmail';
 import { normalizeText, sanitizeText, validateEmail, validatePhone, validatePositiveNumber } from '../lib/security';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
@@ -86,6 +86,7 @@ export default function DemandeAccesPage() {
   const [requestedVehicleCount, setRequestedVehicleCount] = useState(1);
   const [requestedUserCount, setRequestedUserCount] = useState(1);
   const selectedPlanConfig = getPlanConfig(selectedPlan);
+  const selectedOffer = getPlanOffer(selectedPlan, billingType);
 
   useEffect(() => {
     if (selectedPlan === 'lifetime') {
@@ -223,10 +224,10 @@ export default function DemandeAccesPage() {
       requested_user_count: Number(form.get('requested_user_count') || 1),
       selected_plan: selectedPlan,
       billing_type: billingType === 'six_months' ? 'monthly' : billingType,
-      monthly_price: MEKLOC_PLANS[selectedPlan].monthlyPrice,
-      annual_price: MEKLOC_PLANS[selectedPlan].billingTotal,
-      plan_price: MEKLOC_PLANS[selectedPlan].packagePrice,
-      plan_duration: MEKLOC_PLANS[selectedPlan].commitment,
+      monthly_price: selectedOffer.price,
+      annual_price: selectedOffer.price,
+      plan_price: selectedOffer.price,
+      plan_duration: selectedOffer.commitment,
       plan_vehicle_limit: MEKLOC_PLANS[selectedPlan].vehicleLimit,
       plan_user_limit: MEKLOC_PLANS[selectedPlan].userLimit,
       promo_code: sanitizeText(String(form.get('promo_code') || ''), 60),
@@ -377,10 +378,11 @@ export default function DemandeAccesPage() {
               </div>
 
               <div className="mt-5 grid gap-3">
-                {plans.map((plan) => {
+                {plans.filter((plan) => billingType === 'lifetime' ? plan.id === 'lifetime' : plan.id !== 'lifetime').map((plan) => {
                   const active = selectedPlan === plan.id;
                   const isLifetime = plan.id === 'lifetime';
-                  const price = plan.packagePrice;
+                  const offer = getPlanOffer(plan.id, billingType);
+                  const price = offer.price;
                   return (
                     <button
                       key={plan.id}
@@ -400,15 +402,15 @@ export default function DemandeAccesPage() {
                       <span className={`absolute right-4 top-4 grid h-5 w-5 place-items-center rounded-full border ${active ? 'border-[#E3B117] bg-[#E3B117] text-[#070807]' : 'border-white/20 text-transparent'}`}>
                         <CheckCircle2 className="h-3.5 w-3.5" />
                       </span>
-                      {plan.badge ? <span className="absolute right-12 top-4 rounded-full bg-[#E3B117] px-2.5 py-1 text-[10px] font-black text-[#070807]">{plan.badge}</span> : null}
-                      <h3 className="text-xl font-black">{plan.name}</h3>
+                      {offer.badge ? <span className="absolute right-12 top-4 rounded-full bg-[#E3B117] px-2.5 py-1 text-[10px] font-black text-[#070807]">{offer.badge}</span> : null}
+                      <h3 className="text-xl font-black">{offer.name}</h3>
                       <p className="mt-1 text-sm text-zinc-400">{plan.note}</p>
                       <p className="mt-5 text-4xl font-black">
                         {price.toLocaleString('fr-FR')} MAD
-                        <span className="ml-1 text-base font-semibold text-zinc-500">{plan.packageLabel}</span>
+                        <span className="ml-1 text-base font-semibold text-zinc-500">{offer.packageLabel}</span>
                       </p>
-                      <p className="mt-2 text-sm font-semibold text-[#F5C542]">{plan.equivalentLabel}</p>
-                      <p className="mt-1 text-xs font-bold text-zinc-500">{plan.billingLabel}</p>
+                      <p className="mt-2 text-sm font-semibold text-[#F5C542]">{offer.equivalentLabel}</p>
+                      <p className="mt-1 text-xs font-bold text-zinc-500">{offer.commitment}</p>
                       <p className="mt-3 text-sm font-bold text-zinc-200">{plan.usersLabel} · {plan.vehiclesLabel}</p>
                       <p className="mt-1 text-xs font-bold uppercase tracking-[0.08em] text-zinc-500">{plan.commitment}</p>
                       <div className="mt-5 space-y-2.5">
@@ -591,7 +593,7 @@ export default function DemandeAccesPage() {
                   <Field label="Code promo (optionnel)" name="promo_code" placeholder="Ex: MEKLOC10" className={inputClass} />
                 </div>
                 <div className="mt-4 rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/10 p-4 text-sm text-zinc-200">
-                  <div className="grid gap-2 sm:grid-cols-2"><span>Prix : <strong className="text-white">{selectedPlanConfig.packagePrice.toLocaleString('fr-FR')} MAD {selectedPlanConfig.packageLabel}</strong></span><span>Engagement : <strong className="text-white">{selectedPlanConfig.commitment}</strong></span><span>Véhicules : <strong className="text-white">jusqu’à {selectedPlanConfig.vehicleLimit}</strong></span><span>Utilisateurs : <strong className="text-white">{selectedPlanConfig.userLimit ?? 'illimités'}</strong></span></div>
+                  <div className="grid gap-2 sm:grid-cols-2"><span>Prix : <strong className="text-white">{selectedOffer.price.toLocaleString('fr-FR')} MAD {selectedOffer.packageLabel}</strong></span><span>Engagement : <strong className="text-white">{selectedOffer.commitment}</strong></span><span>Véhicules : <strong className="text-white">jusqu’à {selectedPlanConfig.vehicleLimit}</strong></span><span>Utilisateurs : <strong className="text-white">{selectedPlanConfig.userLimit ?? 'illimités'}</strong></span></div>
                   {requestedVehicleCount > selectedPlanConfig.vehicleLimit ? <p className="mt-3 font-semibold text-amber-200">{selectedPlan === 'starter' ? 'Le plan Starter inclut jusqu’à 7 véhicules. Pour plus de véhicules, choisissez Pro ou contactez MekLoc.' : selectedPlan === 'pro' ? 'Le plan Pro inclut jusqu’à 20 véhicules. Pour plus de véhicules, choisissez Business.' : selectedPlan === 'business' ? 'Le plan Business inclut jusqu’à 50 véhicules. Pour plus de véhicules, contactez MekLoc.' : 'Le plan Lifetime inclut jusqu’à 100 véhicules. Contactez MekLoc pour une flotte plus importante.'}</p> : null}
                 </div>
               </div>

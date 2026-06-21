@@ -119,6 +119,37 @@ export const MEKLOC_PLANS = {
 export type MekLocPlanId = keyof typeof MEKLOC_PLANS;
 export const MEKLOC_PLAN_LIST = [MEKLOC_PLANS.starter, MEKLOC_PLANS.pro, MEKLOC_PLANS.business, MEKLOC_PLANS.lifetime] as const;
 
+export type MekLocPricingOffer = {
+  planId: MekLocPlanId;
+  billingChoice: MekLocBillingChoice;
+  name: string;
+  price: number;
+  packageLabel: string;
+  equivalentLabel: string;
+  commitment: string;
+  badge: string;
+};
+
+export const MEKLOC_PRICING_OFFERS: MekLocPricingOffer[] = [
+  { planId: 'starter', billingChoice: 'six_months', name: 'Starter', price: 2394, packageLabel: '/ 6 mois', equivalentLabel: 'équivalent 399 MAD / mois', commitment: 'Engagement 6 mois', badge: 'Recommandé' },
+  { planId: 'pro', billingChoice: 'six_months', name: 'Pro', price: 2994, packageLabel: '/ 6 mois', equivalentLabel: 'équivalent 499 MAD / mois', commitment: 'Engagement 6 mois', badge: 'Plus flexible' },
+  { planId: 'business', billingChoice: 'six_months', name: 'Business', price: 4194, packageLabel: '/ 6 mois', equivalentLabel: 'équivalent 699 MAD / mois', commitment: 'Engagement 6 mois', badge: 'Grandes flottes' },
+  { planId: 'starter', billingChoice: 'annual', name: 'Starter Annuel', price: 3588, packageLabel: '/ an', equivalentLabel: 'équivalent 299 MAD / mois', commitment: 'Engagement 12 mois', badge: 'Économisez 25%' },
+  { planId: 'pro', billingChoice: 'annual', name: 'Pro Annuel', price: 4788, packageLabel: '/ an', equivalentLabel: 'équivalent 399 MAD / mois', commitment: 'Engagement 12 mois', badge: 'Le plus choisi' },
+  { planId: 'business', billingChoice: 'annual', name: 'Business Annuel', price: 5988, packageLabel: '/ an', equivalentLabel: 'équivalent 499 MAD / mois', commitment: 'Engagement 12 mois', badge: 'Meilleur tarif' },
+  { planId: 'lifetime', billingChoice: 'lifetime', name: 'Lifetime', price: 9999, packageLabel: 'paiement unique', equivalentLabel: 'accès à vie', commitment: 'Paiement unique', badge: 'Offre limitée' },
+];
+
+export function getPricingOffers(billingChoice: MekLocBillingChoice) {
+  return MEKLOC_PRICING_OFFERS.filter((offer) => offer.billingChoice === billingChoice);
+}
+
+export function getPlanOffer(plan: MekLocPlanId, billingChoice: MekLocBillingChoice) {
+  return MEKLOC_PRICING_OFFERS.find((offer) => offer.planId === plan && offer.billingChoice === billingChoice)
+    || MEKLOC_PRICING_OFFERS.find((offer) => offer.planId === plan)
+    || MEKLOC_PRICING_OFFERS[0];
+}
+
 export function getPlanRequestBilling(planId: MekLocPlanId) {
   return MEKLOC_PLANS[planId].billingChoice === 'six_months' ? '6-months' : MEKLOC_PLANS[planId].billingChoice === 'annual' ? '12-months' : 'lifetime';
 }

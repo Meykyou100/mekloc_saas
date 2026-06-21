@@ -30,7 +30,7 @@ import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import SEO, { baseStructuredData, faqStructuredData } from '../components/system/SEO';
 import { SUPPORT_EMAIL, SUPPORT_PHONE, WHATSAPP_URL } from '../config/app';
-import { getPlanRequestBilling, MEKLOC_PLAN_LIST, type MekLocBillingChoice } from '../config/pricing';
+import { MEKLOC_PLANS, MEKLOC_PRICING_OFFERS, type MekLocBillingChoice } from '../config/pricing';
 import { DEFAULT_DESCRIPTION, DEFAULT_KEYWORDS, DEFAULT_TITLE } from '../config/seo';
 import { formatBlogDate, type BlogPost } from '../lib/blog';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
@@ -93,10 +93,14 @@ const interfaceBenefits = [
   [BellRing, 'Alertes importantes', 'Ne manquez plus assurance, visite ou paiement.'],
 ];
 
-const plans = MEKLOC_PLAN_LIST.map((plan) => ({
-  ...plan,
-  recommended: plan.id === 'pro',
-  lifetime: plan.id === 'lifetime',
+const plans = MEKLOC_PRICING_OFFERS.map((offer) => ({
+  ...MEKLOC_PLANS[offer.planId],
+  ...offer,
+  id: offer.planId,
+  packagePrice: offer.price,
+  billingLabel: offer.commitment,
+  recommended: offer.planId === 'pro',
+  lifetime: offer.planId === 'lifetime',
 }));
 
 const faqs: Array<[string, string]> = [
@@ -1305,31 +1309,14 @@ export default function LandingPage() {
               </button>
             </div>
             <div className="landing-stagger mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4 xl:gap-5">
-              {plans.map((plan) => {
+              {plans.filter((plan) => plan.billingChoice === billingCycle).map((plan) => {
                 const isLifetime = 'lifetime' in plan && plan.lifetime;
-                const isCycleMatch = plan.billingChoice === billingCycle;
-                const isPrimary =
-                  (billingCycle === 'six_months' && plan.id === 'starter') ||
-                  (billingCycle === 'annual' && plan.id === 'pro') ||
-                  (billingCycle === 'lifetime' && plan.id === 'lifetime');
-                const mutedByCycle =
-                  (billingCycle === 'six_months' && (plan.id === 'pro' || plan.id === 'business')) ||
-                  (billingCycle === 'annual' && plan.id === 'starter') ||
-                  (billingCycle === 'lifetime' && plan.id !== 'lifetime');
-                const cycleHint =
-                  billingCycle === 'six_months' && (plan.id === 'pro' || plan.id === 'business')
-                    ? 'Disponible en 12 mois'
-                    : billingCycle === 'annual' && plan.id === 'starter'
-                      ? 'Formule 6 mois'
-                      : billingCycle === 'annual' && (plan.id === 'pro' || plan.id === 'business')
-                        ? 'Meilleur tarif annuel'
-                        : billingCycle === 'lifetime' && plan.id === 'lifetime'
-                          ? 'Paiement unique'
-                          : plan.persona;
-                const planUrl = `/demande-acces?plan=${plan.id}&billing=${getPlanRequestBilling(plan.id)}`;
+                const isPrimary = plan.id === 'pro' || plan.id === 'lifetime';
+                const cycleHint = plan.persona;
+                const planUrl = `/demande-acces?plan=${plan.id}&billing=${plan.billingChoice}`;
 
                 return (
-                  <Card key={plan.id} className={`landing-reveal relative flex min-h-full flex-col overflow-hidden p-6 transition hover:border-[#E3B117]/30 sm:p-7 ${isPrimary ? 'scale-[1.01] border-[#E3B117]/70 bg-gradient-to-br from-[#E3B117]/14 via-zinc-950/90 to-black shadow-[0_0_80px_rgba(227,177,23,.18)]' : mutedByCycle ? 'opacity-70 hover:opacity-95' : 'opacity-90 hover:opacity-100'} ${isLifetime && isPrimary ? 'border-[#F5C542]/75 bg-gradient-to-br from-[#E3B117]/20 via-zinc-950/92 to-black shadow-[0_0_100px_rgba(227,177,23,.24)]' : ''}`}>
+                  <Card key={`${plan.id}-${plan.billingChoice}`} className={`landing-reveal relative flex min-h-full flex-col overflow-hidden p-6 transition hover:border-[#E3B117]/30 sm:p-7 ${isPrimary ? 'scale-[1.01] border-[#E3B117]/70 bg-gradient-to-br from-[#E3B117]/14 via-zinc-950/90 to-black shadow-[0_0_80px_rgba(227,177,23,.18)]' : 'opacity-90 hover:opacity-100'} ${isLifetime && isPrimary ? 'border-[#F5C542]/75 bg-gradient-to-br from-[#E3B117]/20 via-zinc-950/92 to-black shadow-[0_0_100px_rgba(227,177,23,.24)]' : ''}`}>
                     {isPrimary ? <span className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[#F5C542]/80 to-transparent" /> : null}
                     {(plan.badge || isPrimary) ? <span className="absolute right-5 top-5 rounded-full bg-[#E3B117] px-3 py-1 text-xs font-black text-[#070807] sm:right-6 sm:top-6">{plan.badge || 'Recommandé'}</span> : null}
                     <span className="grid h-14 w-14 place-items-center rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542]"><Sparkles className="h-6 w-6" /></span>
