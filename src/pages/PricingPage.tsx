@@ -33,7 +33,7 @@ export default function PricingPage() {
         <div className="mx-auto mt-7 flex w-full max-w-md gap-1 rounded-2xl border border-white/10 bg-black/35 p-1.5 shadow-[0_12px_30px_rgba(0,0,0,.22)] light:border-carbon-200 light:bg-white light:shadow-[0_10px_25px_rgba(68,52,20,.08)] sm:mt-8">
           {([['six_months', '6 mois'], ['annual', '12 mois'], ['lifetime', 'Lifetime']] as Array<[MekLocBillingChoice, string]>).map(([value, label]) => <button key={value} type="button" onClick={() => setBillingChoice(value)} className={`h-10 min-w-0 flex-1 rounded-xl px-2 text-sm font-black transition sm:px-4 ${billingChoice === value ? 'bg-gold-400 text-carbon-950 shadow-[0_3px_12px_rgba(227,177,23,.2)]' : 'text-carbon-300 hover:text-white light:text-carbon-600 light:hover:text-carbon-950'}`}>{label}</button>)}
         </div>
-        <div className={`mx-auto mt-10 grid w-full items-stretch gap-6 sm:mt-12 sm:gap-8 ${billingChoice === 'lifetime' ? 'max-w-xl' : 'max-w-7xl md:grid-cols-2 lg:grid-cols-3'}`}>
+        <div className={`mx-auto mt-10 grid w-full items-stretch gap-6 sm:mt-12 sm:gap-8 ${billingChoice === 'lifetime' ? 'max-w-xl' : 'max-w-7xl md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-[repeat(3,minmax(0,22rem))] xl:justify-center'}`}>
           {offers.map((offer, index) => {
             const plan = MEKLOC_PLANS[offer.planId];
             const featured = offer.planId === 'pro' || offer.planId === 'lifetime';
