@@ -131,6 +131,27 @@ function CountBarRow({ label, count, max }: { label: string; count: number; max:
   );
 }
 
+function ReservationsChart({ items, max }: { items: Array<[string, number]>; max: number }) {
+  if (!items.length) return <div className="rounded-2xl border border-dashed border-[var(--app-border)] bg-[var(--app-surface-soft)] p-5 text-sm text-[var(--app-text-muted)]">Aucune réservation sur cette période.</div>;
+  return (
+    <div className="grid h-[220px] grid-cols-[repeat(auto-fit,minmax(42px,1fr))] items-end gap-2 rounded-2xl border border-[var(--app-border)] bg-[linear-gradient(180deg,var(--app-surface-soft),transparent)] px-3 pb-3 pt-6 sm:h-[250px] sm:gap-3 sm:px-5">
+      {items.slice(-8).map(([label, count]) => {
+        const height = Math.max(10, Math.round((count / max) * 100));
+        return <div key={label} className="group flex h-full min-w-0 flex-col justify-end gap-2"><span className="text-center text-xs font-black text-[var(--app-text)] opacity-0 transition group-hover:opacity-100">{count}</span><div className="relative flex flex-1 items-end rounded-xl bg-[var(--app-card)] px-1"><div className="w-full rounded-t-lg bg-gradient-to-t from-[#c58a0b] to-[#f4c64e] shadow-[0_8px_18px_rgba(212,160,23,.18)] transition-[height] duration-300" style={{ height: `${height}%` }} /></div><span className="truncate text-center text-[10px] font-bold text-[var(--app-text-muted)]">{label.slice(5)}</span></div>;
+      })}
+    </div>
+  );
+}
+
+function RevenueRankChart({ items, max }: { items: Array<{ id: string; label: string; plate: string; revenue: number }>; max: number }) {
+  if (!items.length) return <div className="rounded-2xl border border-dashed border-[var(--app-border)] bg-[var(--app-surface-soft)] p-5 text-sm text-[var(--app-text-muted)]">Aucun revenu véhicule sur cette période.</div>;
+  return (
+    <div className="grid gap-3 rounded-2xl border border-[var(--app-border)] bg-[linear-gradient(180deg,var(--app-surface-soft),transparent)] p-3 sm:p-4">
+      {items.slice(0, 6).map((item, index) => <div key={item.id} className="grid min-w-0 grid-cols-[24px_1fr_auto] items-center gap-2 sm:grid-cols-[28px_1fr_106px]"><span className="grid h-6 w-6 place-items-center rounded-lg bg-[var(--app-card)] text-[10px] font-black text-[var(--app-gold-text)]">{index + 1}</span><div className="min-w-0"><div className="flex items-center justify-between gap-2"><span className="truncate text-sm font-bold text-[var(--app-text)]">{item.label}</span><span className="text-xs font-black text-[var(--app-gold-text)] sm:hidden">{formatMAD(item.revenue)}</span></div><div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[var(--app-card)]"><div className="h-full rounded-full bg-gradient-to-r from-[#d4a017] via-[#e8b935] to-[#f7d56c]" style={{ width: `${Math.max(5, Math.round((item.revenue / max) * 100))}%` }} /></div><span className="mt-1 block text-[10px] font-bold text-[var(--app-text-muted)]">{item.plate}</span></div><span className="hidden text-right text-sm font-black text-[var(--app-gold-text)] sm:block">{formatMAD(item.revenue)}</span></div>)}
+    </div>
+  );
+}
+
 export default function ReportsPage() {
   const { notify } = useApp();
   const { vehicles, clients, payments, reservations, maintenance } = useData();
@@ -296,53 +317,186 @@ export default function ReportsPage() {
     notify({ title: 'Export CSV prêt', message: 'Le rapport comptable a été téléchargé.', type: 'success' });
   }
 
-  function exportPdf() {
-    const lines = [
-      'Rapport comptable MekLoc',
-      `Période: ${range.start || 'Début'} -> ${range.end || 'Fin'}`,
-      `Chiffre affaires total: ${formatMAD(report.totalRevenue)}`,
-      `Revenus encaisses: ${formatMAD(report.collectedRevenue)}`,
-      `Paiements en attente: ${formatMAD(report.pendingPayments)}`,
-      `Cautions recues: ${formatMAD(report.depositsReceived)}`,
-      `Cautions a rembourser: ${formatMAD(report.depositsToRefund)}`,
-      `Depenses entretien: ${formatMAD(report.maintenanceExpenses)}`,
-      `Profit estime: ${formatMAD(report.estimatedProfit)}`,
-      '',
-      'Top vehicules rentables',
-      ...report.revenueByVehicle.slice(0, 8).map((item) => `${item.label} (${item.plate}) - ${formatMAD(item.revenue)}`),
-      '',
-      'Clients les plus rentables',
-      ...report.profitableClients.slice(0, 8).map((item) => `${item.label} - ${formatMAD(item.revenue)}`),
-      '',
-      'Paiements en retard',
-      ...report.overdue.slice(0, 8).map((item) => `${item.invoice} - ${item.client} - ${formatMAD(item.amount)}`),
-    ];
-    const stream = lines
-      .slice(0, 34)
-      .map((line, i) => `BT /F1 ${i === 0 ? 16 : 10} Tf 44 ${790 - i * 21} Td (${escapePdf(line)}) Tj ET`)
-      .join('\n');
-    const pdf = `%PDF-1.4
-1 0 obj << /Type /Catalog /Pages 2 0 R >> endobj
-2 0 obj << /Type /Pages /Kids [3 0 R] /Count 1 >> endobj
-3 0 obj << /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >> endobj
-4 0 obj << /Length ${stream.length} >> stream
-${stream}
-endstream endobj
-5 0 obj << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >> endobj
-xref
-0 6
-0000000000 65535 f
-0000000010 00000 n
-0000000060 00000 n
-0000000117 00000 n
-0000000243 00000 n
-000000${(260 + stream.length).toString().padStart(10, '0')} 00000 n
-trailer << /Root 1 0 R /Size 6 >>
-startxref
-0
-%%EOF`;
-    downloadTextFile(`rapport-mekloc-${dateKey()}.pdf`, pdf, 'application/pdf');
-    notify({ title: 'Export PDF prêt', message: 'Le rapport comptable a été téléchargé.', type: 'success' });
+  async function exportPdf() {
+    setPdfExporting(true);
+    try {
+      const [{ jsPDF }, meklocLogo, agencyLogo] = await Promise.all([
+        import('jspdf'),
+        loadPdfImage('/mekloc-logo-mark.png'),
+        loadPdfImage(agency?.logoUrl),
+      ]);
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 42;
+      const contentWidth = pageWidth - margin * 2;
+      const gold: [number, number, number] = [212, 160, 23];
+      const ink: [number, number, number] = [19, 24, 32];
+      const muted: [number, number, number] = [104, 115, 126];
+      const generatedAt = new Date().toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' });
+      const agencyDetails = [agency?.address, agency?.phone, agency?.email].filter(Boolean).join(' · ');
+      let y = 0;
+      const addPdfImage = (image: string, x: number, top: number, width: number, height: number) => {
+        const format = image.startsWith('data:image/jpeg') || image.startsWith('data:image/jpg') ? 'JPEG' : image.startsWith('data:image/webp') ? 'WEBP' : 'PNG';
+        pdf.addImage(image, format, x, top, width, height, undefined, 'FAST');
+      };
+
+      const addFooter = () => {
+        const total = pdf.getNumberOfPages();
+        for (let page = 1; page <= total; page += 1) {
+          pdf.setPage(page);
+          pdf.setDrawColor(224, 228, 232);
+          pdf.line(margin, pageHeight - 34, pageWidth - margin, pageHeight - 34);
+          pdf.setTextColor(...muted);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(8);
+          pdf.text('Généré par MekLoc · Rapport financier', margin, pageHeight - 19);
+          pdf.text(`Page ${page} / ${total}`, pageWidth - margin, pageHeight - 19, { align: 'right' });
+        }
+      };
+      const nextPage = () => {
+        pdf.addPage();
+        y = 46;
+      };
+      const ensureSpace = (height: number) => {
+        if (y + height > pageHeight - 54) nextPage();
+      };
+      const sectionTitle = (title: string, subtitle?: string) => {
+        ensureSpace(45);
+        pdf.setTextColor(...ink);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(14);
+        pdf.text(title, margin, y);
+        if (subtitle) {
+          pdf.setTextColor(...muted);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(8.5);
+          pdf.text(subtitle, margin, y + 14);
+        }
+        pdf.setDrawColor(...gold);
+        pdf.setLineWidth(1.5);
+        pdf.line(margin, y + 22, margin + 34, y + 22);
+        y += 37;
+      };
+      const metric = (x: number, top: number, label: string, value: string) => {
+        pdf.setFillColor(250, 248, 240);
+        pdf.setDrawColor(236, 225, 183);
+        pdf.roundedRect(x, top, (contentWidth - 12) / 2, 57, 8, 8, 'FD');
+        pdf.setTextColor(...muted);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(7.5);
+        pdf.text(label.toUpperCase(), x + 12, top + 18);
+        pdf.setTextColor(...ink);
+        pdf.setFontSize(13);
+        pdf.text(value, x + 12, top + 39);
+      };
+      const table = (title: string, headers: string[], rows: string[][]) => {
+        sectionTitle(title);
+        const widths = headers.map((_, index) => index === 0 ? contentWidth * 0.48 : (contentWidth * 0.52) / Math.max(headers.length - 1, 1));
+        const drawHeader = () => {
+          pdf.setFillColor(...ink);
+          pdf.roundedRect(margin, y, contentWidth, 22, 5, 5, 'F');
+          let x = margin + 10;
+          pdf.setTextColor(255, 255, 255);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(8);
+          headers.forEach((header, index) => { pdf.text(header, x, y + 14); x += widths[index]; });
+          y += 28;
+        };
+        drawHeader();
+        if (!rows.length) {
+          pdf.setTextColor(...muted);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(9);
+          pdf.text('Aucune donnée pour cette période.', margin + 4, y + 10);
+          y += 28;
+          return;
+        }
+        rows.forEach((row, rowIndex) => {
+          if (y + 28 > pageHeight - 54) { nextPage(); drawHeader(); }
+          if (rowIndex % 2 === 0) { pdf.setFillColor(248, 249, 250); pdf.rect(margin, y - 13, contentWidth, 24, 'F'); }
+          let x = margin + 10;
+          pdf.setTextColor(...ink);
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(8.5);
+          row.forEach((cell, index) => {
+            const lines = pdf.splitTextToSize(cell, widths[index] - 12);
+            pdf.text(lines[0] || '—', x, y);
+            x += widths[index];
+          });
+          y += 24;
+        });
+        y += 9;
+      };
+
+      pdf.setFillColor(...ink);
+      pdf.rect(0, 0, pageWidth, 118, 'F');
+      pdf.setFillColor(...gold);
+      pdf.rect(0, 115, pageWidth, 3, 'F');
+      if (meklocLogo) addPdfImage(meklocLogo, margin, 26, 42, 42);
+      pdf.setTextColor(255, 255, 255);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(17);
+      pdf.text('MekLoc', margin + 52, 48);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8.5);
+      pdf.text('Gestion location automobile', margin + 52, 63);
+      if (agencyLogo) {
+        pdf.setFillColor(255, 255, 255);
+        pdf.roundedRect(pageWidth - margin - 44, 27, 44, 44, 8, 8, 'F');
+        addPdfImage(agencyLogo, pageWidth - margin - 38, 33, 32, 32);
+      }
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(20);
+      pdf.text('Rapport financier', margin, 151);
+      pdf.setTextColor(...muted);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(9);
+      pdf.text(`${agency?.name || 'Agence MekLoc'} · ${periodLabel(period)} · ${range.start || 'Début'} → ${range.end || 'Fin'}`, margin, 168);
+      if (agencyDetails) pdf.text(agencyDetails, margin, 181);
+      pdf.text(`Généré le ${generatedAt}`, pageWidth - margin, 168, { align: 'right' });
+      y = agencyDetails ? 210 : 198;
+
+      sectionTitle('Synthèse exécutive', 'Vue d’ensemble des indicateurs financiers sélectionnés');
+      const metrics = [
+        ['Chiffre d’affaires total', formatMAD(report.totalRevenue)], ['Revenus encaissés', formatMAD(report.collectedRevenue)],
+        ['Paiements en attente', formatMAD(report.pendingPayments)], ['Profit estimé', formatMAD(report.estimatedProfit)],
+        ['Cautions reçues', formatMAD(report.depositsReceived)], ['Cautions à rembourser', formatMAD(report.depositsToRefund)],
+        ['Dépenses entretien', formatMAD(report.maintenanceExpenses)], ['Paiements en retard', formatMAD(report.overdue.reduce((sum, item) => sum + item.amount, 0))],
+      ];
+      metrics.forEach(([label, value], index) => {
+        if (index % 2 === 0) ensureSpace(64);
+        metric(margin + (index % 2 ? (contentWidth + 12) / 2 : 0), y, label, value);
+        if (index % 2 === 1) y += 66;
+      });
+      if (metrics.length % 2) y += 66;
+
+      sectionTitle('Tendances', 'Réservations et revenus les plus représentatifs');
+      const chartRows = [
+        ...report.reservationsByMonth.slice(-6).map(([label, count]) => ({ label, value: count, suffix: ' réservations', max: maxMonthlyReservations })),
+        ...report.revenueByVehicle.slice(0, 5).map((item) => ({ label: item.plate, value: item.revenue, suffix: ` · ${formatMAD(item.revenue)}`, max: maxVehicleRevenue })),
+      ];
+      chartRows.forEach((item) => {
+        ensureSpace(21);
+        pdf.setTextColor(...ink); pdf.setFont('helvetica', 'bold'); pdf.setFontSize(8.5); pdf.text(item.label, margin, y);
+        pdf.setFillColor(234, 237, 240); pdf.roundedRect(margin + 100, y - 8, contentWidth - 190, 8, 4, 4, 'F');
+        pdf.setFillColor(...gold); pdf.roundedRect(margin + 100, y - 8, Math.max(5, (contentWidth - 190) * (item.value / item.max)), 8, 4, 4, 'F');
+        pdf.setTextColor(...muted); pdf.setFont('helvetica', 'normal'); pdf.text(`${item.value}${item.suffix}`, pageWidth - margin, y, { align: 'right' });
+        y += 20;
+      });
+
+      table('Top véhicules rentables', ['Véhicule', 'Immatriculation', 'Revenus'], report.revenueByVehicle.slice(0, 8).map((item) => [item.label, item.plate, formatMAD(item.revenue)]));
+      table('Clients les plus rentables', ['Client', 'Réservations', 'Revenus'], report.profitableClients.slice(0, 8).map((item) => [item.label, String(item.reservations), formatMAD(item.revenue)]));
+      table('Performance par responsable', ['Responsable', 'Réservations', 'Revenus', 'Payé', 'Reste'], assignedPerformance.slice(0, 8).map((item) => [item.responsible?.fullName || '—', String(item.reservationsCount), formatMAD(item.revenue), formatMAD(item.paid), formatMAD(item.remaining)]));
+      table('Paiements en retard', ['Client', 'Facture', 'Échéance', 'Montant'], report.overdue.slice(0, 8).map((item) => [item.client, item.invoice, item.dueDate, formatMAD(item.amount)]));
+      addFooter();
+      pdf.save(`rapport-financier-mekloc-${dateKey()}.pdf`);
+      notify({ title: 'Export PDF prêt', message: 'Le rapport financier professionnel a été téléchargé.', type: 'success' });
+    } catch {
+      notify({ title: 'Export PDF impossible', message: 'Réessayez dans quelques instants.', type: 'warning' });
+    } finally {
+      setPdfExporting(false);
+    }
   }
 
   return (
@@ -356,7 +510,7 @@ startxref
           </div>
           <div className="grid shrink-0 grid-cols-2 gap-2">
             <Button variant="secondary" className="h-11 rounded-2xl px-3 text-xs" icon={<FileSpreadsheet className="h-4 w-4" />} onClick={exportCsv}>CSV</Button>
-            <Button className="h-11 rounded-2xl px-3 text-xs" icon={<Download className="h-4 w-4" />} onClick={exportPdf}>PDF</Button>
+            <Button className="h-11 rounded-2xl px-3 text-xs" icon={<Download className="h-4 w-4" />} loading={pdfExporting} onClick={exportPdf}>PDF</Button>
           </div>
         </div>
       </div>
@@ -368,7 +522,7 @@ startxref
           action={
             <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
               <Button variant="secondary" className="h-11 w-full rounded-2xl sm:w-auto" icon={<FileSpreadsheet className="h-4 w-4" />} onClick={exportCsv}>CSV</Button>
-              <Button className="h-11 w-full rounded-2xl sm:w-auto" icon={<Download className="h-4 w-4" />} onClick={exportPdf}>PDF</Button>
+              <Button className="h-11 w-full rounded-2xl sm:w-auto" icon={<Download className="h-4 w-4" />} loading={pdfExporting} onClick={exportPdf}>PDF</Button>
             </div>
           }
         />
@@ -439,13 +593,7 @@ startxref
             </div>
             <span className="shrink-0 rounded-full bg-[var(--app-gold-soft)] px-2.5 py-1 text-xs font-black text-[var(--app-gold-text)]">{report.filteredReservations.length}</span>
           </div>
-          <div className="grid gap-3">
-            {report.reservationsByMonth.length === 0 ? (
-              <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-sm text-[var(--app-text-muted)]">Aucune réservation.</div>
-            ) : report.reservationsByMonth.map(([label, count]) => (
-              <CountBarRow key={label} label={label} count={count} max={maxMonthlyReservations} />
-            ))}
-          </div>
+          <ReservationsChart items={report.reservationsByMonth} max={maxMonthlyReservations} />
         </Card>
 
         <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-4 shadow-[0_18px_50px_rgba(0,0,0,.24)] sm:p-6">
@@ -458,13 +606,7 @@ startxref
             </div>
             <span className="shrink-0 rounded-full bg-[var(--app-surface-soft)] px-2.5 py-1 text-xs font-black text-[var(--app-text-soft)]">Top {Math.min(report.revenueByVehicle.length, 8)}</span>
           </div>
-          <div className="grid gap-3">
-            {report.revenueByVehicle.length === 0 ? (
-              <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-sm text-[var(--app-text-muted)]">Aucun revenu véhicule.</div>
-            ) : report.revenueByVehicle.slice(0, 8).map((item) => (
-              <BarRow key={item.id} label={item.plate} value={item.revenue} max={maxVehicleRevenue} />
-            ))}
-          </div>
+          <RevenueRankChart items={report.revenueByVehicle} max={maxVehicleRevenue} />
         </Card>
       </section>
 
