@@ -1308,15 +1308,16 @@ export default function LandingPage() {
                 Lifetime
               </button>
             </div>
-            <div className="landing-stagger mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4 xl:gap-5">
-              {plans.filter((plan) => plan.billingChoice === billingCycle).map((plan) => {
+            <div className={`landing-stagger mx-auto mt-10 grid w-full items-stretch gap-6 sm:mt-12 sm:gap-8 ${billingCycle === 'lifetime' ? 'max-w-xl' : 'max-w-[1120px] md:grid-cols-2 lg:grid-cols-3'}`}>
+              {plans.filter((plan) => plan.billingChoice === billingCycle).map((plan, index, visiblePlans) => {
                 const isLifetime = 'lifetime' in plan && plan.lifetime;
                 const isPrimary = plan.id === 'pro' || plan.id === 'lifetime';
                 const cycleHint = plan.persona;
                 const planUrl = `/demande-acces?plan=${plan.id}&billing=${plan.billingChoice}`;
+                const centeredTabletCard = visiblePlans.length === 3 && index === visiblePlans.length - 1;
 
                 return (
-                  <Card key={`${plan.id}-${plan.billingChoice}`} className={`landing-reveal relative flex min-h-full flex-col overflow-hidden p-6 transition hover:border-[#E3B117]/30 sm:p-7 ${isPrimary ? 'scale-[1.01] border-[#E3B117]/70 bg-gradient-to-br from-[#E3B117]/14 via-zinc-950/90 to-black shadow-[0_0_80px_rgba(227,177,23,.18)]' : 'opacity-90 hover:opacity-100'} ${isLifetime && isPrimary ? 'border-[#F5C542]/75 bg-gradient-to-br from-[#E3B117]/20 via-zinc-950/92 to-black shadow-[0_0_100px_rgba(227,177,23,.24)]' : ''}`}>
+                  <Card key={`${plan.id}-${plan.billingChoice}`} className={`landing-reveal relative flex h-full w-full flex-col overflow-hidden p-6 transition hover:border-[#E3B117]/30 sm:p-8 ${centeredTabletCard ? 'md:col-span-2 md:mx-auto md:w-[calc(50%_-_1rem)] lg:col-span-1 lg:mx-0 lg:w-full' : ''} ${isPrimary ? 'scale-[1.01] border-[#E3B117]/70 bg-gradient-to-br from-[#E3B117]/14 via-zinc-950/90 to-black shadow-[0_0_80px_rgba(227,177,23,.18)]' : 'opacity-90 hover:opacity-100'} ${isLifetime && isPrimary ? 'border-[#F5C542]/75 bg-gradient-to-br from-[#E3B117]/20 via-zinc-950/92 to-black shadow-[0_0_100px_rgba(227,177,23,.24)]' : ''}`}>
                     {isPrimary ? <span className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-[#F5C542]/80 to-transparent" /> : null}
                     {(plan.badge || isPrimary) ? <span className="absolute right-5 top-5 rounded-full bg-[#E3B117] px-3 py-1 text-xs font-black text-[#070807] sm:right-6 sm:top-6">{plan.badge || 'Recommandé'}</span> : null}
                     <span className="grid h-14 w-14 place-items-center rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/10 text-[#F5C542]"><Sparkles className="h-6 w-6" /></span>
