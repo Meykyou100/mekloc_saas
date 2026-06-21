@@ -1,4 +1,4 @@
-import { CalendarDays, Download, FileSpreadsheet, Gauge, TrendingUp, UsersRound, WalletCards } from 'lucide-react';
+import { CalendarDays, CheckCircle2, Download, FileSpreadsheet, Gauge, TrendingUp, UsersRound, WalletCards } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
@@ -68,10 +68,10 @@ function MetricCard({ label, value, note, icon: Icon, tone = 'gold' }: { label: 
     gold: 'border-gold-300/25 bg-gold-400/12 text-[var(--app-gold-text)]',
     green: 'border-emerald-300/20 bg-emerald-400/10 text-emerald-700 dark:text-emerald-200',
     amber: 'border-amber-300/25 bg-amber-400/10 text-amber-700 dark:text-amber-200',
-    red: 'border-rose-300/20 bg-rose-400/10 text-rose-200',
+    red: 'border-rose-300/20 bg-rose-400/10 text-rose-700 dark:text-rose-200',
   }[tone];
   return (
-    <Card className="relative flex min-h-[106px] min-w-[138px] flex-col justify-between overflow-hidden rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_14px_38px_rgba(0,0,0,.22),inset_0_1px_0_rgba(255,255,255,.04)] sm:min-h-[132px] sm:min-w-0 sm:rounded-3xl sm:p-5">
+    <Card className="relative flex min-h-[116px] min-w-0 flex-col justify-between overflow-hidden rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_14px_38px_rgba(0,0,0,.22),inset_0_1px_0_rgba(255,255,255,.04)] before:absolute before:inset-x-5 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-gold-300/70 before:to-transparent sm:min-h-[142px] sm:rounded-3xl sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-[var(--app-text-muted)]  sm:text-xs">{label}</p>
@@ -226,9 +226,23 @@ export default function ReportsPage() {
     () => getFleetResponsiblePerformance({ members: fleetResponsibles, vehicles, reservations, payments, start: range.start, end: range.end }),
     [fleetResponsibles, payments, range.end, range.start, reservations, vehicles],
   );
-  const assignedPerformance = responsiblePerformance.filter((item) => !item.isUnassigned && item.assignedVehicles > 0).sort((a, b) => b.revenue - a.revenue);
-  const unassignedPerformance = responsiblePerformance.find((item) => item.isUnassigned);
+  const assignedPerformance = useMemo(
+    () => responsiblePerformance.filter((item) => !item.isUnassigned && item.assignedVehicles > 0).sort((a, b) => b.revenue - a.revenue),
+    [responsiblePerformance],
+  );
+  const unassignedPerformance = useMemo(
+    () => responsiblePerformance.find((item) => item.isUnassigned),
+    [responsiblePerformance],
+  );
   const maxResponsibleRevenue = Math.max(...assignedPerformance.map((item) => item.revenue), 1);
+  const responsibleHighlights = useMemo(() => {
+    const topResponsible = assignedPerformance[0];
+    const largestRemaining = assignedPerformance.reduce<typeof assignedPerformance[number] | undefined>(
+      (current, item) => (!current || item.remaining > current.remaining ? item : current),
+      undefined,
+    );
+    return { topResponsible, largestRemaining };
+  }, [assignedPerformance]);
 
   function exportCsv() {
     const rows = [
@@ -382,7 +396,7 @@ startxref
         <MobileEmptyBlock icon={TrendingUp} title="Aucune donnée sur cette période" message="Les revenus, réservations et dépenses apparaîtront dès que votre activité commence." />
       ) : null}
 
-      <section className="no-scrollbar -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:px-0 xl:grid-cols-4">
+      <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
         <MetricCard label="Chiffre d’affaires total" value={formatMAD(report.totalRevenue)} note="Réservations non annulées" icon={TrendingUp} tone="gold" />
         <MetricCard label="Revenus encaissés" value={formatMAD(report.collectedRevenue)} note="Paiements reçus" icon={WalletCards} tone="green" />
         <MetricCard label="Paiements en attente" value={formatMAD(report.pendingPayments)} note="Attente et retard" icon={WalletCards} tone="amber" />
@@ -395,11 +409,14 @@ startxref
 
       <section className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
         <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-4 shadow-[0_18px_50px_rgba(0,0,0,.24)] sm:p-6">
-          <div className="mb-5 flex min-w-0 items-center gap-3">
+          <div className="mb-5 flex min-w-0 items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-[#D4A017]/20 bg-[#D4A017]/10 text-[var(--app-gold-text)]">
               <TrendingUp className="h-5 w-5" />
             </span>
-            <h2 className="min-w-0 truncate text-lg font-black tracking-tight text-[var(--app-text)]  sm:text-xl">Réservations par mois</h2>
+              <div className="min-w-0"><h2 className="min-w-0 truncate text-lg font-black tracking-tight text-[var(--app-text)] sm:text-xl">Réservations par mois</h2><p className="mt-1 text-xs text-[var(--app-text-muted)]">Volume des locations sur la période</p></div>
+            </div>
+            <span className="shrink-0 rounded-full bg-[var(--app-gold-soft)] px-2.5 py-1 text-xs font-black text-[var(--app-gold-text)]">{report.filteredReservations.length}</span>
           </div>
           <div className="grid gap-3">
             {report.reservationsByMonth.length === 0 ? (
@@ -411,11 +428,14 @@ startxref
         </Card>
 
         <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-4 shadow-[0_18px_50px_rgba(0,0,0,.24)] sm:p-6">
-          <div className="mb-5 flex min-w-0 items-center gap-3">
+          <div className="mb-5 flex min-w-0 items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-3">
             <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] text-[var(--app-text-soft)]">
               <Gauge className="h-5 w-5" />
             </span>
-            <h2 className="min-w-0 truncate text-lg font-black tracking-tight text-[var(--app-text)]  sm:text-xl">Revenus par véhicule</h2>
+              <div className="min-w-0"><h2 className="min-w-0 truncate text-lg font-black tracking-tight text-[var(--app-text)] sm:text-xl">Revenus par véhicule</h2><p className="mt-1 text-xs text-[var(--app-text-muted)]">Classement des véhicules générateurs de revenus</p></div>
+            </div>
+            <span className="shrink-0 rounded-full bg-[var(--app-surface-soft)] px-2.5 py-1 text-xs font-black text-[var(--app-text-soft)]">Top {Math.min(report.revenueByVehicle.length, 8)}</span>
           </div>
           <div className="grid gap-3">
             {report.revenueByVehicle.length === 0 ? (
@@ -446,9 +466,10 @@ startxref
             <div className="space-y-3">
               {assignedPerformance.slice(0, 6).map((item) => {
                 const width = Math.max(4, Math.round((item.revenue / maxResponsibleRevenue) * 100));
+                const initials = (item.responsible?.fullName || 'R').split(/\s+/).slice(0, 2).map((part) => part[0]).join('').toUpperCase();
                 return (
-                  <div key={item.responsible?.id} className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3">
-                    <div className="flex min-w-0 items-center justify-between gap-3"><div className="min-w-0"><p className="truncate font-black text-[var(--app-text)]">{item.responsible?.fullName}</p><p className="mt-0.5 text-xs text-[var(--app-text-muted)]">{roleLabelFr(item.responsible?.role)} · {item.reservationsCount} réservation(s)</p></div><p className="shrink-0 font-black text-[var(--app-gold-text)]">{formatMAD(item.revenue)}</p></div>
+                  <div key={item.responsible?.id} className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3.5 transition hover:border-gold-300/30 sm:p-4">
+                    <div className="flex min-w-0 items-center justify-between gap-3"><div className="flex min-w-0 items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-gold-300/25 bg-[var(--app-gold-soft)] text-xs font-black text-[var(--app-gold-text)]">{initials}</span><div className="min-w-0"><p className="truncate font-black text-[var(--app-text)]">{item.responsible?.fullName}</p><p className="mt-0.5 text-xs text-[var(--app-text-muted)]">{roleLabelFr(item.responsible?.role)} · {item.reservationsCount} réservation(s)</p></div></div><p className="shrink-0 font-black text-[var(--app-gold-text)]">{formatMAD(item.revenue)}</p></div>
                     <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--app-card)]"><div className="h-full rounded-full bg-gradient-to-r from-[#D4A017] to-[#f1c232]" style={{ width: `${width}%` }} /></div>
                     <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-[var(--app-text-muted)]"><span>Payé: <strong className="text-emerald-700 dark:text-emerald-200">{formatMAD(item.paid)}</strong></span><span>Reste: <strong className="text-amber-700 dark:text-amber-200">{formatMAD(item.remaining)}</strong></span></div>
                   </div>
@@ -456,9 +477,9 @@ startxref
               })}
             </div>
             <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-              <div className="rounded-2xl border border-gold-300/20 bg-[var(--app-gold-soft)] p-4"><p className="text-xs font-bold text-[var(--app-text-muted)]">Top responsable</p><p className="mt-2 truncate text-lg font-black text-[var(--app-text)]">{assignedPerformance[0]?.responsible?.fullName || '—'}</p><p className="mt-1 text-sm font-black text-[var(--app-gold-text)]">{formatMAD(assignedPerformance[0]?.revenue || 0)}</p></div>
-              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4"><p className="text-xs font-bold text-[var(--app-text-muted)]">Plus grand reste</p><p className="mt-2 truncate text-lg font-black text-[var(--app-text)]">{[...assignedPerformance].sort((a, b) => b.remaining - a.remaining)[0]?.responsible?.fullName || '—'}</p><p className="mt-1 text-sm font-black text-amber-700 dark:text-amber-200">{formatMAD([...assignedPerformance].sort((a, b) => b.remaining - a.remaining)[0]?.remaining || 0)}</p></div>
-              <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4"><p className="text-xs font-bold text-[var(--app-text-muted)]">Véhicules non assignés</p><p className="mt-2 text-lg font-black text-[var(--app-text)]">{unassignedPerformance?.assignedVehicles || 0}</p><p className="mt-1 text-xs text-[var(--app-text-muted)]">À attribuer depuis Véhicules</p></div>
+              <div className="rounded-2xl border border-gold-300/20 bg-[var(--app-gold-soft)] p-4"><p className="text-xs font-bold text-[var(--app-text-muted)]">Top responsable</p><p className="mt-2 truncate text-lg font-black text-[var(--app-text)]">{responsibleHighlights.topResponsible?.responsible?.fullName || '—'}</p><p className="mt-1 text-sm font-black text-[var(--app-gold-text)]">{formatMAD(responsibleHighlights.topResponsible?.revenue || 0)}</p></div>
+              <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4"><p className="text-xs font-bold text-[var(--app-text-muted)]">Plus grand reste</p><p className="mt-2 truncate text-lg font-black text-[var(--app-text)]">{responsibleHighlights.largestRemaining?.responsible?.fullName || '—'}</p><p className="mt-1 text-sm font-black text-amber-700 dark:text-amber-200">{formatMAD(responsibleHighlights.largestRemaining?.remaining || 0)}</p></div>
+              <div className="rounded-2xl border border-amber-400/25 bg-amber-500/10 p-4"><p className="text-xs font-bold text-[var(--app-text-muted)]">Véhicules non assignés</p><p className="mt-2 text-lg font-black text-[var(--app-text)]">{unassignedPerformance?.assignedVehicles || 0}</p><p className="mt-1 text-xs text-[var(--app-text-muted)]">À attribuer depuis Véhicules</p></div>
             </div>
           </div>
         )}
@@ -468,6 +489,7 @@ startxref
         <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-0 shadow-[0_18px_50px_rgba(0,0,0,.24)]">
           <div className="border-b border-[var(--app-border)] p-4 sm:p-5">
             <h2 className="text-lg font-black tracking-tight text-[var(--app-text)]  sm:text-xl">Top véhicules rentables</h2>
+            <p className="mt-1 text-sm text-[var(--app-text-muted)]">Les véhicules qui génèrent le plus de revenus sur cette période.</p>
           </div>
           <div className="grid gap-3 p-4 md:hidden">
             {report.revenueByVehicle.length === 0 ? (
@@ -491,7 +513,7 @@ startxref
               </thead>
               <tbody className="divide-y divide-[var(--app-border)]">
                 {report.revenueByVehicle.slice(0, 8).map((item) => (
-                  <tr key={item.id}><td className="px-5 py-3 font-semibold">{item.label}</td><td className="px-5 py-3 text-[var(--app-text-muted)]"><PlateNumber value={item.plate} /></td><td className="px-5 py-3 text-right font-semibold text-[var(--app-gold-text)]">{formatMAD(item.revenue)}</td></tr>
+                  <tr key={item.id} className="transition hover:bg-[var(--app-gold-soft)]"><td className="px-5 py-3.5 font-semibold">{item.label}</td><td className="px-5 py-3.5 text-[var(--app-text-muted)]"><PlateNumber value={item.plate} /></td><td className="px-5 py-3.5 text-right font-black text-[var(--app-gold-text)]">{formatMAD(item.revenue)}</td></tr>
                 ))}
                 {report.revenueByVehicle.length === 0 ? <tr><td colSpan={3} className="px-5 py-4 text-[var(--app-text-muted)]">Aucune donnée.</td></tr> : null}
               </tbody>
@@ -502,6 +524,7 @@ startxref
         <Card className="overflow-hidden rounded-3xl border-[var(--app-border)] bg-[var(--app-card)] p-0 shadow-[0_18px_50px_rgba(0,0,0,.24)]">
           <div className="border-b border-[var(--app-border)] p-4 sm:p-5">
             <h2 className="text-lg font-black tracking-tight text-[var(--app-text)]  sm:text-xl">Clients les plus rentables</h2>
+            <p className="mt-1 text-sm text-[var(--app-text-muted)]">Les clients les plus actifs et les plus contributeurs de la période.</p>
           </div>
           <div className="grid gap-3 p-4 md:hidden">
             {report.profitableClients.length === 0 ? (
@@ -525,7 +548,7 @@ startxref
               </thead>
               <tbody className="divide-y divide-[var(--app-border)]">
                 {report.profitableClients.slice(0, 8).map((item) => (
-                  <tr key={item.id}><td className="px-5 py-3 font-semibold">{item.label}</td><td className="px-5 py-3 text-[var(--app-text-muted)]">{item.reservations}</td><td className="px-5 py-3 text-right font-semibold text-[var(--app-gold-text)]">{formatMAD(item.revenue)}</td></tr>
+                  <tr key={item.id} className="transition hover:bg-[var(--app-gold-soft)]"><td className="px-5 py-3.5 font-semibold">{item.label}</td><td className="px-5 py-3.5 text-[var(--app-text-muted)]">{item.reservations}</td><td className="px-5 py-3.5 text-right font-black text-[var(--app-gold-text)]">{formatMAD(item.revenue)}</td></tr>
                 ))}
                 {report.profitableClients.length === 0 ? <tr><td colSpan={3} className="px-5 py-4 text-[var(--app-text-muted)]">Aucune donnée.</td></tr> : null}
               </tbody>
@@ -543,7 +566,7 @@ startxref
         </div>
         <div className="grid gap-3">
           {report.overdue.length === 0 ? (
-            <div className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-sm text-[var(--app-text-muted)]">Aucun paiement en retard.</div>
+            <div className="flex items-start gap-3 rounded-2xl border border-emerald-300/25 bg-emerald-500/10 p-4 text-sm"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-emerald-300/25 bg-emerald-400/10 text-emerald-700 dark:text-emerald-200"><CheckCircle2 className="h-4 w-4" /></span><div><p className="font-black text-[var(--app-text)]">Aucun paiement en retard</p><p className="mt-1 text-[var(--app-text-muted)]">Tous les paiements sont à jour pour cette période.</p></div></div>
           ) : report.overdue.map((payment) => (
             <div key={payment.id} className="grid gap-3 rounded-3xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,.04)] md:grid-cols-[1fr_auto_auto] md:items-center">
               <div className="min-w-0">
