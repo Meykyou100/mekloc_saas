@@ -32,6 +32,7 @@ export default function VehicleDetailsPage() {
     { label: 'Insurance', value: vehicle.insuranceExpiry, icon: ShieldCheck },
     { label: 'Inspection', value: vehicle.inspectionDate, icon: CalendarCheck },
   ];
+  const detailSurfaceClass = 'rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] shadow-[inset_0_1px_0_rgba(255,255,255,.04)]';
 
   return (
     <div>
@@ -77,51 +78,51 @@ export default function VehicleDetailsPage() {
               </p>
             </div>
           </div>
-          <div className="grid gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+          <div className="grid gap-4 border-t border-[var(--app-border)] bg-[var(--app-card)] p-5 sm:grid-cols-2 lg:grid-cols-4">
+            <div className={`${detailSurfaceClass} p-4`}>
               <Car className="mb-3 h-5 w-5 text-gold-300" />
-              <p className="text-xs uppercase tracking-wide text-carbon-500">Immatriculation</p>
-              <p className="mt-1 font-bold text-white light:text-carbon-950"><PlateNumber value={vehicle.plate} /></p>
+              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--app-text-muted)]">Immatriculation</p>
+              <p className="mt-1.5 font-black text-[var(--app-text)]"><PlateNumber value={vehicle.plate} /></p>
             </div>
             {vehicleStats.map(({ label, value, icon: Icon }) => (
-              <div key={label} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+              <div key={label} className={`${detailSurfaceClass} p-4`}>
                 <Icon className="mb-3 h-5 w-5 text-gold-300" />
-                <p className="text-xs uppercase tracking-wide text-carbon-500">{label}</p>
-                <p className="mt-1 font-bold text-white light:text-carbon-950">{value}</p>
+                <p className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--app-text-muted)]">{label}</p>
+                <p className="mt-1.5 font-black text-[var(--app-text)]">{value}</p>
               </div>
             ))}
           </div>
         </Card>
         <div className="grid gap-6">
-          <Card className="p-5">
-            <h2 className="font-semibold text-white light:text-carbon-950">Rental history</h2>
+          <Card className="p-5 sm:p-6">
+            <div className="flex items-center gap-2"><CalendarCheck className="h-5 w-5 text-gold-300" /><div><h2 className="font-black text-[var(--app-text)]">Rental history</h2><p className="mt-0.5 text-xs text-[var(--app-text-muted)]">Recent reservations for this vehicle</p></div></div>
             <div className="mt-4 grid gap-3">
               {relatedReservations.length ? relatedReservations.map((reservation) => (
-                <div key={reservation.id} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                <div key={reservation.id} className={`${detailSurfaceClass} p-4`}>
                   <div className="flex items-center justify-between gap-3">
-                    <p className="font-bold text-white light:text-carbon-950">{reservation.client}</p>
+                    <p className="font-black text-[var(--app-text)]">{reservation.client}</p>
                     <Badge>{reservation.status}</Badge>
                   </div>
-                  <p className="mt-2 text-sm text-carbon-400">{reservation.pickupDate} → {reservation.returnDate}</p>
+                  <p className="mt-2 text-sm text-[var(--app-text-muted)]">{reservation.pickupDate} → {reservation.returnDate}</p>
                 </div>
-              )) : <p className="text-sm text-carbon-400">No reservations for this vehicle yet.</p>}
+              )) : <p className="rounded-2xl border border-dashed border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-sm text-[var(--app-text-muted)]">No reservations for this vehicle yet.</p>}
             </div>
           </Card>
-          <Card className="p-5">
+          <Card className="p-5 sm:p-6">
             <div className="mb-4 flex items-center gap-2">
               <Wrench className="h-5 w-5 text-gold-300" />
-              <h2 className="font-semibold text-white light:text-carbon-950">Service history</h2>
+              <div><h2 className="font-black text-[var(--app-text)]">Service history</h2><p className="mt-0.5 text-xs text-[var(--app-text-muted)]">Maintenance and inspection records</p></div>
             </div>
             <div className="grid gap-3">
               {relatedMaintenance.length ? relatedMaintenance.map((item) => (
-                <div key={item.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                <div key={item.id} className={`flex items-center justify-between ${detailSurfaceClass} p-4`}>
                   <div>
-                    <p className="font-bold text-white light:text-carbon-950">{item.type}</p>
-                    <p className="text-sm text-carbon-400">{item.date}</p>
+                    <p className="font-black text-[var(--app-text)]">{item.type}</p>
+                    <p className="text-sm text-[var(--app-text-muted)]">{item.date}</p>
                   </div>
-                  <p className="font-bold text-gold-200">{formatMAD(item.cost)}</p>
+                  <p className="font-black text-[var(--app-gold-text)]">{formatMAD(item.cost)}</p>
                 </div>
-              )) : <p className="text-sm text-carbon-400">No maintenance records for this vehicle yet.</p>}
+              )) : <p className="rounded-2xl border border-dashed border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-sm text-[var(--app-text-muted)]">No maintenance records for this vehicle yet.</p>}
             </div>
           </Card>
         </div>
