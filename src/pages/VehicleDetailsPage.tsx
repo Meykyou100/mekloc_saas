@@ -1,6 +1,7 @@
 import { ArrowLeft, CalendarCheck, Car, FileText, Gauge, ShieldCheck, Wrench } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
@@ -8,6 +9,7 @@ import PageHeader from '../components/ui/PageHeader';
 import PlateNumber from '../components/ui/PlateNumber';
 import { formatMAD } from '../data/mockData';
 import { useData } from '../context/DataContext';
+import { storageBuckets, supabase } from '../lib/supabase';
 
 export default function VehicleDetailsPage() {
   const { id } = useParams();
@@ -26,6 +28,20 @@ export default function VehicleDetailsPage() {
   }
   const relatedReservations = reservations.filter((reservation) => reservation.vehicleId === vehicle.id);
   const relatedMaintenance = maintenanceItems.filter((item) => item.vehicleId === vehicle.id);
+  const vehicleImageSources = useMemo(() => {
+    const pathUrl = vehicle.imagePath
+      ? (vehicle.imagePath.startsWith('http')
+        ? vehicle.imagePath
+        : supabase?.storage.from(storageBuckets.vehicleImages).getPublicUrl(vehicle.imagePath).data.publicUrl)
+      : undefined;
+    return [vehicle.imageUrl, pathUrl].filter((source, index, values): source is string => Boolean(source) && values.indexOf(source) === index);
+  }, [vehicle.imagePath, vehicle.imageUrl]);
+  const [imageSourceIndex, setImageSourceIndex] = useState(0);
+  const vehicleImageUrl = vehicleImageSources[imageSourceIndex];
+
+  useEffect(() => {
+    setImageSourceIndex(0);
+  }, [vehicle.id, vehicle.imagePath, vehicle.imageUrl]);
   const vehicleStats: { label: string; value: string; icon: LucideIcon }[] = [
     { label: 'Mileage', value: `${vehicle.mileage.toLocaleString()} km`, icon: Gauge },
     { label: 'Fuel', value: vehicle.fuel, icon: Car },
@@ -49,13 +65,14 @@ export default function VehicleDetailsPage() {
       <div className="grid gap-6 xl:grid-cols-[1fr_0.9fr]">
         <Card className="overflow-hidden">
           <div className="relative h-[300px] overflow-hidden bg-gradient-to-br from-zinc-900 via-carbon-950 to-zinc-950 sm:h-[380px] lg:h-[440px]">
-            {vehicle.imageUrl ? (
+            {vehicleImageUrl ? (
               <img
-                src={vehicle.imageUrl}
+                src={vehicleImageUrl}
                 alt={`${vehicle.brand} ${vehicle.model}`}
                 loading="lazy"
                 decoding="async"
                 className="h-full w-full object-cover object-center"
+                onError={() => setImageSourceIndex((current) => current + 1)}
               />
             ) : (
               <div className="grid h-full w-full place-items-center bg-[radial-gradient(circle_at_50%_35%,rgba(212,160,23,.16),transparent_48%)]">

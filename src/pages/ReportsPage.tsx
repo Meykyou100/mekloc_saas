@@ -59,8 +59,27 @@ function downloadTextFile(filename: string, content: string, type: string) {
   URL.revokeObjectURL(url);
 }
 
-function escapePdf(value: string) {
-  return value.replace(/[()\\]/g, '');
+async function blobToDataUrl(blob: Blob): Promise<string | null> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function loadPdfImage(url?: string | null): Promise<string | null> {
+  if (!url) return null;
+  try {
+    const response = await fetch(url, { mode: 'cors', cache: 'force-cache' });
+    return response.ok ? blobToDataUrl(await response.blob()) : null;
+  } catch {
+    return null;
+  }
+}
+
+function periodLabel(period: PeriodKey) {
+  return { month: 'Ce mois', quarter: '3 mois', year: 'Année', custom: 'Personnalisé' }[period];
 }
 
 function MetricCard({ label, value, note, icon: Icon, tone = 'gold' }: { label: string; value: string; note: string; icon: typeof WalletCards; tone?: 'gold' | 'green' | 'amber' | 'red' }) {
@@ -115,13 +134,15 @@ function CountBarRow({ label, count, max }: { label: string; count: number; max:
 export default function ReportsPage() {
   const { notify } = useApp();
   const { vehicles, clients, payments, reservations, maintenance } = useData();
-  const { agencyId: authAgencyId } = useAuth();
-  const { supportAgencyId } = useSupportMode();
+  const { agencyId: authAgencyId, profile } = useAuth();
+  const { supportAgencyId, supportAgency, isSupportMode } = useSupportMode();
   const agencyId = supportAgencyId || authAgencyId;
+  const agency = isSupportMode ? supportAgency : profile?.agency;
   const [period, setPeriod] = useState<PeriodKey>('month');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [fleetResponsibles, setFleetResponsibles] = useState<FleetResponsible[]>([]);
+  const [pdfExporting, setPdfExporting] = useState(false);
 
   const range = useMemo(() => getPeriodRange(period, customStart, customEnd), [customEnd, customStart, period]);
 
