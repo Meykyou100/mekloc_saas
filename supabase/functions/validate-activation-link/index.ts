@@ -42,10 +42,18 @@ Deno.serve(async (req) => {
     if (link.used_at) return json(corsHeaders, { valid: false, reason: 'token_already_used' }, 410);
     if (new Date(link.expires_at).getTime() <= Date.now()) return json(corsHeaders, { valid: false, reason: 'token_expired' }, 410);
 
+    let agencyName = '';
+    if (link.agency_id) {
+      const agencyRes = await fetch(`${projectUrl}/rest/v1/agencies?id=eq.${encodeURIComponent(link.agency_id)}&select=name&limit=1`, { headers: serviceHeaders(serviceRole) });
+      const agencies = agencyRes.ok ? await agencyRes.json() as Array<{ name?: string | null }> : [];
+      agencyName = String(agencies?.[0]?.name || '');
+    }
+
     return json(corsHeaders, {
       valid: true,
       email: link.email,
       agency_id: link.agency_id,
+      agency_name: agencyName,
       role: link.role,
       expires_at: link.expires_at,
     });

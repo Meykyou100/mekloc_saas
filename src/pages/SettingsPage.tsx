@@ -7,6 +7,7 @@ import { Field, SelectField } from '../components/ui/Form';
 import Modal from '../components/ui/Modal';
 import PageHeader from '../components/ui/PageHeader';
 import { SUPPORT_EMAIL, SUPPORT_PHONE } from '../config/app';
+import { canInviteUser, getPlanConfig } from '../config/pricing';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useSupportMode } from '../context/SupportModeContext';
@@ -744,6 +745,16 @@ export default function SettingsPage() {
     }
     if (!agencyId) {
       notify({ title: 'Agence introuvable', message: 'Reconnectez-vous puis réessayez.', type: 'warning' });
+      return;
+    }
+    const plan = getPlanConfig(profile?.agency?.plan);
+    const activeMemberCount = teamMembers.filter((member) => member.account_status !== 'suspended' && member.account_status !== 'rejected').length;
+    if (!canInviteUser(profile?.agency?.plan, activeMemberCount)) {
+      notify({
+        title: 'Limite du plan atteinte',
+        message: `Votre plan ${plan.name} permet jusqu’à ${plan.userLimit} utilisateur${plan.userLimit === 1 ? '' : 's'}. Passez au plan supérieur ou contactez MekLoc pour agrandir votre équipe.`,
+        type: 'warning',
+      });
       return;
     }
 

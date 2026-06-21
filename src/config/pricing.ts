@@ -31,10 +31,12 @@ export const MEKLOC_PLANS = {
     billingLabel: 'Facturé 2 394 MAD / 6 mois',
     commitment: 'Engagement 6 mois',
     usersLabel: '1 utilisateur',
-    vehiclesLabel: 'Jusqu’à 15 véhicules',
+    vehicleLimit: 7,
+    userLimit: 1,
+    vehiclesLabel: 'Jusqu’à 7 véhicules',
     note: 'L’essentiel pour démarrer avec une flotte compacte.',
     persona: 'Agence compacte',
-    badge: '',
+    badge: 'Recommandé',
     features: ['Réservations & calendrier', 'Gestion clients', 'Gestion véhicules', 'Contrats PDF', 'Paiements & cautions', 'Support standard'],
   },
   pro: {
@@ -54,9 +56,11 @@ export const MEKLOC_PLANS = {
     billingLabel: 'Facturé 3 588 MAD / an',
     commitment: 'Engagement 12 mois',
     usersLabel: '3 utilisateurs',
-    vehiclesLabel: 'Jusqu’à 50 véhicules',
+    vehicleLimit: 20,
+    userLimit: 3,
+    vehiclesLabel: 'Jusqu’à 20 véhicules',
     note: 'Le meilleur équilibre pour les agences en croissance.',
-    persona: 'Meilleur tarif annuel',
+    persona: 'Agence en croissance',
     badge: 'Le plus choisi',
     features: ['Tout de Starter', 'Rapports financiers', 'Alertes & rappels', 'Entretien & échéances', 'Documents clients', 'Support prioritaire'],
   },
@@ -77,11 +81,13 @@ export const MEKLOC_PLANS = {
     billingLabel: 'Facturé 5 988 MAD / an',
     commitment: 'Engagement 12 mois',
     usersLabel: 'Utilisateurs illimités',
-    vehiclesLabel: 'Véhicules illimités',
+    vehicleLimit: 50,
+    userLimit: null,
+    vehiclesLabel: 'Jusqu’à 50 véhicules',
     note: 'Une gestion complète pour les équipes et grandes flottes.',
-    persona: 'Agence complète',
-    badge: '',
-    features: ['Tout de Pro', 'Multi-utilisateurs', 'Sessions & sécurité', 'Accompagnement personnalisé', 'Gestion avancée agence', 'Support premium'],
+    persona: 'Grande agence / équipe',
+    badge: 'Pour grandes flottes',
+    features: ['Tout de Pro', 'Multi-utilisateurs', 'Sessions & sécurité', 'Gestion avancée agence', 'Performance par responsable', 'Support premium'],
   },
   lifetime: {
     id: 'lifetime',
@@ -100,7 +106,9 @@ export const MEKLOC_PLANS = {
     billingLabel: 'Paiement unique',
     commitment: 'Accès à vie',
     usersLabel: 'Utilisateurs illimités',
-    vehiclesLabel: 'Véhicules illimités',
+    vehicleLimit: 100,
+    userLimit: null,
+    vehiclesLabel: 'Jusqu’à 100 véhicules',
     note: 'Toutes les fonctionnalités avec un paiement unique.',
     persona: 'Offre one-shot',
     badge: 'Offre limitée',
@@ -113,4 +121,25 @@ export const MEKLOC_PLAN_LIST = [MEKLOC_PLANS.starter, MEKLOC_PLANS.pro, MEKLOC_
 
 export function getPlanRequestBilling(planId: MekLocPlanId) {
   return MEKLOC_PLANS[planId].billingChoice === 'six_months' ? '6-months' : MEKLOC_PLANS[planId].billingChoice === 'annual' ? '12-months' : 'lifetime';
+}
+
+export function getPlanConfig(plan: string | null | undefined) {
+  return MEKLOC_PLANS[(plan === 'pro' || plan === 'business' || plan === 'lifetime' || plan === 'starter') ? plan : 'starter'];
+}
+
+export function getVehicleLimit(plan: string | null | undefined) {
+  return getPlanConfig(plan).vehicleLimit;
+}
+
+export function getUserLimit(plan: string | null | undefined) {
+  return getPlanConfig(plan).userLimit;
+}
+
+export function canAddVehicle(plan: string | null | undefined, currentVehicleCount: number) {
+  return currentVehicleCount < getVehicleLimit(plan);
+}
+
+export function canInviteUser(plan: string | null | undefined, currentUserCount: number) {
+  const limit = getUserLimit(plan);
+  return limit === null || currentUserCount < limit;
 }

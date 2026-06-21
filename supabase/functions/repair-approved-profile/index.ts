@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
       const nextDue = new Date(today);
       nextDue.setDate(nextDue.getDate() + 30);
       const plan = normalizePlan(accessRequest.selected_plan);
-      const monthlyPriceByPlan: Record<typeof plan, number> = { starter: 199, pro: 599, business: 399, lifetime: 5999 };
+      const monthlyPriceByPlan: Record<typeof plan, number> = { starter: 2394, pro: 3588, business: 5988, lifetime: 9999 };
       const annualPriceByPlan: Record<typeof plan, number> = { starter: 1910, pro: 5750, business: 3830, lifetime: 5999 };
       const createAgencyRes = await fetch(`${projectUrl}/rest/v1/agencies`, {
         method: 'POST',

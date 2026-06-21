@@ -239,9 +239,9 @@ function inferRequestPipeline(request: AccessRequestRow): PipelineStatus {
 }
 
 const monthlyPriceByPlan: Record<AgencyPlan, number> = {
-  starter: MEKLOC_PLANS.starter.monthlyPrice,
-  pro: MEKLOC_PLANS.pro.monthlyPrice,
-  business: MEKLOC_PLANS.business.monthlyPrice,
+  starter: MEKLOC_PLANS.starter.packagePrice,
+  pro: MEKLOC_PLANS.pro.packagePrice,
+  business: MEKLOC_PLANS.business.packagePrice,
   lifetime: MEKLOC_PLANS.lifetime.packagePrice,
 };
 const packagePriceByPlan: Record<AgencyPlan, number> = {

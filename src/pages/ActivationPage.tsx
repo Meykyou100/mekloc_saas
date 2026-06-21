@@ -10,8 +10,17 @@ type ActivationState = {
   loading: boolean;
   valid: boolean;
   email: string;
+  agencyName: string;
+  role: string;
   error: string;
 };
+
+function roleLabel(role: string) {
+  if (role === 'owner' || role === 'admin') return 'Propriétaire';
+  if (role === 'manager') return 'Manager';
+  if (role === 'accountant') return 'Comptable';
+  return 'Agent';
+}
 
 function reasonMessage(reason: string) {
   if (reason === 'Mot de passe trop court.') return reason;
@@ -36,7 +45,7 @@ export default function ActivationPage({ tokenOverride }: { tokenOverride?: stri
   const token = String(tokenOverride || routeToken || '').trim();
   const navigate = useNavigate();
   const { notify } = useApp();
-  const [state, setState] = useState<ActivationState>({ loading: true, valid: false, email: '', error: '' });
+  const [state, setState] = useState<ActivationState>({ loading: true, valid: false, email: '', agencyName: '', role: '', error: '' });
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -47,20 +56,20 @@ export default function ActivationPage({ tokenOverride }: { tokenOverride?: stri
     let cancelled = false;
     async function validate() {
       if (!supabase || !token) {
-        setState({ loading: false, valid: false, email: '', error: reasonMessage('token_missing') });
+        setState({ loading: false, valid: false, email: '', agencyName: '', role: '', error: reasonMessage('token_missing') });
         return;
       }
       const { data, error } = await supabase.functions.invoke('validate-activation-link', { body: { token } });
       if (cancelled) return;
-      const payload = data as { valid?: boolean; email?: string; reason?: string } | null;
+      const payload = data as { valid?: boolean; email?: string; agency_name?: string; role?: string; reason?: string } | null;
       if (error || !payload?.valid) {
         if (import.meta.env.DEV) {
           console.warn('Activation validation failed', { reason: payload?.reason, error });
         }
-        setState({ loading: false, valid: false, email: '', error: reasonMessage(payload?.reason || getFunctionReason(error)) });
+        setState({ loading: false, valid: false, email: '', agencyName: '', role: '', error: reasonMessage(payload?.reason || getFunctionReason(error)) });
         return;
       }
-      setState({ loading: false, valid: true, email: payload.email || '', error: '' });
+      setState({ loading: false, valid: true, email: payload.email || '', agencyName: payload.agency_name || '', role: payload.role || '', error: '' });
     }
     validate();
     return () => {
@@ -104,10 +113,12 @@ export default function ActivationPage({ tokenOverride }: { tokenOverride?: stri
   return (
     <div className="grid min-h-screen place-items-center bg-carbon-950 px-4 py-10 text-white">
       <Card className="w-full max-w-md p-6 sm:p-8">
-        <div className="mx-auto grid h-14 w-14 place-items-center rounded-full border border-gold-300/35 bg-gold-400/10 text-gold-200">
-          <ShieldCheck className="h-6 w-6" />
+        <div className="mx-auto flex w-fit items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.04] px-3 py-2">
+          <img src="/mekloc-logo-mark.png" alt="MekLoc" className="h-8 w-8 object-contain" />
+          <span className="text-sm font-black tracking-tight text-white">MekLoc</span>
         </div>
-        <h1 className="mt-4 text-center text-2xl font-black">Créer votre mot de passe</h1>
+        <div className="mx-auto mt-5 grid h-12 w-12 place-items-center rounded-full border border-gold-300/35 bg-gold-400/10 text-gold-200"><ShieldCheck className="h-5 w-5" /></div>
+        <h1 className="mt-4 text-center text-2xl font-black">{state.agencyName ? `Rejoindre ${state.agencyName}` : 'Créer votre mot de passe'}</h1>
         <p className="mt-2 text-center text-sm text-carbon-300">
           Activez votre accès MekLoc avec un mot de passe sécurisé.
         </p>
@@ -127,7 +138,9 @@ export default function ActivationPage({ tokenOverride }: { tokenOverride?: stri
         {!state.loading && state.valid ? (
           <form className="mt-6 grid gap-4" onSubmit={handleSubmit}>
             <div className="rounded-2xl border border-emerald-300/25 bg-emerald-400/10 px-4 py-3 text-sm text-emerald-100">
-              Lien vérifié pour {state.email}.
+              <p className="font-bold">Votre invitation est vérifiée.</p>
+              <p className="mt-1">{state.agencyName ? `Agence : ${state.agencyName}` : state.email}</p>
+              {state.role ? <p className="mt-1">Rôle : {roleLabel(state.role)}</p> : null}
             </div>
             <label className="grid gap-2 text-sm font-medium text-carbon-200">
               <span>Nouveau mot de passe</span>

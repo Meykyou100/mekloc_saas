@@ -17,6 +17,7 @@ import { formatMAD, type DamageType, type Vehicle, type VehicleAccessories, type
 import { safeStoragePath, validateFileUpload } from '../lib/security';
 import { storageBuckets, supabase } from '../lib/supabase';
 import { roleLabelFr, type FleetResponsible } from '../lib/fleetResponsibles';
+import { canAddVehicle, getPlanConfig } from '../config/pricing';
 
 type VehicleFilterStatus = 'All' | VehicleStatus | 'Archived';
 const vehicleStatuses: VehicleFilterStatus[] = ['All', 'Available', 'Rented', 'Maintenance', 'Unavailable', 'Archived'];
@@ -480,6 +481,19 @@ export default function VehiclesPage() {
       const firstError = Object.values(nextErrors)[0];
       notify({ title: 'Champ obligatoire', message: firstError || 'Vérifiez les informations du véhicule.', type: 'warning' });
       return;
+    }
+
+    if (!editingVehicle) {
+      const activeVehicleCount = vehicles.filter((item) => !item.archivedAt).length;
+      const plan = getPlanConfig(profile?.agency?.plan);
+      if (!canAddVehicle(profile?.agency?.plan, activeVehicleCount)) {
+        notify({
+          title: 'Limite du plan atteinte',
+          message: `Votre plan ${plan.name} permet jusqu’à ${plan.vehicleLimit} véhicules. Passez au plan supérieur ou contactez MekLoc pour ajouter davantage de véhicules.`,
+          type: 'warning',
+        });
+        return;
+      }
     }
 
     setSaving(true);

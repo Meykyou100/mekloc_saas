@@ -5,7 +5,7 @@ import Button from '../components/ui/Button';
 import { Field, SelectField } from '../components/ui/Form';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
-import { MEKLOC_PLAN_LIST, MEKLOC_PLANS, type MekLocBillingChoice, type MekLocPlanId } from '../config/pricing';
+import { MEKLOC_PLAN_LIST, MEKLOC_PLANS, getPlanConfig, type MekLocBillingChoice, type MekLocPlanId } from '../config/pricing';
 import { sendAccessRequestAdminNotification } from '../lib/accessRequestEmail';
 import { normalizeText, sanitizeText, validateEmail, validatePhone, validatePositiveNumber } from '../lib/security';
 import { isSupabaseConfigured, supabase } from '../lib/supabase';
@@ -83,6 +83,9 @@ export default function DemandeAccesPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<PlanId>(requestedPlan);
   const [billingType, setBillingType] = useState<BillingType>(requestedBilling);
+  const [requestedVehicleCount, setRequestedVehicleCount] = useState(1);
+  const [requestedUserCount, setRequestedUserCount] = useState(1);
+  const selectedPlanConfig = getPlanConfig(selectedPlan);
 
   useEffect(() => {
     if (selectedPlan === 'lifetime') {
@@ -216,10 +219,16 @@ export default function DemandeAccesPage() {
       phone_country_code: normalizeText(String(form.get('phone_country_code') || '+212'), 8),
       phone_number: normalizeText(String(form.get('phone_number') || ''), 16).replace(/\D/g, ''),
       vehicle_count: Number(form.get('vehicle_count') || 0),
+      requested_vehicle_count: Number(form.get('vehicle_count') || 0),
+      requested_user_count: Number(form.get('requested_user_count') || 1),
       selected_plan: selectedPlan,
       billing_type: billingType === 'six_months' ? 'monthly' : billingType,
       monthly_price: MEKLOC_PLANS[selectedPlan].monthlyPrice,
       annual_price: MEKLOC_PLANS[selectedPlan].billingTotal,
+      plan_price: MEKLOC_PLANS[selectedPlan].packagePrice,
+      plan_duration: MEKLOC_PLANS[selectedPlan].commitment,
+      plan_vehicle_limit: MEKLOC_PLANS[selectedPlan].vehicleLimit,
+      plan_user_limit: MEKLOC_PLANS[selectedPlan].userLimit,
       promo_code: sanitizeText(String(form.get('promo_code') || ''), 60),
       status: 'pending',
     };
@@ -577,8 +586,13 @@ export default function DemandeAccesPage() {
                   <span className="h-px flex-1 bg-white/10" />
                 </div>
                 <div className="mt-5 grid gap-4 md:grid-cols-2">
-                  <Field label="Nombre de véhicules *" name="vehicle_count" type="number" min={1} required placeholder="Ex: 10" className={inputClass} />
+                  <Field label="Nombre de véhicules *" name="vehicle_count" type="number" min={1} required placeholder="Ex: 10" className={inputClass} onChange={(event) => setRequestedVehicleCount(Number(event.target.value) || 0)} />
+                  <Field label="Nombre d’utilisateurs souhaité *" name="requested_user_count" type="number" min={1} required value={String(requestedUserCount)} onChange={(event) => setRequestedUserCount(Number(event.target.value) || 1)} className={inputClass} />
                   <Field label="Code promo (optionnel)" name="promo_code" placeholder="Ex: MEKLOC10" className={inputClass} />
+                </div>
+                <div className="mt-4 rounded-2xl border border-[#E3B117]/25 bg-[#E3B117]/10 p-4 text-sm text-zinc-200">
+                  <div className="grid gap-2 sm:grid-cols-2"><span>Prix : <strong className="text-white">{selectedPlanConfig.packagePrice.toLocaleString('fr-FR')} MAD {selectedPlanConfig.packageLabel}</strong></span><span>Engagement : <strong className="text-white">{selectedPlanConfig.commitment}</strong></span><span>Véhicules : <strong className="text-white">jusqu’à {selectedPlanConfig.vehicleLimit}</strong></span><span>Utilisateurs : <strong className="text-white">{selectedPlanConfig.userLimit ?? 'illimités'}</strong></span></div>
+                  {requestedVehicleCount > selectedPlanConfig.vehicleLimit ? <p className="mt-3 font-semibold text-amber-200">{selectedPlan === 'starter' ? 'Le plan Starter inclut jusqu’à 7 véhicules. Pour plus de véhicules, choisissez Pro ou contactez MekLoc.' : selectedPlan === 'pro' ? 'Le plan Pro inclut jusqu’à 20 véhicules. Pour plus de véhicules, choisissez Business.' : selectedPlan === 'business' ? 'Le plan Business inclut jusqu’à 50 véhicules. Pour plus de véhicules, contactez MekLoc.' : 'Le plan Lifetime inclut jusqu’à 100 véhicules. Contactez MekLoc pour une flotte plus importante.'}</p> : null}
                 </div>
               </div>
             </div>
