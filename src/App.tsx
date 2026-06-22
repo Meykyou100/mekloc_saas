@@ -4,6 +4,7 @@ import { Suspense, lazy, useEffect } from 'react';
 import type { ComponentType } from 'react';
 import ProtectedRoute from './components/layout/ProtectedRoute';
 import ToastViewport from './components/ui/ToastViewport';
+import MekLocLoader from './components/ui/MekLocLoader';
 import SEO from './components/system/SEO';
 import ActivationPage from './pages/ActivationPage';
 import LandingPage from './pages/LandingPage';
@@ -77,23 +78,6 @@ function AnimatedPage({ children }: { children: React.ReactNode }) {
   return <motion.div {...pageMotion}>{children}</motion.div>;
 }
 
-function AppLoadingFallback() {
-  return (
-    <div className="min-h-screen bg-[#050505] px-6 py-16 text-white">
-      <div className="mx-auto max-w-2xl rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-        <p className="text-sm font-semibold uppercase tracking-widest text-gold-300">Chargement</p>
-        <h1 className="mt-3 text-2xl font-bold">MekLoc prépare votre espace</h1>
-        <p className="mt-3 text-carbon-300">
-          Si votre connexion est lente, le chargement peut prendre quelques secondes.
-        </p>
-        <div className="mt-5 h-2 overflow-hidden rounded-full bg-white/10">
-          <div className="h-full w-2/5 animate-pulse rounded-full bg-gold-400" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function App() {
   useEffect(() => {
     (window as Window & { __MEKLOC_APP_READY__?: boolean }).__MEKLOC_APP_READY__ = true;
@@ -101,7 +85,7 @@ export default function App() {
 
   return (
     <>
-      <Suspense fallback={<AppLoadingFallback />}>
+      <Suspense fallback={<MekLocLoader />}>
           <Routes>
           <Route
             path="/"

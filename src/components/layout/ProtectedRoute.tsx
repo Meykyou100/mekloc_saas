@@ -4,19 +4,11 @@ import { useAuth } from '../../context/AuthContext';
 import { canAccess, type AppPermission } from '../../lib/permissions';
 import { isSubscriptionAllowed } from '../../lib/subscription';
 import Card from '../ui/Card';
-import Skeleton from '../ui/Skeleton';
+import MekLocLoader from '../ui/MekLocLoader';
 import { useSupportMode } from '../../context/SupportModeContext';
 
 function RouteLoadingState() {
-  return (
-    <div className="grid min-h-screen place-items-center bg-carbon-950 px-4 light:bg-carbon-50">
-      <Card className="w-full max-w-md p-6">
-        <Skeleton className="h-4 w-36" />
-        <Skeleton className="mt-5 h-10 w-full" />
-        <Skeleton className="mt-3 h-10 w-5/6" />
-      </Card>
-    </div>
-  );
+  return <MekLocLoader subtitle="Connexion sécurisée à votre agence…" />;
 }
 
 export default function ProtectedRoute({
