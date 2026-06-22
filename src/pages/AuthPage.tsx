@@ -627,45 +627,44 @@ export default function AuthPage() {
   const memberAgencyWhatsAppUrl = buildAgencyWhatsAppUrl(memberLoginHint);
 
   return (
+    <>
+      <style>{`
+        @keyframes mekloc-auth-drift { 0%,100% { transform: translate3d(0,0,0); } 50% { transform: translate3d(18px,-14px,0); } }
+        .auth-orb { animation: mekloc-auth-drift 14s ease-in-out infinite; }
+        .auth-orb-delayed { animation: mekloc-auth-drift 18s ease-in-out -6s infinite; }
+        @media (prefers-reduced-motion: reduce) { .auth-orb, .auth-orb-delayed { animation: none; } }
+      `}</style>
     <div className="min-h-screen overflow-x-hidden bg-[#050606] text-white">
       <div className="grid min-h-screen lg:grid-cols-[1.1fr_0.9fr]">
-      <section className="relative hidden overflow-hidden border-r border-yellow-500/10 bg-[#050606] px-10 py-8 lg:flex lg:flex-col xl:px-14">
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:56px_56px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_32%_74%,rgba(227,177,23,.26),transparent_42%),radial-gradient(circle_at_66%_38%,rgba(227,177,23,.14),transparent_34%)]" />
-        <img
-          src="/mekloc-hero-car.svg"
-          alt=""
-          aria-hidden="true"
-          className="pointer-events-none absolute -bottom-8 left-0 w-[92%] max-w-[920px] opacity-75 mix-blend-screen"
-        />
-        <div className="absolute inset-x-0 bottom-0 h-[46%] bg-gradient-to-t from-black via-black/45 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/72 to-black/36" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_0%,rgba(0,0,0,.58)_78%)]" />
+      <section className="relative hidden overflow-hidden border-r border-white/10 bg-[#08090a] px-10 py-8 lg:flex lg:flex-col xl:px-14">
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.022)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.018)_1px,transparent_1px)] bg-[size:52px_52px]" />
+        <div className="auth-orb absolute -left-24 bottom-10 h-80 w-80 rounded-full bg-gold-400/10 blur-3xl" />
+        <div className="auth-orb-delayed absolute right-0 top-20 h-64 w-64 rounded-full bg-gold-300/[0.07] blur-3xl" />
         <div className="relative z-10 flex items-center justify-between">
           <img src="/mekloc-logo-transparent.png" alt="MekLoc" className="h-16 w-auto max-w-[230px] object-contain" />
         </div>
 
-        <div className="relative z-10 mt-8">
+        <div className="relative z-10 mt-7">
           <Link to="/" className="inline-flex items-center gap-2 text-sm font-black text-yellow-400 transition hover:text-yellow-300">
             <ArrowLeft className="h-4 w-4" />
             Retour à l’accueil
           </Link>
         </div>
 
-        <div className="relative z-10 my-auto max-w-3xl py-10">
-          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-yellow-400">
+        <div className="relative z-10 my-auto max-w-3xl py-12">
+          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-yellow-500/25 bg-yellow-500/[0.08] px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-yellow-400">
             <DatabaseZap className="h-4 w-4" />
             Plateforme sécurisée & professionnelle
           </div>
-          <h1 className="max-w-3xl text-5xl font-black leading-[1.08] tracking-[-0.02em] text-white xl:text-6xl">
-            Pilotez toute votre activité location depuis un espace{' '}
+          <h1 className="max-w-3xl text-5xl font-black leading-[1.08] tracking-[-0.03em] text-white xl:text-6xl">
+            Pilotez votre agence de location depuis un espace{' '}
             <span className="bg-gradient-to-r from-yellow-300 via-yellow-500 to-amber-200 bg-clip-text text-transparent">sécurisé.</span>
           </h1>
           <p className="mt-7 max-w-xl text-lg leading-8 text-zinc-300">
-            Réservations, véhicules, clients, contrats, paiements, entretien et rapports sont prêts avec des données réalistes et sécurisées.
+            Réservations, véhicules, clients, contrats, paiements et rapports dans une seule plateforme.
           </p>
 
-          <div className="mt-16 grid grid-cols-4 gap-5">
+          <div className="mt-14 grid grid-cols-2 gap-x-7 gap-y-7 xl:grid-cols-4 xl:gap-5">
             {[
               [CalendarDays, 'Tout centralisé', 'Gérez tout en un seul endroit'],
               [ShieldCheck, 'Données sécurisées', 'Hébergé en Europe & sauvegarde incluse'],
@@ -683,7 +682,7 @@ export default function AuthPage() {
           </div>
         </div>
 
-        <div className="relative z-10 rounded-2xl border border-white/10 bg-zinc-950/70 p-5 shadow-[0_0_46px_rgba(227,177,23,.08)] backdrop-blur">
+        <div className="relative z-10 rounded-2xl border border-white/10 bg-white/[0.025] p-5 shadow-[0_18px_45px_rgba(0,0,0,.2)]">
           <div className="flex items-center gap-5">
             <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-yellow-500/25 bg-yellow-500/10 text-yellow-400">
               <LockKeyhole className="h-6 w-6" />
@@ -699,11 +698,8 @@ export default function AuthPage() {
         </div>
       </section>
 
-      <section className="relative flex min-h-screen items-start justify-center px-4 pb-8 pt-5 sm:px-6 lg:items-center lg:px-10 lg:py-8">
+      <section className="relative flex min-h-screen items-start justify-center px-4 pb-[calc(2rem+env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))] sm:px-6 lg:items-center lg:px-10 lg:py-8">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_25%,rgba(227,177,23,.18),transparent_45%),linear-gradient(rgba(255,255,255,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.03)_1px,transparent_1px)] bg-[size:auto,48px_48px,48px_48px] lg:hidden" />
-        {/* Place car image at public/images/login-car-bg.png */}
-        <div className="absolute inset-x-0 top-[120px] h-[360px] bg-[url('/images/login-car-bg.png')] bg-contain bg-right-bottom bg-no-repeat opacity-45 lg:hidden" />
-        <div className="absolute inset-x-0 top-[120px] h-[420px] bg-gradient-to-b from-black/30 via-black/60 to-[#050606] lg:hidden" />
         <div className="absolute right-6 top-5 z-10 hidden items-center gap-5 text-sm text-zinc-300 md:flex">
           <a href="https://wa.me/212762971653" target="_blank" rel="noreferrer" className="font-semibold transition hover:text-yellow-400">Besoin d’aide ?</a>
           <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 font-semibold">
@@ -713,7 +709,7 @@ export default function AuthPage() {
         </div>
 
         <div className="relative z-10 w-full max-w-[460px]">
-          <div className="mb-7 lg:hidden">
+          <div className="mb-6 lg:hidden">
             <div className="flex items-center justify-between gap-3">
               <img src="/mekloc-logo-transparent.png" alt="MekLoc" className="h-14 w-auto max-w-[170px] object-contain" />
               <div className="flex items-center gap-2">
@@ -727,32 +723,12 @@ export default function AuthPage() {
                 </span>
               </div>
             </div>
-            <Link to="/" className="mt-7 inline-flex items-center gap-2 text-sm font-bold text-yellow-400 hover:text-yellow-300">
+            <Link to="/" className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-yellow-400 hover:text-yellow-300">
               <ArrowLeft className="h-4 w-4" />
               Retour à l’accueil
             </Link>
-            <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-[11px] font-black uppercase tracking-[0.12em] text-yellow-400">
-              <ShieldCheck className="h-4 w-4" />
-              Plateforme sécurisée & professionnelle
-            </div>
-            <h1 className="mt-8 text-4xl font-black leading-tight text-white">
-              Espace sécurisé <span className="bg-gradient-to-r from-yellow-300 via-yellow-500 to-amber-200 bg-clip-text text-transparent">MekLoc</span>
-            </h1>
-            <p className="mt-4 max-w-sm text-lg leading-8 text-zinc-300">
-              Connectez-vous pour gérer vos réservations, véhicules et contrats.
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <span className="inline-flex items-center gap-2 rounded-full border border-yellow-500/20 bg-black/35 px-4 py-3 text-sm font-bold text-white backdrop-blur">
-                <ShieldCheck className="h-4 w-4 text-yellow-400" />
-                Données sécurisées
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full border border-yellow-500/20 bg-black/35 px-4 py-3 text-sm font-bold text-white backdrop-blur">
-                <DatabaseZap className="h-4 w-4 text-yellow-400" />
-                100% Cloud
-              </span>
-            </div>
           </div>
-          <div className="rounded-[32px] border border-yellow-500/30 bg-black/70 p-6 shadow-[0_0_70px_rgba(227,177,23,0.16),0_26px_90px_rgba(0,0,0,.42)] ring-1 ring-white/[0.035] backdrop-blur-xl sm:p-9 md:p-10">
+          <div className="rounded-[28px] border border-white/10 bg-[#0d0f11] p-6 shadow-[0_22px_70px_rgba(0,0,0,.40),0_0_38px_rgba(227,177,23,.09)] ring-1 ring-white/[0.03] sm:p-9 md:p-10">
             {resetMode ? (
               <form className="grid gap-4" onSubmit={handleSetNewPassword}>
                 <div className="mx-auto grid h-[72px] w-[72px] place-items-center rounded-full border border-yellow-500/25 bg-yellow-500/15 text-yellow-400">
@@ -864,7 +840,7 @@ export default function AuthPage() {
               </>
             )}
           </div>
-          <div className="mt-7 rounded-3xl border border-white/10 bg-white/[0.05] p-5 backdrop-blur lg:hidden">
+          <div className="mt-5 hidden rounded-3xl border border-white/10 bg-white/[0.025] p-4 lg:hidden">
             <div className="flex items-center gap-4">
               <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full border border-yellow-500/25 bg-yellow-500/10 text-yellow-400">
                 <ShieldCheck className="h-6 w-6" />
@@ -919,5 +895,6 @@ export default function AuthPage() {
         </div>
       </Modal>
     </div>
+    </>
   );
 }
