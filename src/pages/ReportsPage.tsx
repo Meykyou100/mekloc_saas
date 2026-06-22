@@ -4,7 +4,6 @@ import { Link } from 'react-router-dom';
 import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import { MobileEmptyBlock } from '../components/ui/MobilePrimitives';
-import PageHeader from '../components/ui/PageHeader';
 import PlateNumber from '../components/ui/PlateNumber';
 import { formatMAD } from '../data/mockData';
 import { useApp } from '../context/AppContext';
@@ -82,7 +81,7 @@ function periodLabel(period: PeriodKey) {
   return { month: 'Ce mois', quarter: '3 mois', year: 'Année', custom: 'Personnalisé' }[period];
 }
 
-function MetricCard({ label, value, note, icon: Icon, tone = 'gold' }: { label: string; value: string; note: string; icon: typeof WalletCards; tone?: 'gold' | 'green' | 'amber' | 'red' }) {
+function MetricCard({ label, value, note, icon: Icon, tone = 'gold', primary = false }: { label: string; value: string; note: string; icon: typeof WalletCards; tone?: 'gold' | 'green' | 'amber' | 'red'; primary?: boolean }) {
   const toneClass = {
     gold: 'border-gold-300/25 bg-gold-400/12 text-[var(--app-gold-text)]',
     green: 'border-emerald-300/20 bg-emerald-400/10 text-emerald-700 dark:text-emerald-200',
@@ -90,14 +89,14 @@ function MetricCard({ label, value, note, icon: Icon, tone = 'gold' }: { label: 
     red: 'border-rose-300/20 bg-rose-400/10 text-rose-700 dark:text-rose-200',
   }[tone];
   return (
-    <Card className="relative flex min-h-[116px] min-w-0 flex-col justify-between overflow-hidden rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_14px_38px_rgba(0,0,0,.22),inset_0_1px_0_rgba(255,255,255,.04)] before:absolute before:inset-x-5 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-gold-300/70 before:to-transparent sm:min-h-[142px] sm:rounded-3xl sm:p-5">
+    <Card className={`relative flex min-w-0 flex-col justify-between overflow-hidden rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] shadow-[0_14px_38px_rgba(0,0,0,.22),inset_0_1px_0_rgba(255,255,255,.04)] before:absolute before:inset-x-5 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-gold-300/70 before:to-transparent ${primary ? 'min-h-[154px] p-4 sm:min-h-[178px] sm:rounded-3xl sm:p-6' : 'min-h-[112px] p-3 sm:min-h-[128px] sm:rounded-3xl sm:p-4'}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-[var(--app-text-muted)]  sm:text-xs">{label}</p>
-          <p className="mt-2 truncate text-[1.2rem] font-black leading-none tracking-tight text-[var(--app-text)]  sm:mt-3 sm:text-2xl">{value}</p>
+          <p className={`mt-2 truncate font-black leading-none tracking-tight text-[var(--app-text)] ${primary ? 'text-xl sm:mt-4 sm:text-[1.8rem]' : 'text-base sm:mt-3 sm:text-xl'}`}>{value}</p>
         </div>
-        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border sm:h-10 sm:w-10 sm:rounded-2xl ${toneClass}`}>
-          <Icon className="h-3.5 w-3.5 sm:h-5 sm:w-5" />
+        <span className={`grid shrink-0 place-items-center rounded-xl border ${primary ? 'h-10 w-10 sm:h-12 sm:w-12 sm:rounded-2xl' : 'h-8 w-8 sm:h-10 sm:w-10 sm:rounded-2xl'} ${toneClass}`}>
+          <Icon className={primary ? 'h-5 w-5' : 'h-3.5 w-3.5 sm:h-5 sm:w-5'} />
         </span>
       </div>
       <p className="mt-2 truncate text-[11px] font-medium text-[var(--app-text-muted)]  sm:text-sm">{note}</p>
@@ -133,12 +132,27 @@ function CountBarRow({ label, count, max }: { label: string; count: number; max:
 
 function ReservationsChart({ items, max }: { items: Array<[string, number]>; max: number }) {
   if (!items.length) return <div className="rounded-2xl border border-dashed border-[var(--app-border)] bg-[var(--app-surface-soft)] p-5 text-sm text-[var(--app-text-muted)]">Aucune réservation sur cette période.</div>;
+  const visibleItems = items.slice(-8);
+  const chartWidth = 640;
+  const chartHeight = 250;
+  const baseline = 205;
+  const chartTop = 34;
+  const barWidth = Math.min(44, Math.max(20, (chartWidth - 92) / visibleItems.length - 18));
+  const step = (chartWidth - 92) / visibleItems.length;
   return (
-    <div className="grid h-[220px] grid-cols-[repeat(auto-fit,minmax(42px,1fr))] items-end gap-2 rounded-2xl border border-[var(--app-border)] bg-[linear-gradient(180deg,var(--app-surface-soft),transparent)] px-3 pb-3 pt-6 sm:h-[250px] sm:gap-3 sm:px-5">
-      {items.slice(-8).map(([label, count]) => {
-        const height = Math.max(10, Math.round((count / max) * 100));
-        return <div key={label} className="group flex h-full min-w-0 flex-col justify-end gap-2"><span className="text-center text-xs font-black text-[var(--app-text)] opacity-0 transition group-hover:opacity-100">{count}</span><div className="relative flex flex-1 items-end rounded-xl bg-[var(--app-card)] px-1"><div className="w-full rounded-t-lg bg-gradient-to-t from-[#c58a0b] to-[#f4c64e] shadow-[0_8px_18px_rgba(212,160,23,.18)] transition-[height] duration-300" style={{ height: `${height}%` }} /></div><span className="truncate text-center text-[10px] font-bold text-[var(--app-text-muted)]">{label.slice(5)}</span></div>;
-      })}
+    <div className="overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[linear-gradient(180deg,var(--app-surface-soft),transparent)] p-3 sm:p-4">
+      <svg viewBox={`0 0 ${chartWidth} ${chartHeight}`} role="img" aria-label="Graphique des réservations par mois" className="h-[230px] w-full sm:h-[260px]">
+        <defs><linearGradient id="reservations-gold" x1="0" x2="0" y1="0" y2="1"><stop stopColor="#f7d56c" /><stop offset="1" stopColor="#c58a0b" /></linearGradient></defs>
+        {[0, 1, 2, 3].map((index) => { const y = chartTop + ((baseline - chartTop) / 3) * index; return <line key={index} x1="46" x2={chartWidth - 18} y1={y} y2={y} stroke="currentColor" className="text-[var(--app-border)]" strokeDasharray="3 5" />; })}
+        <text x="10" y={chartTop + 3} fill="currentColor" className="fill-[var(--app-text-muted)] text-[11px]">{max}</text>
+        <text x="17" y={baseline + 3} fill="currentColor" className="fill-[var(--app-text-muted)] text-[11px]">0</text>
+        {visibleItems.map(([label, count], index) => {
+          const height = Math.max(12, ((baseline - chartTop) * count) / max);
+          const x = 46 + step * index + (step - barWidth) / 2;
+          const y = baseline - height;
+          return <g key={label}><text x={x + barWidth / 2} y={y - 8} textAnchor="middle" fill="currentColor" className="fill-[var(--app-text)] text-[11px] font-bold">{count}</text><rect x={x} y={y} width={barWidth} height={height} rx="7" fill="url(#reservations-gold)" /><text x={x + barWidth / 2} y="228" textAnchor="middle" fill="currentColor" className="fill-[var(--app-text-muted)] text-[10px] font-bold">{label.slice(5)}</text></g>;
+        })}
+      </svg>
     </div>
   );
 }
@@ -147,7 +161,7 @@ function RevenueRankChart({ items, max }: { items: Array<{ id: string; label: st
   if (!items.length) return <div className="rounded-2xl border border-dashed border-[var(--app-border)] bg-[var(--app-surface-soft)] p-5 text-sm text-[var(--app-text-muted)]">Aucun revenu véhicule sur cette période.</div>;
   return (
     <div className="grid gap-3 rounded-2xl border border-[var(--app-border)] bg-[linear-gradient(180deg,var(--app-surface-soft),transparent)] p-3 sm:p-4">
-      {items.slice(0, 6).map((item, index) => <div key={item.id} className="grid min-w-0 grid-cols-[24px_1fr_auto] items-center gap-2 sm:grid-cols-[28px_1fr_106px]"><span className="grid h-6 w-6 place-items-center rounded-lg bg-[var(--app-card)] text-[10px] font-black text-[var(--app-gold-text)]">{index + 1}</span><div className="min-w-0"><div className="flex items-center justify-between gap-2"><span className="truncate text-sm font-bold text-[var(--app-text)]">{item.label}</span><span className="text-xs font-black text-[var(--app-gold-text)] sm:hidden">{formatMAD(item.revenue)}</span></div><div className="mt-1.5 h-2 overflow-hidden rounded-full bg-[var(--app-card)]"><div className="h-full rounded-full bg-gradient-to-r from-[#d4a017] via-[#e8b935] to-[#f7d56c]" style={{ width: `${Math.max(5, Math.round((item.revenue / max) * 100))}%` }} /></div><span className="mt-1 block text-[10px] font-bold text-[var(--app-text-muted)]">{item.plate}</span></div><span className="hidden text-right text-sm font-black text-[var(--app-gold-text)] sm:block">{formatMAD(item.revenue)}</span></div>)}
+      {items.slice(0, 3).map((item, index) => <div key={item.id} className="grid min-w-0 grid-cols-[24px_1fr_auto] items-center gap-2 sm:grid-cols-[28px_1fr_106px]"><span className="grid h-6 w-6 place-items-center rounded-lg bg-[var(--app-card)] text-[10px] font-black text-[var(--app-gold-text)]">{index + 1}</span><div className="min-w-0"><div className="flex items-center justify-between gap-2"><span className="truncate text-sm font-bold text-[var(--app-text)]">{item.label}</span><span className="text-xs font-black text-[var(--app-gold-text)] sm:hidden">{formatMAD(item.revenue)}</span></div><div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--app-card)]"><div className="h-full rounded-full bg-gradient-to-r from-[#d4a017] via-[#e8b935] to-[#f7d56c]" style={{ width: `${Math.max(5, Math.round((item.revenue / max) * 100))}%` }} /></div><span className="mt-1 block text-[10px] font-bold text-[var(--app-text-muted)]">{item.plate}</span></div><span className="hidden text-right text-sm font-black text-[var(--app-gold-text)] sm:block">{formatMAD(item.revenue)}</span></div>)}
     </div>
   );
 }
@@ -501,32 +515,13 @@ export default function ReportsPage() {
 
   return (
     <div className="space-y-3 overflow-x-hidden pb-[calc(108px+env(safe-area-inset-bottom))] md:space-y-6 md:pb-8">
-      <div className="rounded-2xl border border-[var(--app-border)] bg-[linear-gradient(135deg,var(--app-card),var(--app-surface))] p-3 shadow-[0_14px_34px_rgba(16,24,32,.10),inset_0_1px_0_rgba(255,255,255,.06)] md:hidden">
-        <div className="flex items-center justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--app-gold-text)]">COMPTABILITÉ</p>
-            <h1 className="mt-0.5 text-2xl font-black leading-none text-[var(--app-text)]">Rapports</h1>
-            <p className="mt-1 truncate text-xs text-[var(--app-text-muted)]">Rapports financiers depuis vos données réelles.</p>
-          </div>
-          <div className="grid shrink-0 grid-cols-2 gap-2">
-            <Button variant="secondary" className="h-11 rounded-2xl px-3 text-xs" icon={<FileSpreadsheet className="h-4 w-4" />} onClick={exportCsv}>CSV</Button>
-            <Button className="h-11 rounded-2xl px-3 text-xs" icon={<Download className="h-4 w-4" />} loading={pdfExporting} onClick={exportPdf}>PDF</Button>
-          </div>
+      <header className="relative overflow-hidden rounded-3xl border border-[var(--app-border)] bg-[linear-gradient(120deg,var(--app-card),var(--app-surface-soft))] p-5 shadow-[0_18px_50px_rgba(16,24,32,.10),inset_0_1px_0_rgba(255,255,255,.08)] sm:p-7">
+        <div className="pointer-events-none absolute -right-16 -top-20 h-52 w-52 rounded-full bg-gold-300/10 blur-3xl" />
+        <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0"><p className="text-[11px] font-black uppercase tracking-[0.22em] text-[var(--app-gold-text)]">COMPTABILITÉ</p><h1 className="mt-2 text-3xl font-black tracking-tight text-[var(--app-text)] sm:text-4xl">Rapports financiers</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--app-text-muted)] sm:text-base">Analysez vos revenus, paiements, cautions et rentabilité.</p></div>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3"><span className="order-last rounded-full border border-gold-300/25 bg-[var(--app-gold-soft)] px-3 py-2 text-xs font-black text-[var(--app-gold-text)] sm:order-none">{periodLabel(period)}</span><Button variant="secondary" className="h-11 rounded-2xl px-4" icon={<FileSpreadsheet className="h-4 w-4" />} onClick={exportCsv}>CSV</Button><Button className="h-11 rounded-2xl px-4" icon={<Download className="h-4 w-4" />} loading={pdfExporting} onClick={exportPdf}>PDF</Button></div>
         </div>
-      </div>
-      <div className="hidden md:block">
-        <PageHeader
-          eyebrow="Comptabilité"
-          title="Rapports financiers"
-          description="Tableau de bord comptable calculé depuis les données réelles de votre agence."
-          action={
-            <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:flex-wrap">
-              <Button variant="secondary" className="h-11 w-full rounded-2xl sm:w-auto" icon={<FileSpreadsheet className="h-4 w-4" />} onClick={exportCsv}>CSV</Button>
-              <Button className="h-11 w-full rounded-2xl sm:w-auto" icon={<Download className="h-4 w-4" />} loading={pdfExporting} onClick={exportPdf}>PDF</Button>
-            </div>
-          }
-        />
-      </div>
+      </header>
 
       <Card className="overflow-hidden rounded-2xl border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_18px_50px_rgba(0,0,0,.26)] sm:rounded-3xl sm:p-5">
         <div className="grid gap-3 lg:grid-cols-[1fr_auto_auto] lg:items-end">
@@ -571,15 +566,20 @@ export default function ReportsPage() {
         <MobileEmptyBlock icon={TrendingUp} title="Aucune donnée sur cette période" message="Les revenus, réservations et dépenses apparaîtront dès que votre activité commence." />
       ) : null}
 
-      <section className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-4">
-        <MetricCard label="Chiffre d’affaires total" value={formatMAD(report.totalRevenue)} note="Réservations non annulées" icon={TrendingUp} tone="gold" />
-        <MetricCard label="Revenus encaissés" value={formatMAD(report.collectedRevenue)} note="Paiements reçus" icon={WalletCards} tone="green" />
-        <MetricCard label="Paiements en attente" value={formatMAD(report.pendingPayments)} note="Attente et retard" icon={WalletCards} tone="amber" />
-        <MetricCard label="Profit estimé" value={formatMAD(report.estimatedProfit)} note="Encaissé - entretien" icon={Gauge} tone={report.estimatedProfit >= 0 ? 'green' : 'red'} />
-        <MetricCard label="Cautions reçues" value={formatMAD(report.depositsReceived)} note="Période" icon={WalletCards} tone="gold" />
-        <MetricCard label="Cautions à rembourser" value={formatMAD(report.depositsToRefund)} note="Actives/terminées" icon={WalletCards} tone="amber" />
-        <MetricCard label="Dépenses entretien" value={formatMAD(report.maintenanceExpenses)} note="Garage et maintenance" icon={Gauge} tone="red" />
-        <MetricCard label="Paiements en retard" value={formatMAD(report.overdue.reduce((sum, item) => sum + item.amount, 0))} note={`${report.overdue.length} facture(s)`} icon={WalletCards} tone="red" />
+      <section className="space-y-4 sm:space-y-5">
+        <div className="flex items-end justify-between gap-3"><div><p className="text-[11px] font-black uppercase tracking-[0.18em] text-[var(--app-gold-text)]">Vue d’ensemble</p><h2 className="mt-1 text-xl font-black tracking-tight text-[var(--app-text)] sm:text-2xl">Résumé financier</h2></div><p className="hidden text-sm text-[var(--app-text-muted)] sm:block">Les indicateurs essentiels de votre période</p></div>
+        <div className="grid grid-cols-1 gap-3 min-[500px]:grid-cols-2 sm:gap-4 xl:grid-cols-4">
+          <MetricCard primary label="Chiffre d’affaires total" value={formatMAD(report.totalRevenue)} note="Réservations non annulées" icon={TrendingUp} tone="gold" />
+          <MetricCard primary label="Revenus encaissés" value={formatMAD(report.collectedRevenue)} note="Paiements reçus" icon={WalletCards} tone="green" />
+          <MetricCard primary label="Profit estimé" value={formatMAD(report.estimatedProfit)} note="Encaissé - entretien" icon={Gauge} tone={report.estimatedProfit >= 0 ? 'green' : 'red'} />
+          <MetricCard primary label="Paiements en attente" value={formatMAD(report.pendingPayments)} note="Attente et retard" icon={WalletCards} tone="amber" />
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+          <MetricCard label="Cautions reçues" value={formatMAD(report.depositsReceived)} note="Période" icon={WalletCards} tone="gold" />
+          <MetricCard label="Cautions à rembourser" value={formatMAD(report.depositsToRefund)} note="Actives/terminées" icon={WalletCards} tone="amber" />
+          <MetricCard label="Dépenses entretien" value={formatMAD(report.maintenanceExpenses)} note="Garage et maintenance" icon={Gauge} tone="red" />
+          <MetricCard label="Paiements en retard" value={formatMAD(report.overdue.reduce((sum, item) => sum + item.amount, 0))} note={`${report.overdue.length} facture(s)`} icon={WalletCards} tone="red" />
+        </div>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
@@ -604,7 +604,7 @@ export default function ReportsPage() {
             </span>
               <div className="min-w-0"><h2 className="min-w-0 truncate text-lg font-black tracking-tight text-[var(--app-text)] sm:text-xl">Revenus par véhicule</h2><p className="mt-1 text-xs text-[var(--app-text-muted)]">Classement des véhicules générateurs de revenus</p></div>
             </div>
-            <span className="shrink-0 rounded-full bg-[var(--app-surface-soft)] px-2.5 py-1 text-xs font-black text-[var(--app-text-soft)]">Top {Math.min(report.revenueByVehicle.length, 8)}</span>
+            <span className="shrink-0 rounded-full bg-[var(--app-surface-soft)] px-2.5 py-1 text-xs font-black text-[var(--app-text-soft)]">Top {Math.min(report.revenueByVehicle.length, 3)}</span>
           </div>
           <RevenueRankChart items={report.revenueByVehicle} max={maxVehicleRevenue} />
         </Card>
@@ -625,7 +625,7 @@ export default function ReportsPage() {
         {assignedPerformance.length === 0 ? (
           <div className="mt-4 rounded-2xl border border-dashed border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4 text-sm text-[var(--app-text-muted)]">Aucun véhicule assigné à un responsable sur cette période.</div>
         ) : (
-          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          <div className="mt-5 grid gap-4 lg:grid-cols-[minmax(0,1.45fr)_minmax(240px,.75fr)]">
             <div className="space-y-3">
               {assignedPerformance.slice(0, 6).map((item) => {
                 const width = Math.max(4, Math.round((item.revenue / maxResponsibleRevenue) * 100));
