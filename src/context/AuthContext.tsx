@@ -734,12 +734,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (nowMs - lastRevocationCheckRef.current < 2 * 60 * 1000) return;
     lastRevocationCheckRef.current = nowMs;
     try {
-      const { data } = await supabase
-        .from('user_sessions')
-        .select('revoked_at')
-        .eq('user_id', currentUser.id)
-        .eq('session_key', sessionKey)
-        .maybeSingle();
+      const [sessionResult, profileResult] = await Promise.all([
+        supabase
+          .from('user_sessions')
+          .select('revoked_at')
+          .eq('user_id', currentUser.id)
+          .eq('session_key', sessionKey)
+          .maybeSingle(),
+        supabase
+          .from('users_profiles')
+          .select('force_logout_at')
+          .eq('id', currentUser.id)
+          .maybeSingle(),
+      ]);
+      const data = sessionResult.data;
       if (data?.revoked_at) {
         await supabase.auth.signOut();
         localStorage.removeItem(sessionStorageKey);
@@ -749,11 +757,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       const startedAt = getOrCreateSessionStartedAt();
-      const { data: profileRow, error: profileErr } = await supabase
-        .from('users_profiles')
-        .select('force_logout_at')
-        .eq('id', currentUser.id)
-        .maybeSingle();
+      const { data: profileRow, error: profileErr } = profileResult;
       if (!profileErr && profileRow?.force_logout_at && new Date(profileRow.force_logout_at).getTime() > new Date(startedAt).getTime()) {
         await supabase.auth.signOut();
         localStorage.removeItem(sessionStorageKey);
@@ -806,7 +810,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setProfile(nextProfile);
           setProfileLoadError(null);
           if (nextProfile) {
-            await syncSessionActivity(data.session.user, nextProfile);
+            // Activity tracking is non-critical for opening the workspace. It still runs,
+            // but no longer holds the initial route behind its database writes.
+            void syncSessionActivity(data.session.user, nextProfile);
             await checkRevokedSession(data.session.user);
           }
         } else {
@@ -827,6 +833,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, nextSession) => {
+      // getSession above owns the initial profile hydration. Ignoring this mirrored
+      // event prevents the same profile and session checks from running twice.
+      if (event === 'INITIAL_SESSION') return;
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
 
