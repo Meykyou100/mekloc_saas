@@ -19,6 +19,68 @@ export type VehicleStatus = 'Available' | 'Rented' | 'Maintenance' | 'Unavailabl
 export type ReservationStatus = 'Confirmed' | 'Active' | 'Completed' | 'Cancelled';
 export type PaymentStatus = 'Paid' | 'Partial' | 'Pending' | 'Late';
 
+export type AccidentStatus = 'open' | 'declared' | 'expertise' | 'repair_in_progress' | 'waiting_payment' | 'closed' | 'rejected';
+export type AccidentSeverity = 'minor' | 'medium' | 'serious';
+export type AccidentDocumentType = 'photos_degats' | 'constat_amiable' | 'pv_police_gendarmerie' | 'assurance' | 'carte_grise' | 'permis_conducteur' | 'cin_client' | 'devis_garage' | 'facture_reparation' | 'rapport_expert' | 'autre';
+
+export type AccidentDocument = {
+  id: string;
+  agencyId: string;
+  accidentId: string;
+  documentType: AccidentDocumentType;
+  fileName: string;
+  fileUrl: string;
+  storagePath?: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  createdAt?: string;
+};
+
+export type VehicleAccident = {
+  id: string;
+  agencyId?: string | null;
+  vehicleId: string;
+  reservationId?: string;
+  clientId?: string;
+  responsibleUserId?: string;
+  accidentNumber: string;
+  accidentDate: string;
+  accidentLocation?: string;
+  accidentCity?: string;
+  accidentType: 'collision' | 'rayure' | 'bris_glace' | 'panne_accident' | 'vol' | 'incendie' | 'autre';
+  severity: AccidentSeverity;
+  description?: string;
+  vehicleStatusAfter: 'disponible' | 'immobilized' | 'garage' | 'expertise' | 'repaired' | 'total_loss';
+  hasThirdParty: boolean;
+  thirdPartyName?: string;
+  thirdPartyPhone?: string;
+  thirdPartyVehicle?: string;
+  thirdPartyPlate?: string;
+  thirdPartyInsurance?: string;
+  driverName?: string;
+  driverPhone?: string;
+  driverLicense?: string;
+  insuranceCompany?: string;
+  insurancePolicyNumber?: string;
+  declarationNumber?: string;
+  expertName?: string;
+  garageName?: string;
+  garagePhone?: string;
+  estimatedRepairCost: number;
+  finalRepairCost: number;
+  franchiseAmount: number;
+  insuranceRefundAmount: number;
+  clientChargeAmount: number;
+  agencyChargeAmount: number;
+  immobilizationStart?: string;
+  immobilizationEnd?: string;
+  status: AccidentStatus;
+  priority: 'low' | 'normal' | 'urgent';
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type DamageType = 'rayure' | 'cassure' | 'eclat' | 'bosse' | 'peinture' | 'autre';
 export type DamageZone =
   | 'avant'

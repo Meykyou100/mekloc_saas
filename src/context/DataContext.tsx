@@ -6,6 +6,8 @@ import {
   type Contract,
   type ContractStatus,
   type MaintenanceItem,
+  type VehicleAccident,
+  type AccidentDocument,
   type Payment,
   type PaymentStatus,
   type Reservation,
@@ -41,6 +43,8 @@ type DataContextValue = {
   contracts: Contract[];
   payments: Payment[];
   maintenance: MaintenanceItem[];
+  accidents: VehicleAccident[];
+  accidentDocuments: AccidentDocument[];
   refreshData: () => Promise<void>;
   createVehicle: (vehicle: Vehicle) => Promise<Vehicle>;
   updateVehicle: (vehicle: Vehicle) => Promise<Vehicle>;
@@ -61,6 +65,11 @@ type DataContextValue = {
   createMaintenance: (item: MaintenanceItem) => Promise<MaintenanceItem>;
   updateMaintenance: (item: MaintenanceItem) => Promise<MaintenanceItem>;
   deleteMaintenance: (id: string) => Promise<void>;
+  createAccident: (accident: VehicleAccident) => Promise<VehicleAccident>;
+  updateAccident: (accident: VehicleAccident) => Promise<VehicleAccident>;
+  deleteAccident: (id: string) => Promise<void>;
+  uploadAccidentDocument: (accidentId: string, document: AccidentDocument) => Promise<AccidentDocument>;
+  deleteAccidentDocument: (id: string) => Promise<void>;
 };
 
 const DataContext = createContext<DataContextValue | null>(null);
@@ -282,6 +291,22 @@ type MaintenanceRow = {
   invoice_url?: string | null;
   details?: Record<string, string | number | boolean | undefined> | null;
 };
+
+type AccidentRow = Record<string, unknown>;
+type AccidentDocumentRow = Record<string, unknown>;
+
+function mapAccident(row: AccidentRow): VehicleAccident {
+  const get = <T,>(key: string, fallback: T) => (row[key] as T | null | undefined) ?? fallback;
+  return {
+    id: get('id', ''), agencyId: get('agency_id', null), vehicleId: get('vehicle_id', ''), reservationId: get('reservation_id', undefined), clientId: get('client_id', undefined), responsibleUserId: get('responsible_user_id', undefined), accidentNumber: get('accident_number', ''), accidentDate: get('accident_date', ''), accidentLocation: get('accident_location', undefined), accidentCity: get('accident_city', undefined), accidentType: get('accident_type', 'autre') as VehicleAccident['accidentType'], severity: get('severity', 'medium') as VehicleAccident['severity'], description: get('description', undefined), vehicleStatusAfter: get('vehicle_status_after', 'immobilized') as VehicleAccident['vehicleStatusAfter'], hasThirdParty: get('has_third_party', false), thirdPartyName: get('third_party_name', undefined), thirdPartyPhone: get('third_party_phone', undefined), thirdPartyVehicle: get('third_party_vehicle', undefined), thirdPartyPlate: get('third_party_plate', undefined), thirdPartyInsurance: get('third_party_insurance', undefined), driverName: get('driver_name', undefined), driverPhone: get('driver_phone', undefined), driverLicense: get('driver_license', undefined), insuranceCompany: get('insurance_company', undefined), insurancePolicyNumber: get('insurance_policy_number', undefined), declarationNumber: get('declaration_number', undefined), expertName: get('expert_name', undefined), garageName: get('garage_name', undefined), garagePhone: get('garage_phone', undefined), estimatedRepairCost: Number(get('estimated_repair_cost', 0)), finalRepairCost: Number(get('final_repair_cost', 0)), franchiseAmount: Number(get('franchise_amount', 0)), insuranceRefundAmount: Number(get('insurance_refund_amount', 0)), clientChargeAmount: Number(get('client_charge_amount', 0)), agencyChargeAmount: Number(get('agency_charge_amount', 0)), immobilizationStart: get('immobilization_start', undefined), immobilizationEnd: get('immobilization_end', undefined), status: get('status', 'open') as VehicleAccident['status'], priority: get('priority', 'normal') as VehicleAccident['priority'], notes: get('notes', undefined), createdAt: get('created_at', undefined), updatedAt: get('updated_at', undefined),
+  };
+}
+
+function toAccidentRow(accident: VehicleAccident, agencyId: string) {
+  return { agency_id: agencyId, vehicle_id: accident.vehicleId, reservation_id: accident.reservationId || null, client_id: accident.clientId || null, responsible_user_id: accident.responsibleUserId || null, accident_number: sanitizeText(accident.accidentNumber, 40), accident_date: accident.accidentDate, accident_location: sanitizeText(accident.accidentLocation || '', 180) || null, accident_city: sanitizeText(accident.accidentCity || '', 80) || null, accident_type: accident.accidentType, severity: accident.severity, description: sanitizeText(accident.description || '', 3000) || null, vehicle_status_after: accident.vehicleStatusAfter, has_third_party: accident.hasThirdParty, third_party_name: sanitizeText(accident.thirdPartyName || '', 120) || null, third_party_phone: sanitizeText(accident.thirdPartyPhone || '', 40) || null, third_party_vehicle: sanitizeText(accident.thirdPartyVehicle || '', 120) || null, third_party_plate: sanitizeText(accident.thirdPartyPlate || '', 40) || null, third_party_insurance: sanitizeText(accident.thirdPartyInsurance || '', 120) || null, driver_name: sanitizeText(accident.driverName || '', 120) || null, driver_phone: sanitizeText(accident.driverPhone || '', 40) || null, driver_license: sanitizeText(accident.driverLicense || '', 80) || null, insurance_company: sanitizeText(accident.insuranceCompany || '', 120) || null, insurance_policy_number: sanitizeText(accident.insurancePolicyNumber || '', 100) || null, declaration_number: sanitizeText(accident.declarationNumber || '', 100) || null, expert_name: sanitizeText(accident.expertName || '', 120) || null, garage_name: sanitizeText(accident.garageName || '', 120) || null, garage_phone: sanitizeText(accident.garagePhone || '', 40) || null, estimated_repair_cost: accident.estimatedRepairCost || 0, final_repair_cost: accident.finalRepairCost || 0, franchise_amount: accident.franchiseAmount || 0, insurance_refund_amount: accident.insuranceRefundAmount || 0, client_charge_amount: accident.clientChargeAmount || 0, agency_charge_amount: accident.agencyChargeAmount || 0, immobilization_start: accident.immobilizationStart || null, immobilization_end: accident.immobilizationEnd || null, status: accident.status, priority: accident.priority, notes: sanitizeText(accident.notes || '', 3000) || null };
+}
+
+function mapAccidentDocument(row: AccidentDocumentRow): AccidentDocument { return { id: String(row.id || ''), agencyId: String(row.agency_id || ''), accidentId: String(row.accident_id || ''), documentType: row.document_type as AccidentDocument['documentType'], fileName: String(row.file_name || 'Document'), fileUrl: String(row.file_url || ''), storagePath: row.storage_path as string | undefined, mimeType: row.mime_type as string | undefined, sizeBytes: Number(row.size_bytes || 0), createdAt: row.created_at as string | undefined }; }
 
 function vehicleName(vehicle?: Vehicle) {
   return vehicle ? `${vehicle.brand} ${vehicle.model}` : 'Unknown vehicle';
@@ -661,11 +686,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [maintenance, setMaintenance] = useState<MaintenanceItem[]>([]);
+  const [accidents, setAccidents] = useState<VehicleAccident[]>([]);
+  const [accidentDocuments, setAccidentDocuments] = useState<AccidentDocument[]>([]);
   const agencyScopeRef = useRef<string | null>(agencyId);
 
   useEffect(() => {
     agencyScopeRef.current = agencyId;
     setEmptyDataState({ setVehicles, setClients, setReservations, setContracts, setPayments, setMaintenance });
+    setAccidents([]);
+    setAccidentDocuments([]);
   }, [agencyId]);
 
   const refreshData = useCallback(async () => {
@@ -697,6 +726,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         contractsResult,
         paymentsResult,
         maintenanceResult,
+        accidentsResult,
+        accidentDocumentsResult,
       ] = await withDataTimeout(Promise.all([
         canReadVehicles
           ? supabase.from('vehicles').select('*').eq('agency_id', agencyId).order('created_at', { ascending: false })
@@ -715,6 +746,12 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           : Promise.resolve({ data: [], error: null }),
         canReadMaintenance
           ? supabase.from('maintenance').select('*').eq('agency_id', agencyId).order('service_date', { ascending: true })
+          : Promise.resolve({ data: [], error: null }),
+        canReadVehicles
+          ? supabase.from('vehicle_accidents').select('*').eq('agency_id', agencyId).order('accident_date', { ascending: false })
+          : Promise.resolve({ data: [], error: null }),
+        canReadVehicles
+          ? supabase.from('accident_documents').select('*').eq('agency_id', agencyId).order('created_at', { ascending: false })
           : Promise.resolve({ data: [], error: null }),
       ]));
 
@@ -754,6 +791,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
           mapMaintenance(row, vehicleMap.get(row.vehicle_id)),
         ),
       );
+      setAccidents(((accidentsResult.data || []) as AccidentRow[]).map(mapAccident));
+      setAccidentDocuments(((accidentDocumentsResult.data || []) as AccidentDocumentRow[]).map(mapAccidentDocument));
     } finally {
       setLoading(false);
     }
@@ -906,6 +945,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       contracts,
       payments,
       maintenance,
+      accidents,
+      accidentDocuments,
       refreshData,
       createVehicle: async (vehicle) => {
         assertPermission('vehicles');
@@ -1509,6 +1550,44 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }
         setMaintenance((current) => current.filter((item) => item.id !== id));
       },
+      createAccident: async (accident) => {
+        assertPermission('maintenance');
+        if (!hasBackend) { setAccidents((current) => [accident, ...current]); return accident; }
+        const { data, error } = await supabase!.from('vehicle_accidents').insert(toAccidentRow(accident, agencyId!)).select('*').single();
+        if (error) throw error;
+        const next = mapAccident(data as AccidentRow);
+        setAccidents((current) => [next, ...current]);
+        return next;
+      },
+      updateAccident: async (accident) => {
+        assertPermission('maintenance');
+        if (!hasBackend) { setAccidents((current) => current.map((item) => item.id === accident.id ? accident : item)); return accident; }
+        const { data, error } = await supabase!.from('vehicle_accidents').update(toAccidentRow(accident, agencyId!)).eq('id', accident.id).select('*').single();
+        if (error) throw error;
+        const next = mapAccident(data as AccidentRow);
+        setAccidents((current) => current.map((item) => item.id === accident.id ? next : item));
+        return next;
+      },
+      deleteAccident: async (id) => {
+        assertPermission('maintenance');
+        if (hasBackend) { const { error } = await supabase!.from('vehicle_accidents').delete().eq('id', id); if (error) throw error; }
+        setAccidents((current) => current.filter((item) => item.id !== id));
+        setAccidentDocuments((current) => current.filter((item) => item.accidentId !== id));
+      },
+      uploadAccidentDocument: async (accidentId, document) => {
+        assertPermission('maintenance');
+        if (!hasBackend) { setAccidentDocuments((current) => [document, ...current]); return document; }
+        const { data, error } = await supabase!.from('accident_documents').insert({ agency_id: agencyId!, accident_id: accidentId, document_type: document.documentType, file_name: document.fileName, file_url: document.fileUrl, storage_path: document.storagePath || null, mime_type: document.mimeType || null, size_bytes: document.sizeBytes || null }).select('*').single();
+        if (error) throw error;
+        const next = mapAccidentDocument(data as AccidentDocumentRow);
+        setAccidentDocuments((current) => [next, ...current]);
+        return next;
+      },
+      deleteAccidentDocument: async (id) => {
+        assertPermission('maintenance');
+        if (hasBackend) { const { error } = await supabase!.from('accident_documents').delete().eq('id', id); if (error) throw error; }
+        setAccidentDocuments((current) => current.filter((item) => item.id !== id));
+      },
     };
   }, [
     agencyId,
@@ -1517,6 +1596,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     isSupabaseEnabled,
     loading,
     maintenance,
+    accidents,
+    accidentDocuments,
     payments,
     profile?.isSuperAdmin,
     isReadOnly,

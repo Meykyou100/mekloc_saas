@@ -14,6 +14,7 @@ import {
   Settings,
   Users,
   Wrench,
+  TriangleAlert,
   X,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -32,6 +33,7 @@ const navItems = [
   { label: 'Contrats', to: '/contracts', icon: FileSignature, permission: 'contracts' as AppPermission },
   { label: 'Paiements', to: '/payments', icon: CreditCard, permission: 'payments' as AppPermission },
   { label: 'Entretien', to: '/maintenance', icon: Wrench, permission: 'maintenance' as AppPermission },
+  { label: 'Sinistres', to: '/sinistres', icon: TriangleAlert, permission: 'maintenance' as AppPermission },
   { label: 'Rapports', to: '/reports', icon: BarChart3, permission: 'reports' as AppPermission },
   { label: 'Responsables', to: '/responsables', icon: UsersRound, permission: 'reports' as AppPermission },
   { label: 'Paramètres', to: '/settings', icon: Settings, permission: 'settings' as AppPermission },
