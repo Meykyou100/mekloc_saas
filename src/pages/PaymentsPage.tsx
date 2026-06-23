@@ -599,7 +599,7 @@ export default function PaymentsPage() {
           <table className="w-full table-fixed text-left text-sm">
             <thead className="border-b border-[var(--app-border)] text-xs uppercase tracking-wide text-[var(--app-text-muted)]">
               <tr>
-                <th className="w-[12%] px-3 py-4 lg:px-4">Facture</th><th className="w-[15%] px-3 py-4 lg:px-4">Client</th><th className="w-[10%] px-3 py-4 lg:px-4">Montant</th><th className="w-[10%] px-3 py-4 lg:px-4">Payé</th><th className="w-[10%] px-3 py-4 lg:px-4">Reste</th><th className="w-[10%] px-3 py-4 lg:px-4">Échéance</th><th className="w-[8%] px-3 py-4 lg:px-4">Statut</th><th className="w-[25%] px-3 py-4 lg:px-4 text-right">Actions</th>
+                <th className="w-[12%] px-3 py-4 lg:px-4">Facture</th><th className="w-[18%] px-3 py-4 lg:px-4">Client</th><th className="w-[11%] px-3 py-4 lg:px-4">Montant</th><th className="w-[11%] px-3 py-4 lg:px-4">Payé</th><th className="w-[11%] px-3 py-4 lg:px-4">Reste</th><th className="w-[11%] px-3 py-4 lg:px-4">Échéance</th><th className="w-[8%] px-3 py-4 lg:px-4">Statut</th><th className="w-[18%] px-3 py-4 lg:px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--app-border)]">
@@ -609,12 +609,9 @@ export default function PaymentsPage() {
                   <td className="px-3 py-4 lg:px-4"><span className="block break-words font-medium text-[var(--app-text)]">{item.client}</span><span className="mt-1 block truncate text-xs text-[var(--app-text-muted)]">{item.vehicleLabel}</span></td>
                   <td className="px-3 py-4 font-semibold lg:px-4">{formatMAD(item.total)}</td><td className="px-3 py-4 font-semibold text-emerald-700 dark:text-emerald-200 lg:px-4">{formatMAD(item.paid)}</td><td className="px-3 py-4 font-semibold text-[var(--app-gold-text)] lg:px-4">{formatMAD(item.remaining)}</td><td className="px-3 py-4 lg:px-4">{item.dueDate}</td><td className="px-3 py-4 lg:px-4"><Badge>{item.statusFr}</Badge></td>
                   <td className="px-3 py-4 lg:px-4">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button variant="secondary" aria-label="Voir le détail" title="Voir le détail" className="h-8 min-h-0 w-8 shrink-0 rounded-lg !px-0 !py-0 [&>span]:hidden" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setDetailPaymentId(item.id)} />
-                      <Button aria-label="Ajouter un paiement" title="Ajouter un paiement" className="h-8 min-h-0 w-8 shrink-0 rounded-lg !px-0 !py-0 [&>span]:hidden" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => openPaymentModalForRow(item)} />
-                      <Button variant="ghost" aria-label="Télécharger le reçu" title="Télécharger le reçu" className="h-8 min-h-0 w-8 shrink-0 rounded-lg border-[var(--app-border)] bg-[var(--app-card)] !px-0 !py-0 [&>span]:hidden" icon={<Download className="h-3.5 w-3.5" />} onClick={() => downloadReceipt(item)} />
-                      <Button variant="ghost" aria-label={item.remaining <= 0 ? 'Paiement soldé' : 'Envoyer un rappel'} title={item.remaining <= 0 ? 'Paiement soldé' : 'Envoyer un rappel'} className="h-8 min-h-0 w-8 shrink-0 rounded-lg border-[var(--app-border)] bg-[var(--app-card)] !px-0 !py-0 [&>span]:hidden" icon={<MessageCircle className="h-3.5 w-3.5" />} disabled={item.remaining <= 0} onClick={() => setReminderPaymentId(item.id)} />
-                      <Button variant="danger" aria-label="Supprimer le paiement" title="Supprimer le paiement" className="h-8 min-h-0 w-8 shrink-0 rounded-lg !px-0 !py-0 [&>span]:hidden" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setPaymentToDelete(item)} />
+                    <div className="flex items-center justify-end gap-2">
+                      <Button variant="secondary" className="h-9 min-h-0 shrink-0 rounded-xl px-3 text-xs font-bold" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setDetailPaymentId(item.id)}>Voir</Button>
+                      <Button className="h-9 min-h-0 shrink-0 rounded-xl px-3 text-xs font-bold" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => openPaymentModalForRow(item)}>Ajouter</Button>
                     </div>
                   </td>
                 </tr>
