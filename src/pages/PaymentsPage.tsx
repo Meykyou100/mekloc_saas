@@ -1,4 +1,4 @@
-import { Copy, Download, Eye, MessageCircle, Plus, Search, Trash2 } from 'lucide-react';
+import { Banknote, CircleAlert, Copy, CreditCard, Download, Eye, FileText, MessageCircle, Plus, Search, Trash2 } from 'lucide-react';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import jsPDF from 'jspdf';
 import Badge from '../components/ui/Badge';
@@ -223,10 +223,29 @@ export default function PaymentsPage() {
     return matchesFilter && methodHit && haystack.includes(query.toLowerCase());
   }), [enriched, filter, methodFilter, query]);
 
-  const totalFacture = enriched.reduce((s, i) => s + i.total, 0);
-  const totalEncaisse = enriched.reduce((s, i) => s + i.paid, 0);
-  const soldeOuvert = Math.max(0, totalFacture - totalEncaisse);
-  const enRetard = enriched.filter((i) => i.statusFr === 'En retard').length;
+  const paymentAnalytics = useMemo(() => {
+    const totalFacture = enriched.reduce((sum, item) => sum + item.total, 0);
+    const totalEncaisse = enriched.reduce((sum, item) => sum + item.paid, 0);
+    const statusCounts = { 'Payé': 0, Partiel: 0, 'En attente': 0, 'En retard': 0 };
+    const methodCounts: Record<Payment['method'], number> = { Cash: 0, 'Bank transfer': 0, Card: 0 };
+
+    enriched.forEach((item) => {
+      statusCounts[item.statusFr] += 1;
+      methodCounts[item.method] += 1;
+    });
+
+    return {
+      totalFacture,
+      totalEncaisse,
+      soldeOuvert: Math.max(0, totalFacture - totalEncaisse),
+      enRetard: statusCounts['En retard'],
+      collectionRate: totalFacture > 0 ? Math.round((totalEncaisse / totalFacture) * 100) : 0,
+      statusCounts,
+      methodCounts,
+      recentPayments: enriched.slice(0, 4),
+    };
+  }, [enriched]);
+  const { totalFacture, totalEncaisse, soldeOuvert, enRetard, collectionRate, statusCounts, methodCounts, recentPayments } = paymentAnalytics;
   const detailPayment = detailPaymentId ? enriched.find((item) => item.id === detailPaymentId) || null : null;
   const reminderPayment = reminderPaymentId ? enriched.find((item) => item.id === reminderPaymentId) || null : null;
 
@@ -504,16 +523,16 @@ export default function PaymentsPage() {
         />
       </div>
 
-      <div className="no-scrollbar -mx-4 mb-3 flex gap-2.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 md:mb-0 md:grid-cols-4 md:gap-4">
+      <div className="mb-5 grid grid-cols-2 gap-3 md:mb-6 md:grid-cols-4 md:gap-4">
         {[
-          { label: 'Total facturé', value: formatMAD(totalFacture), helper: 'Factures', icon: Download, tone: 'gold' },
-          { label: 'Total encaissé', value: formatMAD(totalEncaisse), helper: 'Reçus', icon: Download, tone: 'green' },
-          { label: 'Solde ouvert', value: formatMAD(soldeOuvert), helper: 'À encaisser', icon: Download, tone: 'amber' },
-          { label: 'En retard', value: String(enRetard), helper: 'Relance', icon: MessageCircle, tone: 'red' },
+          { label: 'Total facturé', value: formatMAD(totalFacture), helper: 'Montant des factures', icon: FileText, tone: 'gold' },
+          { label: 'Total encaissé', value: formatMAD(totalEncaisse), helper: `${collectionRate}% encaissé`, icon: Banknote, tone: 'green' },
+          { label: 'Solde ouvert', value: formatMAD(soldeOuvert), helper: 'À encaisser', icon: CreditCard, tone: 'amber' },
+          { label: 'En retard', value: String(enRetard), helper: enRetard === 1 ? 'Relance nécessaire' : 'Relances nécessaires', icon: CircleAlert, tone: 'red' },
         ].map(({ label, value, helper, icon: Icon, tone }) => (
           <div
             key={label}
-            className="relative min-h-[112px] min-w-[168px] overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_14px_34px_rgba(16,24,32,.10),inset_0_1px_0_rgba(255,255,255,.06)] transition duration-300 hover:-translate-y-0.5 hover:border-gold-300/30 sm:min-w-0 md:min-h-[112px] md:rounded-3xl md:p-4"
+            className="relative min-h-[126px] overflow-hidden rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3 shadow-[0_14px_34px_rgba(16,24,32,.10),inset_0_1px_0_rgba(255,255,255,.06)] transition duration-300 hover:-translate-y-0.5 hover:border-gold-300/30 md:min-h-[132px] md:rounded-3xl md:p-4"
           >
             <div className={`pointer-events-none absolute inset-x-0 top-0 h-0.5 ${
               tone === 'green'
@@ -527,7 +546,7 @@ export default function PaymentsPage() {
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="whitespace-normal text-[10px] font-black uppercase leading-3 tracking-[0.12em] text-[var(--app-text-muted)]">{label}</p>
-                <p className="mt-2 break-words text-[1.05rem] font-black leading-tight text-[var(--app-text)] md:text-xl">{value}</p>
+                <p className="mt-2 break-words text-base font-black leading-tight text-[var(--app-text)] md:text-xl">{value}</p>
               </div>
               <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl border md:h-10 md:w-10 md:rounded-2xl ${
                 tone === 'green'
@@ -546,7 +565,9 @@ export default function PaymentsPage() {
         ))}
       </div>
 
-      <Card className="mt-3 p-3 md:mt-6 md:p-4">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_310px] xl:items-start xl:gap-6">
+        <div className="min-w-0">
+      <Card className="p-3 md:p-4">
         <div className="grid gap-2.5 md:grid-cols-[1fr_auto_auto] md:gap-3">
           <label className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--app-text-muted)]" />
@@ -573,7 +594,7 @@ export default function PaymentsPage() {
         </Card>
       ) : null}
 
-      <Card className={`mt-6 hidden overflow-hidden md:block ${filtered.length === 0 ? 'hidden' : ''}`}>
+      <Card className={`mt-5 hidden overflow-hidden md:block ${filtered.length === 0 ? 'hidden' : ''}`}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[1240px] text-left text-sm">
             <thead className="border-b border-[var(--app-border)] text-xs uppercase tracking-wide text-[var(--app-text-muted)]">
@@ -640,6 +661,63 @@ export default function PaymentsPage() {
             </div>
           </Card>
         ))}
+      </div>
+        </div>
+
+        <aside className="grid content-start gap-4">
+          <Card className="overflow-hidden p-4 md:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--app-gold-text)]">Aperçu rapide</p>
+                <h2 className="mt-1 text-lg font-black text-[var(--app-text)]">Encaissements</h2>
+              </div>
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-gold-300/25 bg-gold-400/10 text-[var(--app-gold-text)]"><Banknote className="h-5 w-5" /></span>
+            </div>
+            <div className="mt-5 flex items-end justify-between gap-4">
+              <div><p className="text-3xl font-black tracking-tight text-[var(--app-text)]">{collectionRate}%</p><p className="mt-1 text-xs text-[var(--app-text-muted)]">Taux d’encaissement</p></div>
+              <p className="text-right text-xs font-bold text-[var(--app-text-soft)]">{formatMAD(totalEncaisse)}<br /><span className="font-medium text-[var(--app-text-muted)]">sur {formatMAD(totalFacture)}</span></p>
+            </div>
+            <div className="mt-4 h-2.5 overflow-hidden rounded-full bg-[var(--app-surface-soft)]"><div className="h-full rounded-full bg-gradient-to-r from-gold-300 via-gold-400 to-amber-400" style={{ width: `${collectionRate}%` }} /></div>
+          </Card>
+
+          <Card className="p-4 md:p-5">
+            <p className="text-sm font-black text-[var(--app-text)]">Répartition par statut</p>
+            <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-[var(--app-surface-soft)]">
+              {[
+                { key: 'Payé' as const, color: 'bg-emerald-400' },
+                { key: 'Partiel' as const, color: 'bg-gold-400' },
+                { key: 'En attente' as const, color: 'bg-slate-400' },
+                { key: 'En retard' as const, color: 'bg-rose-400' },
+              ].map(({ key, color }) => <span key={key} className={color} style={{ width: `${enriched.length ? (statusCounts[key] / enriched.length) * 100 : 0}%` }} />)}
+            </div>
+            <div className="mt-4 grid gap-2 text-sm">
+              {[
+                { key: 'Payé' as const, color: 'bg-emerald-400' },
+                { key: 'Partiel' as const, color: 'bg-gold-400' },
+                { key: 'En attente' as const, color: 'bg-slate-400' },
+                { key: 'En retard' as const, color: 'bg-rose-400' },
+              ].map(({ key, color }) => <div key={key} className="flex items-center justify-between gap-3"><span className="flex items-center gap-2 text-[var(--app-text-soft)]"><i className={`h-2 w-2 rounded-full ${color}`} />{key}</span><strong className="text-[var(--app-text)]">{statusCounts[key]}</strong></div>)}
+            </div>
+          </Card>
+
+          <Card className="p-4 md:p-5">
+            <p className="text-sm font-black text-[var(--app-text)]">Méthodes de paiement</p>
+            <div className="mt-4 grid gap-3">
+              {(['Cash', 'Bank transfer', 'Card'] as const).map((method) => {
+                const count = methodCounts[method];
+                const percent = enriched.length ? Math.round((count / enriched.length) * 100) : 0;
+                return <div key={method}><div className="flex justify-between gap-3 text-xs"><span className="font-semibold text-[var(--app-text-soft)]">{methodFr(method)}</span><span className="font-bold text-[var(--app-text)]">{count} ({percent}%)</span></div><div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-[var(--app-surface-soft)]"><div className="h-full rounded-full bg-gold-400" style={{ width: `${percent}%` }} /></div></div>;
+              })}
+            </div>
+          </Card>
+
+          <Card className="p-4 md:p-5">
+            <div className="flex items-center justify-between gap-3"><p className="text-sm font-black text-[var(--app-text)]">Derniers paiements</p><span className="text-xs font-semibold text-[var(--app-text-muted)]">{recentPayments.length}</span></div>
+            <div className="mt-3 grid gap-2">
+              {recentPayments.length ? recentPayments.map((item) => <button type="button" key={item.id} onClick={() => setDetailPaymentId(item.id)} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-3 text-left transition hover:border-gold-300/30 hover:bg-[var(--app-card)]"><div className="min-w-0"><p className="truncate text-xs font-black text-[var(--app-text)]">{item.invoice}</p><p className="mt-0.5 truncate text-xs text-[var(--app-text-muted)]">{item.client}</p></div><div className="shrink-0 text-right"><p className="text-xs font-black text-[var(--app-text)]">{formatMAD(item.paid)}</p><p className="mt-0.5 text-[10px] text-[var(--app-text-muted)]">{item.dueDate}</p></div></button>) : <p className="py-2 text-sm text-[var(--app-text-muted)]">Aucun paiement à afficher.</p>}
+            </div>
+          </Card>
+        </aside>
       </div>
 
       <Modal open={modalOpen} onClose={() => setModalOpen(false)} title="Ajouter un paiement">
