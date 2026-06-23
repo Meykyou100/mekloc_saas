@@ -274,10 +274,10 @@ export default function MaintenancePage() {
   return <div>
     <PageHeader eyebrow="Opérations flotte" title="Entretien" description="Suivez les interventions, les coûts, les échéances et l’historique des véhicules." action={<Button onClick={openCreate}>Ajouter un entretien</Button>} />
     <div className="grid grid-cols-2 gap-2 sm:gap-4 md:grid-cols-4">
-      <Card className="min-h-[96px] bg-gradient-to-br from-zinc-950/95 to-black/70 p-3 sm:min-h-[104px] sm:p-4"><p className="line-clamp-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-carbon-400 sm:text-xs">Rappels assurance</p><p className="mt-2 truncate text-2xl font-black sm:text-2xl">{insuranceReminders}</p></Card>
-      <Card className="min-h-[96px] bg-gradient-to-br from-zinc-950/95 to-black/70 p-3 sm:min-h-[104px] sm:p-4"><p className="line-clamp-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-carbon-400 sm:text-xs">Rappels vidange</p><p className="mt-2 truncate text-2xl font-black sm:text-2xl">{oilReminders}</p></Card>
-      <Card className="min-h-[96px] bg-gradient-to-br from-zinc-950/95 to-black/70 p-3 sm:min-h-[104px] sm:p-4"><p className="line-clamp-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-carbon-400 sm:text-xs">Visites techniques</p><p className="mt-2 truncate text-2xl font-black sm:text-2xl">{inspectionReminders}</p></Card>
-      <Card className="min-h-[96px] bg-gradient-to-br from-zinc-950/95 to-black/70 p-3 sm:min-h-[104px] sm:p-4"><p className="line-clamp-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-carbon-400 sm:text-xs">Coût ce mois</p><p className="mt-2 truncate text-2xl font-black text-gold-200 sm:text-2xl">{formatMAD(monthlyCost)}</p></Card>
+      <Card className="min-h-[96px] bg-[linear-gradient(135deg,var(--app-card),var(--app-surface-soft))] p-3 sm:min-h-[104px] sm:p-4"><p className="line-clamp-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--app-text-muted)] sm:text-xs">Rappels assurance</p><p className="mt-2 truncate text-2xl font-black text-[var(--app-text)] sm:text-2xl">{insuranceReminders}</p></Card>
+      <Card className="min-h-[96px] bg-[linear-gradient(135deg,var(--app-card),var(--app-surface-soft))] p-3 sm:min-h-[104px] sm:p-4"><p className="line-clamp-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--app-text-muted)] sm:text-xs">Rappels vidange</p><p className="mt-2 truncate text-2xl font-black text-[var(--app-text)] sm:text-2xl">{oilReminders}</p></Card>
+      <Card className="min-h-[96px] bg-[linear-gradient(135deg,var(--app-card),var(--app-surface-soft))] p-3 sm:min-h-[104px] sm:p-4"><p className="line-clamp-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--app-text-muted)] sm:text-xs">Visites techniques</p><p className="mt-2 truncate text-2xl font-black text-[var(--app-text)] sm:text-2xl">{inspectionReminders}</p></Card>
+      <Card className="min-h-[96px] bg-[linear-gradient(135deg,var(--app-card),var(--app-gold-soft))] p-3 sm:min-h-[104px] sm:p-4"><p className="line-clamp-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--app-text-muted)] sm:text-xs">Coût ce mois</p><p className="mt-2 truncate text-2xl font-black text-[var(--app-gold-text)] sm:text-2xl">{formatMAD(monthlyCost)}</p></Card>
     </div>
     <Card className="mt-6 p-4 sm:p-5">
       <div className="mb-4 grid gap-3 sm:flex sm:items-center sm:justify-between">
@@ -290,14 +290,14 @@ export default function MaintenancePage() {
       <div className="grid gap-3">{filtered.map((item) => <div key={item.id} className="premium-surface rounded-2xl p-4">
         <div className="grid gap-3 sm:flex sm:items-start sm:justify-between sm:gap-4">
           <div><p className="font-semibold">{item.vehicle} {item.plate ? <>· <PlateNumber value={item.plate} /></> : ''}</p><p className="mt-1 text-sm text-carbon-400">{item.serviceType} · Dernière intervention : {item.lastServiceDate} · Prochaine échéance : {item.nextServiceDate}</p><p className="mt-1 text-sm text-carbon-400">Kilométrage {item.currentMileage.toLocaleString()} km · Prochain contrôle {item.nextServiceMileage.toLocaleString()} km</p></div>
-          <div className="flex items-center justify-between gap-3 sm:block sm:text-right"><Badge>{item.status}</Badge><p className="font-semibold text-gold-200 sm:mt-2">{formatMAD(item.cost)}</p></div>
+          <div className="flex items-center justify-between gap-3 sm:block sm:text-right"><Badge>{item.status}</Badge><p className="font-semibold text-[var(--app-gold-text)] sm:mt-2">{formatMAD(item.cost)}</p></div>
         </div>
         {item.details && Object.keys(item.details).length ? (
           <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {Object.entries(item.details).filter(([, value]) => value !== '' && value !== undefined && value !== null).slice(0, 6).map(([key, value]) => (
-              <div key={key} className="rounded-xl border border-white/10 bg-black/10 px-3 py-2">
-                <p className="text-[11px] uppercase tracking-[0.12em] text-carbon-500">{detailLabels[key] || key}</p>
-                <p className="mt-1 truncate text-sm text-carbon-200 light:text-carbon-700">{formatDetailValue(value)}</p>
+              <div key={key} className="rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] px-3 py-2">
+                <p className="text-[11px] uppercase tracking-[0.12em] text-[var(--app-text-muted)]">{detailLabels[key] || key}</p>
+                <p className="mt-1 truncate text-sm text-[var(--app-text-soft)]">{formatDetailValue(value)}</p>
               </div>
             ))}
           </div>
@@ -312,35 +312,35 @@ export default function MaintenancePage() {
     </Card>
     <Modal open={open} onClose={() => setOpen(false)} title={editing ? 'Modifier l’entretien' : 'Ajouter un entretien'}>
       <div className="grid max-h-[72vh] gap-4 overflow-y-auto pr-1">
-        <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gold-200">Véhicule & service</h3>
+        <section className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
+          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[var(--app-gold-text)]">Véhicule & service</h3>
           <div className="grid gap-4 md:grid-cols-2">
             <SelectField label="Véhicule *" value={form.vehicleId} onChange={(e) => setForm((c) => ({ ...c, vehicleId: e.target.value }))}><option value="">Choisir un véhicule</option>{vehicles.map((v) => <option key={v.id} value={v.id}>{v.brand} {v.model} · {v.plate}</option>)}</SelectField>
             <SelectField label="Type de service *" value={form.serviceType} onChange={(e) => setForm((c) => ({ ...c, serviceType: e.target.value as MaintenanceItem['serviceType'], details: {} }))}>{SERVICE_TYPES.map((s) => <option key={s} value={s}>{s}</option>)}</SelectField>
           </div>
           {selectedFormVehicle ? (
-            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-white/10 bg-black/15 p-3">
-              <div className="grid h-14 w-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-white/[0.04]">
-                {selectedFormVehicle.imageUrl ? <img src={selectedFormVehicle.imageUrl} alt={`${selectedFormVehicle.brand} ${selectedFormVehicle.model}`} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : <Car className="h-6 w-6 text-carbon-400" />}
+            <div className="mt-4 flex items-center gap-3 rounded-2xl border border-[var(--app-border)] bg-[var(--app-card)] p-3">
+              <div className="grid h-14 w-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-[var(--app-surface)]">
+                {selectedFormVehicle.imageUrl ? <img src={selectedFormVehicle.imageUrl} alt={`${selectedFormVehicle.brand} ${selectedFormVehicle.model}`} loading="lazy" decoding="async" className="h-full w-full object-cover" /> : <Car className="h-6 w-6 text-[var(--app-text-muted)]" />}
               </div>
               <div className="min-w-0">
-                <p className="truncate font-semibold text-white light:text-carbon-950">{selectedFormVehicle.brand} {selectedFormVehicle.model}</p>
-                <p className="mt-1 text-sm text-carbon-400"><PlateNumber value={selectedFormVehicle.plate} /> · {selectedFormVehicle.mileage.toLocaleString()} km</p>
+                <p className="truncate font-semibold text-[var(--app-text)]">{selectedFormVehicle.brand} {selectedFormVehicle.model}</p>
+                <p className="mt-1 text-sm text-[var(--app-text-muted)]"><PlateNumber value={selectedFormVehicle.plate} /> · {selectedFormVehicle.mileage.toLocaleString()} km</p>
               </div>
               <Badge>{selectedFormVehicle.status}</Badge>
             </div>
           ) : null}
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gold-200">Détails {form.serviceType}</h3>
+        <section className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
+          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[var(--app-gold-text)]">Détails {form.serviceType}</h3>
           <div className="grid gap-4 md:grid-cols-2">
             {renderServiceDetails()}
           </div>
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gold-200">Dates & kilométrage</h3>
+        <section className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
+          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[var(--app-gold-text)]">Dates & kilométrage</h3>
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Dernière intervention *" type="date" value={form.lastServiceDate} onChange={(e) => setForm((c) => ({ ...c, lastServiceDate: e.target.value }))} />
             <Field label="Prochaine échéance *" type="date" value={form.nextServiceDate} onChange={(e) => setForm((c) => ({ ...c, nextServiceDate: e.target.value }))} />
@@ -351,33 +351,33 @@ export default function MaintenancePage() {
           </div>
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gold-200">Coût & garage</h3>
+        <section className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
+          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[var(--app-gold-text)]">Coût & garage</h3>
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="Coût (MAD) *" type="number" min="0" step="0.01" value={form.cost} onChange={(e) => setForm((c) => ({ ...c, cost: e.target.value }))} />
             <Field label="Garage / prestataire" value={form.providerName} onChange={(e) => setForm((c) => ({ ...c, providerName: e.target.value }))} />
           </div>
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gold-200">Facture / photo</h3>
-          <div className="rounded-2xl border border-dashed border-white/20 bg-black/15 p-4">
+        <section className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
+          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[var(--app-gold-text)]">Facture / photo</h3>
+          <div className="rounded-2xl border border-dashed border-[var(--app-border)] bg-[var(--app-card)] p-4">
             <div className="mb-3 flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-gold-400/15 text-gold-200">
+              <div className="grid h-10 w-10 place-items-center rounded-xl border border-gold-300/25 bg-gold-400/15 text-[var(--app-gold-text)]">
                 <ImagePlus className="h-5 w-5" />
               </div>
               <div>
-                <p className="font-semibold text-white light:text-carbon-950">Justificatif optionnel</p>
-                <p className="text-xs text-carbon-400">Ajoutez un lien vers une facture ou une photo déjà hébergée.</p>
+                <p className="font-semibold text-[var(--app-text)]">Justificatif optionnel</p>
+                <p className="text-xs text-[var(--app-text-muted)]">Ajoutez un lien vers une facture ou une photo déjà hébergée.</p>
               </div>
-              <Camera className="ml-auto h-5 w-5 text-carbon-500" />
+              <Camera className="ml-auto h-5 w-5 text-[var(--app-text-muted)]" />
             </div>
             <Field label="Lien facture ou photo" value={form.invoiceUrl || ''} placeholder="https://..." onChange={(e) => setForm((c) => ({ ...c, invoiceUrl: e.target.value }))} />
           </div>
         </section>
 
-        <section className="rounded-2xl border border-white/10 bg-white/[0.025] p-4">
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gold-200">Notes</h3>
+        <section className="rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-4">
+          <h3 className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-[var(--app-gold-text)]">Notes</h3>
           <TextAreaField label="Observations" value={form.notes} onChange={(e) => setForm((c) => ({ ...c, notes: e.target.value }))} />
         </section>
       </div>
