@@ -595,30 +595,26 @@ export default function PaymentsPage() {
       ) : null}
 
       <Card className={`mt-5 hidden overflow-hidden md:block ${filtered.length === 0 ? 'hidden' : ''}`}>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[1240px] text-left text-sm">
+        <div>
+          <table className="w-full table-fixed text-left text-sm">
             <thead className="border-b border-[var(--app-border)] text-xs uppercase tracking-wide text-[var(--app-text-muted)]">
               <tr>
-                <th className="px-5 py-4">Facture</th><th className="px-5 py-4">Client</th><th className="px-5 py-4">Véhicule</th><th className="px-5 py-4">Réservation</th><th className="px-5 py-4">Montant</th><th className="px-5 py-4">Payé</th><th className="px-5 py-4">Reste</th><th className="px-5 py-4">Échéance</th><th className="px-5 py-4">Méthode</th><th className="px-5 py-4">Statut</th><th className="px-5 py-4 min-w-[310px]">Actions</th>
+                <th className="w-[12%] px-3 py-4 lg:px-4">Facture</th><th className="w-[15%] px-3 py-4 lg:px-4">Client</th><th className="w-[10%] px-3 py-4 lg:px-4">Montant</th><th className="w-[10%] px-3 py-4 lg:px-4">Payé</th><th className="w-[10%] px-3 py-4 lg:px-4">Reste</th><th className="w-[10%] px-3 py-4 lg:px-4">Échéance</th><th className="w-[8%] px-3 py-4 lg:px-4">Statut</th><th className="w-[25%] px-3 py-4 lg:px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--app-border)]">
               {filtered.map((item) => (
                 <tr key={item.id} className="hover:bg-[var(--app-surface-soft)]">
-                  <td className="px-5 py-4 font-semibold">{item.invoice}</td><td className="px-5 py-4">{item.client}</td><td className="px-5 py-4">{item.vehicleLabel}</td><td className="px-5 py-4">{item.reservationCode}</td><td className="px-5 py-4">{formatMAD(item.total)}</td><td className="px-5 py-4">{formatMAD(item.paid)}</td><td className="px-5 py-4">{formatMAD(item.remaining)}</td><td className="px-5 py-4">{item.dueDate}</td><td className="px-5 py-4">{item.method}</td><td className="px-5 py-4"><Badge>{item.statusFr}</Badge></td>
-                  <td className="px-5 py-4 align-top">
-                    <div className="w-[310px] rounded-2xl border border-[var(--app-border)] bg-[var(--app-surface-soft)] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,.04)]">
-                      <div className="grid grid-cols-2 gap-1.5">
-                        <Button variant="secondary" className="h-9 min-w-0 rounded-xl px-2.5 text-xs font-black" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setDetailPaymentId(item.id)}>Voir</Button>
-                        <Button className="h-9 min-w-0 rounded-xl px-2.5 text-xs font-black" onClick={() => openPaymentModalForRow(item)}>Ajouter</Button>
-                      </div>
-                      <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-                        <Button variant="ghost" className="h-9 min-w-0 rounded-xl border-[var(--app-border)] bg-[var(--app-card)] px-2.5 text-xs" icon={<Download className="h-3.5 w-3.5" />} onClick={() => downloadReceipt(item)}>Reçu</Button>
-                        <Button variant="ghost" className="h-9 min-w-0 rounded-xl border-[var(--app-border)] bg-[var(--app-card)] px-2.5 text-xs" icon={<MessageCircle className="h-3.5 w-3.5" />} disabled={item.remaining <= 0} onClick={() => setReminderPaymentId(item.id)}>
-                          {item.remaining <= 0 ? 'Soldé' : 'Rappel'}
-                        </Button>
-                      </div>
-                      <Button variant="danger" className="mt-1.5 h-9 w-full rounded-xl px-2.5 text-xs" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setPaymentToDelete(item)}>Supprimer</Button>
+                  <td className="px-3 py-4 font-semibold lg:px-4"><span className="block break-words">{item.invoice}</span><span className="mt-1 block truncate text-xs font-medium text-[var(--app-text-muted)]">{item.reservationCode}</span></td>
+                  <td className="px-3 py-4 lg:px-4"><span className="block break-words font-medium text-[var(--app-text)]">{item.client}</span><span className="mt-1 block truncate text-xs text-[var(--app-text-muted)]">{item.vehicleLabel}</span></td>
+                  <td className="px-3 py-4 font-semibold lg:px-4">{formatMAD(item.total)}</td><td className="px-3 py-4 font-semibold text-emerald-700 dark:text-emerald-200 lg:px-4">{formatMAD(item.paid)}</td><td className="px-3 py-4 font-semibold text-[var(--app-gold-text)] lg:px-4">{formatMAD(item.remaining)}</td><td className="px-3 py-4 lg:px-4">{item.dueDate}</td><td className="px-3 py-4 lg:px-4"><Badge>{item.statusFr}</Badge></td>
+                  <td className="px-3 py-4 lg:px-4">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button variant="secondary" aria-label="Voir le détail" title="Voir le détail" className="h-8 min-h-0 w-8 shrink-0 rounded-lg !px-0 !py-0 [&>span]:hidden" icon={<Eye className="h-3.5 w-3.5" />} onClick={() => setDetailPaymentId(item.id)} />
+                      <Button aria-label="Ajouter un paiement" title="Ajouter un paiement" className="h-8 min-h-0 w-8 shrink-0 rounded-lg !px-0 !py-0 [&>span]:hidden" icon={<Plus className="h-3.5 w-3.5" />} onClick={() => openPaymentModalForRow(item)} />
+                      <Button variant="ghost" aria-label="Télécharger le reçu" title="Télécharger le reçu" className="h-8 min-h-0 w-8 shrink-0 rounded-lg border-[var(--app-border)] bg-[var(--app-card)] !px-0 !py-0 [&>span]:hidden" icon={<Download className="h-3.5 w-3.5" />} onClick={() => downloadReceipt(item)} />
+                      <Button variant="ghost" aria-label={item.remaining <= 0 ? 'Paiement soldé' : 'Envoyer un rappel'} title={item.remaining <= 0 ? 'Paiement soldé' : 'Envoyer un rappel'} className="h-8 min-h-0 w-8 shrink-0 rounded-lg border-[var(--app-border)] bg-[var(--app-card)] !px-0 !py-0 [&>span]:hidden" icon={<MessageCircle className="h-3.5 w-3.5" />} disabled={item.remaining <= 0} onClick={() => setReminderPaymentId(item.id)} />
+                      <Button variant="danger" aria-label="Supprimer le paiement" title="Supprimer le paiement" className="h-8 min-h-0 w-8 shrink-0 rounded-lg !px-0 !py-0 [&>span]:hidden" icon={<Trash2 className="h-3.5 w-3.5" />} onClick={() => setPaymentToDelete(item)} />
                     </div>
                   </td>
                 </tr>
